@@ -11,3 +11,5 @@ Key functionality include:
 * A task can have one or more sub tasks, and so can sub tasks.
 * Non intrusive reminders
 * Local storage (no central server)
+
+[To get started](eTodo/priv/www/doc/eTodo.html)
