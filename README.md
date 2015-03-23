@@ -12,4 +12,4 @@ Key functionality include:
 * Non intrusive reminders
 * Local storage (no central server)
 
-[To get started](eTodo/priv/www/doc/eTodo.html)
+[To get started](https://rawgit.com/miby00/eTodo/master/eTodo/priv/www/doc/eTodo.html)
