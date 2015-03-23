@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=eTodo
+Comment=A todo manager written in erlang
+Exec=gnome-terminal -e "./updateAndStartETodo.sh"
+Icon=/home/username/dir/eTodo/priv/Icons/eTodo.png
+Path=/home/username/dir/eTodo/priv
+X-Desktop-File-Install-Version=0.20

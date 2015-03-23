@@ -1,0 +1,613 @@
+body {
+    font-size: 1.0em;
+    color: DarkBlue;
+    font-family: Ubuntu, sans-serif;
+}
+
+select {
+    -webkit-appearance: menulist-button;
+}
+
+input, select, textarea {
+    font-size: 1.0em;
+    color: DarkBlue;
+    font-family: Ubuntu, sans-serif;
+}
+
+td {
+    height: 1.5em;
+}
+
+#createTodo {
+    margin: 3%;
+}
+
+#message {
+    margin: 3%;
+}
+
+#footer {
+    width: 96%;
+    height: 2em;
+}
+
+#container {
+    width: 100%;
+}
+
+#tableHeader {
+    background: url("/priv/Icons/bg.png") repeat-x top left;
+    background-size: 1em 6em;
+}
+
+table {
+    padding: 0.5% 0.5%;
+    margin: 0.5%;
+    border: 1px solid #e8edff;
+    -moz-border-radius: 6px;
+    -webkit-border-radius: 6px;
+    border-radius: 6px;
+    width: 99%;
+
+    background: rgb(193, 206, 255); /* Old browsers */
+    /* IE9 SVG, needs conditional override of 'filter' to 'none' */
+    background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2MxY2VmZiIgc3RvcC1vcGFjaXR5PSIxIi8+CiAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM5OGFlZmUiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
+    background: -moz-linear-gradient(top, rgba(193, 206, 255, 1) 0%, rgba(152, 174, 254, 1) 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, rgba(193, 206, 255, 1)), color-stop(100%, rgba(152, 174, 254, 1))); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top, rgba(193, 206, 255, 1) 0%, rgba(152, 174, 254, 1) 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top, rgba(193, 206, 255, 1) 0%, rgba(152, 174, 254, 1) 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top, rgba(193, 206, 255, 1) 0%, rgba(152, 174, 254, 1) 100%); /* IE10+ */
+    background: linear-gradient(to bottom, rgba(193, 206, 255, 1) 0%, rgba(152, 174, 254, 1) 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#c1ceff', endColorstr='#98aefe', GradientType=0); /* IE6-8 */
+
+    border-color: DarkBlue;
+    border-width: 1px;
+}
+
+table.msgReceived {
+    width: 90%;
+    margin-right: 9%;
+}
+
+table.msgSent {
+    background: rgb(213, 230, 255); /* Old browsers */
+    /* IE9 SVG, needs conditional override of 'filter' to 'none' */
+    background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2MxY2VmZiIgc3RvcC1vcGFjaXR5PSIxIi8+CiAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM5OGFlZmUiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
+    background: -moz-linear-gradient(top, rgb(213, 230, 255) 0%, rgb(175, 196, 243) 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, rgb(213, 230, 255)), color-stop(100%, rgb(175, 196, 243))); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top, rgb(213, 230, 255) 0%, rgb(175, 196, 243) 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top, rgb(213, 230, 255) 0%, rgb(175, 196, 243) 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top, rgb(213, 230, 255) 0%, rgb(175, 196, 243) 100%); /* IE10+ */
+    background: linear-gradient(to bottom, rgb(213, 230, 255) 0%, rgb(175, 196, 243) 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#c1ceff', endColorstr='#98aefe', GradientType=0); /* IE6-8 */
+
+    width: 90%;
+    margin-left: 9%;
+}
+
+.hideRow {
+    display: none;
+}
+
+.subTodoTable {
+    border: 2px dotted DarkBlue;
+}
+
+.todoTable {
+}
+
+.data {
+    background-color: #e8edff;
+    width: 31%;
+}
+
+.data2 {
+    background-color: #e8edff;
+    width: 21%;
+}
+
+.header {
+    width: 25%;
+    font-weight: bold;
+    color: DarkBlue;
+}
+
+.emote {
+    vertical-align: text-top;
+}
+
+.msgImg {
+    width: 50px;
+    text-align: center;
+}
+
+.msgTime {
+    width: 100px;
+    text-align: center;
+}
+
+.portrait {
+    width:  45px;
+    height: 45px;
+}
+
+.portraitCol {
+    text-align: center;
+}
+
+.msgUser {
+    width: 15%;
+}
+
+.msgText {
+}
+
+#toolbar {
+    width: 26%;
+}
+
+#taskSelect {
+    width: 30%;
+    margin-top: 1px;
+    height:30px;
+}
+
+#searchField {
+    width: 61%;
+    margin-left: 1%;
+    height: 20px;
+    margin-top: 0px;
+    margin-right: 10px;
+    float: right;
+}
+
+#searchButton {
+    width: 32px;
+    height: 32px;
+    float: right;
+    background: transparent url("/priv/Icons/search.png") no-repeat center;
+    cursor: pointer; /* hand-shaped cursor */
+    text-indent: -9999px;
+}
+
+.description {
+    font-weight: bold;
+    width: 23%;
+}
+
+.value {
+    width: 27%
+}
+
+.selects {
+    margin-left: 1%;
+    width: 99%;
+}
+
+.textField {
+    margin-left: 1%;
+    width: 99%;
+    float: right;
+}
+
+#createTable {
+    background: url("/priv/Icons/bg.png") repeat-x top left;
+    background-size: 10px 100%;
+}
+
+#createTask {
+    float: right;
+}
+
+#userSelect {
+    width: 25%;
+    height: 30px;
+    margin-top: 0px;
+}
+
+#sendMessage {
+    width: 69%;
+    height: 20px;
+    float: right;
+    margin-right: 10px;
+    float: right;
+}
+
+#sendButton {
+    width: 32px;
+    height: 32px;
+    float: right;
+    background: transparent url("/priv/Icons/send.png") no-repeat center;
+    cursor: pointer; /* hand-shaped cursor */
+    text-indent: -9999px;
+}
+
+#footer {
+    bottom: 0;
+    padding-bottom: 4px;
+    margin-bottom: 0;
+    position: fixed;
+    z-index: 150;
+    _position: absolute;
+    _top: expression(eval(document.documentElement.scrollTop+
+        (document.documentElement.clientHeight-this.offsetHeight)));
+}
+
+#messageField {
+    margin-bottom: 3em;
+}
+
+#timerContainer {
+    font-family: Ubuntu, sans-serif;
+    background: transparent;
+    border: none;
+    text-align: center;
+    color: black;
+    width: 100%;
+    margin-top: 20vh;
+}
+
+#timerUser {
+    font-size: 12vh;
+}
+
+#timerStatus {
+    font-size: 10vh;
+}
+
+#timerStatusMsg {
+    font-size: 8vh;
+}
+
+#timerField {
+    font-size: 18vh;
+    color: white;
+}
+
+.timerAvailable #container #timerContainer #timerField {
+    display: none;
+}
+
+.timerBusy #container #timerContainer #timerField {
+    display: inline-block;
+}
+
+.timerAvailable {
+    background-color: green;
+    background-image: url('/priv/Icons/tomato.png');
+    background-repeat: no-repeat;
+    background-position: left top;
+}
+
+.statusAvailable {
+    background-color: green;
+    background-image: url('/priv/Icons/tomato.png');
+    background-repeat: no-repeat;
+    background-position: left top;
+}
+
+.timerBusy {
+    background-color: red;
+    background-image: url('/priv/Icons/tomato.png');
+    background-repeat: no-repeat;
+    background-position: left top;
+}
+
+.statusAway {
+    background-color: #ffc810;
+    background-image: url('/priv/Icons/tomato.png');
+    background-repeat: no-repeat;
+    background-position: left top;
+}
+
+.statusBusy {
+    background-color: red;
+    background-image: url('/priv/Icons/tomato.png');
+    background-repeat: no-repeat;
+    background-position: left top;
+}
+
+.workLogTable {
+    border-color: black;
+    border-width: 6px;
+}
+
+.workLogSum {
+    background-color: black;
+    color: white;
+    text-align: center;
+}
+
+.workLogValue {
+    text-align: center;
+}
+
+.workLogDesc {
+    text-align: left;
+}
+
+.workLogColumn {
+    text-align: center;
+}
+
+.workLogHeading {
+    background-color: black;
+    color: white;
+}
+
+.lwOdd {
+}
+
+.lwEven {
+    background-color: #c2d8ed;
+}
+
+input.rounded {
+
+    border: 1px solid #ccc;
+    /* Safari 5, Chrome support border-radius without vendor prefix.
+     * FF 3.0/3.5/3.6, Mobile Safari 4.0.4 require vendor prefix.
+     * No support in Safari 3/4, IE 6/7/8, Opera 10.0.
+     */
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    border-radius: 10px;
+    /* Chrome, FF 4.0 support box-shadow without vendor prefix.
+     * Safari 3/4/5 and FF 3.5/3.6 require vendor prefix.
+     * No support in FF 3.0, IE 6/7/8, Opera 10.0, iPhone 3.
+     * change the offsets, blur and color to suit your design.
+     */
+    -moz-box-shadow: 2px 2px 3px #666;
+    -webkit-box-shadow: 2px 2px 3px #666;
+    box-shadow: 2px 2px 3px #666;
+
+    /* with a big radius/font there needs to be padding left and right
+     * otherwise the text is too close to the radius.
+     * on a smaller radius/font it may not be necessary
+     */
+    padding: 4px 7px;
+
+    /* only needed for webkit browsers which show a rectangular outline;
+     * others do not do outline when radius used.
+     * android browser still displays a big outline
+     */
+    outline: 0;
+
+    /* this is needed for iOS devices otherwise a shadow/line appears at the
+     * top of the input. depending on the ratio of radius to height it will
+     * go all the way across the full width of the input and look really messy.
+     * ensure the radius is no more than half the full height of the input,
+     * and the following is set, and everything will render well in iOS.
+     */
+    -webkit-appearance: none;
+
+}
+
+	input.rounded:focus {
+
+      /* supported IE8+ and all other browsers tested.
+	   * optional, but gives the input focues when selected.
+	   * change to a color that suits your design.
+	   */
+      border-color: #339933;
+
+    }
+
+/* Modify stylesheet after size of web window */
+
+@media screen and (max-width: 450px) {
+    body {
+        font-size: 0.7em;
+    }
+
+    input, select, textarea {
+        font-size: 1.0em;
+    }
+
+    td {
+        height: 1.2em;
+    }
+
+    .msgTime {
+        width: 60px;
+        text-align: center;
+    }
+
+    .portrait {
+        width:  25px;
+        height: 25px;
+    }
+
+    .msgImg {
+        width: 30px;
+        text-align: center;
+    }
+
+    #footer {
+        width: 94%;
+        height: 1.5em;
+    }
+
+    #taskSelect {
+        width: 100%;
+    }
+
+    #searchButton {
+        display: none;
+    }
+
+    #searchField {
+        display: none;
+    }
+
+    #sendMessage {
+        width: 51%;
+    }
+
+    .timerAvailable {
+        background-size: 20%;
+    }
+
+    .statusAvailable {
+        background-size: 20%;
+    }
+
+    .statusAway {
+        background-size: 20%;
+    }
+
+    .statusBusy {
+        background-size: 20%;
+    }
+
+    .timerBusy {
+        background-size: 20%;
+    }
+    .workLogColBig {
+        display: none;
+    }
+}
+@media screen and (min-width: 450px) and (max-width: 620px) {
+    .workLogColBig {
+        display: none;
+    }
+}
+
+@media screen and (min-width: 450px) and (max-width: 1000px) {
+    .data {
+        width: 35%;
+    }
+
+    .data2 {
+        width: 25%;
+    }
+
+    .msgTime {
+        width: 80px;
+        text-align: center;
+    }
+
+    .msgImg {
+        width: 40px;
+        text-align: center;
+    }
+
+    .portrait {
+        width:  35px;
+        height: 35px;
+    }
+
+    .header {
+        width: 20%;
+    }
+
+    #toolbar {
+        width: 20%;
+    }
+
+    #footer {
+        width: 96%;
+    }
+
+    .description {
+        width: 20%;
+    }
+
+    .value {
+        width: 35%
+    }
+
+    #taskSelect {
+        width: 30%;
+    }
+
+    #searchField {
+        width: 51%;
+    }
+
+    #sendMessage {
+        width: 61%;
+    }
+    .timerAvailable {
+        background-size: 20%;
+    }
+
+    .statusAvailable {
+        background-size: 20%;
+    }
+
+    .statusAway {
+        background-size: 20%;
+    }
+
+    .statusBusy {
+        background-size: 20%;
+    }
+
+    .timerBusy {
+        background-size: 20%;
+    }
+}
+
+@media screen and (min-width: 1000px) {
+    .data {
+        width: 39%;
+    }
+
+    .data2 {
+        width: 27%;
+    }
+
+    .header {
+        width: 11%;
+    }
+
+    #toolbar {
+        width: 11%;
+    }
+
+    #footer {
+        width: 98%;
+    }
+
+    .description {
+        width: 11%;
+    }
+
+    .value {
+        width: 39%
+    }
+
+    #taskSelect {
+        width: 30%;
+    }
+
+    #searchField {
+        width: 61%;
+    }
+
+    #sendMessage {
+        width: 69%;
+    }
+    .timerAvailable {
+        background-size: 20%;
+    }
+
+    .statusAvailable {
+        background-size: 20%;
+    }
+
+    .statusAway {
+        background-size: 20%;
+    }
+
+    .statusBusy {
+        background-size: 20%;
+    }
+
+    .timerBusy {
+        background-size: 20%;
+    }
+}
+
+

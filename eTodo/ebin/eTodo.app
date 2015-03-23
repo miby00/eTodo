@@ -1,0 +1,50 @@
+{application, eTodo,
+ [{description, "ETodo a task manager written in Erlang"},
+  {vsn, "0.9.0"},
+  {modules, [
+	     eGuiEvents,
+	     eGuiFunctions,
+	     eHtml,
+	     eJSON,
+	     ePeer,
+	     ePeerCircle,
+	     ePeerCircleEH,
+	     ePeerEH,
+	     ePeerEM,
+	     ePeerLock,
+	     ePeerLockEH,
+	     ePeerProtocol,
+	     ePeerServer,
+	     ePluginServer,
+             eRows,
+	     eTodo,
+	     eTodoAlarm,
+	     eTodoDB,
+	     eTodoEH,
+	     eTodoSup,
+	     eTodoUtils,
+	     eWeb,
+	     eTodoApp,
+	     startETodo
+	    ]},
+  {maxT, infinity},
+  {registered, [
+		ePeerCircle,
+		ePeerEM,
+		ePeerLock,
+		ePeerServer,
+		eTodo,
+		eTodoAlarm,
+		eTodoDB,
+		eTodoSup,
+		eWeb,
+		ePluginServer
+	       ]},
+  {applications, [kernel, stdlib, mnesia, inets, crypto, asn1, public_key, ssl, wx, eLog, ePort]},
+  {included_applications, []},
+  {env, []},
+  {mod, {eTodoApp, []}
+  }
+ ]
+}.
+
