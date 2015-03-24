@@ -48,3 +48,10 @@ This creates an eTodo.zip, eTodo.tar.gz and an eTodo directory. All three contai
 To install eTodo from a release: Just extract the files in the eTodo release package on the target computer.
 
 To run eTodo from a release: Enter the folder eTodo/bin, run erl.
+
+###Status
+
+eTodo isn't a finished, when I feel inspired I code on it during my spare time.
+So do not expect it to be perfect, commented or fully documented ;)
+
+
