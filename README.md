@@ -30,3 +30,21 @@ I recommend using Erlang Solutions [installation packages](https://www.erlang-so
 Have patience: The first startup needs to create an empty TODO database.
 
 [To get started](https://rawgit.com/miby00/eTodo/master/eTodo/priv/www/doc/eTodo.html)
+
+### Making an eTodo release which includes Erlang
+
+To make it easier to use eTodo for non Erlang fanatics I recommend building an eTodo release package.
+When you have built this package it includes Erlang, so the users of the package doesn't need Erlang to run eTodo.
+
+The release package will work on the platform on which it is built. So for instance a Windows 64-bit release will work on a Windows 64-bit machine.
+
+Howto make an eTodo release package:
+
+1. Go into the folder eTodo/release
+2. On Unix/Mac: run BuildRelease.sh. On Windows: run BuildRelease.bat
+
+This creates an eTodo.zip, eTodo.tar.gz and an eTodo directory. All three contain the release.
+
+To install eTodo from a release: Just extract the files in the eTodo release package on the target computer.
+
+To run eTodo from a release: Enter the folder eTodo/bin, run erl.
