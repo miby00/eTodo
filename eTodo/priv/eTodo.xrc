@@ -3223,7 +3223,7 @@
 				<border>5</border>
 				<object class="wxStaticText" name="m_staticText42">
 					<fg>#2554e3</fg>
-					<label>To be defined</label>
+					<label>The MIT License (MIT)</label>
 					<wrap>-1</wrap>
 				</object>
 			</object>
