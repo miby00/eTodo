@@ -1,9 +1,6 @@
 #!/bin/sh
 cd ..
 cd ..
-svn update ePort
-svn update eLog
-svn update eTodo
 cd ePort/src
 erl -make
 cd ..
