@@ -18,7 +18,7 @@ eTodo require an Erlang installation with a working wxErlang environment.
 
 I recommend using Erlang Solutions [installation packages](https://www.erlang-solutions.com/downloads/download-erlang-otp).
 
-### Downloading and running eTodo
+### Download and run eTodo
 
 1. Install Erlang
 2. Download eTodo from github using the "download.ZIP" button
