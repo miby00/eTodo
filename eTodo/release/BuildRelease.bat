@@ -1,5 +1,6 @@
 rmdir eTodo /s /q
 del eTodo.zip
+del eTodo.tar.gz
 cd ..
 cd ..
 cd eLog\src

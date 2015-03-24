@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 rm -rf eTodo
 rm eTodo.zip
+rm eTodo.tar.gz
 cd ..
 cd ..
 cd eLog/src
