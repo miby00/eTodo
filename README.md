@@ -29,7 +29,7 @@ I recommend using Erlang Solutions [installation packages](https://www.erlang-so
 
 Have patience: The first startup needs to create an empty TODO database.
 
-[To get started](https://rawgit.com/miby00/eTodo/master/eTodo/priv/www/doc/eTodo.html)
+[Getting started with eTodo](https://rawgit.com/miby00/eTodo/master/eTodo/priv/www/doc/eTodo.html)
 
 ### Making an eTodo release which includes Erlang
 
