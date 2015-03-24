@@ -15,4 +15,4 @@ cd eTodo/src
 erl -make
 cd ..
 cd release
-escript.exe makeRelease.esc
+./makeRelease.esc
