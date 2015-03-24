@@ -13,3 +13,4 @@ erl -make
 cd ..
 cd ebin
 erl -boot start_sasl -smp -pa ../../eLog/ebin -pa ../../ePort/ebin -pa ../../eTodo/ebin -run startETodo noGui %*
+
