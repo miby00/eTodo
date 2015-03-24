@@ -12,4 +12,20 @@ Key functionality include:
 * Non intrusive reminders
 * Local storage (no central server)
 
+## Installation
+
+eTodo require an Erlang installation with a working wxErlang environment. 
+
+I recommend using Erlang Solutions [installation packages](https://www.erlang-solutions.com/downloads/download-erlang-otp).
+
+### Downloading and running eTodo
+
+1. Install Erlang
+2. Download eTodo from github using the "download.ZIP" button
+3. Extract the files
+4. Go into the folder eTodo/priv
+5. On Unix/Mac: run StartETodo.sh. On Windows: run StateETodo.bat
+
+Have patience: The first startup needs to create an empty TODO database.
+
 [To get started](https://rawgit.com/miby00/eTodo/master/eTodo/priv/www/doc/eTodo.html)
