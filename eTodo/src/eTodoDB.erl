@@ -142,9 +142,9 @@ delTodo(Uid, Parent, User) ->
     ePeerLock:releaseLock(Uid, User).
 
 delTodo(Uid, Parent, User, RemoveAll) ->
-  ePeerLock:getLock(Uid, User),
-  gen_server:call(?MODULE, {delTodo, Uid, toList(Parent), RemoveAll}),
-  ePeerLock:releaseLock(Uid, User).
+    ePeerLock:getLock(Uid, User),
+    gen_server:call(?MODULE, {delTodo, Uid, toList(Parent), RemoveAll}),
+    ePeerLock:releaseLock(Uid, User).
 
 getAllTodos() ->
     gen_server:call(?MODULE, getAllTodos).
@@ -162,8 +162,8 @@ getColumns(User) ->
     gen_server:call(?MODULE, {getColumns, User}).
 
 getETodos(User, ?defInbox, Filter, SearchText, Cfg) ->
-  gen_server:call(?MODULE, {getETodos, User, ?defTaskList,
-                            [?assigned | Filter], SearchText, Cfg});
+    gen_server:call(?MODULE, {getETodos, User, ?defTaskList,
+                              [?assigned | Filter], SearchText, Cfg});
 getETodos(User, List, Filter, SearchText, Cfg) ->
     gen_server:call(?MODULE, {getETodos, User, List, Filter, SearchText, Cfg}).
 
@@ -253,7 +253,7 @@ updateTodoNoDiff(User, Todo = #todo{sharedWith = Users}) ->
     ePeerLock:releaseLocks(Todo#todo.uid, User, Users2).
 
 updateTodo(User, Todo = #todo{sharedWith = Users})
-    when Todo#todo.uid =/= undefined ->
+  when Todo#todo.uid =/= undefined ->
     Users2 = default(Users, []),
     ePeerLock:getLocks(Todo#todo.uid, User, Users2),
     Diff = gen_server:call(?MODULE, {updateTodo, Todo}),
@@ -299,9 +299,9 @@ appendColumns(Table, Columns) ->
 
 deleteColumns(Table, Len) ->
     eLog:log(debug, ?MODULE, deleteColumns, [Table, Len],
-        "Deleting columns.", ?LINE),
+             "Deleting columns.", ?LINE),
     Fun = fun(X) ->
-                list_to_tuple(lists:sublist(tuple_to_list(X), 1, Len))
+                  list_to_tuple(lists:sublist(tuple_to_list(X), 1, Len))
           end,
     mnesia:transform_table(Table, Fun, recordInfo(Table)).
 
@@ -336,12 +336,27 @@ init([]) ->
     TablesToCreate = [todo, userInfo, conCfg, userCfg, logWork, workDesc,
                       listCfg, alarmCfg, httpd_user, httpd_group],
 
+    wx:new(),
+    PDlg = wxProgressDialog:new("eTodo", "Creating tables...", [{maximum, 30}]),
     createTables(ExistingTables, [schema]),
-    mnesia:wait_for_tables(TablesToCreate, 30000),
+    waitForTables(TablesToCreate, PDlg, 0),
     createTables(ExistingTables, TablesToCreate),
     mnesia:wait_for_tables(TablesToCreate, 30000),
     checkAndRepair(),
+    wxProgressDialog:update(PDlg, 30),
     {ok, #state{}}.
+
+waitForTables(_TablesToCreate, _PDlg, 30) ->
+    ok;
+waitForTables(TablesToCreate, PDlg, Prog) ->
+    wxProgressDialog:update(PDlg, Prog),
+    case mnesia:wait_for_tables(TablesToCreate, 1000) of
+        ok ->
+            ok;
+        _ ->
+            waitForTables(TablesToCreate, PDlg, Prog + 1)
+    end.
+
 
 createTables(_Existing, []) ->
     ok;
@@ -518,9 +533,9 @@ handle_call(Event = {delTodo, Uid, Parent}, _From, State) ->
     State2 = addToUndo({Event, {undoDelTodo, UndoInfo}}, State),
     {reply, Result, State2};
 handle_call(Event = {delTodo, Uid, Parent, RemoveAll}, _From, State) ->
-  {Result, UndoInfo} = deleteTodo(Uid, Parent, RemoveAll),
-  State2 = addToUndo({Event, {undoDelTodo, UndoInfo}}, State),
-  {reply, Result, State2};
+    {Result, UndoInfo} = deleteTodo(Uid, Parent, RemoveAll),
+    State2 = addToUndo({Event, {undoDelTodo, UndoInfo}}, State),
+    {reply, Result, State2};
 handle_call(getAllTodos, _From, State) ->
     Result = match(#todo{_ = '_'}),
     {reply, Result, State};
@@ -530,17 +545,17 @@ handle_call(getAllUserInfos, _From, State) ->
 handle_call(getConnections, _From, State) ->
     Result  = match(#conCfg{_ = '_'}),
     SortFun = fun (ConCfg1, ConCfg2) ->
-                  Dist1 = ConCfg1#conCfg.distance,
-                  Dist2 = ConCfg2#conCfg.distance,
-                  case {Dist1, Dist2} of
-                      {undefined, _} ->
-                          true;
-                      {_, undefined} ->
-                          false;
-                      _ ->
-                          Dist1 < Dist2
-                  end
-             end,
+                      Dist1 = ConCfg1#conCfg.distance,
+                      Dist2 = ConCfg2#conCfg.distance,
+                      case {Dist1, Dist2} of
+                          {undefined, _} ->
+                              true;
+                          {_, undefined} ->
+                              false;
+                          _ ->
+                              Dist1 < Dist2
+                      end
+              end,
     Result2 = lists:sort(SortFun, Result),
     {reply, Result2, State};
 handle_call({getConnection, User}, _From, State) ->
@@ -590,9 +605,9 @@ handle_call({getLoggedWork, User, Uid, Date}, _From, State) ->
                  undefined ->
                      {Date, 0, 0};
                  _ ->
-                    {LoggedWork#logWork.date,
-                     LoggedWork#logWork.hours,
-                     LoggedWork#logWork.minutes}
+                     {LoggedWork#logWork.date,
+                      LoggedWork#logWork.hours,
+                      LoggedWork#logWork.minutes}
              end,
     {reply, Result, State};
 handle_call({getWorkDesc, Uid}, _From, State) ->
@@ -600,7 +615,7 @@ handle_call({getWorkDesc, Uid}, _From, State) ->
     {reply, Result#workDesc.shortDesc, State};
 handle_call({saveWorkDesc, Uid, WorkDesc}, _From, State) ->
     TS = fun() ->
-            mnesia:write(#workDesc{uid = Uid, shortDesc = WorkDesc})
+                 mnesia:write(#workDesc{uid = Uid, shortDesc = WorkDesc})
          end,
     Result = mnesia:transaction(TS),
     {reply, Result, State};
@@ -608,7 +623,7 @@ handle_call({getLoggedWork, User, Date}, _From, State) ->
     LoggedWork = match(#logWork{userName = User, date = Date, _ = '_'}),
 
     Result = [{LW#logWork.uid, LW#logWork.hours, LW#logWork.minutes} ||
-              LW <- LoggedWork],
+                 LW <- LoggedWork],
     {reply, Result, State};
 handle_call({logWork, User, Uid, Date, Hours, Minutes}, _From, State) ->
     LoggedWork = #logWork{userName = User,
@@ -725,7 +740,7 @@ handle_call(Event = {updateTodo, Todo = #todo{}}, _From, State) ->
         Result ->
             Diff = calcDiff(Object, Todo),
             mnesia:transaction(fun() ->
-                                    mnesia:write(Todo)
+                                       mnesia:write(Todo)
                                end),
             State2  = addToUndo({Event, {updateTodo, Diff}}, State),
             {reply, Result, State2}
@@ -891,15 +906,15 @@ logWorkToDB(LogWork = #logWork{userName = User, uid = Uid, date = Date}) ->
     case matchOne(#logWork{userName = User, uid = Uid, date = Date, _  = '_'}) of
         undefined ->
             mnesia:transaction(
-                fun() ->
-                    mnesia:write(LogWork)
-                end);
+              fun() ->
+                      mnesia:write(LogWork)
+              end);
         OldLoggedWork ->
             mnesia:transaction(
-                fun() ->
-                    mnesia:delete_object(OldLoggedWork),
-                    mnesia:write(LogWork)
-                end)
+              fun() ->
+                      mnesia:delete_object(OldLoggedWork),
+                      mnesia:write(LogWork)
+              end)
     end.
 
 %%====================================================================
@@ -1308,7 +1323,7 @@ doAdvSearch(User, SearchText, ETodos) ->
         {error, Left} ->
             ePeerEM:sendMsg(system, [User], systemEntry,
                             "Syntax error in search field when parsing: " ++
-                            Left),
+                                Left),
             [];
         TokenizedSearch ->
             executeSearch(User, TokenizedSearch, ETodos)
@@ -1353,88 +1368,88 @@ execSearch(['not', 'not'|Rest], Result, ETodos) ->
     execSearch(Rest, Result, ETodos);
 execSearch(['or', 'not', {list, LName}|Rest], Result1, ETodos) ->
     Filter = fun(ETodo) ->
-        Lists = ETodo#etodo.listsDB,
-        not lists:member(LName, Lists)
-    end,
+                     Lists = ETodo#etodo.listsDB,
+                     not lists:member(LName, Lists)
+             end,
     Result2 = lists:filter(Filter, ETodos),
     Result3 = sets:union(sets:from_list(Result1), sets:from_list(Result2)),
     execSearch(Rest, sets:to_list(Result3), ETodos);
 execSearch(['or', 'not', {Columns, SearchText}|Rest], Result1, ETodos) ->
     Filter = fun(ETodo) ->
-        not search(ETodo, SearchText, Columns)
-    end,
+                     not search(ETodo, SearchText, Columns)
+             end,
     Result2 = lists:filter(Filter, ETodos),
     Result3 = sets:union(sets:from_list(Result1), sets:from_list(Result2)),
     execSearch(Rest, sets:to_list(Result3), ETodos);
 execSearch(['and', 'not', {list, LName}|Rest], Result1, ETodos) ->
     Filter = fun(ETodo) ->
-        Lists = ETodo#etodo.listsDB,
-        not lists:member(LName, Lists)
-    end,
+                     Lists = ETodo#etodo.listsDB,
+                     not lists:member(LName, Lists)
+             end,
     Result2 = lists:filter(Filter, ETodos),
     Result3 = sets:intersection(sets:from_list(Result1), sets:from_list(Result2)),
     execSearch(Rest, sets:to_list(Result3), ETodos);
 execSearch(['and', 'not', {Columns, SearchText}|Rest], Result1, ETodos) ->
     Filter = fun(ETodo) ->
-        not search(ETodo, SearchText, Columns)
-    end,
+                     not search(ETodo, SearchText, Columns)
+             end,
     Result2 = lists:filter(Filter, ETodos),
     Result3 = sets:intersection(sets:from_list(Result1), sets:from_list(Result2)),
     execSearch(Rest, sets:to_list(Result3), ETodos);
 execSearch(['not', {list, LName}|Rest], Result1, ETodos) ->
     Filter = fun(ETodo) ->
-        Lists = ETodo#etodo.listsDB,
-        lists:member(LName, Lists)
-    end,
+                     Lists = ETodo#etodo.listsDB,
+                     lists:member(LName, Lists)
+             end,
     Result2 = lists:filter(Filter, ETodos),
     execSearch(Rest, empty(Result1, ETodos) -- Result2, ETodos);
 execSearch(['not', {Columns, SearchText}|Rest], Result1, ETodos) ->
     Filter = fun(ETodo) ->
-        search(ETodo, SearchText, Columns)
-    end,
+                     search(ETodo, SearchText, Columns)
+             end,
     Result2 = lists:filter(Filter, ETodos),
     execSearch(Rest, empty(Result1, ETodos) -- Result2, ETodos);
 execSearch(['or', {list, LName}|Rest], Result1, ETodos) ->
     Filter = fun(ETodo) ->
-                 Lists = ETodo#etodo.listsDB,
-                 lists:member(LName, Lists)
+                     Lists = ETodo#etodo.listsDB,
+                     lists:member(LName, Lists)
              end,
     Result2 = lists:filter(Filter, ETodos),
     Result3 = sets:union(sets:from_list(Result1), sets:from_list(Result2)),
     execSearch(Rest, sets:to_list(Result3), ETodos);
 execSearch(['or', {Columns, SearchText}|Rest], Result1, ETodos) ->
     Filter = fun(ETodo) ->
-        search(ETodo, SearchText, Columns)
-    end,
+                     search(ETodo, SearchText, Columns)
+             end,
     Result2 = lists:filter(Filter, ETodos),
     Result3 = sets:union(sets:from_list(Result1), sets:from_list(Result2)),
     execSearch(Rest, sets:to_list(Result3), ETodos);
 execSearch(['and', {list, LName}|Rest], Result1, ETodos) ->
     Filter = fun(ETodo) ->
-        Lists = ETodo#etodo.listsDB,
-        lists:member(LName, Lists)
-    end,
+                     Lists = ETodo#etodo.listsDB,
+                     lists:member(LName, Lists)
+             end,
     Result2 = lists:filter(Filter, ETodos),
     Result3 = sets:intersection(sets:from_list(Result1), sets:from_list(Result2)),
     execSearch(Rest, sets:to_list(Result3), ETodos);
 execSearch(['and', {Columns, SearchText}|Rest], Result1, ETodos) ->
     Filter = fun(ETodo) ->
-        search(ETodo, SearchText, Columns)
-    end,
+                     search(ETodo, SearchText, Columns)
+             end,
     Result2 = lists:filter(Filter, ETodos),
     Result3 = sets:intersection(sets:from_list(Result1), sets:from_list(Result2)),
     execSearch(Rest, sets:to_list(Result3), ETodos);
 
 execSearch([{list, LName}|Rest], [], ETodos) ->
     Filter = fun(ETodo) ->
-                 Lists = ETodo#etodo.listsDB,
-                 lists:member(LName, Lists)
+                     Lists = ETodo#etodo.listsDB,
+                     lists:member(LName, Lists)
              end,
     Result = lists:filter(Filter, ETodos),
     execSearch(Rest, Result, ETodos);
 execSearch([{Columns, SearchText}|Rest], [], ETodos) ->
     Filter = fun(ETodo) ->
-                 search(ETodo, SearchText, Columns)
+                     search(ETodo, SearchText, Columns)
              end,
     Result = lists:filter(Filter, ETodos),
     execSearch(Rest, Result, ETodos).
@@ -1453,9 +1468,9 @@ parseAdvSearch(_State, "", {Type, Token}, ParsedExpr) ->
 
 %% Parse List or Name
 parseAdvSearch(start, [$@|SearchText], [], ParsedExpr) ->
-  parseAdvSearch(list, SearchText, {list, []}, ParsedExpr);
+    parseAdvSearch(list, SearchText, {list, []}, ParsedExpr);
 parseAdvSearch(start, [$$|SearchText], [], ParsedExpr) ->
-  parseAdvSearch(name, SearchText, {name, []}, ParsedExpr);
+    parseAdvSearch(name, SearchText, {name, []}, ParsedExpr);
 parseAdvSearch(start, [${|SearchText], [], ParsedExpr) ->
     parseAdvSearch(search, SearchText, {[], []}, ParsedExpr);
 parseAdvSearch(start, [$}|SearchText], [], ParsedExpr) ->
@@ -1463,19 +1478,19 @@ parseAdvSearch(start, [$}|SearchText], [], ParsedExpr) ->
 
 %% Find single char tokens
 parseAdvSearch(start, [Char|SearchText], [], ParsedExpr)
-    when (Char == $() or (Char == $)) ->
+  when (Char == $() or (Char == $)) ->
     parseAdvSearch(start, SearchText, [], [Char|ParsedExpr]);
 
 %% Remove whitespace
 parseAdvSearch(start, [Char|SearchText], [], ParsedExpr)
   when (Char == 32) or (Char == 10) or (Char == 9) ->
-  parseAdvSearch(start, SearchText, [], ParsedExpr);
+    parseAdvSearch(start, SearchText, [], ParsedExpr);
 parseAdvSearch(search, [Char|SearchText], {[], []}, ParsedExpr)
-    when (Char == 32) or (Char == 10) or (Char == 9) ->
+  when (Char == 32) or (Char == 10) or (Char == 9) ->
     parseAdvSearch(search, SearchText, {[], []}, ParsedExpr);
 parseAdvSearch(StateName, [Char|SearchText], {Type, []}, ParsedExpr)
-    when ((StateName == searchColumn) or (StateName == searchText))
-    and  ((Char == 32) or (Char == 10) or (Char == 9)) ->
+  when ((StateName == searchColumn) or (StateName == searchText))
+       and  ((Char == 32) or (Char == 10) or (Char == 9)) ->
     parseAdvSearch(StateName, SearchText, {Type, []}, ParsedExpr);
 
 %% Parse logical operators
@@ -1487,18 +1502,18 @@ parseAdvSearch(start, "AND" ++ SearchText, [], ParsedExpr) ->
     parseAdvSearch(start, SearchText, [], ['and'|ParsedExpr]);
 
 parseAdvSearch(start, "or" ++ SearchText, [], ParsedExpr) ->
-  parseAdvSearch(start, SearchText, [], ['or'|ParsedExpr]);
+    parseAdvSearch(start, SearchText, [], ['or'|ParsedExpr]);
 parseAdvSearch(start, "Or" ++ SearchText, [], ParsedExpr) ->
-  parseAdvSearch(start, SearchText, [], ['or'|ParsedExpr]);
+    parseAdvSearch(start, SearchText, [], ['or'|ParsedExpr]);
 parseAdvSearch(start, "OR" ++ SearchText, [], ParsedExpr) ->
-  parseAdvSearch(start, SearchText, [], ['or'|ParsedExpr]);
+    parseAdvSearch(start, SearchText, [], ['or'|ParsedExpr]);
 
 parseAdvSearch(start, "not" ++ SearchText, [], ParsedExpr) ->
-  parseAdvSearch(start, SearchText, [], ['not'|ParsedExpr]);
+    parseAdvSearch(start, SearchText, [], ['not'|ParsedExpr]);
 parseAdvSearch(start, "Not" ++ SearchText, [], ParsedExpr) ->
-  parseAdvSearch(start, SearchText, [], ['not'|ParsedExpr]);
+    parseAdvSearch(start, SearchText, [], ['not'|ParsedExpr]);
 parseAdvSearch(start, "NOT" ++ SearchText, [], ParsedExpr) ->
-  parseAdvSearch(start, SearchText, [], ['not'|ParsedExpr]);
+    parseAdvSearch(start, SearchText, [], ['not'|ParsedExpr]);
 
 %% Parse Quoted String
 parseAdvSearch(qString, [$"|SearchText], {list, Token}, ParsedExpr) ->
@@ -1518,7 +1533,7 @@ parseAdvSearch(list, [$"|SearchText], {list, []}, ParsedExpr) ->
 
 %% Parse Name
 parseAdvSearch(name, [$"|SearchText], {name, []}, ParsedExpr) ->
-  parseAdvSearch(qString, SearchText, {name, []}, ParsedExpr);
+    parseAdvSearch(qString, SearchText, {name, []}, ParsedExpr);
 
 %% Parse normal search
 parseAdvSearch(search, [$[|SearchText], {[], []}, ParsedExpr) ->
@@ -1731,7 +1746,7 @@ calcStringDiff(New, Old) ->
     calcStringDiff(New, Old, 0, RNew, ROld, 0, length(New), length(Old)).
 
 calcStringDiff(Str,  [], Pos, _RStr, [], RPos, LenNew, LenOld)
-    when Pos  =/= 0, RPos =/= 0, ((LenNew - LenOld) > 0) ->
+  when Pos  =/= 0, RPos =/= 0, ((LenNew - LenOld) > 0) ->
     %% Text has been added in the middle of the string.
 
     %% Make sure no overlap occurred.
@@ -1745,7 +1760,7 @@ calcStringDiff(Str,  [], Pos, _RStr, [], RPos, LenNew, LenOld)
 
     {sub, Pos, string:substr(Str, 1, length(Str) - RPos2)};
 calcStringDiff(_Str,  [], Pos, _RStr, [], RPos, LenNew, LenOld)
-    when Pos  =/= 0, RPos =/= 0 ->
+  when Pos  =/= 0, RPos =/= 0 ->
     %% Text has been removed in the middle of the string.
     {sub, Pos, LenNew - LenOld};
 calcStringDiff(Str1,  [], Pos, _RStr1, [], RPos, _, _) when Pos >= RPos ->
@@ -1780,17 +1795,16 @@ applyDiff(Diff = #diff{diff = [{Element, {rev, Pos, Add}} | Rest]}, Todo)
     NewValue = lists:reverse(string:substr(OldValue, 1, Pos) ++ Add),
     applyDiff(Diff#diff{diff = Rest}, setelement(Element, Todo, NewValue));
 applyDiff(Diff = #diff{diff = [{Element, {sub, Pos, Len}} | Rest]}, Todo)
-    when is_integer(Pos), is_list(Rest), is_integer(Len) ->
+  when is_integer(Pos), is_list(Rest), is_integer(Len) ->
     OldValue = element(Element, Todo),
     NewValue = string:substr(OldValue, 1, Pos) ++
         string:substr(OldValue, 1 + Pos - Len),
     applyDiff(Diff#diff{diff = Rest}, setelement(Element, Todo, NewValue));
 applyDiff(Diff = #diff{diff = [{Element, {sub, Pos, Str}} | Rest]}, Todo)
-    when is_integer(Pos), is_list(Rest), is_list(Str) ->
+  when is_integer(Pos), is_list(Rest), is_list(Str) ->
     OldValue = element(Element, Todo),
     NewValue = string:substr(OldValue, 1, Pos) ++ Str ++
         string:substr(OldValue, 1 + Pos),
     applyDiff(Diff#diff{diff = Rest}, setelement(Element, Todo, NewValue));
 applyDiff(Diff = #diff{diff = [{Element, NewValue} | Rest]}, Todo) ->
     applyDiff(Diff#diff{diff = Rest}, setelement(Element, Todo, NewValue)).
-
