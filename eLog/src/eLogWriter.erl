@@ -12,17 +12,17 @@
 
 %% API
 -export([start_link/0,
-	 stop/0,
-	 log/6
-	]).
+         stop/0,
+         log/6
+        ]).
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+         terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE).
 
 -record(state, {parent,
-		logHandle}).
+                logHandle}).
 
 %%%===================================================================
 %%% API
@@ -46,7 +46,7 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 stop() ->
-    gen_server:cast(?MODULE, stop). 
+    gen_server:cast(?MODULE, stop).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -56,9 +56,9 @@ stop() ->
 %% @end
 %%--------------------------------------------------------------------
 log(LogLevel, Module, Function, Args, ErrorDesc, LineNumber) ->
-    gen_server:cast(?MODULE, 
-		    {log,
-		     LogLevel, Module, Function, Args, ErrorDesc, LineNumber}). 
+    gen_server:cast(?MODULE,
+                    {log,
+                     LogLevel, Module, Function, Args, ErrorDesc, LineNumber}).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -78,7 +78,7 @@ log(LogLevel, Module, Function, Args, ErrorDesc, LineNumber) ->
 init([Parent]) ->
     Handle = openLog(),
     {ok, #state{parent    = Parent,
-		logHandle = Handle}}.
+                logHandle = Handle}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -110,13 +110,13 @@ handle_call(_Request, _From, State) ->
 handle_cast(stop, State) ->
     {stop, normal, State};
 handle_cast({log,
-	     LogLevel, Module, Function, Args, ErrorDesc, LineNumber},
-	    State = #state{logHandle = Handle}) ->
+             LogLevel, Module, Function, Args, ErrorDesc, LineNumber},
+            State = #state{logHandle = Handle}) ->
     LogString = io_lib:format("~nLevel: ~p; Log time: ~p~nModule: ~p; "
-			      "Function: ~p; Linenumber: ~p~n~80p~n"
-			      "Args: ~80p~n",
-			      [LogLevel, time(), Module, Function, LineNumber,
-			       ErrorDesc, Args]),
+                              "Function: ~p; Linenumber: ~p~n~80p~n"
+                              "Args: ~80p~n",
+                              [LogLevel, time(), Module, Function, LineNumber,
+                               ErrorDesc, Args]),
     disk_log:blog(Handle, LogString),
     {noreply, State};
 handle_cast(_Msg, State) ->
@@ -170,7 +170,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% Purpose  : Open a log.
 %% Types    : Handle = term()
 %%----------------------------------------------------------------------
-%% Notes    : 
+%% Notes    :
 %%======================================================================
 openLog() ->
     MaxNoBytes = 2 * 1024 * 1024,
@@ -178,27 +178,27 @@ openLog() ->
     PrivDir    = code:priv_dir("eLog"),
     FileName   = filename:join([PrivDir, "Logs", "eLog"]),
     Args       = [{name,   eLogWriter},
-		  {file,   FileName},
-		  {linkto, self()},
-		  {repair, true},
-		  {type,   wrap},
-		  {format, external},
-		  {size,   {MaxNoBytes, MaxNoFiles}}],
+                  {file,   FileName},
+                  {linkto, self()},
+                  {repair, true},
+                  {type,   wrap},
+                  {format, external},
+                  {size,   {MaxNoBytes, MaxNoFiles}}],
     ensureDir(FileName),
     case disk_log:open(Args) of
-	{ok, Handle} ->
-	    Handle;
-	{repaired, Handle, _, _} ->
-	    Handle;
-	{error, Reason} ->
-	    io:format("Failed to open log: ~p~n", [{error, Reason}]),
-	    undefined
+        {ok, Handle} ->
+            Handle;
+        {repaired, Handle, _, _} ->
+            Handle;
+        {error, Reason} ->
+            io:format("Failed to open log: ~p~n", [{error, Reason}]),
+            undefined
     end.
 
 ensureDir(FileName) ->
     case filelib:ensure_dir(FileName) of
-	ok ->
-	    ok; 
-	{error, Reason} ->
-	    erlang:error(Reason)
+        ok ->
+            ok;
+        {error, Reason} ->
+            erlang:error(Reason)
     end.
