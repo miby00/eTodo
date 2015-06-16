@@ -25,7 +25,7 @@ I recommend using Erlang Solutions [installation packages](https://www.erlang-so
 2. Download eTodo from github using the "download.ZIP" button
 3. Extract the files
 4. Go into the folder eTodo/priv
-5. On Unix/Mac: run StartETodo.sh. On Windows: run StateETodo.bat
+5. On Unix/Mac: run StartETodo.sh. On Windows: run StartETodo.bat
 
 Have patience: The first startup needs to create an empty TODO database.
 
@@ -51,7 +51,7 @@ To run eTodo from a release: Enter the folder eTodo/bin, run erl.
 
 ###Status
 
-eTodo isn't a finished, when I feel inspired I code on it during my spare time.
-So do not expect it to be perfect, commented or fully documented ;)
+eTodo isn't finished, when I feel inspired I code on it during my spare time.
+So do not expect it to be perfect, commented, have test cases or be fully documented ;)
 
 
