@@ -51,7 +51,7 @@ To run eTodo from a release: Enter the folder eTodo/bin, run erl.
 
 ###Status
 
-eTodo isn't a finished, when I feel inspired I code on it during my spare time.
-So do not expect it to be perfect, commented or fully documented ;)
+eTodo isn't finished, when I feel inspired I code on it during my spare time.
+So do not expect it to be perfect, commented, have test cases or be fully documented ;)
 
 
