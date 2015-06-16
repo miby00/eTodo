@@ -51,7 +51,7 @@ ePort server can only call functions defined in the ePorts clientProtModule.
 To setup a server at IP: 192.168.1.1 that allows the use of the lists module you 
 need to do the following on the server side.
 
-    {ok. SrvPid} = ePortListener:start_link(lists, 19000).
+    {ok, SrvPid} = ePortListener:start_link(lists, 19000).
     
 To execute a functions using that eport listener:
 
@@ -62,7 +62,7 @@ To setup a connection which allows the same server to call the clients io module
 
 On the server side
 
-    {ok. SrvPid} = ePortListener:start_link(eProtocol, 19000).
+    {ok, SrvPid} = ePortListener:start_link(eProtocol, 19000).
 
 On the client side
 
@@ -81,6 +81,9 @@ Save the pid EPortPid and use it on the server side to call the client:
 
 Apart from doing call:s using ePort you can also do cast:s in the same way
 as described above.
+
+It is also possible to setup encrypted communication, see ePort for an example of
+how to do that.
 
     
     
