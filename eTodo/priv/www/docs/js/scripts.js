@@ -45,7 +45,7 @@ mermaid.sequenceConfig = {
     noteMargin:10,
     messageMargin:35,
     mirrorActors:true,
-    width:100,
+    width:150,
     // Height of actor boxes
     height:30
 };
@@ -60,3 +60,4 @@ mermaid.ganttConfig = {
     fontSize:11,
     numberSectionStyles:3
 };
+mermaid.initialize({startOnLoad:true});

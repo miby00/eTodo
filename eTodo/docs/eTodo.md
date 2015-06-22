@@ -5,7 +5,7 @@ template: eTodo
 ---
 ![eTodo](graphics/eTodo.png)
 
-#Introduction 
+#Introduction
 
 eTodo is a P2P task manager written in erlang. Key functionality include:
 
@@ -138,6 +138,62 @@ Gets all To-Do:s in the lists “Work” and “Private”
 
 Gets all To-Do:s inte the list “Work” which isn't in the list “Boring”
 
+##Connecting to other eTodo peers
+
+eTodo can connect to other eTodo users by connecting a circle. As long as the
+other peer is connected to the same circle using the same password the two peers
+will connect.
+
+To connect to a circle a peer in that circle needs to be configured.
+
+Open the network settings window:
+
+![network settings](graphics/networkSettings.png)
+
+Enter the eTodo peer info:
+
+* Peers user name
+* Host name or IP-address for the eTodo peer (connected to the circle)
+* The port of the peer (default 19000)
+
+After that is done, just log into the circle using Ctrl+l and all the peers
+connected to the circle should appear.
+
+##Firewalls
+
+To be able to directly connect from peer A to peerB, peer B:s IP and port needs
+to be accessable. 
+
+```
+graph LR;
+
+A(Peer A) -- direct connection --> B(Peer B) 
+
+```
+
+If direct communication isn't possible due to firewall issues,
+eTodo looks for another peer C which is connected to peer B.
+It then connects to peer B using peer C as a proxy.
+
+```
+graph LR;
+
+A(Peer A) -- proxy connection --> C(Peer C)
+C(Peer C) -- direct connection --> B(Peer B)
+
+```
+Data can go trough multiple peers before it reaches its destination.
+It always tries to take the shortest route.
+
+Connecting to the web gui using your phone is almost always a problem.
+This can be solved using another eTodo installation as a proxy.
+You need to set the web password of the proxy server to the same
+password as the eTodo peer you are trying to reach.
+
+After the installation of the proxy peer is done, use "Make proxy link"
+menu alternative on the destination peer to make a link which uses the
+proxy peer to connect to the web gui. 
+
 ##Summary
 
 ####Why did I make eTodo?
@@ -174,6 +230,7 @@ My goal with eTodo was to be able to have all my To-Do:s in one application, and
 * Better connection handling
 * HTTP-tunneling for connections between eTodo peers
 * Email integration using IMAP
+* More documentation
 
 ###Features that might be added in the future
 

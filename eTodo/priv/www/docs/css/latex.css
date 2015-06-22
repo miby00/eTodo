@@ -1,3 +1,7 @@
+@import url(http://fonts.googleapis.com/css?family=Tauri);
+
+@import url(http://fonts.googleapis.com/css?family=Roboto+Condensed:300italic,400italic,700italic,400,300,700);
+
 body {
     /* Serif options */
     /*font-family: "Times New Roman", Times, serif;*/
@@ -13,7 +17,7 @@ body {
     /*font-family: Baskerville, 'Times New Roman', Times, serif;*/
 
 
-    padding:1em;
+    /*padding:1em;
     font-size: 14px;
     font-weight:300;
     line-height: 20px;
@@ -21,6 +25,15 @@ body {
     max-width:42em;
     background:#fefefe;
     color:#333;
+    */
+
+    padding: 20px;
+    color: #222222;
+    font-size: 15px;
+    font-family: "Roboto Condensed", "Tauri", "Hiragino Sans GB", "Microsoft YaHei", "STHeiti", "SimSun", "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", 'Segoe UI', AppleSDGothicNeo-Medium, 'Malgun Gothic', Verdana, Tahoma, sans-serif;
+    background: #ffffff;
+    line-height: 1.6;
+    /*-webkit-font-smoothing: antialiased;*/
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -30,14 +43,15 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
     color: #000;
-    font-size: 2em;
+    /*font-size: 2em;*/
     line-height: 100%;
 
 }
 
 h2 {
-    font-size: 2em;
+    font-size: 1.8em;
     line-height: 100%;
+    border-bottom:1px solid #e2e2e2;
 }
 
 h3 {
@@ -103,4 +117,19 @@ a, a:visited {
 
 img {
     max-width: 100%;
+}
+
+#searchLink{
+    float: right;
+    margin-right: 20px;
+}
+
+/* Desktops and laptops ----------- */
+@media only screen
+and (max-width : 1420px) {
+    /* Styles */
+    #contents {
+
+        width:700px;
+    }
 }

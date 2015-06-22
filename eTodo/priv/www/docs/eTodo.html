@@ -98,6 +98,41 @@ The comment field is for writing about the ongoing work on the task.</p>
 <p>Gets all To-Do:s in the lists “Work” and “Private”</p>
 <p><code>as~ @”Work” not @”Boring”</code></p>
 <p>Gets all To-Do:s inte the list “Work” which isn&#39;t in the list “Boring”</p>
+<h2 id="connecting-to-other-etodo-peers">Connecting to other eTodo peers</h2>
+<p>eTodo can connect to other eTodo users by connecting a circle. As long as the
+other peer is connected to the same circle using the same password the two peers
+will connect.</p>
+<p>To connect to a circle a peer in that circle needs to be configured.</p>
+<p>Open the network settings window:</p>
+<p><img src="graphics/networkSettings.png" alt="network settings"></p>
+<p>Enter the eTodo peer info:</p>
+<ul>
+<li>Peers user name</li>
+<li>Host name or IP-address for the eTodo peer (connected to the circle)</li>
+<li>The port of the peer (default 19000)</li>
+</ul>
+<p>After that is done, just log into the circle using Ctrl+l and all the peers
+connected to the circle should appear.</p>
+<h2 id="firewalls">Firewalls</h2>
+<p>To be able to directly connect from peer A to peerB, peer B:s IP and port needs
+to be accessable. </p>
+<div class="mermaid">graph LR;
+
+A(Peer A) -- direct connection --> B(Peer B)</div><p>If direct communication isn&#39;t possible due to firewall issues,
+eTodo looks for another peer C which is connected to peer B.
+It then connects to peer B using peer C as a proxy.</p>
+<div class="mermaid">graph LR;
+
+A(Peer A) -- proxy connection --> C(Peer C)
+C(Peer C) -- direct connection --> B(Peer B)</div><p>Data can go trough multiple peers before it reaches its destination.
+It always tries to take the shortest route.</p>
+<p>Connecting to the web gui using your phone is almost always a problem.
+This can be solved using another eTodo installation as a proxy.
+You need to set the web password of the proxy server to the same
+password as the eTodo peer you are trying to reach.</p>
+<p>After the installation of the proxy peer is done, use &quot;Make proxy link&quot;
+menu alternative on the destination peer to make a link which uses the
+proxy peer to connect to the web gui. </p>
 <h2 id="summary">Summary</h2>
 <h4 id="why-did-i-make-etodo-">Why did I make eTodo?</h4>
 <ul>
@@ -129,6 +164,7 @@ The comment field is for writing about the ongoing work on the task.</p>
 <li>Better connection handling</li>
 <li>HTTP-tunneling for connections between eTodo peers</li>
 <li>Email integration using IMAP</li>
+<li>More documentation</li>
 </ul>
 <h3 id="features-that-might-be-added-in-the-future">Features that might be added in the future</h3>
 <ul>
@@ -142,9 +178,9 @@ The comment field is for writing about the ongoing work on the task.</p>
     
     <script>
         var data = [{"name":"eTodo help page","id":"eTodo","label":"eTodo help page","order":1,"url":"/eTodo.html","children":[]}];
-        var sitePath = '/home/miby00/Arbete/IdeaProjects/eTodo client/eTodo/priv/www/doc';
+        var sitePath = '/home/miby00/Arbete/IdeaProjects/eTodo client/eTodo/priv/www/docs';
     </script>
-    <script type="text/javascript" src="./js/mermaid.full.js"></script>
+    <script type="text/javascript" src="./js/mermaid.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
     <script src="./js/scripts.js"></script>
 </body>
