@@ -20,7 +20,7 @@ I have made prebuilt binary releases of eTodo for a few OS I run at home:
 * [Windows 32-bit](https://cdn.rawgit.com/miby00/eTodo-releases/0.9.0/Windows/eTodo.exe)
 * [Ubuntu](https://cdn.rawgit.com/miby00/eTodo-releases/0.9.0/Ubuntu/etodo-0.9.0-amd64.deb)
 
-If no prebuild package is available for your platfrom you can download and run eTodo according to 
+If no prebuilt package is available for your platfrom you can download and run eTodo according to 
 the instructions below.
 
 ## Installation
