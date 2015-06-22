@@ -14,7 +14,7 @@ Key functionality include:
 * Local storage (no central server)
 
 ## Installing eTodo as a release
-I have made ready binary releases of eTodo for a few OS I run at home:
+I have made prebuilt binary releases of eTodo for a few OS I run at home:
 
 * [Mac 64-bit](https://cdn.rawgit.com/miby00/eTodo-releases/0.9.0/Mac/eTodo.dmg)
 * [Windows 32-bit](https://cdn.rawgit.com/miby00/eTodo-releases/0.9.0/Windows/eTodo.exe)
