@@ -672,11 +672,16 @@ doStartWebServer(Port, Port) ->
     -1;
 doStartWebServer(Port, MaxPort) ->
     Root     = getRootDir(),
-    SrvRoot  = filename:join([Root, "logs"]),
+    SrvRoot  = case application:get_env(eLog, logDir) of
+                   undefined ->
+                       filename:join([Root, "logs"]);
+                   {ok, LogFileName} ->
+                       filename:dirname(LogFileName)
+               end,
     DocRoot  = filename:join([Root, "www"]),
     CertFile = filename:join([Root, "localhost.pem"]),
-    filelib:ensure_dir(filename:join(SrvRoot, "readme.txt")),
-    filelib:ensure_dir(filename:join(DocRoot, "readme.txt")),
+    filelib:ensure_dir(SrvRoot),
+    filelib:ensure_dir(DocRoot),
     Result = inets:start(httpd, [{modules, [mod_alias,
                                             mod_auth,
                                             mod_esi,
