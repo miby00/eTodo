@@ -5,6 +5,8 @@
 %%%
 %%% @end
 %%% Created : 14 Jul 2012 by Anders Ramsell <anders.ramsell.1727@student.uu.se>
+%%%           23 Jun 2015 Added possiblity to change log path using
+%%%                       application enviroment variables.
 %%%-------------------------------------------------------------------
 -module(eLogWriter).
 
@@ -175,16 +177,26 @@ code_change(_OldVsn, State, _Extra) ->
 openLog() ->
     MaxNoBytes = 2 * 1024 * 1024,
     MaxNoFiles = 10,
-    PrivDir    = code:priv_dir("eLog"),
-    FileName   = filename:join([PrivDir, "Logs", "eLog"]),
-    Args       = [{name,   eLogWriter},
-                  {file,   FileName},
-                  {linkto, self()},
-                  {repair, true},
-                  {type,   wrap},
-                  {format, external},
-                  {size,   {MaxNoBytes, MaxNoFiles}}],
-    ensureDir(FileName),
+    LogFileName =
+        case application:get_env(eLog, logDir) of
+            undefined ->
+                PrivDir  = code:priv_dir("eLog"),
+                FileName = filename:join([PrivDir, "Logs", "eLog"]),
+                ensureDir(FileName),
+                FileName;
+            {ok, FileName} ->
+                ensureDir(FileName),
+                FileName
+        end,
+
+    Args = [{name,   eLogWriter},
+            {file,   LogFileName},
+            {linkto, self()},
+            {repair, true},
+            {type,   wrap},
+            {format, external},
+            {size,   {MaxNoBytes, MaxNoFiles}}],
+
     case disk_log:open(Args) of
         {ok, Handle} ->
             Handle;
