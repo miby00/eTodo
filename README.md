@@ -68,8 +68,8 @@ So do not expect it to be perfect, commented, have test cases or be fully docume
 
 I would like to give special thanks to:
 
-* Anders Ramsell
-* Knut Sveidqvist
-* Gunnar Sverredal
+* [Anders Ramsell](https://github.com/anra05)
+* [Knut Sveidqvist](https://github.com/knsv)
+* [Gunnar Sverredal](https://github.com/donGunnar)
 
 For contributing to the project.
