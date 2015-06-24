@@ -64,4 +64,12 @@ To run eTodo from a release: Enter the folder eTodo/bin, run erl.
 eTodo isn't finished, when I feel inspired I code on it during my spare time.
 So do not expect it to be perfect, commented, have test cases or be fully documented ;)
 
+###Contributors
 
+I would like to give special thanks to:
+
+* Anders Ramsell
+* Knut Sveidqvist
+* Gunnar Sverredal
+
+For contributing to the project.
