@@ -1,39 +1,9 @@
-@import url(http://fonts.googleapis.com/css?family=Tauri);
-
-@import url(http://fonts.googleapis.com/css?family=Roboto+Condensed:300italic,400italic,700italic,400,300,700);
 
 body {
-    /* Serif options */
-    /*font-family: "Times New Roman", Times, serif;*/
-    /*font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif    */
-
-    /*Sans Serif options */
-    /*font-family: "Helvetica", Arial, Freesans, clean, sans-serif;*/
-    font-family: "Helvetica Neue", Arial, Freesans, clean, sans-serif;
-    /*font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;*/
-    /*font-family: "Trebuchet MS", Helvetica, sans-serif;*/
-    /*font-family: Verdana, Geneva, sans-serif;*/
-    /*font-family: Tahoma, Geneva, sans-serif;*/
-    /*font-family: Baskerville, 'Times New Roman', Times, serif;*/
-
-
-    /*padding:1em;
-    font-size: 14px;
-    font-weight:300;
-    line-height: 20px;
-    margin:12em;
-    max-width:42em;
-    background:#fefefe;
-    color:#333;
-    */
-
     padding: 20px;
     color: #222222;
-    font-size: 15px;
-    font-family: "Roboto Condensed", "Tauri", "Hiragino Sans GB", "Microsoft YaHei", "STHeiti", "SimSun", "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", 'Segoe UI', AppleSDGothicNeo-Medium, 'Malgun Gothic', Verdana, Tahoma, sans-serif;
     background: #ffffff;
     line-height: 1.6;
-    /*-webkit-font-smoothing: antialiased;*/
 }
 
 h1, h2, h3, h4, h5, h6 {

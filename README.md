@@ -17,8 +17,8 @@ Key functionality include:
 I have made prebuilt binary releases of eTodo for a few OS I run at home:
 
 * [Mac 64-bit](https://cdn.rawgit.com/miby00/eTodo-releases/0.9.0/Mac/eTodo.dmg)
-* [Windows 32-bit](https://cdn.rawgit.com/miby00/eTodo-releases/0.9.0/Windows/eTodo.exe)
-* [Ubuntu 64-bit](https://cdn.rawgit.com/miby00/eTodo-releases/0.9.0/Ubuntu/etodo-0.9.0-amd64.deb)
+* [Windows 32-bit](https://cdn.rawgit.com/miby00/eTodo-releases/0.9.0/Windows 7/eTodo.exe)
+* [Ubuntu 64-bit](https://cdn.rawgit.com/miby00/eTodo-releases/0.9.0/Ubuntu/etodo_0.9.0_amd64.deb)
 
 If no prebuilt package is available for your platfrom you can download and run eTodo according to 
 the instructions below.
@@ -39,7 +39,7 @@ I recommend using Erlang Solutions [installation packages](https://www.erlang-so
 
 Have patience: The first startup needs to create an empty TODO database.
 
-[Getting started with eTodo](https://rawgit.com/miby00/eTodo/master/eTodo/priv/www/doc/eTodo.html)
+[Getting started with eTodo](https://rawgit.com/miby00/eTodo/master/eTodo/priv/www/docs/eTodo.html)
 
 ### Making an eTodo release which includes Erlang
 
@@ -64,4 +64,12 @@ To run eTodo from a release: Enter the folder eTodo/bin, run erl.
 eTodo isn't finished, when I feel inspired I code on it during my spare time.
 So do not expect it to be perfect, commented, have test cases or be fully documented ;)
 
+###Contributors
 
+I would like to give special thanks to:
+
+* [Anders Ramsell](https://github.com/andersramsell)
+* [Knut Sveidqvist](https://github.com/knsv)
+* [Gunnar Sverredal](https://github.com/donGunnar)
+
+For contributing to the project.
