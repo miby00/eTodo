@@ -1479,14 +1479,23 @@ workLogStartDateEvent(_Type, _Id, _Frame, State) ->
 %%====================================================================
 helpMenu1Event(_Type, _Id, _Frame, State) ->
     {ok, Cwd} = file:get_cwd(),
-    Dir       = "file://" ++ filename:join([Cwd, getRootDir(),
-                                            "www", "docs", "eTodo.html"]),
+    FileUri   = getFileURI(),
+    Dir       = FileUri ++ filename:join([Cwd, getRootDir(),
+                                          "www", "docs", "eTodo.html"]),
     wx_misc:launchDefaultBrowser(re:replace(Dir, " ", "%20", [{return, list}])),
     State.
 
 aboutMenuEvent(_Type, _Id, _Frame, State = #guiState{aboutDlg = About}) ->
     wxDialog:showModal(About),
     State.
+
+getFileURI() ->
+    case os:type() of
+        {win32, _} ->
+            "file:///";
+        _->
+            "file://"
+    end.
 
 %%====================================================================
 %% Construct proxy link
