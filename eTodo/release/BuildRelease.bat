@@ -3,6 +3,7 @@ del eTodo.zip
 del eTodo.tar.gz
 cd ..
 cd ..
+set ERL_LIBS=%cd%
 cd eLog\src
 erl -make
 cd ..

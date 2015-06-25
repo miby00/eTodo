@@ -4,6 +4,7 @@ rm eTodo.zip
 rm eTodo.tar.gz
 cd ..
 cd ..
+export ERL_LIBS=$(pwd)
 cd eLog/src
 erl -make
 cd ..
