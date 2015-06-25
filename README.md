@@ -1,4 +1,4 @@
-# [eTodo](https://rawgit.com/miby00/eTodo/master/eTodo/priv/www/docs/graphics/eTodo.png)
+# ![eTodo](https://rawgit.com/miby00/eTodo/master/eTodo/priv/www/docs/graphics/eTodo.png)
 eTodo is a P2P task manager written in Erlang. 
 
 Key functionality include:
