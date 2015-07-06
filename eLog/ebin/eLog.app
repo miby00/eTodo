@@ -3,6 +3,12 @@
   {description, "Simple logging application"},
   {vsn, "0.9.0"},
   {registered, [eLog, eLogWriter]},
+  {modules, [
+      eLog_app,
+      eLog_sup,
+      eLog,
+      eLogWriter
+   ]},
   {applications, [
                   kernel,
                   stdlib
