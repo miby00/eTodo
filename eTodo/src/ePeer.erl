@@ -419,15 +419,16 @@ handle_cast(doRegister, State = #state{stateName = registerWithPeer,
                                        user      = User}) ->
     eLog:log(debug, ?MODULE, doRegister, [self(), User],
              "entering", ?LINE),
-    Hash  = getCircleHash(Timestamp),
-    Peers = eTodoDB:getConnections(),
+    Hash   = getCircleHash(Timestamp),
+    Peers  = eTodoDB:getConnections(),
+    Peers2 = getPeersWithActiveConnection(Peers),
 
-    case sendCall(eTodoRegister, [User, Hash, eTodoUtils:dateTime(), Peers],
+    case sendCall(eTodoRegister, [User, Hash, eTodoUtils:dateTime(), Peers2],
                   State) of
         {ok, DateTime, RemotePeers, SharedTodos, OldConTime} ->
             loggedIn(State),
             checkConflict(SharedTodos, PeerUser, User, OldConTime),
-            updateConnection(DateTime, State),
+            updateConnection(DateTime, OldConTime, State),
             ePeerCircle:remotePeers(PeerUser, RemotePeers),
             State2 = launchProxyTimers(State),
             {noreply, State2#state{stateName = authorized,
@@ -759,7 +760,7 @@ eTodoRegister(PeerUser, Hash, DateTime, RemotePeers,
             loggedIn(State),
             OldConCfg  = default(eTodoDB:getConnection(PeerUser), #conCfg{}),
             OldConTime = OldConCfg#conCfg.updateTime,
-            updateConnection(DateTime, State),
+            updateConnection(DateTime, OldConTime, State),
             State2 = launchProxyTimers(State),
             ePeerServer:updatePeerInfo(self(), PeerUser),
             ePeerCircle:remotePeers(PeerUser, RemotePeers),
@@ -804,6 +805,11 @@ sendMsg([User, PeerUsers, MsgType, Text], State) ->
 %%%===================================================================
 %%% BEGIN: Internal functions
 %%%===================================================================
+getPeersWithActiveConnection(Peers) ->
+    RemoveNonActive = fun (Peer) ->
+                              ePeerCircle:isActivePeer(Peer)
+                      end,
+    lists:map(RemoveNonActive, Peers).
 
 loggedIn(#state{user     = User,
                 peerUser = PeerUser,
@@ -823,10 +829,12 @@ loggedOut(#state{peerUser = PeerUser,
     ePeerCircle:peerStatus(PeerUser, inactive, Circle),
     ok.
 
-updateConnection(DateTime, #state{peerUser   = PeerUser,
-                                  peerHost   = PeerHost,
-                                  peerPort   = PeerPort,
-                                  user       = User}) ->
+updateConnection(_DateTime, configured, _State) ->
+    ok;
+updateConnection(DateTime, _OldDateTime, #state{peerUser   = PeerUser,
+                                                peerHost   = PeerHost,
+                                                peerPort   = PeerPort,
+                                                user       = User}) ->
     ConCfg = #conCfg{userName   = PeerUser,
                      host       = PeerHost,
                      port       = PeerPort,

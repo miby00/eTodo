@@ -844,6 +844,25 @@
 															<object class="wxBoxSizer">
 																<orient>wxVERTICAL</orient>
 																<object class="sizeritem">
+																	<option>0</option>
+																	<flag>wxALL|wxEXPAND</flag>
+																	<border>0</border>
+																	<object class="wxPanel" name="m_panel251">
+																		<style>wxTAB_TRAVERSAL</style>
+																		<object class="wxBoxSizer">
+																			<orient>wxVERTICAL</orient>
+																			<object class="sizeritem">
+																				<option>0</option>
+																				<flag>wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+																				<border>0</border>
+																				<object class="wxStaticBitmap" name="portraitUserIcon">
+																					<bitmap>./Icons/portrait.png</bitmap>
+																				</object>
+																			</object>
+																		</object>
+																	</object>
+																</object>
+																<object class="sizeritem">
 																	<option>1</option>
 																	<flag>wxALL|wxEXPAND</flag>
 																	<border>5</border>
@@ -854,12 +873,11 @@
 																</object>
 																<object class="sizeritem">
 																	<option>0</option>
-																	<flag>wxEXPAND | wxALL</flag>
+																	<flag>wxEXPAND</flag>
 																	<border>5</border>
 																	<object class="wxPanel" name="m_panel25">
 																		<style>wxTAB_TRAVERSAL</style>
 																		<object class="wxBoxSizer">
-																			<minsize>-1,75</minsize>
 																			<orient>wxVERTICAL</orient>
 																			<object class="sizeritem">
 																				<option>0</option>
@@ -880,7 +898,7 @@
 																<orient>wxVERTICAL</orient>
 																<object class="sizeritem">
 																	<option>1</option>
-																	<flag>wxEXPAND | wxALL</flag>
+																	<flag>wxEXPAND</flag>
 																	<border>5</border>
 																	<object class="wxPanel" name="allMsgPanel">
 																		<style>wxTAB_TRAVERSAL</style>
@@ -893,18 +911,11 @@
 																				<object class="wxBoxSizer">
 																					<orient>wxVERTICAL</orient>
 																					<object class="sizeritem">
-																						<option>1</option>
-																						<flag>wxALL|wxEXPAND</flag>
-																						<border>5</border>
-																						<object class="wxHtmlWindow" name="msgTextWin">
-																							<style>wxHW_SCROLLBAR_AUTO</style>
-																						</object>
-																					</object>
-																					<object class="sizeritem">
 																						<option>0</option>
 																						<flag>wxEXPAND</flag>
 																						<border>5</border>
 																						<object class="wxBoxSizer">
+																							<minsize>-1,64</minsize>
 																							<orient>wxHORIZONTAL</orient>
 																							<object class="sizeritem">
 																								<option>0</option>
@@ -958,7 +969,7 @@
 																							</object>
 																							<object class="sizeritem">
 																								<option>1</option>
-																								<flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
+																								<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
 																								<border>5</border>
 																								<object class="wxTextCtrl" name="userStatusMsg">
 																									<style>wxTE_PROCESS_ENTER</style>
@@ -966,6 +977,14 @@
 																									<value></value>
 																								</object>
 																							</object>
+																						</object>
+																					</object>
+																					<object class="sizeritem">
+																						<option>1</option>
+																						<flag>wxALL|wxEXPAND</flag>
+																						<border>5</border>
+																						<object class="wxHtmlWindow" name="msgTextWin">
+																							<style>wxHW_SCROLLBAR_AUTO</style>
 																						</object>
 																					</object>
 																				</object>
@@ -981,73 +1000,74 @@
 																					<maxlength>0</maxlength>
 																				</object>
 																			</object>
+																			<object class="sizeritem">
+																				<option>0</option>
+																				<flag>wxEXPAND | wxALL</flag>
+																				<border>0</border>
+																				<object class="wxPanel" name="userStatusPanel">
+																					<style>wxTAB_TRAVERSAL</style>
+																					<object class="wxBoxSizer">
+																						<orient>wxVERTICAL</orient>
+																						<object class="sizeritem">
+																							<option>0</option>
+																							<flag>wxEXPAND</flag>
+																							<border>5</border>
+																							<object class="wxBoxSizer">
+																								<orient>wxHORIZONTAL</orient>
+																								<object class="sizeritem">
+																									<option>1</option>
+																									<flag>wxEXPAND</flag>
+																									<border>5</border>
+																									<object class="wxBoxSizer">
+																										<minsize>-1,64</minsize>
+																										<orient>wxHORIZONTAL</orient>
+																										<object class="sizeritem">
+																											<option>0</option>
+																											<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+																											<border>5</border>
+																											<object class="wxStaticBitmap" name="peerAvailableIcon">
+																												<hidden>1</hidden>
+																												<tooltip>Available</tooltip>
+																												<bitmap>./Icons/user-online.png</bitmap>
+																											</object>
+																										</object>
+																										<object class="sizeritem">
+																											<option>0</option>
+																											<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+																											<border>5</border>
+																											<object class="wxStaticBitmap" name="peerBusyIcon">
+																												<hidden>1</hidden>
+																												<tooltip>Busy</tooltip>
+																												<bitmap>./Icons/user-busy.png</bitmap>
+																											</object>
+																										</object>
+																										<object class="sizeritem">
+																											<option>0</option>
+																											<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+																											<border>5</border>
+																											<object class="wxStaticBitmap" name="peerAwayIcon">
+																												<hidden>1</hidden>
+																												<tooltip>Away</tooltip>
+																												<bitmap>./Icons/user-away.png</bitmap>
+																											</object>
+																										</object>
+																										<object class="sizeritem">
+																											<option>1</option>
+																											<flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
+																											<border>8</border>
+																											<object class="wxStaticText" name="peerStatusMsg">
+																												<label>Select a peer to show status information here...</label>
+																												<wrap>-1</wrap>
+																											</object>
+																										</object>
+																									</object>
+																								</object>
+																							</object>
+																						</object>
+																					</object>
+																				</object>
+																			</object>
 																		</object>
-																	</object>
-																</object>
-															</object>
-														</object>
-													</object>
-												</object>
-											</object>
-										</object>
-									</object>
-									<object class="sizeritem">
-										<option>0</option>
-										<flag>wxEXPAND | wxALL</flag>
-										<border>5</border>
-										<object class="wxPanel" name="userStatusPanel">
-											<style>wxTAB_TRAVERSAL</style>
-											<object class="wxBoxSizer">
-												<orient>wxVERTICAL</orient>
-												<object class="sizeritem">
-													<option>0</option>
-													<flag>wxEXPAND</flag>
-													<border>5</border>
-													<object class="wxBoxSizer">
-														<orient>wxHORIZONTAL</orient>
-														<object class="sizeritem">
-															<option>1</option>
-															<flag>wxEXPAND</flag>
-															<border>5</border>
-															<object class="wxBoxSizer">
-																<orient>wxHORIZONTAL</orient>
-																<object class="sizeritem">
-																	<option>0</option>
-																	<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-																	<border>5</border>
-																	<object class="wxStaticBitmap" name="peerAvailableIcon">
-																		<hidden>1</hidden>
-																		<tooltip>Available</tooltip>
-																		<bitmap>./Icons/user-online.png</bitmap>
-																	</object>
-																</object>
-																<object class="sizeritem">
-																	<option>0</option>
-																	<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-																	<border>5</border>
-																	<object class="wxStaticBitmap" name="peerBusyIcon">
-																		<hidden>1</hidden>
-																		<tooltip>Busy</tooltip>
-																		<bitmap>./Icons/user-busy.png</bitmap>
-																	</object>
-																</object>
-																<object class="sizeritem">
-																	<option>0</option>
-																	<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-																	<border>5</border>
-																	<object class="wxStaticBitmap" name="peerAwayIcon">
-																		<hidden>1</hidden>
-																		<tooltip>Away</tooltip>
-																		<bitmap>./Icons/user-away.png</bitmap>
-																	</object>
-																</object>
-																<object class="sizeritem">
-																	<option>1</option>
-																	<flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
-																	<border>8</border>
-																	<object class="wxStaticText" name="peerStatusMsg">
-																		<label>Select a peer to show status information here...</label>
-																		<wrap>-1</wrap>
 																	</object>
 																</object>
 															</object>
@@ -1704,6 +1724,7 @@
 	</object>
 	<object class="wxDialog" name="searchDlg">
 		<style>wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER</style>
+		<size>251,399</size>
 		<title>Search in columns</title>
 		<object class="wxBoxSizer">
 			<orient>wxVERTICAL</orient>
@@ -1966,6 +1987,7 @@
 												<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
 												<border>5</border>
 												<object class="wxTextCtrl" name="peerUserName">
+													<tooltip>User name of the peer you want to connect to</tooltip>
 													<value></value>
 													<maxlength>0</maxlength>
 												</object>
@@ -1992,6 +2014,7 @@
 												<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
 												<border>5</border>
 												<object class="wxTextCtrl" name="hostName">
+													<tooltip>Host name of the peer you want to connect to</tooltip>
 													<value></value>
 													<maxlength>0</maxlength>
 												</object>
@@ -2018,8 +2041,108 @@
 												<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
 												<border>5</border>
 												<object class="wxTextCtrl" name="peerPort">
+													<tooltip>Port of the peer you want to connect to</tooltip>
 													<value></value>
 													<maxlength>0</maxlength>
+												</object>
+											</object>
+										</object>
+									</object>
+								</object>
+							</object>
+						</object>
+					</object>
+				</object>
+			</object>
+			<object class="sizeritem">
+				<option>0</option>
+				<flag>wxEXPAND</flag>
+				<border>5</border>
+				<object class="wxBoxSizer">
+					<orient>wxHORIZONTAL</orient>
+					<object class="spacer">
+						<option>0</option>
+						<flag>wxALL|wxEXPAND</flag>
+						<border>10</border>
+						<size>32,0</size>
+					</object>
+					<object class="sizeritem">
+						<option>1</option>
+						<flag>wxALL|wxEXPAND</flag>
+						<border>5</border>
+						<object class="wxStaticBoxSizer">
+							<orient>wxVERTICAL</orient>
+							<label>Connection Info</label>
+							<object class="sizeritem">
+								<option>1</option>
+								<flag>wxEXPAND</flag>
+								<border>5</border>
+								<object class="wxBoxSizer">
+									<orient>wxVERTICAL</orient>
+									<object class="spacer">
+										<option>1</option>
+										<flag>wxEXPAND</flag>
+										<border>5</border>
+										<size>0,10</size>
+									</object>
+									<object class="sizeritem">
+										<option>0</option>
+										<flag>wxEXPAND</flag>
+										<border>5</border>
+										<object class="wxBoxSizer">
+											<orient>wxVERTICAL</orient>
+											<object class="sizeritem">
+												<option>1</option>
+												<flag>wxEXPAND</flag>
+												<border>5</border>
+												<object class="wxBoxSizer">
+													<orient>wxHORIZONTAL</orient>
+													<object class="sizeritem">
+														<option>2</option>
+														<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+														<border>5</border>
+														<object class="wxStaticText" name="m_staticText111">
+															<label>Local host name:</label>
+															<wrap>-1</wrap>
+														</object>
+													</object>
+													<object class="sizeritem">
+														<option>3</option>
+														<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+														<border>5</border>
+														<object class="wxTextCtrl" name="eTodoHostName">
+															<tooltip>The hostname that will be reported to other peers so they can use it to connect to this client.</tooltip>
+															<value></value>
+															<maxlength>0</maxlength>
+														</object>
+													</object>
+												</object>
+											</object>
+											<object class="sizeritem">
+												<option>1</option>
+												<flag>wxEXPAND</flag>
+												<border>5</border>
+												<object class="wxBoxSizer">
+													<orient>wxHORIZONTAL</orient>
+													<object class="sizeritem">
+														<option>2</option>
+														<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+														<border>5</border>
+														<object class="wxStaticText" name="m_staticText2511">
+															<label>Local port:</label>
+															<wrap>-1</wrap>
+														</object>
+													</object>
+													<object class="sizeritem">
+														<option>3</option>
+														<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+														<border>5</border>
+														<object class="wxTextCtrl" name="eTodoPort">
+															<tooltip>Starting port to try with, will be incremented if port is busy.</tooltip>
+															<value>19000</value>
+															<maxlength>0</maxlength>
+														</object>
+													</object>
 												</object>
 											</object>
 										</object>
@@ -2116,78 +2239,6 @@
 													<tooltip>Starting port to try with, will be incremented if port is busy.</tooltip>
 													<value>8099</value>
 													<maxlength>0</maxlength>
-												</object>
-											</object>
-										</object>
-									</object>
-								</object>
-							</object>
-						</object>
-					</object>
-				</object>
-			</object>
-			<object class="sizeritem">
-				<option>0</option>
-				<flag>wxEXPAND</flag>
-				<border>5</border>
-				<object class="wxBoxSizer">
-					<orient>wxHORIZONTAL</orient>
-					<object class="spacer">
-						<option>0</option>
-						<flag>wxALL|wxEXPAND</flag>
-						<border>10</border>
-						<size>32,0</size>
-					</object>
-					<object class="sizeritem">
-						<option>1</option>
-						<flag>wxALL|wxEXPAND</flag>
-						<border>5</border>
-						<object class="wxStaticBoxSizer">
-							<orient>wxVERTICAL</orient>
-							<label>Connection Info</label>
-							<object class="sizeritem">
-								<option>1</option>
-								<flag>wxEXPAND</flag>
-								<border>5</border>
-								<object class="wxBoxSizer">
-									<orient>wxVERTICAL</orient>
-									<object class="spacer">
-										<option>1</option>
-										<flag>wxEXPAND</flag>
-										<border>5</border>
-										<size>0,10</size>
-									</object>
-									<object class="sizeritem">
-										<option>0</option>
-										<flag>wxEXPAND</flag>
-										<border>5</border>
-										<object class="wxBoxSizer">
-											<orient>wxHORIZONTAL</orient>
-											<object class="sizeritem">
-												<option>1</option>
-												<flag>wxEXPAND</flag>
-												<border>5</border>
-												<object class="wxBoxSizer">
-													<orient>wxHORIZONTAL</orient>
-													<object class="sizeritem">
-														<option>2</option>
-														<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-														<border>5</border>
-														<object class="wxStaticText" name="m_staticText2511">
-															<label>Port:</label>
-															<wrap>-1</wrap>
-														</object>
-													</object>
-													<object class="sizeritem">
-														<option>3</option>
-														<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-														<border>5</border>
-														<object class="wxTextCtrl" name="eTodoPort">
-															<tooltip>Starting port to try with, will be incremented if port is busy.</tooltip>
-															<value>19000</value>
-															<maxlength>0</maxlength>
-														</object>
-													</object>
 												</object>
 											</object>
 										</object>
@@ -3100,7 +3151,6 @@
 				<object class="wxStaticText" name="m_staticText32">
 					<fg>#2554e3</fg>
 					<font>
-						<family>default</family>
 						<style>normal</style>
 						<weight>bold</weight>
 						<underlined>0</underlined>
@@ -3126,7 +3176,6 @@
 				<object class="wxStaticText" name="m_staticText34">
 					<fg>#2554e3</fg>
 					<font>
-						<family>default</family>
 						<style>normal</style>
 						<weight>bold</weight>
 						<underlined>0</underlined>
@@ -3172,7 +3221,6 @@
 				<object class="wxStaticText" name="m_staticText37">
 					<fg>#2554e3</fg>
 					<font>
-						<family>default</family>
 						<style>normal</style>
 						<weight>bold</weight>
 						<underlined>0</underlined>
@@ -3208,7 +3256,6 @@
 				<object class="wxStaticText" name="m_staticText41">
 					<fg>#2554e3</fg>
 					<font>
-						<family>default</family>
 						<style>normal</style>
 						<weight>bold</weight>
 						<underlined>0</underlined>
@@ -3223,7 +3270,7 @@
 				<border>5</border>
 				<object class="wxStaticText" name="m_staticText42">
 					<fg>#2554e3</fg>
-					<label>The MIT License (MIT)</label>
+					<label>To be defined</label>
 					<wrap>-1</wrap>
 				</object>
 			</object>

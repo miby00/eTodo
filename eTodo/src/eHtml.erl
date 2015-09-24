@@ -453,12 +453,19 @@ pageHeader(Extra, UserName) ->
     Font =  "<link rel='stylesheet' type='text/css' "
         "href='https://fonts.googleapis.com/css"
         "?family=Ubuntu:regular,bold&subset=Latin'>",
+    ManifestFile = filename:join(["priv", "css", "manifest.json"]),
+    Manifest     = "<link rel='manifest' href='/" ++ ManifestFile ++ "'>",
+    IconFile     = filename:join(["priv", "Icons", "etodoSuper.png"]),
+    Icon         = "<link rel='icon' sizes='192x192' href='/" ++ IconFile ++ "'>",
     ["<!DOCTYPE html><html>",
      [headTag(
         [titleTag(["eTodo - ", UserName]),
+         metaTag([{name, "mobile-web-app-capable"}, {content, "yes"}]),
          metaTag([{content, Content}, {name, "viewport"}]),
          metaTag([{"http-equiv", "Content-Type"},
-                  {content,      "text/html; charset=UTF-8"}]), Font,
+                  {content,      "text/html; charset=UTF-8"}]),
+
+            Font, Manifest, Icon,
          styleTag([{type, "text/css"}], Styles),
          javascript()
         ]),

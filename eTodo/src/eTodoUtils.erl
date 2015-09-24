@@ -18,7 +18,7 @@
          taskInternal/1, taskExternal/1, convertUid/1,
          col/2, default/2, doneTime/2, dateTime/0, makeETodo/3,
          makeRef/0, getRootDir/0, apply/4, toColumn/1, toStatusDB/1,
-         addDateTime/2, tryInt/1, cancelTimer/1]).
+         addDateTime/2, tryInt/1, cancelTimer/1, getIp/0]).
 
 %%%===================================================================
 %%% API
@@ -190,6 +190,7 @@ col(Desc, Columns) ->
 %% @end
 %%--------------------------------------------------------------------
 default(undefined, Default)  -> Default;
+default("",        Default)  -> Default;
 default(Value    , _Default) -> Value.
 
 
@@ -299,6 +300,25 @@ toStatusDB(?statusPlanning)   -> planning;
 toStatusDB(?statusInProgress) -> inProgress;
 toStatusDB(?statusDone)       -> done;
 toStatusDB(?statusNone)       -> undefined.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+getIp() ->
+    {ok, Addrs} = inet:getif(),
+    IPAddr = getIp(Addrs),
+    case IPAddr of
+        {{N1, N2, N3, N4}, _, _} ->
+            toStr(N1) ++ "." ++ toStr(N2) ++ "." ++
+                toStr(N3) ++ "." ++ toStr(N4);
+        _ ->
+            "127.0.0.0"
+    end.
+
+getIp(Addrs) ->
+    lists:keyfind({255, 255, 255, 0}, 3, Addrs).
 
 %%======================================================================
 %% Function : convertUid(Uid) -> NewUid

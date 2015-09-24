@@ -507,9 +507,14 @@ nextPeer(_PeerUser, #conCfg{userName = User,
                             host     = Host}, State = #state{user = User}) ->
     %% This is data a remote peer has about us - use some data.
     MyConCfg  = getConnection(User),
-    MyConCfg2 = MyConCfg#conCfg{host       = Host,
+    MyConCfg2 = MyConCfg#conCfg{host       = default(MyConCfg#conCfg.host, Host),
                                 updateTime = eTodoUtils:dateTime()},
-    eTodoDB:updateConnection(MyConCfg2),
+
+    if MyConCfg#conCfg.updateTime == configured ->
+            ok;
+       true ->
+            eTodoDB:updateConnection(MyConCfg2)
+    end,
     {next, State};
 nextPeer(PeerUser, #conCfg{userName = PeerUser,
                            port     = Port}, State) ->
@@ -667,10 +672,15 @@ clearConnections([ConCfg|Rest], SoFar) ->
 %% @end
 %%--------------------------------------------------------------------
 updateOwnConfig(User, Port) ->
-    ConCfg = getConnection(User),
-    eTodoDB:updateConnection(ConCfg#conCfg{userName   = User,
-                                           port       = Port,
-                                           updateTime = eTodoUtils:dateTime()}).
+    ConCfg  = getConnection(User),
+    ConCfg2 = ConCfg#conCfg{userName   = User,
+                            port       = Port,
+                            updateTime = eTodoUtils:dateTime()},
+    if ConCfg#conCfg.updateTime == configured ->
+            ok;
+       true ->
+            eTodoDB:updateConnection(ConCfg2)
+    end.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -736,6 +746,8 @@ conLoop(State) ->
 
 notToOld(undefined) ->
     false; %% This is a broken connection, remove it.
+notToOld(configured) ->
+    true; %% This is a configured connection, keep it.
 notToOld(UpdateTime) ->
     Diff = calendar:datetime_to_gregorian_seconds(eTodoUtils:dateTime()) -
         calendar:datetime_to_gregorian_seconds(UpdateTime),

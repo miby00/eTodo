@@ -1996,6 +1996,11 @@ setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
     WPortObj = wxXmlResource:xrcctrl(Settings, "webPort",      wxTextCtrl),
     EPortObj = wxXmlResource:xrcctrl(Settings, "eTodoPort",    wxTextCtrl),
     WOnObj   = wxXmlResource:xrcctrl(Settings, "webUIEnabled", wxCheckBox),
+    EHostObj = wxXmlResource:xrcctrl(Settings, "eTodoHostName", wxTextCtrl),
+    IPAddr   = eTodoUtils:getIp(),
+    UConCfg  = default(eTodoDB:getConnection(User), #conCfg{}),
+
+    wxTextCtrl:setValue(EHostObj, default(UConCfg#conCfg.host,    IPAddr)),
 
     #userCfg{webEnabled  = WEnabled,
              webPort     = WPort,
@@ -2007,24 +2012,29 @@ setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
     wxCheckBox:setValue(WOnObj,   default(WEnabled, false)),
     webUIEnabledEvent(undefined, undefined, undefined, State).
 
-setDefaultValues(ConCfg, #guiState{settingsDlg = Settings}) ->
-    PeerObj  = wxXmlResource:xrcctrl(Settings, "peerUserName", wxTextCtrl),
-    HostObj  = wxXmlResource:xrcctrl(Settings, "hostName",     wxTextCtrl),
-    PortObj  = wxXmlResource:xrcctrl(Settings, "peerPort",     wxTextCtrl),
+setDefaultValues(ConCfg, #guiState{user = User, settingsDlg = Settings}) ->
+    PeerObj  = wxXmlResource:xrcctrl(Settings, "peerUserName",  wxTextCtrl),
+    HostObj  = wxXmlResource:xrcctrl(Settings, "hostName",      wxTextCtrl),
+    PortObj  = wxXmlResource:xrcctrl(Settings, "peerPort",      wxTextCtrl),
+    EHostObj = wxXmlResource:xrcctrl(Settings, "eTodoHostName", wxTextCtrl),
+    UConCfg  = default(eTodoDB:getConnection(User), #conCfg{}),
+    IPAddr   = eTodoUtils:getIp(),
 
-    wxTextCtrl:setValue(PeerObj, default(ConCfg#conCfg.userName,    "")),
-    wxTextCtrl:setValue(HostObj, default(ConCfg#conCfg.host,        "")),
-    wxTextCtrl:setValue(PortObj, toStr(default(ConCfg#conCfg.port, 19000))).
+    wxTextCtrl:setValue(EHostObj, default(UConCfg#conCfg.host,    IPAddr)),
+    wxTextCtrl:setValue(PeerObj,  default(ConCfg#conCfg.userName, "")),
+    wxTextCtrl:setValue(HostObj,  default(ConCfg#conCfg.host,     "")),
+    wxTextCtrl:setValue(PortObj,  toStr(default(ConCfg#conCfg.port, 19000))).
 
 settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
                                                       user        = User}) ->
-    PeerObj  = wxXmlResource:xrcctrl(Settings, "peerUserName", wxTextCtrl),
-    HostObj  = wxXmlResource:xrcctrl(Settings, "hostName",     wxTextCtrl),
-    PortObj  = wxXmlResource:xrcctrl(Settings, "peerPort",     wxTextCtrl),
-    WPwdObj  = wxXmlResource:xrcctrl(Settings, "webPassword",  wxTextCtrl),
-    WPortObj = wxXmlResource:xrcctrl(Settings, "webPort",      wxTextCtrl),
-    EPortObj = wxXmlResource:xrcctrl(Settings, "eTodoPort",    wxTextCtrl),
-    WOnObj   = wxXmlResource:xrcctrl(Settings, "webUIEnabled", wxCheckBox),
+    PeerObj  = wxXmlResource:xrcctrl(Settings, "peerUserName",  wxTextCtrl),
+    HostObj  = wxXmlResource:xrcctrl(Settings, "hostName",      wxTextCtrl),
+    PortObj  = wxXmlResource:xrcctrl(Settings, "peerPort",      wxTextCtrl),
+    WPwdObj  = wxXmlResource:xrcctrl(Settings, "webPassword",   wxTextCtrl),
+    WPortObj = wxXmlResource:xrcctrl(Settings, "webPort",       wxTextCtrl),
+    EPortObj = wxXmlResource:xrcctrl(Settings, "eTodoPort",     wxTextCtrl),
+    EHostObj = wxXmlResource:xrcctrl(Settings, "eTodoHostName", wxTextCtrl),
+    WOnObj   = wxXmlResource:xrcctrl(Settings, "webUIEnabled",  wxCheckBox),
 
     PeerUser = wxTextCtrl:getValue(PeerObj),
     PeerHost = wxTextCtrl:getValue(HostObj),
@@ -2035,11 +2045,17 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     WebPort  = wxTextCtrl:getValue(WPortObj),
 
     EPort    = wxTextCtrl:getValue(EPortObj),
+    EHost    = wxTextCtrl:getValue(EHostObj),
 
     eTodoDB:updateConnection(#conCfg{userName   = PeerUser,
                                      host       = PeerHost,
                                      port       = toInt(PeerPort),
-                                     updateTime = eTodoUtils:dateTime()}),
+                                     updateTime = configured}),
+
+    eTodoDB:updateConnection(#conCfg{userName   = User,
+                                     host       = EHost,
+                                     port       = toInt(EPort),
+                                     updateTime = configured}),
 
     UserCfg  = eTodoDB:readUserCfg(User),
     UserCfg2 = UserCfg#userCfg{peerUser    = PeerUser,

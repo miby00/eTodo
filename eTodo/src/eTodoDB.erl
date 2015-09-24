@@ -544,19 +544,14 @@ handle_call(getAllUserInfos, _From, State) ->
     {reply, Result, State};
 handle_call(getConnections, _From, State) ->
     Result  = match(#conCfg{_ = '_'}),
-    SortFun = fun (ConCfg1, ConCfg2) ->
-                  Dist1 = ConCfg1#conCfg.distance,
-                  Dist2 = ConCfg2#conCfg.distance,
-                  case {Dist1, Dist2} of
-                      {undefined, _} ->
-                          true;
-                      {_, undefined} ->
-                          false;
-                      _ ->
-                          Dist1 < Dist2
-                  end
-             end,
-    Result2 = lists:sort(SortFun, Result),
+    SortFun =
+        fun (ConCfg) ->
+            Dist = ConCfg#conCfg.distance,
+            ((Dist ==  undefined) or (Dist == 1))  and
+            (ConCfg#conCfg.host     =/= undefined) and
+            (ConCfg#conCfg.port     =/= undefined)
+        end,
+    Result2 = lists:filter(SortFun, Result),
     {reply, Result2, State};
 handle_call({getConnection, User}, _From, State) ->
     Result = read(conCfg, User),
