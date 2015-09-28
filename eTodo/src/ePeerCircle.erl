@@ -298,7 +298,7 @@ handle_cast({peerStatus, PeerUser, Status, OldCircle}, State) ->
     {noreply, State2};
 handle_cast({remotePeers, PeerUser, PeerList},
             State = #state{conQueue    = ConQueue,
-                           remoteQueue = RemoteQueue}) ->
+                           remoteQueue = RemoteQueue}) when is_list(PeerList) ->
     RemoteQueue2 = lists:delete(PeerUser, RemoteQueue),
     ConQueue2    = queueAdd(PeerUser, PeerList, ConQueue),
     State2       = conLoop(State),

@@ -309,6 +309,7 @@ type("peerAvailableIcon") -> wxStaticBitmap;
 type("peerBusyIcon")      -> wxStaticBitmap;
 type("peerAwayIcon")      -> wxStaticBitmap;
 type("portraitPeerIcon")  -> wxStaticBitmap;
+type("portraitUserIcon")  -> wxStaticBitmap;
 type("addedToLists")      -> wxStaticText;
 type("sharedWithText")    -> wxStaticText;
 type("peerStatusMsg")     -> wxStaticText;
@@ -1391,7 +1392,12 @@ setPortrait(Peer, State) ->
     Bitmap = wxBitmap:new(Png),
     wxBitmap:setHeight(Bitmap, 64),
     wxBitmap:setWidth(Bitmap, 64),
-    wxStaticBitmap:setBitmap(obj("portraitPeerIcon", State), Bitmap).
+    case (State#guiState.user == Peer) of
+        true ->
+            wxStaticBitmap:setBitmap(obj("portraitUserIcon", State), Bitmap);
+        false ->
+            wxStaticBitmap:setBitmap(obj("portraitPeerIcon", State), Bitmap)
+    end.
 
 getPortrait(Peer) ->
     CustomPortrait = getRootDir() ++ "/Icons/portrait_" ++ Peer ++ ".png",
