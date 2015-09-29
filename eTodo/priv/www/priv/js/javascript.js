@@ -207,7 +207,7 @@ function notifyUser() {
             'eTodo: ' + msgRec.split(' to ')[0]:'eTodo: alarm';
 
             var icon = (osType() == "Windows") ?
-                '/priv/Icons/etodoBig.png':'/priv/Icons/eTodo.png';
+                '/priv/Icons/etodoBig.png':'/priv/Icons/etodoBig.png';
 
             var options = {
                 body: msgText,
@@ -215,9 +215,16 @@ function notifyUser() {
                 icon: icon
             }
         }
-        Notification.requestPermission(function() {
-            var notification = new Notification(title, options);
-        });
+        if (Notification.permission != "granted") {
+            Notification.requestPermission(function() {
+		        var notification = new Notification(title, options);
+	        });
+        }
+        else {
+            if (Notification.permission == "granted") {
+                var notification = new Notification(title, options);
+            }
+        }
 
         window.navigator = window.navigator || {};
         if (navigator.vibrate != undefined) {
