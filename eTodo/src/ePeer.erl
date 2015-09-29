@@ -806,7 +806,8 @@ sendMsg([User, PeerUsers, MsgType, Text], State) ->
 %%% BEGIN: Internal functions
 %%%===================================================================
 getPeersWithActiveConnection(Peers) ->
-    RemoveNonActive = fun (Peer) ->
+    RemoveNonActive = fun (ConCfg) ->
+                              Peer = ConCfg#conCfg.userName,
                               ePeerCircle:isActivePeer(Peer)
                       end,
     lists:filter(RemoveNonActive, Peers).
