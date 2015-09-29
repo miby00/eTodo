@@ -97,12 +97,10 @@ eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg) ->
     ok.
 
 notify({unix, linux}, EScriptDir, User, Users, Text) ->
-    %% Text2 = binary_to_list(unicode:characters_to_binary(Text, utf8)),
     Cmd  = "notify-send -u critical -i \"" ++ icon(EScriptDir) ++ "\" "
         "\"" ++ User ++ " -> " ++ Users ++ "\" \"" ++ Text ++ "\"",
     os:cmd(Cmd);
 notify({unix, darwin}, EScriptDir, User, Users, Text) ->
-    %% Text2 = binary_to_list(unicode:characters_to_binary(Text, utf8)),
     Cmd = "\"" ++ EScriptDir ++ "/terminal-notifier.app/"
         "Contents/MacOS/terminal-notifier\" -message \"" ++ Text ++
         "\" -title \"eTodo " ++ User ++ " -> " ++ Users ++ "\"",
