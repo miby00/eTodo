@@ -809,7 +809,7 @@ getPeersWithActiveConnection(Peers) ->
     RemoveNonActive = fun (Peer) ->
                               ePeerCircle:isActivePeer(Peer)
                       end,
-    lists:map(RemoveNonActive, Peers).
+    lists:filter(RemoveNonActive, Peers).
 
 loggedIn(#state{user     = User,
                 peerUser = PeerUser,
