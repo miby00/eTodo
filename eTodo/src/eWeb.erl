@@ -515,20 +515,20 @@ handle_call({checkForMessage, _SessionId, _Env, _Input}, From,
     timer:apply_after(10000, ?MODULE, removeSubscriber, [From]),
     {noreply, State#state{subscribers = [From|Subscribers]}};
 %% New messages to be sent to web client.
-handle_call({checkForMessage, _SessionId, _Env, _Input}, From,
+handle_call({checkForMessage, SessionId, _Env, _Input}, From,
     State = #state{messages    = [Html|Messages],
                    subscribers = Subscribers,
                    lastMsg     = LastMsg}) ->
-    case lists:keytake(From, 1, LastMsg) of
-        {value, {From, Html}, _LastMsg} ->
+    case lists:keytake(SessionId, 1, LastMsg) of
+        {value, {SessionId, Html}, _LastMsg} ->
             %% Remove subscriber after 10 secs.
             timer:apply_after(10000, ?MODULE, removeSubscriber, [From]),
             {noreply, State#state{subscribers = [From|Subscribers]}};
-        {value, {From, _Html}, LastMsg2} ->
-            LastMsg3 = [{From, Html} | LastMsg2],
+        {value, {SessionId, _Html}, LastMsg2} ->
+            LastMsg3 = [{SessionId, Html} | LastMsg2],
             {reply, [Html|Messages], State#state{lastMsg = LastMsg3}};
         false ->
-            LastMsg4 = [{From, Html} | LastMsg],
+            LastMsg4 = [{SessionId, Html} | LastMsg],
             {reply, [Html|Messages], State#state{lastMsg = LastMsg4}}
     end;
 
