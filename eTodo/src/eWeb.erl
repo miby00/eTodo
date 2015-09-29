@@ -508,24 +508,27 @@ handle_call({sendMsg, _SessionId, _Env, Input}, _From,
     eTodo:msgEntry(User, UserList, Msg2),
     {reply, "ok", State};
 
-%% All messages sent to web client
-handle_call({checkForMessage, _SessionId, _Env, _Input}, From,
-            State = #state{subscribers = Subscribers,
-                           messages    = [Html|_Messages],
-                           lastMsg     = Html}) ->
-    %% Remove subscriber after 10 secs.
-    timer:apply_after(10000, ?MODULE, removeSubscriber, [From]),
-    {noreply, State#state{subscribers = [From|Subscribers]}};
 %% No messages to send to web client
 handle_call({checkForMessage, _SessionId, _Env, _Input}, From,
-            State = #state{subscribers = Subscribers, messages = []}) ->
+    State = #state{subscribers = Subscribers, messages = []}) ->
     %% Remove subscriber after 10 secs.
     timer:apply_after(10000, ?MODULE, removeSubscriber, [From]),
     {noreply, State#state{subscribers = [From|Subscribers]}};
 %% New messages to be sent to web client.
-handle_call({checkForMessage, _SessionId, _Env, _Input}, _From,
-            State = #state{messages = [Html|Messages]}) ->
-    {reply, [Html|Messages], State#state{lastMsg = Html}};
+handle_call({checkForMessage, _SessionId, _Env, _Input}, From,
+    State = #state{messages    = [Html|Messages],
+                   subscribers = Subscribers,
+                   lastMsg     = LastMsg}) ->
+    case lists:keytake(From, 1, LastMsg) of
+        {value, {From, Html}, _LastMsg} ->
+            {noreply, State#state{subscribers = [From|Subscribers]}};
+        {value, {From, _Html}, LastMsg2} ->
+            LastMsg3 = [{From, Html} | LastMsg2],
+            {reply, [Html|Messages], State#state{lastMsg = LastMsg3}};
+        false ->
+            LastMsg4 = [{From, Html} | LastMsg],
+            {reply, [Html|Messages], State#state{lastMsg = LastMsg4}}
+    end;
 
 handle_call(_Request, _From, State) ->
     {noreply, State}.
