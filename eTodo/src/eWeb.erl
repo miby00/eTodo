@@ -521,6 +521,8 @@ handle_call({checkForMessage, _SessionId, _Env, _Input}, From,
                    lastMsg     = LastMsg}) ->
     case lists:keytake(From, 1, LastMsg) of
         {value, {From, Html}, _LastMsg} ->
+            %% Remove subscriber after 10 secs.
+            timer:apply_after(10000, ?MODULE, removeSubscriber, [From]),
             {noreply, State#state{subscribers = [From|Subscribers]}};
         {value, {From, _Html}, LastMsg2} ->
             LastMsg3 = [{From, Html} | LastMsg2],

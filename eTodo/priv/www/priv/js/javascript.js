@@ -215,7 +215,7 @@ function notifyUser() {
                 icon: icon
             }
         }
-        if (Notification.permission != "granted") {
+        if (Notification.permission == "default") {
             Notification.requestPermission(function() {
 		        var notification = new Notification(title, options);
 	        });
