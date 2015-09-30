@@ -244,21 +244,25 @@ handle_call(getPort, _From, State = #state{port = Port}) ->
     {reply, Port, State};
 
 handle_call({call, Message, Timeout}, From, State) ->
+    SessionId = getSessionId(Message),
+    Headers   = getHeaders(SessionId, State),
     case proxyCall(Message, State) of
         {false, State2 = #state{user = User}} ->
             case userOK(User, Message) of
                 true ->
                     handle_call(Message, From, State2);
                 false ->
-                    {reply, State#state.headers, State}
+                    {reply, Headers, State}
             end;
         {true, Pid, State2} ->
+            Headers2 = getHeaders(SessionId, State2),
             spawn(?MODULE, webProxyCall,
-                  [Pid, State2#state.headers, Message, Timeout, From]),
+                  [Pid, Headers2, Message, Timeout, From]),
             {noreply, State2};
         {true, Pid, Msg2, State2} ->
+            Headers2 = getHeaders(SessionId, State2),
             spawn(?MODULE, webProxyCall,
-                  [Pid, State2#state.headers, Msg2, Timeout, From]),
+                  [Pid, Headers2, Msg2, Timeout, From]),
             {noreply, State2}
     end;
 
@@ -380,9 +384,10 @@ handle_call({showTodo, _SessionId, _Env, Input}, _From,
                   eHtml:makeHtmlTaskCSS(ETodo),
                   eHtml:pageFooter()],
     {reply, HtmlPage, State};
-handle_call({show, _SessionId, Env, Input}, _From,
+handle_call({show, SessionId, Env, Input}, _From,
             State = #state{user    = User,
-                           headers = Headers}) ->
+                           headers = SessionHdrList}) ->
+    Headers    = getHeaders(SessionId, State),
     {_, WUser} = lists:keyfind(remote_user, 1, Env),
     Dict       = makeDict(Input),
     {ok, List} = find("list",      Dict),
@@ -399,7 +404,9 @@ handle_call({show, _SessionId, Env, Input}, _From,
     HtmlPage   = [eHtml:pageHeader(User),
                   [eHtml:makeHtmlTaskCSS2(ETodo) || ETodo <- ETodos],
                   eHtml:pageFooter()],
-    {reply, Headers ++ HtmlPage, State#state{headers = ""}};
+
+    SessionHdrList2 = keepAliveSessions(SessionHdrList),
+    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
 handle_call({message, _SessionId, _Env, _Input}, _From,
             State = #state{user        = User,
                            users       = Users,
@@ -414,38 +421,50 @@ handle_call({message, _SessionId, _Env, _Input}, _From,
                    eHtml:createSendMsg("All", lists:delete(User, Users)),
                    eHtml:pageFooter()],
     {reply, HtmlPage, State#state{messages = TopMessages, subscribers = []}};
-handle_call({index, _SessionId, _Env, _Input}, _From,
+handle_call({index, SessionId, _Env, _Input}, _From,
             State = #state{user    = User,
-                           headers = Headers}) ->
+                           headers = SessionHdrList}) ->
+    Headers = getHeaders(SessionId, State),
     Flt = [?statusDone],
     HtmlPage = [eHtml:pageHeader(User),
                 eHtml:makeForm(User, ?defTaskList),
                 eHtml:makeTaskList(User, ?defTaskList, Flt, [], undefined),
                 eHtml:pageFooter()],
-    {reply, Headers ++ HtmlPage, State#state{headers = ""}};
-handle_call({showStatus, _SessionId, _Env, _Input}, _From,
-            State = #state{user = User, headers = Headers, status = SList}) ->
-    {Status, StatusMsg} = getStatus(User, SList),
-    HtmlPage = eHtml:showStatus(User, Status, StatusMsg),
-    {reply, Headers ++ HtmlPage, State#state{headers = ""}};
-handle_call({checkStatus, _SessionId, _Env, _Input}, _From,
+
+    SessionHdrList2 = keepAliveSessions(SessionHdrList),
+    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
+handle_call({showStatus, SessionId, _Env, _Input}, _From,
             State = #state{user    = User,
-                           headers = Headers,
+                           headers = SessionHdrList,
+                           status  = SList}) ->
+    Headers = getHeaders(SessionId, State),
+    {Status, StatusMsg} = getStatus(User, SList),
+
+    HtmlPage = eHtml:showStatus(User, Status, StatusMsg),
+    SessionHdrList2 = keepAliveSessions(SessionHdrList),
+    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
+handle_call({checkStatus, SessionId, _Env, _Input}, _From,
+            State = #state{user    = User,
+                           headers = SessionHdrList,
                            timers  = Timers,
                            status  = StatusList}) ->
+    Headers = getHeaders(SessionId, State),
     Timer    = lists:keyfind(User, 1, Timers),
     {Status, StatusMsg} = getStatus(User, StatusList),
     Seconds  = getSeconds(Timer),
     HtmlPage = "{\"timer\":" ++ integer_to_list(Seconds) ++ ","
         "\"status\":\"" ++ Status ++ "\",\"statusMsg\":\"" ++
         makeHtml(StatusMsg) ++ "\"}",
-    {reply, Headers ++ HtmlPage, State#state{headers = ""}};
-handle_call({showLoggedWork, _SessionId, _Env, Input}, _From,
-            State = #state{user = User, headers = Headers}) ->
-    Dict = makeDict(Input),
+    SessionHdrList2 = keepAliveSessions(SessionHdrList),
+    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
+handle_call({showLoggedWork, SessionId, _Env, Input}, _From,
+            State = #state{user = User, headers = SessionHdrList}) ->
+    Headers = getHeaders(SessionId, State),
+    Dict    = makeDict(Input),
     {ok, Text} = find("search", Dict),
     HtmlPage = doShowLoggedWork(User, default(Text, "")),
-    {reply, Headers ++ HtmlPage, State#state{headers = ""}};
+    SessionHdrList2 = keepAliveSessions(SessionHdrList),
+    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
 handle_call({indexJSON, _SessionId, _Env, _Input}, _From,
             State = #state{user = User}) ->
     Flt = [?statusDone],
@@ -774,7 +793,8 @@ call(Message, Timeout) ->
 %%                                                    {true, Pid}
 %% @end
 %%--------------------------------------------------------------------
-proxyCall({Message, _SessionId, Env, Input}, State)
+proxyCall({Message, SessionId, Env, Input},
+          State = #state{headers = SessionHdrList})
   when (Message == index)      or
        (Message == show)       or
        (Message == showStatus) or
@@ -786,7 +806,11 @@ proxyCall({Message, _SessionId, Env, Input}, State)
                 undefined ->
                     Headers1 = removeCookieIfPresent("eWebProxy", Env),
                     Headers2 = removeCookieIfPresent("eWebToken", Env, Headers1),
-                    {false, State#state{headers = Headers2}};
+                    SessionHdrList2 =
+                        lists:keystore(SessionId, 1,
+                                       SessionHdrList,
+                                       {SessionId, Headers2}),
+                    {false, State#state{headers = SessionHdrList2}};
                 Pid ->
                     Headers =
                         case find("token", Dict) of
@@ -796,23 +820,39 @@ proxyCall({Message, _SessionId, Env, Input}, State)
                             _ ->
                                 setCookie("eWebProxy", User)
                         end,
-                    {true, Pid, State#state{headers = Headers}}
+                    SessionHdrList2 =
+                        lists:keystore(SessionId, 1,
+                                       SessionHdrList,
+                                       {SessionId, Headers}),
+                    {true, Pid, State#state{headers = SessionHdrList2}}
             end;
         _ ->
             Headers1 = removeCookieIfPresent("eWebToken", Env),
             Headers2 = removeCookieIfPresent("eWebProxy", Env, Headers1),
-            {false, State#state{headers = Headers2}}
+
+            SessionHdrList2 =
+                lists:keystore(SessionId, 1,
+                               SessionHdrList,
+                               {SessionId, Headers2}),
+            {false, State#state{headers = SessionHdrList2}}
     end;
-proxyCall(Msg = {_Msg, _SessionId, Env, _Input}, State) ->
+proxyCall(Msg = {_Msg, SessionId, Env, _Input},
+          State = #state{headers = SessionHdrList}) ->
     case getCookie("eWebProxy", Env) of
         undefined ->
-            {false, State#state{headers = ""}};
+            SessionHdrList2 = lists:keydelete(SessionId, 1, SessionHdrList),
+            {false, State#state{headers = SessionHdrList2}};
         User ->
             case getPeer(User) of
                 undefined ->
                     Headers1 = removeCookie("eWebToken"),
                     Headers2 = removeCookie("eWebProxy", Headers1),
-                    {false, State#state{headers = Headers2}};
+
+                    SessionHdrList2 =
+                        lists:keystore(SessionId, 1,
+                                       SessionHdrList,
+                                       {SessionId, Headers2}),
+                    {false, State#state{headers = SessionHdrList2}};
                 Pid ->
                     Token = getCookie("eWebToken", Env),
                     Headers =
@@ -824,7 +864,11 @@ proxyCall(Msg = {_Msg, _SessionId, Env, _Input}, State) ->
                                 setCookie("eWebProxy", User, Headers2)
                         end,
                     Msg2 = updateMsg(Msg, Token),
-                    {true, Pid, Msg2, State#state{headers = Headers}}
+                    SessionHdrList2 =
+                        lists:keystore(SessionId, 1,
+                                       SessionHdrList,
+                                       {SessionId, Headers}),
+                    {true, Pid, Msg2, State#state{headers = SessionHdrList2}}
             end
     end.
 
@@ -1133,5 +1177,18 @@ makeDate(Numbers) ->
     Day   = string:sub_string(Numbers, 7, 8),
     {list_to_integer(Year), list_to_integer(Month), list_to_integer(Day)}.
 
-keepAliveSessions(LastMsg) ->
-    lists:filter(fun ({Pid, _}) -> is_process_alive(Pid) end, LastMsg).
+keepAliveSessions(SessionTuple) ->
+    lists:filter(fun ({Pid, _}) -> is_process_alive(Pid) end, SessionTuple).
+
+getSessionId({_Message, SessionId, _Env, _Input}) ->
+    SessionId;
+getSessionId(_) ->
+    undefined.
+
+getHeaders(SessionId, #state{headers = SessionHdrList}) ->
+    case lists:keyfind(SessionId, 1, SessionHdrList) of
+        false ->
+            [];
+        {SessionId, Headers} ->
+            Headers
+    end.
