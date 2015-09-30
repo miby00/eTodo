@@ -519,17 +519,19 @@ handle_call({checkForMessage, SessionId, _Env, _Input}, From,
     State = #state{messages    = [Html|Messages],
                    subscribers = Subscribers,
                    lastMsg     = LastMsg}) ->
-    case lists:keytake(SessionId, 1, LastMsg) of
+    LastMsg2 = keepAliveSessions(LastMsg),
+    case lists:keytake(SessionId, 1, LastMsg2) of
         {value, {SessionId, Html}, _LastMsg} ->
             %% Remove subscriber after 10 secs.
             timer:apply_after(10000, ?MODULE, removeSubscriber, [From]),
-            {noreply, State#state{subscribers = [From|Subscribers]}};
-        {value, {SessionId, _Html}, LastMsg2} ->
-            LastMsg3 = [{SessionId, Html} | LastMsg2],
-            {reply, [Html|Messages], State#state{lastMsg = LastMsg3}};
+            {noreply, State#state{subscribers = [From|Subscribers],
+                                  lastMsg     = LastMsg2}};
+        {value, {SessionId, _Html}, LastMsg3} ->
+            LastMsg4 = [{SessionId, Html} | LastMsg3],
+            {reply, [Html|Messages], State#state{lastMsg = LastMsg4}};
         false ->
-            LastMsg4 = [{SessionId, Html} | LastMsg],
-            {reply, [Html|Messages], State#state{lastMsg = LastMsg4}}
+            LastMsg5 = [{SessionId, Html} | LastMsg2],
+            {reply, [Html|Messages], State#state{lastMsg = LastMsg5}}
     end;
 
 handle_call(_Request, _From, State) ->
@@ -1130,3 +1132,6 @@ makeDate(Numbers) ->
     Month = string:sub_string(Numbers, 5, 6),
     Day   = string:sub_string(Numbers, 7, 8),
     {list_to_integer(Year), list_to_integer(Month), list_to_integer(Day)}.
+
+keepAliveSessions(LastMsg) ->
+    lists:filter(fun ({Pid, _}) -> is_process_alive(Pid) end, LastMsg).
