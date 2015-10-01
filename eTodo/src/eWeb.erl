@@ -243,27 +243,29 @@ getGuestUsers(User) ->
 handle_call(getPort, _From, State = #state{port = Port}) ->
     {reply, Port, State};
 
-handle_call({call, Message, Timeout}, From, State) ->
+handle_call({call, Message, Timeout}, From,
+             State = #state{headers = SessionHdrs}) ->
     SessionId = getSessionId(Message),
     Headers   = getHeaders(SessionId, State),
-    case proxyCall(Message, State) of
-        {false, State2 = #state{user = User}} ->
+    State2    = State#state{headers = keepAliveSessions(SessionHdrs)},
+    case proxyCall(Message, State2) of
+        {false, State3 = #state{user = User}} ->
             case userOK(User, Message) of
                 true ->
-                    handle_call(Message, From, State2);
+                    handle_call(Message, From, State3);
                 false ->
                     {reply, Headers, State}
             end;
-        {true, Pid, State2} ->
-            Headers2 = getHeaders(SessionId, State2),
+        {true, Pid, State3} ->
+            Headers2 = getHeaders(SessionId, State3),
             spawn(?MODULE, webProxyCall,
                   [Pid, Headers2, Message, Timeout, From]),
-            {noreply, State2};
-        {true, Pid, Msg2, State2} ->
-            Headers2 = getHeaders(SessionId, State2),
+            {noreply, State3};
+        {true, Pid, Msg2, State3} ->
+            Headers2 = getHeaders(SessionId, State3),
             spawn(?MODULE, webProxyCall,
                   [Pid, Headers2, Msg2, Timeout, From]),
-            {noreply, State2}
+            {noreply, State3}
     end;
 
 handle_call({link, _SessionId, _Env, Input}, _From, State) ->
