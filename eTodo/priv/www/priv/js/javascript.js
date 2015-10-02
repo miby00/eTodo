@@ -63,17 +63,20 @@ function sendStatus(Id, Uid)
 
 function sendMsg(ToId, MsgId)
 {
-    var AJAX = newAJAX();
-    if (AJAX == null) {
-        alert("Initialisation of AJAX failed.");
-        return false;
-    }
     var Msg = encodeURIComponent(document.getElementById(MsgId).value);
-    document.getElementById(MsgId).value = '';
-    var To  = encodeURIComponent(document.getElementById(ToId).value);
-    var url = '/eTodo/eWeb:sendMsg?to=' + To + '&msg=' + Msg;
-    AJAX.open("GET", url, true);
-    AJAX.send(null);
+    if (Msg != '') {
+        var AJAX = newAJAX();
+        if (AJAX == null) {
+            alert("Initialisation of AJAX failed.");
+            return false;
+        }
+
+        document.getElementById(MsgId).value = '';
+        var To  = encodeURIComponent(document.getElementById(ToId).value);
+        var url = '/eTodo/eWeb:sendMsg?to=' + To + '&msg=' + Msg;
+        AJAX.open("GET", url, true);
+        AJAX.send(null);
+    }
 }
 
 function checkForMessage()
