@@ -572,12 +572,15 @@ handle_cast({appendToPage, Html}, State = #state{subscribers = [],
                                                  messages    = Messages}) ->
     {noreply, State#state{messages = [flattenMsg(Html)|Messages]}};
 handle_cast({appendToPage, Html}, State = #state{subscribers = Subs,
-                                                 messages    = Messages}) ->
+                                                 messages    = Messages,
+                                                 lastMsg     = LastMsg}) ->
     FlatMsg   = flattenMsg(Html),
     Messages2 = [FlatMsg|Messages],
     [gen_server:reply(From, Messages2) || From <- Subs],
+
+    LastMsg2 = replaceLastMsg(LastMsg, FlatMsg),
     {noreply, State#state{messages    = Messages2,
-                          lastMsg     = FlatMsg,
+                          lastMsg     = LastMsg2,
                           subscribers = []}};
 handle_cast(clearPage, State) ->
     {noreply, State#state{messages = [], subscribers = [], lastMsg = []}};
@@ -1180,7 +1183,13 @@ makeDate(Numbers) ->
     {list_to_integer(Year), list_to_integer(Month), list_to_integer(Day)}.
 
 keepAliveSessions(SessionTuple) ->
-    lists:filter(fun ({Pid, _}) -> is_process_alive(Pid) end, SessionTuple).
+    ProcessAlive = fun ({Pid, _}) -> is_process_alive(Pid) end,
+    case catch lists:filter(ProcessAlive, SessionTuple) of
+        {'EXIT', _Reason} ->
+            SessionTuple;
+        NewSessionTuple ->
+            NewSessionTuple
+    end.
 
 getSessionId({_Message, SessionId, _Env, _Input}) ->
     SessionId;
@@ -1194,3 +1203,11 @@ getHeaders(SessionId, #state{headers = SessionHdrList}) ->
         {SessionId, Headers} ->
             Headers
     end.
+
+replaceLastMsg(LastMsg, Html) ->
+    replaceLastMsg(LastMsg, Html, []).
+
+replaceLastMsg([], _Html, Acc) ->
+    Acc;
+replaceLastMsg([{SessionId, _OldHtml}|Rest], Html, Acc) ->
+    replaceLastMsg(Rest, Html, [{SessionId, Html}|Acc]).
