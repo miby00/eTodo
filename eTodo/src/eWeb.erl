@@ -632,10 +632,14 @@ handle_cast(_Msg, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info({removeSession, Pid}, State = #state{lastMsg = LastMsg,
-                                                 headers = Headers}) ->
+                                                 headers = Headers,
+                                                 timers  = Timers}) ->
     LastMsg2 = lists:keydelete({remote, Pid}, 1, LastMsg),
-    Headers2 = lists:keydelete({remote, Pid}, 1, LastMsg),
-    {noreply, State#state{lastMsg = LastMsg2, headers = Headers}};
+    Headers2 = lists:keydelete({remote, Pid}, 1, Headers),
+    Timers2  = lists:keydelete(Pid, 1, Timers),
+    {noreply, State#state{lastMsg = LastMsg2,
+                          headers = Headers2,
+                          timers  = Timers2}};
 handle_info(_Info, State) ->
     {noreply, State}.
 
