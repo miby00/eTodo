@@ -13,6 +13,7 @@
 %% API
 -export([start_link/1,
          stop/0,
+         evalRemove/1,
          setTimerRef/2,
          setStatusUpdate/3,
          clearPage/0,
@@ -86,6 +87,9 @@ start_link(User) ->
 
 stop() ->
     gen_server:cast(?MODULE, stop).
+
+evalRemove(Pid) ->
+    gen_server:cast(?MODULE, {evalRemove, Pid}).
 
 getPort() ->
     gen_server:call(?MODULE, getPort).
@@ -258,13 +262,15 @@ handle_call({call, Message, Timeout}, From,
             end;
         {true, Pid, State3} ->
             Headers2 = getHeaders(SessionId, State3),
+            Message2 = makeRemoteSessionId(Message),
             spawn(?MODULE, webProxyCall,
-                  [Pid, Headers2, Message, Timeout, From]),
+                  [Pid, Headers2, Message2, Timeout, From]),
             {noreply, State3};
-        {true, Pid, Msg2, State3} ->
+        {true, Pid, Msg, State3} ->
             Headers2 = getHeaders(SessionId, State3),
+            Message2 = makeRemoteSessionId(Msg),
             spawn(?MODULE, webProxyCall,
-                  [Pid, Headers2, Msg2, Timeout, From]),
+                  [Pid, Headers2, Message2, Timeout, From]),
             {noreply, State3}
     end;
 
@@ -598,6 +604,18 @@ handle_cast({setStatusUpdate, User, Status, StatusMsg},
 handle_cast({setTimerRef, User, TimerRef}, State = #state{timers = Timers}) ->
     Timers2 = lists:keystore(User, 1, Timers, {User, TimerRef}),
     {noreply, State#state{timers = Timers2}};
+handle_cast({evalRemove, Pid}, State = #state{timers = Timers}) ->
+    case lists:keytake(Pid, 1, Timers) of
+        false ->
+            Ref = erlang:send_after(60*60*1000, self(), {removeSession, Pid}),
+            setTimerRef(Pid, Ref),
+            {noreply, State};
+        {value, {Pid, OldRef}, Timers2} ->
+            erlang:cancel_timer(OldRef),
+            Ref = erlang:send_after(60*60*1000, self(), {removeSession, Pid}),
+            setTimerRef(Pid, Ref),
+            {noreply, State#state{timers = Timers2}}
+    end;
 handle_cast(stop, State) ->
     {stop, normal, State};
 handle_cast(_Msg, State) ->
@@ -613,6 +631,11 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_info({removeSession, Pid}, State = #state{lastMsg = LastMsg,
+                                                 headers = Headers}) ->
+    LastMsg2 = lists:keydelete({remote, Pid}, 1, LastMsg),
+    Headers2 = lists:keydelete({remote, Pid}, 1, LastMsg),
+    {noreply, State#state{lastMsg = LastMsg2, headers = Headers}};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -1183,7 +1206,8 @@ makeDate(Numbers) ->
     {list_to_integer(Year), list_to_integer(Month), list_to_integer(Day)}.
 
 keepAliveSessions(SessionTuple) ->
-    ProcessAlive = fun ({Pid, _}) -> is_process_alive(Pid) end,
+    ProcessAlive = fun ({{remote, Pid}, _})  -> evalRemove(Pid);
+                       ({Pid, _})            -> is_process_alive(Pid) end,
     case catch lists:filter(ProcessAlive, SessionTuple) of
         {'EXIT', _Reason} ->
             SessionTuple;
@@ -1195,6 +1219,9 @@ getSessionId({_Message, SessionId, _Env, _Input}) ->
     SessionId;
 getSessionId(_) ->
     undefined.
+
+makeRemoteSessionId({Message, SessionId, Env, Input}) ->
+    {Message, {remote, SessionId}, Env, Input}.
 
 getHeaders(SessionId, #state{headers = SessionHdrList}) ->
     case lists:keyfind(SessionId, 1, SessionHdrList) of
@@ -1211,3 +1238,4 @@ replaceLastMsg([], _Html, Acc) ->
     Acc;
 replaceLastMsg([{SessionId, _OldHtml}|Rest], Html, Acc) ->
     replaceLastMsg(Rest, Html, [{SessionId, Html}|Acc]).
+
