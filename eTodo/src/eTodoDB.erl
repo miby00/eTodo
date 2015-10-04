@@ -31,9 +31,11 @@
          getLists/2,
          getLoggedWork/2,
          getLoggedWork/3,
+         getAllLoggedWork/1,
          getReminder/2,
          getReminders/1,
          getRow/2,
+         getTime/1,
          getTodo/1,
          getTodos/2,
          getTodosSharedWith/2,
@@ -53,6 +55,7 @@
          removeConnection/1,
          saveListCfg/3,
          saveListCfg/4,
+         saveTime/3,
          saveUserCfg/1,
          saveWorkDesc/2,
          updateConnection/1,
@@ -173,11 +176,17 @@ getLists(User, Uid) ->
 getWorkDesc(Uid) ->
     gen_server:call(?MODULE, {getWorkDesc, Uid}).
 
+getTime(Uid) ->
+    gen_server:call(?MODULE, {getTime, Uid}).
+
 getLoggedWork(User, Uid, Date) ->
     gen_server:call(?MODULE, {getLoggedWork, User, Uid, Date}).
 
 getLoggedWork(User, Date) ->
     gen_server:call(?MODULE, {getLoggedWork, User, Date}).
+
+getAllLoggedWork(Uid) ->
+    gen_server:call(?MODULE, {getAllLoggedWork, Uid}).
 
 getReminder(User, Uid) ->
     gen_server:call(?MODULE, {getReminder, User, Uid}).
@@ -244,6 +253,8 @@ saveUserCfg(UserCfg) ->
 saveWorkDesc(Uid, Desc) ->
     gen_server:call(?MODULE, {saveWorkDesc, Uid, Desc}).
 
+saveTime(Uid, Estimate, Remaining) ->
+    gen_server:call(?MODULE, {saveTime, Uid, Estimate, Remaining}).
 
 updateTodoNoDiff(User, Todo = #todo{sharedWith = Users}) ->
     Users2 = default(Users, []),
@@ -312,6 +323,7 @@ recordInfo(userCfg)     -> record_info(fields, userCfg);
 recordInfo(listCfg)     -> record_info(fields, listCfg);
 recordInfo(conCfg)      -> record_info(fields, conCfg);
 recordInfo(logWork)     -> record_info(fields, logWork);
+recordInfo(logTime)     -> record_info(fields, logTime);
 recordInfo(workDesc)    -> record_info(fields, workDesc);
 recordInfo(httpd_user)  -> record_info(fields, httpd_user);
 recordInfo(httpd_group) -> record_info(fields, httpd_group).
@@ -333,8 +345,8 @@ recordInfo(httpd_group) -> record_info(fields, httpd_group).
 %%--------------------------------------------------------------------
 init([]) ->
     ExistingTables = mnesia:system_info(tables),
-    TablesToCreate = [todo, userInfo, conCfg, userCfg, logWork, workDesc,
-                      listCfg, alarmCfg, httpd_user, httpd_group],
+    TablesToCreate = [todo, userInfo, conCfg, userCfg, logWork, logTime,
+                      workDesc, listCfg, alarmCfg, httpd_user, httpd_group],
 
     wx:new(),
     PDlg = wxProgressDialog:new("eTodo", "Creating tables...", [{maximum, 30}]),
@@ -605,13 +617,28 @@ handle_call({getLoggedWork, User, Uid, Date}, _From, State) ->
                      LoggedWork#logWork.minutes}
              end,
     {reply, Result, State};
+handle_call({getAllLoggedWork, Uid}, _From, State) ->
+    LoggedWork = match(#logWork{uid = Uid, _ = '_'}),
+    Result     = tot(LoggedWork),
+    {reply, Result, State};
 handle_call({getWorkDesc, Uid}, _From, State) ->
     Result = default(matchOne(#workDesc{uid = Uid, _ = '_'}), #workDesc{}),
     {reply, Result#workDesc.shortDesc, State};
+handle_call({getTime, Uid}, _From, State) ->
+    Result = default(matchOne(#logTime{uid = Uid, _ = '_'}), #logTime{}),
+    {reply, {Result#logTime.timeEstimate, Result#logTime.timeRemaining}, State};
 handle_call({saveWorkDesc, Uid, WorkDesc}, _From, State) ->
     TS = fun() ->
             mnesia:write(#workDesc{uid = Uid, shortDesc = WorkDesc})
          end,
+    Result = mnesia:transaction(TS),
+    {reply, Result, State};
+handle_call({saveTime, Uid, Estimate, Remaining}, _From, State) ->
+    TS = fun() ->
+        mnesia:write(#logTime{uid           = Uid,
+                              timeEstimate  = Estimate,
+                              timeRemaining = Remaining})
+    end,
     Result = mnesia:transaction(TS),
     {reply, Result, State};
 handle_call({getLoggedWork, User, Date}, _From, State) ->
@@ -1803,3 +1830,24 @@ applyDiff(Diff = #diff{diff = [{Element, {sub, Pos, Str}} | Rest]}, Todo)
     applyDiff(Diff#diff{diff = Rest}, setelement(Element, Todo, NewValue));
 applyDiff(Diff = #diff{diff = [{Element, NewValue} | Rest]}, Todo) ->
     applyDiff(Diff#diff{diff = Rest}, setelement(Element, Todo, NewValue)).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Summarize logged work
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+tot(WorkedTime) ->
+    tot(WorkedTime, {0, 0}).
+
+tot([], {SumHours, SumMin}) ->
+    SumHours2   = SumHours + (SumMin div 60),
+    SumMinutes2 = SumMin rem 60,
+    integer_to_list(SumHours2) ++ ":" ++ minutes(SumMinutes2);
+tot([#logWork{hours = Hours, minutes = Min}|Rest], {SumHours, SumMin}) ->
+    tot(Rest, {SumHours + Hours, SumMin + Min}).
+
+minutes(Min) when Min < 10 ->
+    "0" ++ integer_to_list(Min);
+minutes(Min) ->
+    integer_to_list(Min).

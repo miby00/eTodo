@@ -87,6 +87,8 @@
 
 -record(workDesc,  {uid, shortDesc = ""}).
 
+-record(logTime,   {uid, timeEstimate = 0, timeRemaining = 0}).
+
 %%====================================================================
 %% Diff record used to send updates to other nodes.
 %%====================================================================

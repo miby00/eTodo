@@ -1423,10 +1423,13 @@ sendTaskButtonEvent(_Type, _Id, _Frame,
 %%====================================================================
 logWorkButtonEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
                                                          user       = User}) ->
-    HoursObj   = wxXmlResource:xrcctrl(LWDlg, "workHours",   wxSpinCtrl),
-    MinutesObj = wxXmlResource:xrcctrl(LWDlg, "workMinutes", wxSpinCtrl),
-    DateObj    = wxXmlResource:xrcctrl(LWDlg, "workDate",    wxDatePickerCtrl),
-    DescObj    = wxXmlResource:xrcctrl(LWDlg, "workDesc",    wxTextCtrl),
+    HoursObj   = wxXmlResource:xrcctrl(LWDlg, "workHours",      wxSpinCtrl),
+    MinutesObj = wxXmlResource:xrcctrl(LWDlg, "workMinutes",    wxSpinCtrl),
+    DateObj    = wxXmlResource:xrcctrl(LWDlg, "workDate",       wxDatePickerCtrl),
+    DescObj    = wxXmlResource:xrcctrl(LWDlg, "workDesc",       wxTextCtrl),
+    EstObj     = wxXmlResource:xrcctrl(LWDlg, "timeEstimate",   wxSpinCtrl),
+    SpentObj   = wxXmlResource:xrcctrl(LWDlg, "timeSpent",      wxStaticText),
+    RemObj     = wxXmlResource:xrcctrl(LWDlg, "timeRemaining",  wxSpinCtrl),
 
     {ETodo, _} = State#guiState.activeTodo,
     Uid        = ETodo#etodo.uid,
@@ -1434,11 +1437,17 @@ logWorkButtonEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
     {Date, _}  = DateTime,
 
     {Date, Hours, Minutes} = eTodoDB:getLoggedWork(User, Uid, Date),
-    Desc = eTodoDB:getWorkDesc(Uid),
+    {Estimate, Remaining}  = eTodoDB:getTime(Uid),
+    Desc  = eTodoDB:getWorkDesc(Uid),
+    Desc2 = getWorkDesc(Desc, ETodo#etodo.description),
+    Spent = eTodoDB:getAllLoggedWork(Uid) ++ " h",
 
     wxSpinCtrl:setValue(HoursObj,   Hours),
     wxSpinCtrl:setValue(MinutesObj, Minutes),
-    wxTextCtrl:setValue(DescObj,    Desc),
+    wxTextCtrl:setValue(DescObj,    Desc2),
+    wxSpinCtrl:setValue(EstObj,     Estimate),
+    wxStaticText:setLabel(SpentObj, Spent),
+    wxSpinCtrl:setValue(RemObj,     Remaining),
 
     wxDialog:show(LWDlg),
     State.
@@ -1449,13 +1458,17 @@ logWorkCancelEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg}) ->
 
 logWorkOkEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
                                                      user       = User}) ->
-    HoursObj   = wxXmlResource:xrcctrl(LWDlg, "workHours",   wxSpinCtrl),
-    MinutesObj = wxXmlResource:xrcctrl(LWDlg, "workMinutes", wxSpinCtrl),
-    DateObj    = wxXmlResource:xrcctrl(LWDlg, "workDate",    wxDatePickerCtrl),
-    DescObj    = wxXmlResource:xrcctrl(LWDlg, "workDesc",    wxTextCtrl),
+    HoursObj   = wxXmlResource:xrcctrl(LWDlg, "workHours",      wxSpinCtrl),
+    MinutesObj = wxXmlResource:xrcctrl(LWDlg, "workMinutes",    wxSpinCtrl),
+    DateObj    = wxXmlResource:xrcctrl(LWDlg, "workDate",       wxDatePickerCtrl),
+    DescObj    = wxXmlResource:xrcctrl(LWDlg, "workDesc",       wxTextCtrl),
+    EstObj     = wxXmlResource:xrcctrl(LWDlg, "timeEstimate",   wxSpinCtrl),
+    RemObj     = wxXmlResource:xrcctrl(LWDlg, "timeRemaining",  wxSpinCtrl),
 
     Hours      = wxSpinCtrl:getValue(HoursObj),
     Minutes    = wxSpinCtrl:getValue(MinutesObj),
+    Estimate   = wxSpinCtrl:getValue(EstObj),
+    Remaining  = wxSpinCtrl:getValue(RemObj),
     Desc       = wxTextCtrl:getValue(DescObj),
     DateTime   = wxDatePickerCtrl:getValue(DateObj),
     {Date, _}  = DateTime,
@@ -1463,6 +1476,7 @@ logWorkOkEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
     Uid        = ETodo#etodo.uid,
 
     eTodoDB:logWork(User, Uid, Date, Hours, Minutes),
+    eTodoDB:saveTime(Uid, Estimate, Remaining),
     eTodoDB:saveWorkDesc(Uid, Desc),
 
     wxDialog:hide(LWDlg),
@@ -2454,3 +2468,8 @@ checkItemsInListWithClear(Obj, Index, List) ->
             wxCheckListBox:check(Obj, Index, [{check, false}])
     end,
     checkItemsInListWithClear(Obj, Index - 1, List).
+
+getWorkDesc("", Description) when length(Description) > 25 ->
+    string:sub_string(Description, 1, 25);
+getWorkDesc("",    Description)-> Description;
+getWorkDesc(Desc, _Description) -> Desc.

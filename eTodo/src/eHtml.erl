@@ -20,7 +20,6 @@
          makeTaskList/5,
          makeHtmlTaskCSS/1,
          makeHtmlTaskCSS2/1,
-         makeHtmlTask/1,
          makeForm/2,
          makeHtml/1,
          makeWorkLogReport/2,
@@ -188,7 +187,11 @@ makePrintTaskList(#etodo{status      = Status,
                          createTime  = CreateTime,
                          doneTime    = DoneTime,
                          progress    = Progress,
-                         owner       = Owner}) ->
+                         owner       = Owner,
+                         uid         = Uid}) ->
+    {Estimate, Remaining} = eTodoDB:getTime(Uid),
+    AllLoggedWork         = eTodoDB:getAllLoggedWork(Uid),
+
     [tableTag([{width, "100%"}, {bgcolor, "#b9c9fe"}],
               [trTag([headerCell(?status),
                       dataCell(Status, [{width, "20%"}]),
@@ -202,6 +205,12 @@ makePrintTaskList(#etodo{status      = Status,
                       dataCell(DueTime, [{width, "20%"}]),
                       headerCell(?doneTimestamp),
                       dataCell(DoneTime, [{width, "20%"}])]),
+               trTag([headerCell("Estimate(h)"),
+                      dataCell(toStr(Estimate), [{width, "20%"}]),
+                      headerCell("Logged(h)"),
+                      dataCell(AllLoggedWork, [{width, "20%"}]),
+                      headerCell("Remaining(h)"),
+                      dataCell(toStr(Remaining), [{width, "20%"}])]),
                trTag([headerCell(?owner),
                       dataCell(Owner, [{width, "20%"}]),
                       headerCell(?sharedWith),
@@ -219,53 +228,6 @@ headerCell(Text) ->
 
 dataCell(Text, Extra) ->
     tdTag([{bgcolor, "#e8edff"}|Extra], fontTag([{size, 1}], makeHtml(Text))).
-
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-makeHtmlTask(#etodo{status      = Status,
-                    priority    = Priority,
-                    dueTime     = DueTime,
-                    description = Description,
-                    comment     = Comment,
-                    sharedWith  = SharedWith,
-                    createTime  = CreateTime,
-                    doneTime    = DoneTime,
-                    progress    = Progress,
-                    owner       = Owner}) ->
-    [tableTag([{width, "100%"}, {bgcolor, "#b9c9fe"}],
-              [trTag([headerCell2(?status),
-                      dataCell2(Status, [{width, "20%"}]),
-                      headerCell2(?prio),
-                      dataCell2(Priority, [{width, "20%"}]),
-                      headerCell2("Progress(%)"),
-                      dataCell2(toStr(Progress), [{width, "20%"}])]),
-               trTag([headerCell2(?createTime),
-                      dataCell2(CreateTime, [{width, "20%"}]),
-                      headerCell2(?dueTime),
-                      dataCell2(DueTime, [{width, "20%"}]),
-                      headerCell2(?doneTimestamp),
-                      dataCell2(DoneTime, [{width, "20%"}])]),
-               trTag([headerCell2(?owner),
-                      dataCell2(Owner, [{width, "20%"}]),
-                      headerCell2(?sharedWith),
-                      dataCell2(SharedWith, [{colspan, 3}])]),
-               trTag([{nonEmpty, Description}],
-                     [headerCell2(?description),
-                      dataCell2(Description, [{colspan, 5}])]),
-               trTag([{nonEmpty, Comment}],
-                     [headerCell2(?comment),
-                      dataCell2(Comment, [{colspan, 5}])])])].
-
-headerCell2(Text) ->
-    tdTag([{width, "13%"}, {bgcolor, "#b9c9fe"}], bTag([Text, $:])).
-
-dataCell2(Text, Extra) ->
-    tdTag([{bgcolor, "#e8edff"}|Extra], makeHtml(Text)).
 
 %%======================================================================
 %% Function : makeWorkLogReport(User, Date) -> Html
@@ -662,18 +624,22 @@ makeHtmlTaskCSS(#etodo{uid         = Uid,
                        owner       = Owner,
                        hasSubTodo  = HasSubTodo}) ->
     ProgStr = toStr(Progress),
+    {Estimate, Remaining} = eTodoDB:getTime(Uid),
     [makeTableHeader(Uid, HasSubTodo), "<tr>",
      headerCellCSS(?status), createStatusDataCell(Status, Uid),
-     headerCellCSS(?prio), dataCellCSS2(Priority, ""),
+     headerCellCSS(?prio),   dataCellCSS2(Priority, ""),
      "</tr><tr>",
      headerCellCSS(?sharedWith), dataCellCSS(SharedWith, ""),
-     headerCellCSS(?owner), dataCellCSS(Owner, ""),
+     headerCellCSS(?owner),      dataCellCSS(Owner,      ""),
      "</tr><tr class='hideRow'>",
      headerCellCSS(?createTime), dataCellCSS2(CreateTime, ""),
-     headerCellCSS(?dueTime), dataCellCSS2(DueTime, ""),
+     headerCellCSS(?dueTime),    dataCellCSS2(DueTime,    ""),
      "</tr><tr class='hideRow'>",
      headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, ""),
-     headerCellCSS("Progress(%)"), dataCellCSS2(ProgStr, ""),
+     headerCellCSS("Progress(%)"),  dataCellCSS2(ProgStr, ""),
+     "</tr><tr class='hideRow'>",
+     headerCellCSS("Estimate(h)"),  dataCellCSS(toStr(Estimate),   ""),
+     headerCellCSS("Remaining(h)"), dataCellCSS2(toStr(Remaining), ""),
      "</tr><tr>",
      headerCellCSS(?description), dataCellCSS(Description, "colspan=3"),
      "</tr><tr class='hideRow'>",
@@ -693,18 +659,22 @@ makeHtmlTaskCSS2(#etodo{uid         = Uid,
                         owner       = Owner,
                         hasSubTodo  = HasSubTodo}) ->
     ProgStr = toStr(Progress),
+    {Estimate, Remaining} = eTodoDB:getTime(Uid),
     [makeTableHeader(Uid, HasSubTodo), "<tr>",
-     headerCellCSS(?status), dataCellCSS2(Status, ""),
-     headerCellCSS(?prio), dataCellCSS2(Priority, ""),
+     headerCellCSS(?status), dataCellCSS2(Status,   ""),
+     headerCellCSS(?prio),   dataCellCSS2(Priority, ""),
      "</tr><tr>",
      headerCellCSS(?sharedWith), dataCellCSS(SharedWith, ""),
-     headerCellCSS(?owner), dataCellCSS(Owner, ""),
+     headerCellCSS(?owner),      dataCellCSS(Owner,      ""),
      "</tr><tr>",
      headerCellCSS(?createTime), dataCellCSS2(CreateTime, ""),
-     headerCellCSS(?dueTime), dataCellCSS2(DueTime, ""),
+     headerCellCSS(?dueTime),    dataCellCSS2(DueTime,    ""),
      "</tr><tr>",
      headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, ""),
-     headerCellCSS("Progress(%)"), dataCellCSS2(ProgStr, ""),
+     headerCellCSS("Progress(%)"),  dataCellCSS2(ProgStr, ""),
+     "</tr><tr>",
+     headerCellCSS("Estimate(h)"),  dataCellCSS(toStr(Estimate),   ""),
+     headerCellCSS("Remaining(h)"), dataCellCSS2(toStr(Remaining), ""),
      "</tr><tr>",
      headerCellCSS(?description), dataCellCSS(Description, "colspan=3"),
      nonEmpty(Comment, ["</tr><tr>",

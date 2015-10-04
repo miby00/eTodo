@@ -1600,22 +1600,6 @@
 								<object class="wxBoxSizer">
 									<orient>wxHORIZONTAL</orient>
 									<object class="sizeritem">
-										<option>3</option>
-										<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-										<border>5</border>
-										<object class="wxDatePickerCtrl" name="workDate">
-											<style>wxDP_DROPDOWN</style>
-										</object>
-									</object>
-								</object>
-							</object>
-							<object class="sizeritem">
-								<option>0</option>
-								<flag>wxEXPAND</flag>
-								<border>5</border>
-								<object class="wxBoxSizer">
-									<orient>wxHORIZONTAL</orient>
-									<object class="sizeritem">
 										<option>1</option>
 										<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
 										<border>5</border>
@@ -1630,6 +1614,28 @@
 										<border>5</border>
 										<object class="wxTextCtrl" name="workDesc">
 											<value></value>
+										</object>
+									</object>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxEXPAND</flag>
+								<border>5</border>
+								<object class="wxBoxSizer">
+									<orient>wxHORIZONTAL</orient>
+									<object class="spacer">
+										<option>1</option>
+										<flag>wxEXPAND</flag>
+										<border>5</border>
+										<size>0,0</size>
+									</object>
+									<object class="sizeritem">
+										<option>2</option>
+										<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+										<border>5</border>
+										<object class="wxDatePickerCtrl" name="workDate">
+											<style>wxDP_DROPDOWN</style>
 										</object>
 									</object>
 								</object>
@@ -1673,6 +1679,92 @@
 											<value>0</value>
 											<min>0</min>
 											<max>59</max>
+										</object>
+									</object>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>1</option>
+								<flag>wxEXPAND</flag>
+								<border>5</border>
+								<object class="wxBoxSizer">
+									<orient>wxHORIZONTAL</orient>
+									<object class="sizeritem">
+										<option>2</option>
+										<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+										<border>5</border>
+										<object class="wxStaticText" name="m_staticText471">
+											<label>Time estimate</label>
+											<wrap>-1</wrap>
+										</object>
+									</object>
+									<object class="sizeritem">
+										<option>1</option>
+										<flag>wxALL</flag>
+										<border>5</border>
+										<object class="wxSpinCtrl" name="timeEstimate">
+											<style>wxSP_ARROW_KEYS</style>
+											<size>70,-1</size>
+											<tooltip>Hours</tooltip>
+											<value>0</value>
+											<min>0</min>
+											<max>99999</max>
+										</object>
+									</object>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>1</option>
+								<flag>wxEXPAND</flag>
+								<border>5</border>
+								<object class="wxBoxSizer">
+									<orient>wxHORIZONTAL</orient>
+									<object class="sizeritem">
+										<option>2</option>
+										<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+										<border>5</border>
+										<object class="wxStaticText" name="m_staticText4712">
+											<label>Time spent</label>
+											<wrap>-1</wrap>
+										</object>
+									</object>
+									<object class="sizeritem">
+										<option>1</option>
+										<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+										<border>10</border>
+										<object class="wxStaticText" name="timeSpent">
+											<label>0:00 h</label>
+											<wrap>-1</wrap>
+										</object>
+									</object>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>1</option>
+								<flag>wxEXPAND</flag>
+								<border>5</border>
+								<object class="wxBoxSizer">
+									<orient>wxHORIZONTAL</orient>
+									<object class="sizeritem">
+										<option>2</option>
+										<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+										<border>5</border>
+										<object class="wxStaticText" name="m_staticText4711">
+											<label>Time remaining</label>
+											<wrap>-1</wrap>
+										</object>
+									</object>
+									<object class="sizeritem">
+										<option>1</option>
+										<flag>wxALL</flag>
+										<border>5</border>
+										<object class="wxSpinCtrl" name="timeRemaining">
+											<style>wxSP_ARROW_KEYS</style>
+											<size>70,-1</size>
+											<tooltip>Hours</tooltip>
+											<value>0</value>
+											<min>0</min>
+											<max>99999</max>
 										</object>
 									</object>
 								</object>

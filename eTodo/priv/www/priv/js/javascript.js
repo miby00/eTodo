@@ -10,13 +10,15 @@ function showDetails(uid) {
         Element.classList.remove('tCompact');
         Element.childNodes[0].childNodes[2].classList.remove('hideRow');
         Element.childNodes[0].childNodes[3].classList.remove('hideRow');
-        Element.childNodes[0].childNodes[5].classList.remove('hideRow');
+        Element.childNodes[0].childNodes[4].classList.remove('hideRow');
+        Element.childNodes[0].childNodes[6].classList.remove('hideRow');
     }
     else {
         Element.classList.add('tCompact');
         addClass(Element.childNodes[0].childNodes[2], 'hideRow');
         addClass(Element.childNodes[0].childNodes[3], 'hideRow');
-        addClass(Element.childNodes[0].childNodes[5], 'hideRow');
+        addClass(Element.childNodes[0].childNodes[4], 'hideRow');
+        addClass(Element.childNodes[0].childNodes[6], 'hideRow');
     }
 }
 
