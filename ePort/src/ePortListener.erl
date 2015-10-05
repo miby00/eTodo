@@ -144,7 +144,7 @@ init([Module, LPort, AllowedIps, SSLOptions]) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call(stop, _From, State) ->
-    {stop, normal, State};
+    {stop, normal, ok, State};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
