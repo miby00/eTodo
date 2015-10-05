@@ -26,11 +26,14 @@
          focusAndSelect/1,
          focusAndSelect/2,
          generateWorkLog/1,
+         generateTimeLog/1,
+         generateSchedule/1,
          getCheckedItems/1,
          getPortrait/1,
          getTaskList/1,
          getTodoList/2,
          getTodoLists/1,
+         getWorkDesc/2,
          makeETodo/3,
          obj/2,
          pos/2,
@@ -258,6 +261,8 @@ type("mainTaskList")      -> wxListCtrl;
 type("msgTextWin")        -> wxHtmlWindow;
 type("remTextWin")        -> wxHtmlWindow;
 type("workLogReport")     -> wxHtmlWindow;
+type("timeLogReport")     -> wxHtmlWindow;
+type("scheduleReport")    -> wxHtmlWindow;
 type("userStatusMsg")     -> wxTextCtrl;
 type("msgTextCtrl")       -> wxTextCtrl;
 type("descriptionArea")   -> wxTextCtrl;
@@ -1506,3 +1511,34 @@ generateWorkLog(State = #guiState{user = User}) ->
     wxHtmlWindow:setPage(Obj2, Report),
     State.
 
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+generateTimeLog(State = #guiState{user = User}) ->
+    Obj    = obj("timeLogReport", State),
+    Report = eHtml:makeTimeLogReport(User, State#guiState.rows),
+    wxHtmlWindow:setPage(Obj, Report),
+    State.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+generateSchedule(State = #guiState{user = User}) ->
+    Obj    = obj("scheduleReport", State),
+    Report = eHtml:makeSceduleReport(User),
+    wxHtmlWindow:setPage(Obj, Report),
+    State.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+getWorkDesc("", Description) when length(Description) > 25 ->
+    string:sub_string(Description, 1, 25);
+getWorkDesc("",    Description)-> Description;
+getWorkDesc(Desc, _Description) -> Desc.

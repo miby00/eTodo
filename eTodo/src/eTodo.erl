@@ -421,9 +421,11 @@ initGUI(Arg) ->
     LastWeek     = calendar:gregorian_days_to_date(LastWeekDays),
     wxDatePickerCtrl:setValue(WorkLoadObj, {LastWeek, {0,0,0}}),
 
-    eGuiFunctions:generateWorkLog(State5),
+    State6 = eGuiFunctions:generateWorkLog(State5),
+    State7 = eGuiFunctions:generateTimeLog(State6),
+    State8 = eGuiFunctions:generateSchedule(State7),
 
-    {Frame, checkStatus(State5#guiState{columns = Columns})}.
+    {Frame, checkStatus(State8#guiState{columns = Columns})}.
 
 setWindowSize(DefUser, Frame) ->
     UserCfg = eTodoDB:readUserCfg(DefUser),
@@ -985,7 +987,8 @@ connectMsgFrame(Frame, Dict) ->
     Dict2  = connectItems(["msgTextCtrl"],
                           [command_text_enter, command_text_updated],
                           Frame,   Dict),
-    connectItems(["msgTextWin", "remTextWin", "workLogReport"],
+    connectItems(["msgTextWin", "remTextWin", "workLogReport",
+                  "timeLogReport", "scheduleReport"],
                  command_html_link_clicked, Frame, Dict2).
 
 connectMainFrame(Frame, Dict) ->

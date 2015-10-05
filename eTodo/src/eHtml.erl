@@ -23,6 +23,8 @@
          makeForm/2,
          makeHtml/1,
          makeWorkLogReport/2,
+         makeTimeLogReport/2,
+         makeSceduleReport/1,
          createTaskForm/1,
          showStatus/3,
          showLoggedWork/2]).
@@ -48,7 +50,7 @@
 -include("eTodo.hrl").
 -include_lib("inets/include/httpd.hrl").
 
--import(eTodoUtils, [toStr/1, toStr/2, makeStr/1, getRootDir/0]).
+-import(eTodoUtils, [toStr/1, toStr/2, tryInt/1, makeStr/1, getRootDir/0]).
 
 %%%=====================================================================
 %%% API
@@ -240,32 +242,32 @@ makeWorkLogReport(User, Date) ->
     {D1, D2, D3, D4, D5, D6, D7, Act4} = calcReport(User, Date),
     Opts = [{width, "11%"}, {align, center}],
     tableTag([
-        makeWorkLogReport(Date, Act4, {D1, D2, D3, D4, D5, D6, D7}, []),
-        trTag([{bgcolor, "black"}],
-            [tdTag([{width, "23%"}], heading("Total")),
-                tdTag(Opts, heading(tot(D1))),
-                tdTag(Opts, heading(tot(D2))),
-                tdTag(Opts, heading(tot(D3))),
-                tdTag(Opts, heading(tot(D4))),
-                tdTag(Opts, heading(tot(D5))),
-                tdTag(Opts, heading(tot(D6))),
-                tdTag(Opts, heading(tot(D7)))
-            ])]).
+              makeWorkLogReport(Date, Act4, {D1, D2, D3, D4, D5, D6, D7}, []),
+              trTag([{bgcolor, "black"}],
+                    [tdTag([{width, "23%"}], heading("Total")),
+                     tdTag(Opts, heading(tot(D1))),
+                     tdTag(Opts, heading(tot(D2))),
+                     tdTag(Opts, heading(tot(D3))),
+                     tdTag(Opts, heading(tot(D4))),
+                     tdTag(Opts, heading(tot(D5))),
+                     tdTag(Opts, heading(tot(D6))),
+                     tdTag(Opts, heading(tot(D7)))
+                    ])]).
 
 showLoggedWork(User, Date) ->
     {D1, D2, D3, D4, D5, D6, D7, Act4} = calcReport(User, Date),
-    tableTag([{class, "workLogTable"}],[
-        showLoggedWork(Date, Act4, {D1, D2, D3, D4, D5, D6, D7}, []),
-        trTag([{class, "workLogSum"}],
-            [tdTag([{class, "workLogDesc workLogSum"}], "Total"),
-                [tdTag([{class, "workLogSum workLogColBig"}], tot(D1)),
-                 tdTag([{class, "workLogSum workLogColBig"}], tot(D2)),
-                 tdTag([{class, "workLogSum workLogColBig"}], tot(D3)),
-                 tdTag([{class, "workLogSum"}], tot(D4)),
-                 tdTag([{class, "workLogSum"}], tot(D5)),
-                 tdTag([{class, "workLogSum"}], tot(D6)),
-                 tdTag([{class, "workLogSum"}], tot(D7))
-            ]])]).
+    tableTag([{class, "workLogTable"}],
+             [showLoggedWork(Date, Act4, {D1, D2, D3, D4, D5, D6, D7}, []),
+              trTag([{class, "workLogSum"}],
+                    [tdTag([{class, "workLogDesc workLogSum"}], "Total"),
+                     [tdTag([{class, "workLogSum workLogColBig"}], tot(D1)),
+                      tdTag([{class, "workLogSum workLogColBig"}], tot(D2)),
+                      tdTag([{class, "workLogSum workLogColBig"}], tot(D3)),
+                      tdTag([{class, "workLogSum"}], tot(D4)),
+                      tdTag([{class, "workLogSum"}], tot(D5)),
+                      tdTag([{class, "workLogSum"}], tot(D6)),
+                      tdTag([{class, "workLogSum"}], tot(D7))
+                     ]])]).
 
 calcReport(User, Date) ->
     D1 = eTodoDB:getLoggedWork(User, Date),
@@ -315,7 +317,7 @@ showLoggedWork(Date, [], _Days, Result) ->
             tdTag(Opts,  getWeekDay(incDate(Date, 6)))
            ])| lists:reverse(Result)];
 showLoggedWork(Date, [{Act, Desc}|Rest],
-                   Days = {D1, D2, D3, D4, D5, D6, D7}, SoFar) ->
+               Days = {D1, D2, D3, D4, D5, D6, D7}, SoFar) ->
     Odd    = ((length(Rest) rem 2) == 0),
     UidStr = eTodoUtils:convertUid(list_to_integer(Act)),
     Opts   = if Odd  -> [{class, "lwOdd"}];
@@ -325,7 +327,7 @@ showLoggedWork(Date, [{Act, Desc}|Rest],
     Opts3 = [{class, "workLogValue workLogColBig"}],
     Row  = trTag(Opts,
                  [tdTag(aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
-                              http_uri:encode(UidStr)}], empty(Desc, Act))),
+                                   http_uri:encode(UidStr)}], empty(Desc, Act))),
                   tdTag(Opts3, hours(Act, D1) ++ ":" ++ minutes(Act, D1)),
                   tdTag(Opts3, hours(Act, D2) ++ ":" ++ minutes(Act, D2)),
                   tdTag(Opts3, hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
@@ -354,14 +356,14 @@ makeWorkLogReport(Date, [{Act, Desc}|Rest],
     UidStr = eTodoUtils:convertUid(list_to_integer(Act)),
 
     Row  = trTag(bgColor(Odd),
-             [tdTag(aTag([{href, UidStr}], empty(Desc, Act))),
-              tdTag(Opts, hours(Act, D1) ++ ":" ++ minutes(Act, D1)),
-              tdTag(Opts, hours(Act, D2) ++ ":" ++ minutes(Act, D2)),
-              tdTag(Opts, hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
-              tdTag(Opts, hours(Act, D4) ++ ":" ++ minutes(Act, D4)),
-              tdTag(Opts, hours(Act, D5) ++ ":" ++ minutes(Act, D5)),
-              tdTag(Opts, hours(Act, D6) ++ ":" ++ minutes(Act, D6)),
-              tdTag(Opts, hours(Act, D7) ++ ":" ++ minutes(Act, D7))]),
+                 [tdTag(aTag([{href, UidStr}], empty(Desc, Act))),
+                  tdTag(Opts, hours(Act, D1) ++ ":" ++ minutes(Act, D1)),
+                  tdTag(Opts, hours(Act, D2) ++ ":" ++ minutes(Act, D2)),
+                  tdTag(Opts, hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
+                  tdTag(Opts, hours(Act, D4) ++ ":" ++ minutes(Act, D4)),
+                  tdTag(Opts, hours(Act, D5) ++ ":" ++ minutes(Act, D5)),
+                  tdTag(Opts, hours(Act, D6) ++ ":" ++ minutes(Act, D6)),
+                  tdTag(Opts, hours(Act, D7) ++ ":" ++ minutes(Act, D7))]),
     makeWorkLogReport(Date, Rest, Days, [Row|SoFar]).
 
 empty("", Value)        -> Value;
@@ -427,7 +429,7 @@ pageHeader(Extra, UserName) ->
          metaTag([{"http-equiv", "Content-Type"},
                   {content,      "text/html; charset=UTF-8"}]),
 
-            Font, Manifest, Icon,
+         Font, Manifest, Icon,
          styleTag([{type, "text/css"}], Styles),
          javascript()
         ]),
@@ -902,14 +904,14 @@ generateAlarmMsg(Uid, Text) ->
                          aTag([{href, UidStr}], "eTodo")))]),
         trTag([tdTag(), tdTag(), tdTag(makeHtml(Text))])]),
      tableTag([{class, "msgAlarm"}],
-       [trTag(
-          [tdTag([{class, "msgImg"}],
-                 imgTag([{src, "/priv/Icons/clockChat.png"}])),
-           tdTag([{class, "msgTime"}], toStr(time(), time)),
-           tdTag([{class, "msgText"}],
-                 aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
-                            http_uri:encode(UidStr)}], "eTodo"))]),
-        trTag([tdTag(), tdTag(), tdTag(makeHtml(Text, "/priv"))])])}.
+              [trTag(
+                 [tdTag([{class, "msgImg"}],
+                        imgTag([{src, "/priv/Icons/clockChat.png"}])),
+                  tdTag([{class, "msgTime"}], toStr(time(), time)),
+                  tdTag([{class, "msgText"}],
+                        aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
+                                   http_uri:encode(UidStr)}], "eTodo"))]),
+               trTag([tdTag(), tdTag(), tdTag(makeHtml(Text, "/priv"))])])}.
 
 %%======================================================================
 %% Function :
@@ -1055,3 +1057,73 @@ showStatus(User, Status, StatusMsg) ->
              divTag([{id, "timerStatusMsg"}], [makeHtml(StatusMsg)]),
              divTag([{id, "timerField"}],     [])]),
      pageFooter()].
+
+%%======================================================================
+%% Function : makeTimeLogReport(User, Rows) -> Html
+%% Purpose  : Make time html report.
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+makeTimeLogReport(_User, Rows) ->
+    Uids = [ETodo#etodo.uid || ETodo <- eRows:toList(Rows)],
+    Opts = [{width, "20%"}, {align, center}],
+    {EstimateSum, SpentSum, RemainingSum} = sum(Uids),
+    tableTag([makeTimeLogReport2(Uids, []),
+              trTag([{bgcolor, "black"}],
+                    [tdTag([{width, "40%"}], heading("Total")),
+                     tdTag(Opts, heading(EstimateSum)),
+                     tdTag(Opts, heading(SpentSum)),
+                     tdTag(Opts, heading(RemainingSum))
+                    ])]).
+
+makeTimeLogReport2([Uid|Rest], Acc) ->
+    {Estimate, Remaining} = eTodoDB:getTime(Uid),
+    AllLogged = eTodoDB:getAllLoggedWork(Uid),
+    Todo      = eTodoDB:getTodo(tryInt(Uid)),
+    Desc1     = eTodoDB:getWorkDesc(Uid),
+    Desc2     = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
+    Odd       = ((length(Rest) rem 2) == 0),
+    Opts2     = [{width, "20%"}, {align, center}],
+    Opts3     = [{width, "20%"}],
+    UidStr    = eTodoUtils:convertUid(tryInt(Uid)),
+    makeTimeLogReport2(Rest,
+                       [trTag(bgColor(Odd),
+                              [tdTag(Opts3, [aTag([{href, UidStr}], Desc2)]),
+                               tdTag(Opts2, toStr(Estimate)),
+                               tdTag(Opts2, AllLogged),
+                               tdTag(Opts2, toStr(Remaining))]) | Acc]);
+makeTimeLogReport2([], Result) ->
+    Opts = [{width, "20%"}, {align, center}],
+    [trTag([{bgcolor, "black"}],
+           [tdTag([{width, "40%"}], heading("Task description")),
+            tdTag(Opts, heading("Time estimate(h)")),
+            tdTag(Opts, heading("Time spent(h)")),
+            tdTag(Opts, heading("Time remaining(h)"))
+           ])| lists:reverse(Result)].
+
+sum(Uids) ->
+    sum(Uids, {0, {0, 0}, 0}).
+
+sum([], {Est, {Hours, Min}, Rem}) ->
+    SumHours   = Hours + (Min div 60),
+    SumMinutes = Min rem 60,
+    {toStr(Est), toStr(SumHours) ++ ":" ++ minutes(SumMinutes), toStr(Rem)};
+sum([Uid|Rest], {Est, {Hours, Min}, Rem}) ->
+    {Estimate, Remaining} = eTodoDB:getTime(Uid),
+    {WHours, WMin}        = eTodoDB:getAllLoggedWorkInt(Uid),
+    sum(Rest, {Est + Estimate, {WHours + Hours, WMin + Min}, Rem + Remaining}).
+
+%%======================================================================
+%% Function : makeSceduleReport(User) -> Html
+%% Purpose  : Make scedule html report.
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+makeSceduleReport(_User) ->
+    Opts = [{width, "20%"}, {align, center}],
+    tableTag([trTag([{bgcolor, "black"}],
+                    [tdTag([{width, "40%"}], heading("Total")),
+                     tdTag(Opts, heading("Test"))
+                    ])]).

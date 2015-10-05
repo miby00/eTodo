@@ -146,6 +146,7 @@
                         getTaskList/1,
                         getTodoList/2,
                         getTodoLists/1,
+                        getWorkDesc/2,
                         makeETodo/3,
                         obj/2,
                         pos/2,
@@ -1480,7 +1481,8 @@ logWorkOkEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
     eTodoDB:saveWorkDesc(Uid, Desc),
 
     wxDialog:hide(LWDlg),
-    eGuiFunctions:generateWorkLog(State).
+    State2 = eGuiFunctions:generateWorkLog(State),
+    eGuiFunctions:generateTimeLog(State2).
 
 workDateEvent(Type, Id, Frame, State) ->
     logWorkButtonEvent(Type, Id, Frame, State).
@@ -2469,7 +2471,4 @@ checkItemsInListWithClear(Obj, Index, List) ->
     end,
     checkItemsInListWithClear(Obj, Index - 1, List).
 
-getWorkDesc("", Description) when length(Description) > 25 ->
-    string:sub_string(Description, 1, 25);
-getWorkDesc("",    Description)-> Description;
-getWorkDesc(Desc, _Description) -> Desc.
+

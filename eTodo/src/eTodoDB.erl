@@ -32,6 +32,7 @@
          getLoggedWork/2,
          getLoggedWork/3,
          getAllLoggedWork/1,
+         getAllLoggedWorkInt/1,
          getReminder/2,
          getReminders/1,
          getRow/2,
@@ -187,6 +188,9 @@ getLoggedWork(User, Date) ->
 
 getAllLoggedWork(Uid) ->
     gen_server:call(?MODULE, {getAllLoggedWork, Uid}).
+
+getAllLoggedWorkInt(Uid) ->
+    gen_server:call(?MODULE, {getAllLoggedWorkInt, Uid}).
 
 getReminder(User, Uid) ->
     gen_server:call(?MODULE, {getReminder, User, Uid}).
@@ -620,6 +624,10 @@ handle_call({getLoggedWork, User, Uid, Date}, _From, State) ->
 handle_call({getAllLoggedWork, Uid}, _From, State) ->
     LoggedWork = match(#logWork{uid = Uid, _ = '_'}),
     Result     = tot(LoggedWork),
+    {reply, Result, State};
+handle_call({getAllLoggedWorkInt, Uid}, _From, State) ->
+    LoggedWork = match(#logWork{uid = Uid, _ = '_'}),
+    Result     = totInt(LoggedWork),
     {reply, Result, State};
 handle_call({getWorkDesc, Uid}, _From, State) ->
     Result = default(matchOne(#workDesc{uid = Uid, _ = '_'}), #workDesc{}),
@@ -1851,3 +1859,20 @@ minutes(Min) when Min < 10 ->
     "0" ++ integer_to_list(Min);
 minutes(Min) ->
     integer_to_list(Min).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Summarize logged work
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+totInt(WorkedTime) ->
+    totInt(WorkedTime, {0, 0}).
+
+totInt([], {SumHours, SumMin}) ->
+    SumHours2   = SumHours + (SumMin div 60),
+    SumMinutes2 = SumMin rem 60,
+    {SumHours2,  SumMinutes2};
+totInt([#logWork{hours = Hours, minutes = Min}|Rest], {SumHours, SumMin}) ->
+    totInt(Rest, {SumHours + Hours, SumMin + Min}).
+

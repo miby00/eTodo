@@ -95,6 +95,11 @@ function checkForMessage()
             handleResult(AJAX.responseText, AJAX.status);
         }
     };
+
+    if (Notification.permission == "default") {
+        Notification.requestPermission(function() {});
+    };
+
     var url= '/eTodo/eWeb:checkForMessage';
     AJAX.open("GET", url, true);
     AJAX.send(null);

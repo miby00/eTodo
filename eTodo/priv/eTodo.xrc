@@ -1151,6 +1151,58 @@
 					</object>
 				</object>
 			</object>
+			<object class="notebookpage">
+				<label>Time log</label>
+				<selected>0</selected>
+				<object class="wxPanel" name="timeLogPanel">
+					<style>wxTAB_TRAVERSAL</style>
+					<object class="wxBoxSizer">
+						<orient>wxVERTICAL</orient>
+						<object class="sizeritem">
+							<option>1</option>
+							<flag>wxEXPAND</flag>
+							<border>5</border>
+							<object class="wxBoxSizer">
+								<orient>wxVERTICAL</orient>
+								<object class="sizeritem">
+									<option>1</option>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>5</border>
+									<object class="wxHtmlWindow" name="timeLogReport">
+										<style>wxHW_SCROLLBAR_AUTO</style>
+									</object>
+								</object>
+							</object>
+						</object>
+					</object>
+				</object>
+			</object>
+			<object class="notebookpage">
+				<label>Schedule</label>
+				<selected>0</selected>
+				<object class="wxPanel" name="schedulePanel">
+					<style>wxTAB_TRAVERSAL</style>
+					<object class="wxBoxSizer">
+						<orient>wxVERTICAL</orient>
+						<object class="sizeritem">
+							<option>1</option>
+							<flag>wxEXPAND</flag>
+							<border>5</border>
+							<object class="wxBoxSizer">
+								<orient>wxVERTICAL</orient>
+								<object class="sizeritem">
+									<option>1</option>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>5</border>
+									<object class="wxHtmlWindow" name="scheduleReport">
+										<style>wxHW_SCROLLBAR_AUTO</style>
+									</object>
+								</object>
+							</object>
+						</object>
+					</object>
+				</object>
+			</object>
 		</object>
 	</object>
 	<object class="wxFrame" name="helpFrame">
