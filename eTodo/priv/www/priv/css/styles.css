@@ -16,6 +16,11 @@ input, select, textarea {
 
 td {
     height: 1.5em;
+    page-break-inside: avoid;
+}
+
+tr {
+    page-break-inside: avoid;
 }
 
 #createTodo {
@@ -48,6 +53,7 @@ table {
     -webkit-border-radius: 6px;
     border-radius: 6px;
     width: 99%;
+    page-break-inside: avoid;
 
     background: rgb(193, 206, 255); /* Old browsers */
     /* IE9 SVG, needs conditional override of 'filter' to 'none' */
