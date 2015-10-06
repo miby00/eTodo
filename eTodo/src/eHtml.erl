@@ -23,7 +23,7 @@
          makeForm/2,
          makeHtml/1,
          makeWorkLogReport/2,
-         makeTimeLogReport/2,
+         makeTimeLogReport/3,
          makeSceduleReport/1,
          createTaskForm/1,
          showStatus/3,
@@ -1065,11 +1065,17 @@ showStatus(User, Status, StatusMsg) ->
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
-makeTimeLogReport(_User, Rows) ->
-    Uids = [ETodo#etodo.uid || ETodo <- eRows:toList(Rows)],
+makeTimeLogReport(_User, Rows, AllTask) ->
+    Uids1 = [ETodo#etodo.uid || ETodo <- eRows:toList(Rows)],
+    Uids2 = case AllTask of
+                true ->
+                    Uids1; %% Subtodos all ready in list.
+                false ->
+                    addSubTodos(Uids1)
+            end,
     Opts = [{width, "20%"}, {align, center}],
-    {EstimateSum, SpentSum, RemainingSum} = sum(Uids),
-    tableTag([makeTimeLogReport2(Uids, []),
+    {EstimateSum, SpentSum, RemainingSum} = sum(Uids2),
+    tableTag([makeTimeLogReport2(Uids2, []),
               trTag([{bgcolor, "black"}],
                     [tdTag([{width, "40%"}], heading("Total")),
                      tdTag(Opts, heading(EstimateSum)),
@@ -1127,3 +1133,25 @@ makeSceduleReport(_User) ->
                     [tdTag([{width, "40%"}], heading("Total")),
                      tdTag(Opts, heading("Test"))
                     ])]).
+
+%%======================================================================
+%% Function :
+%% Purpose  :
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+addSubTodos(Uids) ->
+    addSubTodos(Uids, []).
+
+addSubTodos([], Acc) ->
+    lists:reverse(Acc);
+addSubTodos([Uid|Rest], Acc) ->
+    SUids = addSubTodos(eTodoDB:getSubTodos(tryInt(Uid))),
+    Acc2  = addToAccNoDuplicate([Uid|SUids], Acc),
+    addSubTodos(Rest, Acc2).
+
+addToAccNoDuplicate([], Acc) ->
+    Acc;
+addToAccNoDuplicate([Uid|Rest], Acc) ->
+    addToAccNoDuplicate(Rest, [Uid|lists:delete(Uid, Acc)]).

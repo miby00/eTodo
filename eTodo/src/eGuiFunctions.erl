@@ -1519,8 +1519,10 @@ generateWorkLog(State = #guiState{user = User}) ->
 %% @end
 %%--------------------------------------------------------------------
 generateTimeLog(State = #guiState{user = User}) ->
-    Obj    = obj("timeLogReport", State),
-    Report = eHtml:makeTimeLogReport(User, State#guiState.rows),
+    Obj      = obj("timeLogReport", State),
+    TaskList = getTaskList(State),
+    AllTask  = TaskList == ?defTaskList,
+    Report   = eHtml:makeTimeLogReport(User, State#guiState.rows, AllTask),
     wxHtmlWindow:setPage(Obj, Report),
     State.
 

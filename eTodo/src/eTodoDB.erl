@@ -36,6 +36,7 @@
          getReminder/2,
          getReminders/1,
          getRow/2,
+         getSubTodos/1,
          getTime/1,
          getTodo/1,
          getTodos/2,
@@ -212,6 +213,9 @@ getTodosSharedWith(User1, User2) ->
 
 getUsers() ->
     gen_server:call(?MODULE, getUsers).
+
+getSubTodos(Uid) ->
+    gen_server:call(?MODULE, {getSubTodos, Uid}).
 
 hasSubTodo(Uid) ->
     gen_server:call(?MODULE, {hasSubTodo, Uid}).
@@ -689,6 +693,10 @@ handle_call({getTodosSharedWith, User1, User2}, _From, State) ->
 handle_call(getUsers, _From, State) ->
     Result1 = match(#conCfg{_ = '_'}),
     Result2 = [User || #conCfg{userName = User} <- Result1],
+    {reply, Result2, State};
+handle_call({getSubTodos, Uid}, _From, State) ->
+    Result1 = match(#userInfo{parent = Uid, _ = '_'}),
+    Result2 = [UserInfo#userInfo.uid || UserInfo <- Result1],
     {reply, Result2, State};
 handle_call({hasSubTodo, Uid}, _From, State) ->
     Result1 = match(#userInfo{parent = Uid, _ = '_'}),
