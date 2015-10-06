@@ -100,7 +100,7 @@ addTodo(TodoList, ETodo, Row, State) ->
 updateTodo(List, ETodo, Row, State) ->
     setRowInfo(List, ETodo, Row),
     Rows2 = updateRows(ETodo, State#guiState.rows),
-    State#guiState{rows = Rows2}.
+    eGuiFunctions:generateTimeLog(State#guiState{rows = Rows2}).
 
 %%======================================================================
 %% Function :
@@ -663,7 +663,9 @@ updateTodoWindow(State = #guiState{searchCfg = Cfg,
                             ?wxLIST_STATE_SELECTED,
                             ?wxLIST_STATE_SELECTED),
     updateInfoIcon(State),
-    State#guiState{rows = eRows:replace(ETodos, State#guiState.rows)}.
+    State2 = State#guiState{rows = eRows:replace(ETodos, State#guiState.rows)},
+    eGuiFunctions:generateTimeLog(State2).
+
 
 getActive(#guiState{activeTodo = {_, Index}}) -> Index;
 getActive(_)                                  -> 0.

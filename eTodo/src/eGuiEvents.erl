@@ -1670,7 +1670,9 @@ moveDownToolEvent(_Type, _Id, _Frame, State = #guiState{rows = Rows}) ->
                                     ?wxLIST_STATE_SELECTED,
                                     ?wxLIST_STATE_SELECTED),
             wxListCtrl:thaw(TodoList),
-            State3#guiState{activeTodo = {ETodo1, Index + 1}, rows = Rows2};
+            State4 = State3#guiState{activeTodo = {ETodo1, Index + 1},
+                                     rows       = Rows2},
+            eGuiFunctions:generateTimeLog(State4);
         _ ->
             State
     end.
@@ -1812,7 +1814,9 @@ moveUpToolEvent(_Type, _Id, _Frame, State = #guiState{rows = Rows}) ->
                                     ?wxLIST_STATE_SELECTED,
                                     ?wxLIST_STATE_SELECTED),
             wxListCtrl:thaw(TodoList),
-            State3#guiState{activeTodo = {ETodo2, Index - 1}, rows = Rows2};
+            State4 = State3#guiState{activeTodo = {ETodo2, Index - 1},
+                                     rows       = Rows2},
+            eGuiFunctions:generateTimeLog(State4);
         _ ->
             State
     end.
