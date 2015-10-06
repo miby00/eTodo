@@ -290,7 +290,7 @@ tot(Days) ->
 tot([], {SumHours, SumMin}) ->
     SumHours2   = SumHours + (SumMin div 60),
     SumMinutes2 = SumMin rem 60,
-    integer_to_list(SumHours2) ++ ":" ++ minutes(SumMinutes2);
+    time(SumHours2) ++ ":" ++ time(SumMinutes2);
 tot([{_, Hours, Min}|Rest], {SumHours, SumMin}) ->
     tot(Rest, {SumHours + Hours, SumMin + Min}).
 
@@ -381,9 +381,9 @@ heading(Content) ->
 hours(Act, Day) ->
     case lists:keyfind(Act, 1, Day) of
         false ->
-            "0";
+            "00";
         {_, Hours, _} ->
-            integer_to_list(Hours)
+            time(Hours)
     end.
 
 minutes(Act, Day) ->
@@ -391,12 +391,12 @@ minutes(Act, Day) ->
         false ->
             "00";
         {_, _, Minutes} ->
-            minutes(Minutes)
+            time(Minutes)
     end.
 
-minutes(Min) when Min < 10 ->
+time(Min) when Min < 10 ->
     "0" ++ integer_to_list(Min);
-minutes(Min) ->
+time(Min) ->
     integer_to_list(Min).
 
 %%======================================================================
@@ -1096,9 +1096,9 @@ makeTimeLogReport2([Uid|Rest], Acc) ->
     makeTimeLogReport2(Rest,
                        [trTag(bgColor(Odd),
                               [tdTag(Opts3, [aTag([{href, UidStr}], Desc2)]),
-                               tdTag(Opts2, toStr(Estimate)),
+                               tdTag(Opts2, time(Estimate) ++ ":00"),
                                tdTag(Opts2, AllLogged),
-                               tdTag(Opts2, toStr(Remaining))]) | Acc]);
+                               tdTag(Opts2, time(Remaining) ++ ":00")]) | Acc]);
 makeTimeLogReport2([], Result) ->
     Opts = [{width, "20%"}, {align, center}],
     [trTag([{bgcolor, "black"}],
@@ -1114,7 +1114,9 @@ sum(Uids) ->
 sum([], {Est, {Hours, Min}, Rem}) ->
     SumHours   = Hours + (Min div 60),
     SumMinutes = Min rem 60,
-    {toStr(Est), toStr(SumHours) ++ ":" ++ minutes(SumMinutes), toStr(Rem)};
+    {time(Est) ++ ":00",
+     time(SumHours) ++ ":" ++ time(SumMinutes),
+     time(Rem) ++ ":00"};
 sum([Uid|Rest], {Est, {Hours, Min}, Rem}) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     {WHours, WMin}        = eTodoDB:getAllLoggedWorkInt(Uid),

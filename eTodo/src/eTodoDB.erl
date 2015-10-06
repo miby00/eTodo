@@ -1859,13 +1859,13 @@ tot(WorkedTime) ->
 tot([], {SumHours, SumMin}) ->
     SumHours2   = SumHours + (SumMin div 60),
     SumMinutes2 = SumMin rem 60,
-    integer_to_list(SumHours2) ++ ":" ++ minutes(SumMinutes2);
+    time(SumHours2) ++ ":" ++ time(SumMinutes2);
 tot([#logWork{hours = Hours, minutes = Min}|Rest], {SumHours, SumMin}) ->
     tot(Rest, {SumHours + Hours, SumMin + Min}).
 
-minutes(Min) when Min < 10 ->
+time(Min) when Min < 10 ->
     "0" ++ integer_to_list(Min);
-minutes(Min) ->
+time(Min) ->
     integer_to_list(Min).
 
 %%--------------------------------------------------------------------
