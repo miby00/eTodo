@@ -1670,9 +1670,7 @@ moveDownToolEvent(_Type, _Id, _Frame, State = #guiState{rows = Rows}) ->
                                     ?wxLIST_STATE_SELECTED,
                                     ?wxLIST_STATE_SELECTED),
             wxListCtrl:thaw(TodoList),
-            State4 = State3#guiState{activeTodo = {ETodo1, Index + 1},
-                                     rows       = Rows2},
-            eGuiFunctions:generateTimeLog(State4);
+            State3#guiState{activeTodo = {ETodo1, Index + 1}, rows = Rows2};
         _ ->
             State
     end.
@@ -1814,9 +1812,7 @@ moveUpToolEvent(_Type, _Id, _Frame, State = #guiState{rows = Rows}) ->
                                     ?wxLIST_STATE_SELECTED,
                                     ?wxLIST_STATE_SELECTED),
             wxListCtrl:thaw(TodoList),
-            State4 = State3#guiState{activeTodo = {ETodo2, Index - 1},
-                                     rows       = Rows2},
-            eGuiFunctions:generateTimeLog(State4);
+            State3#guiState{activeTodo = {ETodo2, Index - 1}, rows = Rows2};
         _ ->
             State
     end.
@@ -2379,6 +2375,10 @@ mainNotebookEvent(_Type, _Id, _Frame, State) ->
     CurrPage     = wxNotebook:getCurrentPage(Notebook),
     MsgPage      = wxNotebook:getPage(Notebook, 1),
     RemPage      = wxNotebook:getPage(Notebook, 2),
+    WorkReport   = wxNotebook:getPage(Notebook, 3),
+    TimeReport   = wxNotebook:getPage(Notebook, 4),
+    ScheduleRep  = wxNotebook:getPage(Notebook, 5),
+
     case CurrPage of
         MsgPage ->
             State2 = clearMsgCounter(State),
@@ -2386,6 +2386,12 @@ mainNotebookEvent(_Type, _Id, _Frame, State) ->
             clearStatusBar(State3);
         RemPage ->
             clearSysMsgCounter(State);
+        WorkReport ->
+            eGuiFunctions:generateWorkLog(State);
+        TimeReport ->
+            eGuiFunctions:generateTimeLog(State);
+        ScheduleRep ->
+            eGuiFunctions:generateSchedule(State);
         _ ->
             State
     end.
