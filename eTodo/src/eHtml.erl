@@ -1154,4 +1154,4 @@ addSubTodos([Uid|Rest], Acc) ->
 addToAccNoDuplicate([], Acc) ->
     Acc;
 addToAccNoDuplicate([Uid|Rest], Acc) ->
-    addToAccNoDuplicate(Rest, [Uid|lists:delete(Uid, Acc)]).
+    addToAccNoDuplicate(Rest, [toStr(Uid)|lists:delete(Uid, Acc)]).
