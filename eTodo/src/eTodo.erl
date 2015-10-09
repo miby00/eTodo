@@ -1275,7 +1275,7 @@ doCheckConflict(User, PeerUser,
     %% Only local, send to other peer if this one is new since last connect.
     case Local#todo.createTime > OldLocalConTime of
         true ->
-            ePeFerEM:todoUpdated(User, [PeerUser], Local);
+            ePeerEM:todoUpdated(User, [PeerUser], Local);
         false ->
             eLog:log(debug, ?MODULE, checkConflict, [Local],
                      "Already removed todo, do not update todo on "
