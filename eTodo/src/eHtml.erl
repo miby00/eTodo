@@ -50,7 +50,8 @@
 -include("eTodo.hrl").
 -include_lib("inets/include/httpd.hrl").
 
--import(eTodoUtils, [toStr/1, toStr/2, tryInt/1, makeStr/1, getRootDir/0]).
+-import(eTodoUtils, [toStr/1, toStr/2, tryInt/1,
+                     makeStr/1, getRootDir/0, dateTime/0]).
 
 %%%=====================================================================
 %%% API
@@ -1123,20 +1124,6 @@ sum([Uid|Rest], {Est, {Hours, Min}, Rem}) ->
     sum(Rest, {Est + Estimate, {WHours + Hours, WMin + Min}, Rem + Remaining}).
 
 %%======================================================================
-%% Function : makeSceduleReport(User) -> Html
-%% Purpose  : Make scedule html report.
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-makeSceduleReport(_User) ->
-    Opts = [{width, "20%"}, {align, center}],
-    tableTag([trTag([{bgcolor, "black"}],
-                    [tdTag([{width, "40%"}], heading("Total")),
-                     tdTag(Opts, heading("Test"))
-                    ])]).
-
-%%======================================================================
 %% Function :
 %% Purpose  :
 %% Types    :
@@ -1157,3 +1144,57 @@ addToAccNoDuplicate([], Acc) ->
     Acc;
 addToAccNoDuplicate([Uid|Rest], Acc) ->
     addToAccNoDuplicate(Rest, [toStr(Uid)|lists:delete(Uid, Acc)]).
+
+%%======================================================================
+%% Function : makeSceduleReport(User) -> Html
+%% Purpose  : Make scedule html report.
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+makeSceduleReport(User) ->
+    Opts   = [{width, "30%"}, {align, center}],
+    Alarms = getAlarmList(User),
+    tableTag([trTag([{bgcolor, "black"}],
+                    [tdTag([{width, "40%"}], heading("Description")),
+                     tdTag(Opts, heading("Next alarm")),
+                     tdTag(Opts, heading("Due date"))])|
+              makeSceduleReport2(Alarms, [])]).
+
+getAlarmList(User) ->
+    AlarmList  = eTodoDB:getReminders(User),
+    AlarmList2 = getAlarmInfo(AlarmList, dateTime(), []),
+    lists:reverse(lists:keysort(1, AlarmList2)).
+
+getAlarmInfo([], _Now, Acc) ->
+    Acc;
+getAlarmInfo([#alarmCfg{endDate    = undefined,
+                        startDate  = StartDate,
+                        recurrence = undefined,
+                        startTime  = StartTime}|Rest], Now, Acc)
+  when Now > {StartDate, StartTime} ->
+    getAlarmInfo(Rest, Now, Acc);
+getAlarmInfo([#alarmCfg{nextAlarm = undefined}|Rest], Now, Acc) ->
+    getAlarmInfo(Rest, Now, Acc);
+getAlarmInfo([#alarmCfg{uid = Uid, nextAlarm  = NextAlarm}|Rest], Now, Acc)
+  when Now < NextAlarm ->
+    Todo    = eTodoDB:getTodo(tryInt(Uid)),
+    Desc1   = eTodoDB:getWorkDesc(Uid),
+    Desc2   = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
+    DueDate = Todo#todo.dueTime,
+    UidStr  = eTodoUtils:convertUid(tryInt(Uid)),
+    getAlarmInfo(Rest, Now, [{NextAlarm, DueDate, UidStr, Desc2}|Acc]);
+getAlarmInfo([_Alarm|Rest], Now, Acc) ->
+    getAlarmInfo(Rest, Now, Acc).
+
+makeSceduleReport2([], Acc) ->
+    Acc;
+makeSceduleReport2([{DateTime, DueDate, UidStr, Desc}|Rest], Acc) ->
+    makeSceduleReport2(Rest, [trTag([tdTag([{width, "40%"}],
+                                            [aTag([{href, UidStr}], Desc)]),
+                                     tdTag([{width, "30%"},
+                                            {align, "center"}],
+                                           toStr(DateTime)),
+                                     tdTag([{width, "30%"},
+                                            {align, "center"}],
+                                            toStr(DueDate))])|Acc]).
