@@ -37,6 +37,7 @@
          deleteMenuEvent/4,
          deleteToolEvent/4,
          descriptionAreaEvent/4,
+         dueDatePickerEvent/4,
          exitMenuItemEvent/4,
          forwardToolEvent/4,
          guiEvent/4,
@@ -870,6 +871,9 @@ deleteAndUpdate(Size, Index, TodoList, State) ->
 %%====================================================================
 %% Event to trigger gui save
 %%====================================================================
+dueDatePickerEvent(_Type, _Id, _Frame, State) ->
+    State.
+
 priorityChoiceEvent(_Type, _Id, _Frame, State) ->
     State.
 
