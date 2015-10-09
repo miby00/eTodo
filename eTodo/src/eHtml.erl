@@ -1090,7 +1090,7 @@ makeTimeLogReport2([Uid|Rest], Acc) ->
     Todo      = eTodoDB:getTodo(tryInt(Uid)),
     Desc1     = eTodoDB:getWorkDesc(Uid),
     Desc2     = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
-    Odd       = ((length(Rest) rem 2) == 0),
+    Odd       = ((length(Rest) rem 2) =/= 0),
     Opts2     = [{width, "20%"}, {align, center}],
     Opts3     = [{width, "20%"}],
     UidStr    = eTodoUtils:convertUid(tryInt(Uid)),
@@ -1153,48 +1153,104 @@ addToAccNoDuplicate([Uid|Rest], Acc) ->
 %% Notes    :
 %%======================================================================
 makeSceduleReport(User) ->
-    Opts   = [{width, "30%"}, {align, center}],
-    Alarms = getAlarmList(User),
+    Opts        = [{width, "30%"}, {align, center}],
+    Alarms      = getAlarmList(User),
+    ETodos      = getTodoInfo(User),
+    TimeMarkers = getTimeMarkers(),
+    Events = lists:reverse(lists:keysort(1, TimeMarkers ++ Alarms ++ ETodos)),
     tableTag([trTag([{bgcolor, "black"}],
                     [tdTag([{width, "40%"}], heading("Description")),
                      tdTag(Opts, heading("Next alarm")),
                      tdTag(Opts, heading("Due date"))])|
-              makeSceduleReport2(Alarms, [])]).
+              makeSceduleReport2(Events, [])]).
+
+getTodoInfo(User) ->
+    TodoList  = eTodoDB:getTodos(User, ?defTaskList),
+    getTodoInfo(TodoList, date(), []).
+
+getTodoInfo([], _Now, Acc) ->
+    Acc;
+getTodoInfo([#todo{status = done}|Rest], Now, Acc) ->
+    getTodoInfo(Rest, Now, Acc);
+getTodoInfo([#todo{dueTime = undefined}|Rest], Now, Acc) ->
+    getTodoInfo(Rest, Now, Acc);
+getTodoInfo([#todo{uid = Uid, dueTime = DueDate}|Rest], Now, Acc)
+  when Now =< DueDate ->
+    NextAlarm = {DueDate, {0, 0, 0}},
+    {Desc, DueDate, UidStr} = doSaveAlarmInfo(Uid),
+    getTodoInfo(Rest, Now, [{NextAlarm, "", DueDate, UidStr, Desc} | Acc]);
+getTodoInfo([_Todo|Rest], Now, Acc) ->
+    getTodoInfo(Rest, Now, Acc).
 
 getAlarmList(User) ->
     AlarmList  = eTodoDB:getReminders(User),
-    AlarmList2 = getAlarmInfo(AlarmList, dateTime(), []),
-    lists:reverse(lists:keysort(1, AlarmList2)).
+    getAlarmInfo(AlarmList, date(), []).
 
 getAlarmInfo([], _Now, Acc) ->
     Acc;
-getAlarmInfo([#alarmCfg{endDate    = undefined,
-                        startDate  = StartDate,
-                        recurrence = undefined,
-                        startTime  = StartTime}|Rest], Now, Acc)
-  when Now > {StartDate, StartTime} ->
+%% New alarm
+getAlarmInfo([#alarmCfg{startDate  = StartDate,
+                        startTime  = StartTime,
+                        uid        = Uid,
+                        nextAlarm  = undefined}|Rest], Now, Acc)
+  when Now =< StartDate ->
+    NextAlarm = {StartDate, repairTime(StartTime)},
+    saveAlarmInfo(Uid, Rest, Now, NextAlarm, Acc);
+%% Alarm that never will be activated
+getAlarmInfo([#alarmCfg{nextAlarm = never}|Rest], Now, Acc) ->
     getAlarmInfo(Rest, Now, Acc);
-getAlarmInfo([#alarmCfg{nextAlarm = undefined}|Rest], Now, Acc) ->
-    getAlarmInfo(Rest, Now, Acc);
-getAlarmInfo([#alarmCfg{uid = Uid, nextAlarm  = NextAlarm}|Rest], Now, Acc)
-  when Now < NextAlarm ->
+getAlarmInfo([#alarmCfg{uid = Uid, nextAlarm  = {Date, Time}}|Rest], Now, Acc)
+        when Now =< Date ->
+    saveAlarmInfo(Uid, Rest, Now, {Date, Time}, Acc);
+getAlarmInfo([_Alarm|Rest], Now, Acc) ->
+    getAlarmInfo(Rest, Now, Acc).
+
+saveAlarmInfo(Uid, Rest, Now, NextAlarm, Acc) ->
+    {Desc, DueDate, UidStr} = doSaveAlarmInfo(Uid),
+    getAlarmInfo(Rest, Now, [{NextAlarm, NextAlarm, DueDate, UidStr, Desc} | Acc]).
+
+doSaveAlarmInfo(Uid) ->
     Todo    = eTodoDB:getTodo(tryInt(Uid)),
     Desc1   = eTodoDB:getWorkDesc(Uid),
     Desc2   = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
     DueDate = Todo#todo.dueTime,
     UidStr  = eTodoUtils:convertUid(tryInt(Uid)),
-    getAlarmInfo(Rest, Now, [{NextAlarm, DueDate, UidStr, Desc2}|Acc]);
-getAlarmInfo([_Alarm|Rest], Now, Acc) ->
-    getAlarmInfo(Rest, Now, Acc).
+    {Desc2, DueDate, UidStr}.
 
 makeSceduleReport2([], Acc) ->
     Acc;
-makeSceduleReport2([{DateTime, DueDate, UidStr, Desc}|Rest], Acc) ->
-    makeSceduleReport2(Rest, [trTag([tdTag([{width, "40%"}],
-                                            [aTag([{href, UidStr}], Desc)]),
+makeSceduleReport2([{_Key, Desc}|Rest], Acc) ->
+    Odd = ((length(Rest) rem 2) =/= 0),
+    makeSceduleReport2(Rest, [trTag(bgColor(Odd),
+                                    [tdTag([{width, "40%"}], bTag(Desc)),
+                                     tdTag([{width, "30%"}], ""),
+                                     tdTag([{width, "30%"}], "")])|Acc]);
+makeSceduleReport2([{_Key, DateTime, DueDate, UidStr, Desc}|Rest], Acc) ->
+    Odd = ((length(Rest) rem 2) =/= 0),
+    makeSceduleReport2(Rest, [trTag(bgColor(Odd),
+                                    [tdTag([{width, "40%"}],
+                                           [aTag([{href, UidStr}], Desc)]),
                                      tdTag([{width, "30%"},
                                             {align, "center"}],
                                            toStr(DateTime)),
                                      tdTag([{width, "30%"},
                                             {align, "center"}],
-                                            toStr(DueDate))])|Acc]).
+                                           toStr(DueDate))])|Acc]).
+
+getTimeMarkers() ->
+    Date = date(),
+    Time = {0, 0, 0},
+    [{{Date, Time}, getWeekDay(Date)},
+     {{incDate(Date, 1), Time}, getWeekDay(incDate(Date, 1))},
+     {{incDate(Date, 2), Time}, getWeekDay(incDate(Date, 2))},
+     {{incDate(Date, 3), Time}, getWeekDay(incDate(Date, 3))},
+     {{incDate(Date, 4), Time}, getWeekDay(incDate(Date, 4))},
+     {{incDate(Date, 5), Time}, getWeekDay(incDate(Date, 5))},
+     {{incDate(Date, 6), Time}, getWeekDay(incDate(Date, 6))},
+     {{incDate(Date, 7), Time}, "Week away"},
+     {{incDate(Date, 31), Time}, "Month away"},
+     {{incDate(Date, 62), Time}, "Far away"}].
+
+repairTime({H, M})    -> {H, M, 1};
+repairTime(undefined) -> {0, 0, 1};
+repairTime(Time)      -> Time.
