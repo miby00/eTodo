@@ -1239,7 +1239,7 @@ makeSceduleReport2([{_Key, DateTime, DueDate, UidStr, Desc}|Rest], Acc) ->
 
 getTimeMarkers() ->
     Date = date(),
-    Time = {0, 0, 0},
+    Time = {0, 0, -1},
     [{{Date, Time}, getWeekDay(Date)},
      {{incDate(Date, 1), Time}, getWeekDay(incDate(Date, 1))},
      {{incDate(Date, 2), Time}, getWeekDay(incDate(Date, 2))},
@@ -1247,10 +1247,9 @@ getTimeMarkers() ->
      {{incDate(Date, 4), Time}, getWeekDay(incDate(Date, 4))},
      {{incDate(Date, 5), Time}, getWeekDay(incDate(Date, 5))},
      {{incDate(Date, 6), Time}, getWeekDay(incDate(Date, 6))},
-     {{incDate(Date, 7), Time}, "Week away"},
-     {{incDate(Date, 31), Time}, "Month away"},
-     {{incDate(Date, 62), Time}, "Far away"}].
+     {{incDate(Date, 7), Time}, "Week(s) away"},
+     {{incDate(Date, 31), Time}, "Month(s) away"}].
 
-repairTime({H, M})    -> {H, M, 1};
-repairTime(undefined) -> {0, 0, 1};
+repairTime({H, M})    -> {H, M, 0};
+repairTime(undefined) -> {0, 0, 0};
 repairTime(Time)      -> Time.
