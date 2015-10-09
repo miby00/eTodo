@@ -1174,8 +1174,7 @@ getTodoInfo([#todo{status = done}|Rest], Now, Acc) ->
     getTodoInfo(Rest, Now, Acc);
 getTodoInfo([#todo{dueTime = undefined}|Rest], Now, Acc) ->
     getTodoInfo(Rest, Now, Acc);
-getTodoInfo([#todo{uid = Uid, dueTime = DueDate}|Rest], Now, Acc)
-  when Now =< DueDate ->
+getTodoInfo([#todo{uid = Uid, dueTime = DueDate}|Rest], Now, Acc) ->
     NextAlarm = {DueDate, {0, 0, 0}},
     {Desc, DueDate, UidStr} = doSaveAlarmInfo(Uid),
     getTodoInfo(Rest, Now, [{NextAlarm, "", DueDate, UidStr, Desc} | Acc]);
@@ -1240,8 +1239,9 @@ makeSceduleReport2([{_Key, DateTime, DueDate, UidStr, Desc}|Rest], Acc) ->
 getTimeMarkers() ->
     Date = date(),
     Time = {0, 0, -1},
-    [{{Date, Time}, getWeekDay(Date)},
-     {{incDate(Date, 1), Time}, getWeekDay(incDate(Date, 1))},
+    [{{Time, Time}, "Overdue"},
+     {{Date, Time}, "Today"},
+     {{incDate(Date, 1), Time}, "Tomorrow"},
      {{incDate(Date, 2), Time}, getWeekDay(incDate(Date, 2))},
      {{incDate(Date, 3), Time}, getWeekDay(incDate(Date, 3))},
      {{incDate(Date, 4), Time}, getWeekDay(incDate(Date, 4))},
