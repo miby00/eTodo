@@ -657,7 +657,8 @@ handle_call({getLoggedWork, User, Date}, _From, State) ->
     LoggedWork = match(#logWork{userName = User, date = Date, _ = '_'}),
 
     Result = [{LW#logWork.uid, LW#logWork.hours, LW#logWork.minutes} ||
-              LW <- LoggedWork],
+              LW <- LoggedWork,
+              LW#logWork.hours =/= 0, LW#logWork.minutes =/= 0],
     {reply, Result, State};
 handle_call({logWork, User, Uid, Date, Hours, Minutes}, _From, State) ->
     LoggedWork = #logWork{userName = User,
