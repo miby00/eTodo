@@ -795,12 +795,10 @@ addTaskInboxMenuEvent(_Type, _Id, _Frame,
     ETodo  = makeETodo(Todo, User, Columns),
     State2 = addTodo(TodoList, ETodo, Row, State),
     State3 = updateGui(ETodo, Row, State2),
-    wxListCtrl:setItemState(TodoList, Row,
-                            ?wxLIST_STATE_SELECTED,
-                            ?wxLIST_STATE_SELECTED),
-    DescObj = obj("descriptionArea", State3),
+    State4 = focusAndSelect(Row, State3),
+    DescObj = obj("descriptionArea", State4),
     wxChoice:setFocus(DescObj),
-    State3.
+    State4.
 
 todoDownToolEvent(_Type, _Id, _Frame, State = #guiState{user    = User,
                                                         columns = Columns}) ->
@@ -815,12 +813,10 @@ todoDownToolEvent(_Type, _Id, _Frame, State = #guiState{user    = User,
     ETodo  = makeETodo(Todo, User, Columns),
     State2 = addTodo(TodoList, ETodo, Row, State),
     State3 = updateGui(ETodo, Row, State2),
-    wxListCtrl:setItemState(TodoList, Row,
-                            ?wxLIST_STATE_SELECTED,
-                            ?wxLIST_STATE_SELECTED),
+    State4 = focusAndSelect(Row, State3),
     DescObj = obj("descriptionArea", State3),
     wxChoice:setFocus(DescObj),
-    State3.
+    State4.
 
 %%====================================================================
 %% Toolbar delete button
