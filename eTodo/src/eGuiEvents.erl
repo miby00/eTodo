@@ -768,12 +768,10 @@ todoUpToolEvent(_Type, _Id, _Frame, State = #guiState{user    = User,
     ETodo  = makeETodo(Todo, User, Columns),
     State2 = addTodo(TodoList, ETodo, 0, State),
     State3 = updateGui(ETodo, 0, State2),
-    wxListCtrl:setItemState(TodoList, 0,
-                            ?wxLIST_STATE_SELECTED,
-                            ?wxLIST_STATE_SELECTED),
-    DescObj = obj("descriptionArea", State3),
+    State4 = focusAndSelect(0, State3),
+    DescObj = obj("descriptionArea", State4),
     wxChoice:setFocus(DescObj),
-    State3.
+    State4.
 
 %%====================================================================
 %% Toolbar Create new task at bottom of task list
