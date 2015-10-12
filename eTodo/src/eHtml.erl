@@ -1106,7 +1106,7 @@ makeTimeLogReport2([], Result) ->
            [tdTag([{width, "40%"}], heading("Task description")),
             tdTag(Opts, heading("Time estimate(h)")),
             tdTag(Opts, heading("Time spent(h)")),
-            tdTag(Opts, heading("Time remaining(h)"))
+            tdTag(Opts, heading("Time left(h)"))
            ])| lists:reverse(Result)].
 
 sum(Uids) ->
@@ -1153,15 +1153,17 @@ addToAccNoDuplicate([Uid|Rest], Acc) ->
 %% Notes    :
 %%======================================================================
 makeSceduleReport(User) ->
-    Opts        = [{width, "30%"}, {align, center}],
+    Opts        = [{width, "25%"}, {align, center}],
+    Opts2       = [{width, "20%"}, {align, center}],
     Alarms      = getAlarmList(User),
     ETodos      = getTodoInfo(User),
     TimeMarkers = getTimeMarkers(),
     Events = lists:reverse(lists:keysort(1, TimeMarkers ++ Alarms ++ ETodos)),
     tableTag([trTag([{bgcolor, "black"}],
-                    [tdTag([{width, "40%"}], heading("Description")),
-                     tdTag(Opts, heading("Next alarm")),
-                     tdTag(Opts, heading("Due date"))])|
+                    [tdTag([{width, "35%"}], heading("Description")),
+                     tdTag(Opts,  heading("Next alarm")),
+                     tdTag(Opts2, heading("Due date")),
+                     tdTag(Opts2, heading("Time left(h)"))])|
               makeSceduleReport2(Events, [])]).
 
 getTodoInfo(User) ->
@@ -1176,8 +1178,9 @@ getTodoInfo([#todo{dueTime = undefined}|Rest], Now, Acc) ->
     getTodoInfo(Rest, Now, Acc);
 getTodoInfo([#todo{uid = Uid, dueTime = DueDate}|Rest], Now, Acc) ->
     NextAlarm = {DueDate, {0, 0, 0}},
-    {Desc, DueDate, UidStr} = doSaveAlarmInfo(Uid),
-    getTodoInfo(Rest, Now, [{NextAlarm, "", DueDate, UidStr, Desc} | Acc]);
+    {Desc, DueDate, UidStr, RemTime} = doSaveAlarmInfo(Uid),
+    getTodoInfo(Rest, Now, [{NextAlarm, "", DueDate,
+                             UidStr, Desc, RemTime} | Acc]);
 getTodoInfo([_Todo|Rest], Now, Acc) ->
     getTodoInfo(Rest, Now, Acc).
 
@@ -1205,8 +1208,9 @@ getAlarmInfo([_Alarm|Rest], Now, Acc) ->
     getAlarmInfo(Rest, Now, Acc).
 
 saveAlarmInfo(Uid, Rest, Now, NextAlarm, Acc) ->
-    {Desc, DueDate, UidStr} = doSaveAlarmInfo(Uid),
-    getAlarmInfo(Rest, Now, [{NextAlarm, NextAlarm, DueDate, UidStr, Desc} | Acc]).
+    {Desc, DueDate, UidStr, RemTime} = doSaveAlarmInfo(Uid),
+    getAlarmInfo(Rest, Now, [{NextAlarm, NextAlarm, DueDate,
+                              UidStr, Desc, RemTime} | Acc]).
 
 doSaveAlarmInfo(Uid) ->
     Todo    = eTodoDB:getTodo(tryInt(Uid)),
@@ -1214,27 +1218,33 @@ doSaveAlarmInfo(Uid) ->
     Desc2   = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
     DueDate = Todo#todo.dueTime,
     UidStr  = eTodoUtils:convertUid(tryInt(Uid)),
-    {Desc2, DueDate, UidStr}.
+    {_, RemTime} = eTodoDB:getTime(toStr(Uid)),
+    {Desc2, DueDate, UidStr, RemTime}.
 
 makeSceduleReport2([], Acc) ->
     Acc;
 makeSceduleReport2([{_Key, Desc}|Rest], Acc) ->
     Odd = ((length(Rest) rem 2) =/= 0),
     makeSceduleReport2(Rest, [trTag(bgColor(Odd),
-                                    [tdTag([{width, "40%"}], bTag(Desc)),
-                                     tdTag([{width, "30%"}], ""),
-                                     tdTag([{width, "30%"}], "")])|Acc]);
-makeSceduleReport2([{_Key, DateTime, DueDate, UidStr, Desc}|Rest], Acc) ->
+                                    [tdTag([{width, "35%"}], bTag(Desc)),
+                                     tdTag([{width, "25%"}], ""),
+                                     tdTag([{width, "20%"}], ""),
+                                     tdTag([{width, "20%"}], "")])|Acc]);
+makeSceduleReport2([{_Key, DateTime, DueDate,
+                     UidStr, Desc, RemTime}|Rest], Acc) ->
     Odd = ((length(Rest) rem 2) =/= 0),
     makeSceduleReport2(Rest, [trTag(bgColor(Odd),
-                                    [tdTag([{width, "40%"}],
+                                    [tdTag([{width, "35%"}],
                                            [aTag([{href, UidStr}], Desc)]),
-                                     tdTag([{width, "30%"},
+                                     tdTag([{width, "25%"},
                                             {align, "center"}],
                                            toStr(DateTime)),
-                                     tdTag([{width, "30%"},
+                                     tdTag([{width, "20%"},
                                             {align, "center"}],
-                                           toStr(DueDate))])|Acc]).
+                                           toStr(DueDate)),
+                                     tdTag([{width, "20%"},
+                                            {align, "center"}],
+                                           toStr(RemTime))])|Acc]).
 
 getTimeMarkers() ->
     Date = date(),
