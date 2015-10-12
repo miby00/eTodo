@@ -1214,7 +1214,7 @@ saveAlarmInfo(Uid, Rest, Now, NextAlarm, Acc) ->
 
 doSaveAlarmInfo(Uid) ->
     Todo    = eTodoDB:getTodo(tryInt(Uid)),
-    Desc1   = eTodoDB:getWorkDesc(Uid),
+    Desc1   = eTodoDB:getWorkDesc(toStr(Uid)),
     Desc2   = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
     DueDate = Todo#todo.dueTime,
     UidStr  = eTodoUtils:convertUid(tryInt(Uid)),
