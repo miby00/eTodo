@@ -621,8 +621,8 @@ handle_call({getLoggedWork, User, Uid, Date}, _From, State) ->
                      {Date, 0, 0};
                  _ ->
                     {LoggedWork#logWork.date,
-                     LoggedWork#logWork.hours,
-                     LoggedWork#logWork.minutes}
+                     default(LoggedWork#logWork.hours, 0),
+                     default(LoggedWork#logWork.minutes, 0)}
              end,
     {reply, Result, State};
 handle_call({getAllLoggedWork, Uid}, _From, State) ->
@@ -638,7 +638,8 @@ handle_call({getWorkDesc, Uid}, _From, State) ->
     {reply, Result#workDesc.shortDesc, State};
 handle_call({getTime, Uid}, _From, State) ->
     Result = default(matchOne(#logTime{uid = Uid, _ = '_'}), #logTime{}),
-    {reply, {Result#logTime.timeEstimate, Result#logTime.timeRemaining}, State};
+    {reply, {default(Result#logTime.timeEstimate, 0),
+             default(Result#logTime.timeRemaining, 0)}, State};
 handle_call({saveWorkDesc, Uid, WorkDesc}, _From, State) ->
     TS = fun() ->
             mnesia:write(#workDesc{uid = Uid, shortDesc = WorkDesc})
@@ -657,8 +658,9 @@ handle_call({getLoggedWork, User, Date}, _From, State) ->
     LoggedWork = match(#logWork{userName = User, date = Date, _ = '_'}),
 
     Result = [{LW#logWork.uid, LW#logWork.hours, LW#logWork.minutes} ||
-              LW <- LoggedWork,
-              LW#logWork.hours =/= 0, LW#logWork.minutes =/= 0],
+                 LW <- LoggedWork,
+                 LW#logWork.hours =/= 0,   LW#logWork.hours =/= undefined,
+                 LW#logWork.minutes =/= 0, LW#logWork.minutes =/= undefined],
     {reply, Result, State};
 handle_call({logWork, User, Uid, Date, Hours, Minutes}, _From, State) ->
     LoggedWork = #logWork{userName = User,
@@ -1253,7 +1255,11 @@ makeETodo(Uid, User, Columns) ->
             eLog:log(error, ?MODULE, makeETodo, [Uid],
                      "No todo for uid... corrupt database?", ?LINE),
             %% Remove object
-            deleteObject(#userInfo{uid = Uid}),
+            mnesia:transaction(
+              fun() ->
+                      UserInfos = match(#userInfo{uid = Uid, _ = '_'}),
+                      [deleteObject(UserInfo) || UserInfo <- UserInfos]
+              end),
             undefined
     end.
 
@@ -1272,6 +1278,9 @@ getColumns(User, Columns) ->
 %% @end
 %%--------------------------------------------------------------------
 filter(_ETodo, []) -> true;
+filter(undefined, _Filter) ->
+    %% Corrupt database.
+    false;
 filter(#etodo{status = Status, priority = Prio}, Filter) ->
     case filterStatus(Status, Filter) of
         true ->
@@ -1884,4 +1893,3 @@ totInt([], {SumHours, SumMin}) ->
     {SumHours2,  SumMinutes2};
 totInt([#logWork{hours = Hours, minutes = Min}|Rest], {SumHours, SumMin}) ->
     totInt(Rest, {SumHours + Hours, SumMin + Min}).
-
