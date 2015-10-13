@@ -9,7 +9,7 @@
 
 -module(plugin_notify).
 
--export([getName/0, getDesc/0]).
+-export([getName/0, getDesc/0, getMenu/0]).
 
 -export([eReceivedMsg/4,
          eReceivedSysMsg/2,
@@ -17,11 +17,21 @@
          eTimerEnded/3,
          eLoggedInMsg/2,
          eLoggedOutMsg/2,
-         eSetStatusUpdate/4]).
+         eSetStatusUpdate/4,
+         eMenuEvent/4]).
 
 getName() -> "Notify".
 
 getDesc() -> "Plugin which handles notifications.".
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Return key value list of right menu options.
+%% Menu option should be a unique integer bigger than 1300.
+%% @spec getMenu() -> [{menuOption, menuText}, ...]
+%% @end
+%%--------------------------------------------------------------------
+getMenu() -> [].
 
 %% Casts are made to all plugin*.beam
 
@@ -119,3 +129,13 @@ icon(Dir) ->
 addToPath(Dir) ->
     WinPath = os:getenv("PATH"),
     os:putenv("PATH", filename:nativename(Dir) ++ ";" ++ WinPath).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Called for right click menu
+%%
+%% @spec eMenuEvent(EScriptDir, User, MenuOption) -> ok
+%% @end
+%%--------------------------------------------------------------------
+eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo) ->
+    ok.

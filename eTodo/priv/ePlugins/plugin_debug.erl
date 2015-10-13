@@ -9,7 +9,7 @@
 
 -module(plugin_debug).
 
--export([getName/0, getDesc/0]).
+-export([getName/0, getDesc/0, getMenu/0]).
 
 -export([eGetStatusUpdate/4,
          eTimerStarted/6,
@@ -20,11 +20,21 @@
          eReceivedAlarmMsg/2,
          eLoggedInMsg/2,
          eLoggedOutMsg/2,
-         eSetStatusUpdate/4]).
+         eSetStatusUpdate/4,
+         eMenuEvent/4]).
 
 getName() -> "Debug plugin".
 
 getDesc() -> "Prints function calls and arguments in console.".
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Return key value list of right menu options.
+%% Menu option should be a unique integer bigger than 1300.
+%% @spec getMenu() -> [{menuOption, menuText}, ...]
+%% @end
+%%--------------------------------------------------------------------
+getMenu() -> [{60001, "Test menu"}].
 
 %% Calls are only made to plugin.beam
 
@@ -149,6 +159,18 @@ eLoggedOutMsg(Dir, User) ->
 eSetStatusUpdate(Dir, User, Status, StatusMsg) ->
     io("eSetStatusUpdate(Dir, User, Status, StatusMsg): ~p~n",
        [[Dir, User, Status, StatusMsg]]),
+    ok.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Called for right click menu
+%%
+%% @spec eMenuEvent(EScriptDir, User, MenuOption, ETodo) -> ok
+%% @end
+%%--------------------------------------------------------------------
+eMenuEvent(Dir, User, MenuOption, ETodo) ->
+    io("eMenuEvent(Dir, User, MenuOption): ~p~n",
+       [[Dir, User, MenuOption, ETodo]]),
     ok.
 
 io(_Text, _Args) ->

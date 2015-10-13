@@ -2253,6 +2253,11 @@ doUndo(State) ->
 %%====================================================================
 %% Gui event: unnamed events are received here.
 %%====================================================================
+guiEvent(_Type, MenuOption, _Frame,
+    State = #guiState{activeTodo = ETodo, user = User})
+    when MenuOption >= ?plugins ->
+    ePluginServer:eMenuEvent(User, MenuOption, ETodo),
+    State;
 guiEvent(_Type, ?clearMsg, _Frame, State) ->
     MsgObj = obj("msgTextWin", State),
     wxHtmlWindow:setPage(MsgObj, ""),
@@ -2346,10 +2351,10 @@ guiEvent(_Type, Bookmark, _Frame, State = #guiState{bookmCfg = BookmCfg})
             State
     end;
 guiEvent(_Type, Status, _Frame,
-         State = #guiState{popUpCol  = {row, Row}, user = User}) ->
+    State = #guiState{popUpCol  = {row, Row}, user = User}) ->
     ETodo  = getETodoAtIndex(Row, State#guiState.rows),
     ETodo2 = ETodo#etodo{statusDB = toStatusDB(Status),
-                         status   = toStr(toStatusDB(Status))},
+        status   = toStr(toStatusDB(Status))},
     updateTodoInDB(User, ETodo2),
     TaskList = getTaskList(State),
     TodoList = getTodoList(TaskList, State),

@@ -168,6 +168,8 @@
 
 -define(bookmarks,        1200).
 
+-define(plugins,          1300).
+
 
 %% Constants for gui
 -define(clearMsgText,  "Clear \"All Messages\" tab").

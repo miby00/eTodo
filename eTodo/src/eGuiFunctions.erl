@@ -716,6 +716,30 @@ showMenu(User, Column, Frame, State = #guiState{popUpMenu = OldMenu,
 removeOldMenu(undefined) -> ok;
 removeOldMenu(Menu)      -> wxMenu:destroy(Menu).
 
+createPluginMenu(Menu) ->
+    MenuOpts = ePluginServer:getRightMenuForPlugins(),
+    case MenuOpts of
+        [] ->
+            ok;
+        MenuOpts ->
+            createPluginMenu(Menu, MenuOpts)
+    end.
+
+createPluginMenu(_Menu, []) ->
+    ok;
+createPluginMenu(Menu, [{{pluginName, Name}, MenuOptions}|Rest]) ->
+    SubMenu     = wxMenu:new([]),
+    SubMenuItem = wxMenuItem:new([{parentMenu, Menu}, {id, ?wxID_ANY},
+                                  {text, Name}, {subMenu, SubMenu},
+                                  {kind, ?wxITEM_NORMAL}]),
+    wxMenu:append(Menu, SubMenuItem),
+    createPluginMenu(SubMenu, MenuOptions),
+    wxMenu:connect(SubMenu, command_menu_selected),
+    createPluginMenu(Menu, Rest);
+createPluginMenu(SubMenu, [{MenuOption, MenuText}|Rest]) ->
+    wxMenu:append(SubMenu, MenuOption, MenuText),
+    createPluginMenu(SubMenu, Rest).
+
 createMenu(User, Row, State = #guiState{}) ->
     Menu        = wxMenu:new(),
     %% Create Status submenu
@@ -745,6 +769,10 @@ createMenu(User, Row, State = #guiState{}) ->
     createSubMenu(SubMenu2, ?lists + 1, ETodo, TodoLists),
 
     wxMenu:connect(SubMenu2, command_menu_selected),
+
+    %% Create Plugin menu options
+    createPluginMenu(Menu),
+
     Menu;
 createMenu(User, Column, Filter) ->
     Menu = wxMenu:new(),

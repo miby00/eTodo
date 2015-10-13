@@ -23,7 +23,8 @@
 
 -export([getInstalledPlugins/0,
          getConfiguredPlugins/0,
-         setConfiguredPlugins/1]).
+         setConfiguredPlugins/1,
+         getRightMenuForPlugins/0]).
 
 -export([eSetStatusUpdate/3,
          eGetStatusUpdate/3,
@@ -34,7 +35,8 @@
          eReceivedSysMsg/1,
          eReceivedAlarmMsg/1,
          eLoggedInMsg/1,
-         eLoggedOutMsg/1]).
+         eLoggedOutMsg/1,
+         eMenuEvent/3]).
 
 -export([runCmd/3, runCmdGetResult/3]).
 
@@ -42,7 +44,8 @@
 
 -record(state, {ePluginDir  = "",
                 ePlugins    = [],
-                eAllPlugins = []}).
+                eAllPlugins = [],
+                ePluginMenu = []}).
 
 -import(eTodoUtils, [makeStr/1, toStr/1]).
 
@@ -90,6 +93,17 @@ getConfiguredPlugins() ->
 %%--------------------------------------------------------------------
 setConfiguredPlugins(Plugins) ->
     gen_server:cast(?MODULE, {setConfiguredPlugins, Plugins}).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Get menu options for configured plugins
+%%
+%% @spec getRightMenuForPlugins() -> [{Name, [{MenuItem, MenuText}]}, ...]
+%% @end
+%%--------------------------------------------------------------------
+getRightMenuForPlugins() ->
+    gen_server:call(?MODULE, getRightMenuForPlugins).
+
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -192,6 +206,16 @@ eLoggedInMsg(User) ->
 eLoggedOutMsg(User) ->
     gen_server:cast(?MODULE, {eLoggedOutMsg, [User]}).
 
+%%--------------------------------------------------------------------
+%% @doc
+%% ePlugin callback for when right click menu is used.
+%%
+%% @spec eMenuEvent() -> ok
+%% @end
+%%--------------------------------------------------------------------
+eMenuEvent(User, MenuOption, ETodo) ->
+    gen_server:cast(?MODULE, {eMenuEvent, [User, MenuOption, ETodo]}).
+
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -247,9 +271,16 @@ handle_call(getConfiguredPlugins, _From, State = #state{ePlugins = Plugins}) ->
 handle_call({Operation, Args}, From, State = #state{ePluginDir = Dir}) ->
     spawn(?MODULE, runCmdGetResult, [Operation, [Dir|Args], From]),
     {noreply, State};
+handle_call(getRightMenuForPlugins, _From, State = #state{ePlugins = Plugins}) ->
+    Menu = [{Plugin:getMenu(), Plugin} || Plugin <- Plugins,
+                                          Plugin:getMenu() =/= []],
+    Reply = [{{pluginName, Plugin:getName()}, Plugin:getMenu()} ||
+                Plugin <- Plugins, Plugin:getMenu() =/= []],
+    {reply, Reply, State#state{ePluginMenu = Menu}};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
+
 
 %%--------------------------------------------------------------------
 %% @private
@@ -263,6 +294,11 @@ handle_call(_Request, _From, State) ->
 %%--------------------------------------------------------------------
 handle_cast({setConfiguredPlugins, Plugins}, State) ->
     {noreply, State#state{ePlugins = Plugins}};
+handle_cast({eMenuEvent, Args = [_User, MenuOption, _ETodo]},
+            State = #state{ePluginDir = Dir}) ->
+    Modules = getModulesToCast(MenuOption, State#state.ePluginMenu),
+    spawn(?MODULE, runCmd, [eMenuEvent, [Dir|Args], Modules]),
+    {noreply, State};
 handle_cast({Operation, Args}, State = #state{ePluginDir = Dir,
                                               ePlugins   = Modules}) ->
     spawn(?MODULE, runCmd, [Operation, [Dir|Args], Modules]),
@@ -324,3 +360,16 @@ runCmdGetResult(Operation, Args, From) ->
     eLog:log(debug, ?MODULE, runCmd, [Operation, Args, Result],
              "Result from port program", ?LINE),
     gen_server:reply(From, Result).
+
+getModulesToCast(MenuOption, PluginMenuInfo) ->
+    getModulesToCast(MenuOption, PluginMenuInfo, []).
+
+getModulesToCast(_MenuOption, [], Acc) ->
+    Acc;
+getModulesToCast(MenuOption, [{MenuOptionsList, Module}|Rest], Acc) ->
+    case lists:keymember(MenuOption, 1, MenuOptionsList) of
+        true ->
+            getModulesToCast(MenuOption, Rest, [Module | Acc]);
+        false ->
+            getModulesToCast(MenuOption, Rest, Acc)
+    end.

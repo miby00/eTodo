@@ -9,7 +9,7 @@
 
 -module(plugin).
 
--export([getName/0, getDesc/0]).
+-export([getName/0, getDesc/0, getMenu/0]).
 
 -export([eGetStatusUpdate/4,
          eTimerStarted/6,
@@ -20,11 +20,21 @@
          eReceivedAlarmMsg/2,
          eLoggedInMsg/2,
          eLoggedOutMsg/2,
-         eSetStatusUpdate/4]).
+         eSetStatusUpdate/4,
+         eMenuEvent/4]).
 
 getName() -> "Call handler".
 
 getDesc() -> "Redirects or handles plugin calls.".
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Return key value list of right menu options.
+%% Menu option should be a unique integer bigger than 1300.
+%% @spec getMenu() -> [{menuOption, menuText}, ...]
+%% @end
+%%--------------------------------------------------------------------
+getMenu() -> [].
 
 %% Calls are only made to plugin.beam
 
@@ -133,4 +143,14 @@ eLoggedOutMsg(_Dir, _User) ->
 %% @end
 %%--------------------------------------------------------------------
 eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg) ->
+    ok.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Called for right click menu
+%%
+%% @spec eMenuEvent(EScriptDir, User, MenuOption, ETodo) -> ok
+%% @end
+%%--------------------------------------------------------------------
+eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo) ->
     ok.
