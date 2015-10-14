@@ -2254,7 +2254,7 @@ doUndo(State) ->
 %% Gui event: unnamed events are received here.
 %%====================================================================
 guiEvent(_Type, MenuOption, _Frame,
-    State = #guiState{activeTodo = ETodo, user = User})
+    State = #guiState{activeTodo = {ETodo, _}, user = User})
     when MenuOption >= ?plugins ->
     ePluginServer:eMenuEvent(User, MenuOption, ETodo),
     State;

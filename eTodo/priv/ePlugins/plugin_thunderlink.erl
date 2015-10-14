@@ -183,25 +183,19 @@ eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg) ->
 %% @end
 %%--------------------------------------------------------------------
 eMenuEvent(_EScriptDir, _User, _MenuOption, ETodo) ->
-    Desc = ETodo#etodo.description,
-    REXP = "((([a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+" ++
-           "(\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)" ++
-           "*)|(\"(([\x01-\x08\x0B\x0C\x0E-\x1F\x7F]" ++
-           "|[\x21\x23-\x5B\x5D-\x7E])|(\\[\x01-\x09\x0B" ++
-           "\x0C\x0E-\x7F]))*\"))@(([a-zA-Z0-9!#$%&'*+/=?" ++
-           "^_`{|}~-]+(\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~" ++
-           "-]+)*)|(\[(([\x01-\x08\x0B\x0C\x0E-\x1F\x7F]" ++
-           "|[\x21-\x5A\x5E-\x7E])|(\\[\x01-\x09\x0B\x0C\x0E" ++
-           "-\x7F]))*\])))",
-    LINK = "[tT][hH][uU][nN][dD][eE][rR][lL][iI][nN][kK]://",
-    case re:run(Desc, LINK) of
+    Text = ETodo#etodo.description ++ ETodo#etodo.comment,
+    REXP = "[[:^space:]]*",
+    LINK = "[tT][hH][uU][nN][dD][eE][rR][lL][iI][nN][kK]://" ++
+           "[mM][eE][sS][sS][aA][gG][eE][iI][dD]=",
+    case re:run(Text, LINK) of
         {match, [{Pos, Len}]} ->
-            Text = string:substr(Desc, Pos + Len + 1),
-            case re:run(Text, REXP) of
+            Text2 = string:substr(Text, Pos + 1 + Len),
+            case re:run(Text2, REXP) of
                 {match, [{Pos2, Len2}]} ->
-                    TLINK = "thunderlink://" ++
-                        string:substr(Text, Pos2 + Len2 + 1),
-                    io:format("~s~n", [TLINK]);
+                    TLINK = "thunderlink://messageid=" ++
+                        string:sub_string(Text2, Pos2 + 1, Len2),
+                    OSCMD = "\"/usr/lib/thunderbird/thunderbird\" -thunderlink ",
+                    os:cmd(OSCMD ++ TLINK);
                 _ ->
                     ok
             end;
