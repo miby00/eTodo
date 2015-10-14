@@ -9,7 +9,7 @@
 
 -module(plugin_notify).
 
--export([getName/0, getDesc/0, getMenu/0]).
+-export([getName/0, getDesc/0, getMenu/1]).
 
 -export([eReceivedMsg/4,
          eReceivedSysMsg/2,
@@ -18,7 +18,7 @@
          eLoggedInMsg/2,
          eLoggedOutMsg/2,
          eSetStatusUpdate/4,
-         eMenuEvent/4]).
+         eMenuEvent/5]).
 
 getName() -> "Notify".
 
@@ -31,7 +31,7 @@ getDesc() -> "Plugin which handles notifications.".
 %% @spec getMenu() -> [{menuOption, menuText}, ...]
 %% @end
 %%--------------------------------------------------------------------
-getMenu() -> [].
+getMenu(_ETodo) -> [].
 
 %% Casts are made to all plugin*.beam
 
@@ -134,8 +134,8 @@ addToPath(Dir) ->
 %% @doc
 %% Called for right click menu
 %%
-%% @spec eMenuEvent(EScriptDir, User, MenuOption) -> ok
+%% @spec eMenuEvent(EScriptDir, User, MenuOption, ETodo, MenuText) -> ok
 %% @end
 %%--------------------------------------------------------------------
-eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo) ->
+eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, _MenuText) ->
     ok.

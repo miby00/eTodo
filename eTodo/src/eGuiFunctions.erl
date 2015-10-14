@@ -716,29 +716,29 @@ showMenu(User, Column, Frame, State = #guiState{popUpMenu = OldMenu,
 removeOldMenu(undefined) -> ok;
 removeOldMenu(Menu)      -> wxMenu:destroy(Menu).
 
-createPluginMenu(Menu) ->
-    MenuOpts = ePluginServer:getRightMenuForPlugins(),
+createPluginMenu(Menu, ETodo) ->
+    MenuOpts = ePluginServer:getRightMenuForPlugins(ETodo),
     case MenuOpts of
         [] ->
             ok;
         MenuOpts ->
-            createPluginMenu(Menu, MenuOpts)
+            createPluginMenu2(Menu, MenuOpts)
     end.
 
-createPluginMenu(_Menu, []) ->
+createPluginMenu2(_Menu, []) ->
     ok;
-createPluginMenu(Menu, [{{pluginName, Name}, MenuOptions}|Rest]) ->
+createPluginMenu2(Menu, [{{pluginName, Name}, MenuOptions}|Rest]) ->
     SubMenu     = wxMenu:new([]),
     SubMenuItem = wxMenuItem:new([{parentMenu, Menu}, {id, ?wxID_ANY},
                                   {text, Name}, {subMenu, SubMenu},
                                   {kind, ?wxITEM_NORMAL}]),
     wxMenu:append(Menu, SubMenuItem),
-    createPluginMenu(SubMenu, MenuOptions),
+    createPluginMenu2(SubMenu, MenuOptions),
     wxMenu:connect(SubMenu, command_menu_selected),
-    createPluginMenu(Menu, Rest);
-createPluginMenu(SubMenu, [{MenuOption, MenuText}|Rest]) ->
+    createPluginMenu2(Menu, Rest);
+createPluginMenu2(SubMenu, [{MenuOption, MenuText}|Rest]) ->
     wxMenu:append(SubMenu, MenuOption, MenuText),
-    createPluginMenu(SubMenu, Rest).
+    createPluginMenu2(SubMenu, Rest).
 
 createMenu(User, Row, State = #guiState{}) ->
     Menu        = wxMenu:new(),
@@ -771,7 +771,7 @@ createMenu(User, Row, State = #guiState{}) ->
     wxMenu:connect(SubMenu2, command_menu_selected),
 
     %% Create Plugin menu options
-    createPluginMenu(Menu),
+    createPluginMenu(Menu, ETodo),
 
     Menu;
 createMenu(User, Column, Filter) ->

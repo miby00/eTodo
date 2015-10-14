@@ -24,7 +24,7 @@
 -export([getInstalledPlugins/0,
          getConfiguredPlugins/0,
          setConfiguredPlugins/1,
-         getRightMenuForPlugins/0]).
+         getRightMenuForPlugins/1]).
 
 -export([eSetStatusUpdate/3,
          eGetStatusUpdate/3,
@@ -98,11 +98,11 @@ setConfiguredPlugins(Plugins) ->
 %% @doc
 %% Get menu options for configured plugins
 %%
-%% @spec getRightMenuForPlugins() -> [{Name, [{MenuItem, MenuText}]}, ...]
+%% @spec getRightMenuForPlugins(ETodo) -> [{Name, [{MenuItem, MenuText}]}, ...]
 %% @end
 %%--------------------------------------------------------------------
-getRightMenuForPlugins() ->
-    gen_server:call(?MODULE, getRightMenuForPlugins).
+getRightMenuForPlugins(ETodo) ->
+    gen_server:call(?MODULE, {getRightMenuForPlugins, ETodo}).
 
 
 %%--------------------------------------------------------------------
@@ -268,15 +268,16 @@ handle_call(getInstalledPlugins, _From, State = #state{eAllPlugins = Plugins}) -
     {reply, Reply, State};
 handle_call(getConfiguredPlugins, _From, State = #state{ePlugins = Plugins}) ->
     {reply, Plugins, State};
+handle_call({getRightMenuForPlugins, ETodo},
+    _From, State = #state{ePlugins = Plugins}) ->
+    Menu = [{Plugin:getMenu(ETodo), Plugin} || Plugin <- Plugins,
+        Plugin:getMenu(ETodo) =/= []],
+    Reply = [{{pluginName, Plugin:getName()}, Plugin:getMenu(ETodo)} ||
+        Plugin <- Plugins, Plugin:getMenu(ETodo) =/= []],
+    {reply, Reply, State#state{ePluginMenu = Menu}};
 handle_call({Operation, Args}, From, State = #state{ePluginDir = Dir}) ->
     spawn(?MODULE, runCmdGetResult, [Operation, [Dir|Args], From]),
     {noreply, State};
-handle_call(getRightMenuForPlugins, _From, State = #state{ePlugins = Plugins}) ->
-    Menu = [{Plugin:getMenu(), Plugin} || Plugin <- Plugins,
-                                          Plugin:getMenu() =/= []],
-    Reply = [{{pluginName, Plugin:getName()}, Plugin:getMenu()} ||
-                Plugin <- Plugins, Plugin:getMenu() =/= []],
-    {reply, Reply, State#state{ePluginMenu = Menu}};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -296,8 +297,8 @@ handle_cast({setConfiguredPlugins, Plugins}, State) ->
     {noreply, State#state{ePlugins = Plugins}};
 handle_cast({eMenuEvent, Args = [_User, MenuOption, _ETodo]},
             State = #state{ePluginDir = Dir}) ->
-    Modules = getModulesToCast(MenuOption, State#state.ePluginMenu),
-    spawn(?MODULE, runCmd, [eMenuEvent, [Dir|Args], Modules]),
+    ModTuple = getModulesToCast(MenuOption, State#state.ePluginMenu),
+    spawn(?MODULE, runCmd, [eMenuEvent, [Dir|Args], ModTuple]),
     {noreply, State};
 handle_cast({Operation, Args}, State = #state{ePluginDir = Dir,
                                               ePlugins   = Modules}) ->
@@ -349,6 +350,11 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 runCmd(_Operation, _Args, []) ->
     ok;
+runCmd(Operation, Args, [{EPlugin, Arg}|Rest]) ->
+    Result = (catch apply(EPlugin, Operation, Args ++ [Arg])),
+    eLog:log(debug, ?MODULE, runCmd, [Result],
+        "Result from port program", ?LINE),
+    runCmd(Operation, Args, Rest);
 runCmd(Operation, Args, [EPlugin|Rest]) ->
     Result = (catch apply(EPlugin, Operation, Args)),
     eLog:log(debug, ?MODULE, runCmd, [Result],
@@ -367,9 +373,9 @@ getModulesToCast(MenuOption, PluginMenuInfo) ->
 getModulesToCast(_MenuOption, [], Acc) ->
     Acc;
 getModulesToCast(MenuOption, [{MenuOptionsList, Module}|Rest], Acc) ->
-    case lists:keymember(MenuOption, 1, MenuOptionsList) of
-        true ->
-            getModulesToCast(MenuOption, Rest, [Module | Acc]);
+    case lists:keyfind(MenuOption, 1, MenuOptionsList) of
+        {MenuOption, MenuText} ->
+            getModulesToCast(MenuOption, Rest, [{Module, MenuText} | Acc]);
         false ->
             getModulesToCast(MenuOption, Rest, Acc)
     end.

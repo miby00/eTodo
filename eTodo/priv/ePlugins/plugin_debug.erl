@@ -9,7 +9,7 @@
 
 -module(plugin_debug).
 
--export([getName/0, getDesc/0, getMenu/0]).
+-export([getName/0, getDesc/0, getMenu/1]).
 
 -export([eGetStatusUpdate/4,
          eTimerStarted/6,
@@ -21,7 +21,7 @@
          eLoggedInMsg/2,
          eLoggedOutMsg/2,
          eSetStatusUpdate/4,
-         eMenuEvent/4]).
+         eMenuEvent/5]).
 
 getName() -> "Debug plugin".
 
@@ -34,7 +34,7 @@ getDesc() -> "Prints function calls and arguments in console.".
 %% @spec getMenu() -> [{menuOption, menuText}, ...]
 %% @end
 %%--------------------------------------------------------------------
-getMenu() -> [{60001, "Test menu"}].
+getMenu(_ETodo) -> [{60001, "Test menu"}].
 
 %% Calls are only made to plugin.beam
 
@@ -165,12 +165,12 @@ eSetStatusUpdate(Dir, User, Status, StatusMsg) ->
 %% @doc
 %% Called for right click menu
 %%
-%% @spec eMenuEvent(EScriptDir, User, MenuOption, ETodo) -> ok
+%% @spec eMenuEvent(EScriptDir, User, MenuOption, ETodo, MenuText) -> ok
 %% @end
 %%--------------------------------------------------------------------
-eMenuEvent(Dir, User, MenuOption, ETodo) ->
+eMenuEvent(Dir, User, MenuOption, ETodo, MenuText) ->
     io("eMenuEvent(Dir, User, MenuOption): ~p~n",
-       [[Dir, User, MenuOption, ETodo]]),
+       [[Dir, User, MenuOption, ETodo, MenuText]]),
     ok.
 
 io(_Text, _Args) ->

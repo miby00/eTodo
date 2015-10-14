@@ -9,7 +9,7 @@
 
 -module(plugin_template).
 
--export([getName/0, getDesc/0, getMenu/0]).
+-export([getName/0, getDesc/0, getMenu/1]).
 
 -export([eGetStatusUpdate/4,
          eTimerStarted/6,
@@ -21,7 +21,7 @@
          eLoggedInMsg/2,
          eLoggedOutMsg/2,
          eSetStatusUpdate/4,
-         eMenuEvent/4]).
+         eMenuEvent/5]).
 
 getName() -> "Name here".
 
@@ -34,7 +34,7 @@ getDesc() -> "Descriptions goes here.".
 %% @spec getMenu() -> [{menuOption, menuText}, ...]
 %% @end
 %%--------------------------------------------------------------------
-getMenu() -> [].
+getMenu(_ETodo) -> [].
 
 %% Calls are only made to plugin.beam
 
@@ -147,8 +147,8 @@ eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg) ->
 %% @doc
 %% Called for right click menu
 %%
-%% @spec eMenuEvent(EScriptDir, User, MenuOption) -> ok
+%% @spec eMenuEvent(EScriptDir, User, MenuOption, ETodo, MenuText) -> ok
 %% @end
 %%--------------------------------------------------------------------
-eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo) ->
+eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, _MenuText) ->
     ok.

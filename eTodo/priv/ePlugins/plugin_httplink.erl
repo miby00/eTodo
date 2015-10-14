@@ -7,7 +7,7 @@
 %%% Created : 08 July 2013 by Mikael Bylund <mikael.bylund@gmail.com>
 %%%-------------------------------------------------------------------
 
--module(plugin_thunderlink).
+-module(plugin_httplink).
 
 -export([getName/0, getDesc/0, getMenu/1]).
 
@@ -23,9 +23,9 @@
          eSetStatusUpdate/4,
          eMenuEvent/5]).
 
-getName() -> "Thunderlink".
+getName() -> "HTTP(s) Link".
 
-getDesc() -> "Support for thunderlinks to emails.".
+getDesc() -> "Support for finding and opening http/https links.".
 
 -record(etodo,  {status,
                  statusCol,
@@ -69,14 +69,13 @@ getDesc() -> "Support for thunderlinks to emails.".
 getMenu(ETodo) ->
     Text = ETodo#etodo.description ++ " " ++ ETodo#etodo.comment,
     REXP = "[[:^space:]]*",
-    LINK = "[tT][hH][uU][nN][dD][eE][rR][lL][iI][nN][kK]://" ++
-           "[mM][eE][sS][sS][aA][gG][eE][iI][dD]=",
-    TLinks = getThunderLinks(Text, LINK, REXP, []),
-    getMenu(TLinks, 70000, []).
+    LINK = "[hH][tT][tT][pP][sS]?://",
+    HLinks = getHttpLinks(Text, LINK, REXP, []),
+    getMenu(HLinks, 80000, []).
 
 getMenu([], _MenuOption, SoFar) -> SoFar;
-getMenu([TLink|Rest], MenuOption, SoFar) ->
-    getMenu(Rest, MenuOption + 1, [{MenuOption, TLink}|SoFar]).
+getMenu([HLink|Rest], MenuOption, SoFar) ->
+    getMenu(Rest, MenuOption + 1, [{MenuOption, HLink}|SoFar]).
 
 %% Calls are only made to plugin.beam
 
@@ -193,20 +192,20 @@ eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg) ->
 %% @end
 %%--------------------------------------------------------------------
 eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, MenuText) ->
-    OSCMD = "\"/usr/lib/thunderbird/thunderbird\" -thunderlink ",
+    OSCMD = "/usr/bin/firefox -url ",
     os:cmd(OSCMD ++ MenuText).
 
 
-getThunderLinks(Text, Link, REXP, SoFar) ->
+getHttpLinks(Text, Link, REXP, SoFar) ->
     case re:run(Text, Link) of
         {match, [{Pos, Len}]} ->
             Text2 = string:substr(Text, Pos + 1 + Len),
             case re:run(Text2, REXP) of
                 {match, [{Pos2, Len2}]} ->
-                    TLINK = "thunderlink://messageid=" ++
+                    HLINK = string:substr(Text, Pos + 1, Len) ++
                         string:sub_string(Text2, Pos2 + 1, Len2),
                     Text3 = string:substr(Text2, Pos2 + 1 + Len2),
-                    getThunderLinks(Text3, Link, REXP, [TLINK|SoFar]);
+                    getHttpLinks(Text3, Link, REXP, [HLINK|SoFar]);
                 _ ->
                     SoFar
             end;
