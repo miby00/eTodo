@@ -192,8 +192,7 @@ eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg) ->
 %% @end
 %%--------------------------------------------------------------------
 eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, MenuText) ->
-    OSCMD = "/usr/bin/firefox -url ",
-    os:cmd(OSCMD ++ MenuText).
+    eTodoAPI:launchBrowser(MenuText).
 
 
 getHttpLinks(Text, Link, REXP, SoFar) ->

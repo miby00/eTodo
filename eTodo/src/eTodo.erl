@@ -32,7 +32,9 @@
          todoCreated/3,
          todoUpdated/2,
          writing/1,
-         statusUpdate/2]).
+         statusUpdate/2,
+
+         launchBrowser/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -110,6 +112,9 @@ stop() ->
 
 getSearchCfg() ->
     wx_object:call(?MODULE, getSearchCfg).
+
+launchBrowser(URL) ->
+    wx_object:cast(?MODULE, {launchBrowser, URL}), ok.
 
 acceptingIncCon(User, Circle, Port) ->
     wx_object:cast(?MODULE, {acceptingIncCon, User, Circle, Port}), ok.
@@ -753,8 +758,12 @@ handle_cast({delayedUpdateGui, ETodo, Index}, State) ->
     cancelTimer(State#guiState.delayedUpdate),
     Ref = erlang:send_after(300, self(), {delayedUpdateGui, ETodo, Index}),
     {noreply, State#guiState{delayedUpdate = Ref}};
+handle_cast({launchBrowser, URL}, State) ->
+    wx_misc:launchDefaultBrowser(URL),
+    {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
+
 
 %%--------------------------------------------------------------------
 %% Function: handle_event(Msg, State) -> {noreply, State} |
