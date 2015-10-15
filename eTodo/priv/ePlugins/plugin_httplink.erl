@@ -71,7 +71,7 @@ getMenu(ETodo) ->
     REXP = "[[:^space:]]*",
     LINK = "[hH][tT][tT][pP][sS]?://",
     HLinks = getHttpLinks(Text, LINK, REXP, []),
-    getMenu(HLinks, 80000, []).
+    getMenu(HLinks, 50000, []).
 
 getMenu([], _MenuOption, SoFar) -> SoFar;
 getMenu([HLink|Rest], MenuOption, SoFar) ->
