@@ -279,8 +279,8 @@ handle_info(_Info, State) ->
 %%--------------------------------------------------------------------
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
                 State :: #state{}) -> term()).
-terminate(_Reason, State = #state{module = Module}) ->
-    Module:terminate(State),
+terminate(Reason, State = #state{module = Module}) ->
+    (catch Module:terminate(Reason, State)),
     ok.
 
 %%--------------------------------------------------------------------

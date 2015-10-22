@@ -9,7 +9,7 @@
 
 -module(plugin_debug).
 
--export([getName/0, getDesc/0, getMenu/1, init/0, terminate/1]).
+-export([getName/0, getDesc/0, getMenu/1, init/0, terminate/2]).
 
 -export([eGetStatusUpdate/5,
          eTimerStarted/7,
@@ -40,10 +40,10 @@ init() -> #state{callback = init}.
 %%--------------------------------------------------------------------
 %% @doc
 %% Free internal data for plugin.
-%% @spec init() -> State.
+%% @spec init() -> ok.
 %% @end
 %%--------------------------------------------------------------------
-terminate(#state{callback = CBs}) ->
+terminate(_Reason, #state{callback = CBs}) ->
     io("terminate(State): ~p~n", [CBs]),
     ok.
 

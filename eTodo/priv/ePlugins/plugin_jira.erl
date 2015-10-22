@@ -9,7 +9,7 @@
 
 -module(plugin_jira).
 
--export([getName/0, getDesc/0, getMenu/1, init/0, terminate/1]).
+-export([getName/0, getDesc/0, getMenu/1, init/0, terminate/2]).
 
 -export([eGetStatusUpdate/5,
          eTimerStarted/7,
@@ -75,7 +75,7 @@ init() -> #state{}.
 %% @spec init() -> State.
 %% @end
 %%--------------------------------------------------------------------
-terminate(_State) -> ok.
+terminate(_Reason, _State) -> ok.
 
 %%--------------------------------------------------------------------
 %% @doc
