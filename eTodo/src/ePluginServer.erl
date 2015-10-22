@@ -38,14 +38,15 @@
          eLoggedOutMsg/1,
          eMenuEvent/3]).
 
--export([runCmd/3, runCmdGetResult/3]).
+-export([runCmd/4, runCmd/3, runCmdGetResult/4]).
 
 -define(SERVER, ?MODULE).
 
--record(state, {ePluginDir  = "",
-                ePlugins    = [],
-                eAllPlugins = [],
-                ePluginMenu = []}).
+-record(state, {ePluginDir     = "",
+                ePlugins       = [],
+                eAllPlugins    = [],
+                ePluginMenu    = [],
+                ePluginServers = []}).
 
 -import(eTodoUtils, [makeStr/1, toStr/1]).
 
@@ -236,9 +237,11 @@ init([]) ->
     EPlugins   = filelib:wildcard(EPluginDir ++ "/plugin*.beam"),
     Loaded     = (catch loadPlugins(EPlugins)),
     EPluginModules = [Module || {module, Module} <- Loaded],
-    {ok, #state{ePluginDir  = ePluginDir(),
-                ePlugins    = EPluginModules,
-                eAllPlugins = EPluginModules}}.
+    EPluginServers = [{Module, ePlugin:start_link(Module)} || Module <- EPluginModules],
+    {ok, #state{ePluginDir     = ePluginDir(),
+                ePlugins       = EPluginModules,
+                eAllPlugins    = EPluginModules,
+                ePluginServers = EPluginServers}}.
 
 loadPlugins(EPlugins) ->
     [code:load_abs(rootName(Filename)) || Filename <- EPlugins].
@@ -275,8 +278,9 @@ handle_call({getRightMenuForPlugins, ETodo},
     Reply = [{{pluginName, Plugin:getName()}, Plugin:getMenu(ETodo)} ||
         Plugin <- Plugins, Plugin:getMenu(ETodo) =/= []],
     {reply, Reply, State#state{ePluginMenu = Menu}};
-handle_call({Operation, Args}, From, State = #state{ePluginDir = Dir}) ->
-    spawn(?MODULE, runCmdGetResult, [Operation, [Dir|Args], From]),
+handle_call({Operation, Args}, From, State = #state{ePluginDir     = Dir,
+                                                    ePluginServers = Servers}) ->
+    spawn(?MODULE, runCmdGetResult, [Operation, [Dir|Args], From, Servers]),
     {noreply, State};
 handle_call(_Request, _From, State) ->
     Reply = ok,
@@ -293,16 +297,25 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({setConfiguredPlugins, Plugins}, State) ->
-    {noreply, State#state{ePlugins = Plugins}};
+handle_cast({setConfiguredPlugins, Plugins},
+             State = #state{ePlugins       = Old,
+                            ePluginServers = Servers}) ->
+
+    ModulesToStop  = Old -- Plugins,
+    ModulesToStart = Plugins -- Old,
+
+    Servers2 = stopPluginServers(ModulesToStop,   Servers),
+    Servers3 = startPluginServers(ModulesToStart, Servers2),
+
+    {noreply, State#state{ePlugins = Plugins, ePluginServers = Servers3}};
 handle_cast({eMenuEvent, Args = [_User, MenuOption, _ETodo]},
-            State = #state{ePluginDir = Dir}) ->
+            State = #state{ePluginDir = Dir, ePluginServers = Servers}) ->
     ModTuple = getModulesToCast(MenuOption, State#state.ePluginMenu),
-    spawn(?MODULE, runCmd, [eMenuEvent, [Dir|Args], ModTuple]),
+    spawn(?MODULE, runCmd, [eMenuEvent, [Dir|Args], Servers, ModTuple]),
     {noreply, State};
-handle_cast({Operation, Args}, State = #state{ePluginDir = Dir,
-                                              ePlugins   = Modules}) ->
-    spawn(?MODULE, runCmd, [Operation, [Dir|Args], Modules]),
+handle_cast({Operation, Args}, State = #state{ePluginDir     = Dir,
+                                              ePluginServers = Servers}) ->
+    spawn(?MODULE, runCmd, [Operation, [Dir|Args], Servers]),
     {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -348,24 +361,40 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+runCmd(_Operation, _Args, _Servers, []) ->
+    ok;
+runCmd(Operation, Args, Servers, [{EPlugin, Arg}|Rest]) ->
+    case lists:keyfind(EPlugin, 1, Servers) of
+        {EPlugin, {ok, Pid}} ->
+            (catch apply(ePlugin, Operation, [Pid|Args] ++ [Arg]));
+        _ ->
+            ok
+    end,
+    runCmd(Operation, Args, Servers, Rest).
+
+
 runCmd(_Operation, _Args, []) ->
     ok;
-runCmd(Operation, Args, [{EPlugin, Arg}|Rest]) ->
-    Result = (catch apply(EPlugin, Operation, Args ++ [Arg])),
-    eLog:log(debug, ?MODULE, runCmd, [Result],
-        "Result from port program", ?LINE),
+runCmd(Operation, Args, [{_Module, {ok, Pid}}|Rest]) ->
+    (catch apply(ePlugin, Operation, [Pid|Args])),
     runCmd(Operation, Args, Rest);
-runCmd(Operation, Args, [EPlugin|Rest]) ->
-    Result = (catch apply(EPlugin, Operation, Args)),
-    eLog:log(debug, ?MODULE, runCmd, [Result],
-             "Result from port program", ?LINE),
+runCmd(Operation, Args, [_StartupError|Rest]) ->
     runCmd(Operation, Args, Rest).
 
-runCmdGetResult(Operation, Args, From) ->
-    Result = (catch apply(plugin, Operation, Args)),
-    eLog:log(debug, ?MODULE, runCmd, [Operation, Args, Result],
-             "Result from port program", ?LINE),
-    gen_server:reply(From, Result).
+runCmdGetResult(eGetStatusUpdate, [_User, Status, StatusMsg], From, []) ->
+    gen_server:reply(From, {ok, Status, StatusMsg});
+runCmdGetResult(eGetStatusUpdate, [User, Status, StatusMsg], From,
+                [{Module, {ok, Pid}}|Rest]) ->
+
+    {Status3, StatusMsg3} =
+        case catch apply(Module, eGetStatusUpdate,
+                         [Pid, User, Status, StatusMsg]) of
+            {ok, Status2, StatusMsg2} ->
+                {Status2, StatusMsg2};
+            _ ->
+                {Status, StatusMsg}
+        end,
+    runCmdGetResult(eGetStatusUpdate, [User, Status3, StatusMsg3], From, Rest).
 
 getModulesToCast(MenuOption, PluginMenuInfo) ->
     getModulesToCast(MenuOption, PluginMenuInfo, []).
@@ -379,3 +408,20 @@ getModulesToCast(MenuOption, [{MenuOptionsList, Module}|Rest], Acc) ->
         false ->
             getModulesToCast(MenuOption, Rest, Acc)
     end.
+
+stopPluginServers([], Servers) ->
+    Servers;
+stopPluginServers([Module|Rest], Servers) ->
+    case lists:keytake(Module, 1, Servers) of
+        {value, {Module, {ok, Pid}}, Servers2} ->
+            ePlugin:stop(Pid),
+            stopPluginServers(Rest, Servers2);
+        _ ->
+            stopPluginServers(Rest, Servers)
+    end.
+
+startPluginServers([], Servers) ->
+    Servers;
+startPluginServers([Module|Rest], Servers) ->
+    Servers2 = [{Module, ePlugin:start_link(Module)}|Servers],
+    startPluginServers(Rest, Servers2).

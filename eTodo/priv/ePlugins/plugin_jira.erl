@@ -7,7 +7,7 @@
 %%% Created : 08 July 2013 by Mikael Bylund <mikael.bylund@gmail.com>
 %%%-------------------------------------------------------------------
 
--module(plugin_httplink).
+-module(plugin_jira).
 
 -export([getName/0, getDesc/0, getMenu/1, init/0, terminate/1]).
 
@@ -22,10 +22,6 @@
          eLoggedOutMsg/3,
          eSetStatusUpdate/5,
          eMenuEvent/6]).
-
-getName() -> "HTTP(s) Link".
-
-getDesc() -> "Support for finding and opening http/https links.".
 
 -record(etodo,  {status,
                  statusCol,
@@ -59,6 +55,10 @@ getDesc() -> "Support for finding and opening http/https links.".
                  lists,
                  listsDB}).
 
+getName() -> "JIRA".
+
+getDesc() -> "Create JIRA task from eTodo.".
+
 -record(state, {}).
 
 %%--------------------------------------------------------------------
@@ -84,18 +84,8 @@ terminate(_State) -> ok.
 %% @spec getMenu(ETodo) -> [{menuOption, menuText}, ...]
 %% @end
 %%--------------------------------------------------------------------
-getMenu(ETodo) ->
-    Text = ETodo#etodo.description ++ " " ++ ETodo#etodo.comment,
-    REXP = "[[:^space:]]*",
-    LINK = "[hH][tT][tT][pP][sS]?://",
-    HLinks = getHttpLinks(Text, LINK, REXP, []),
-    getMenu(HLinks, 50000, []).
-
-getMenu([], _MenuOption, SoFar) -> SoFar;
-getMenu([HLink|Rest], MenuOption, SoFar) ->
-    getMenu(Rest, MenuOption + 1, [{MenuOption, HLink}|SoFar]).
-
-%% Calls are only made to plugin.beam
+getMenu(_ETodo) -> [{55000, "Create JIRA Task"},
+                    {55001, "Update JIRA Task"}].
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -103,130 +93,113 @@ getMenu([HLink|Rest], MenuOption, SoFar) ->
 %% outside eTodo.
 %% Status can be "Available" | "Away" | "Busy" | "Offline"
 %% @spec eSetStatusUpdate(Dir, User, Status, StatusMsg, State) ->
-%%       {ok, Status, StatusMsg, NewState}
+%%       {ok, Status, StatusMsg}
 %% @end
 %%--------------------------------------------------------------------
-eGetStatusUpdate(_Dir, _User, Status, StatusMsg, State) ->
-    {ok, Status, StatusMsg, State}.
+eGetStatusUpdate(_Dir, _User, Status, StatusMsg, _State) ->
+    %% This function is called every 15 seconds, and should return
+    {ok, Status, StatusMsg}.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user start timer
 %%
-%% @spec eTimerStarted(EScriptDir, User, Text, Hours, Min, Sec, State) ->
-%%                     NewState
+%% @spec eTimerStarted(EScriptDir, User, Text, Hours, Min, Sec, State) -> ok
 %% @end
 %%--------------------------------------------------------------------
-eTimerStarted(_Dir, _User, _Text, _Hours, _Min, _Sec, State) ->
-    State.
+eTimerStarted(_EScriptDir, _User, _Text, _Hours, _Min, _Sec, _State) ->
+    ok.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user stopped timer
 %%
-%% @spec eTimerStopped(EScriptDir, User, State) -> NewState
+%% @spec eTimerStopped(EScriptDir, User, State) -> ok
 %% @end
 %%--------------------------------------------------------------------
-eTimerStopped(_EScriptDir, _User, State) ->
-    State.
+eTimerStopped(_EScriptDir, _User, _State) ->
+    ok.
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Timer ended
+%% The timer ended
 %%
-%% @spec eTimerEnded(EScriptDir, User, Text, State) -> NewState
+%% @spec eTimerEnded(EScriptDir, User, Text, State) -> ok
 %% @end
 %%--------------------------------------------------------------------
-eTimerEnded(_EScriptDir, _User, _Text, State) ->
-    State.
+eTimerEnded(_EScriptDir, _User, _Text, _State) ->
+    ok.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user receives a system message.
 %%
-%% @spec eReceivedMsg(Dir, User, Users, Text, State) -> NewState
+%% @spec eReceivedMsg(Dir, User, Users, Text, State) -> ok
 %% @end
 %%--------------------------------------------------------------------
-eReceivedMsg(_EScriptDir, _User, _Users, _Text, State) ->
-    State.
+eReceivedMsg(_EScriptDir, _User, _Users, _Text, _State) ->
+    ok.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user receives an alarm.
 %%
-%% @spec eReceivedAlarmMsg(Dir, Text, State) -> NewState
+%% @spec eReceivedAlarmMsg(Dir, Text, State) -> ok
 %% @end
 %%--------------------------------------------------------------------
-eReceivedSysMsg(_Dir, _Text, State) ->
-    State.
+eReceivedSysMsg(_Dir, _Text, _State) ->
+    ok.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user receives an alarm.
 %%
-%% @spec eReceivedAlarmMsg(Dir, Text, State) -> NewState
+%% @spec eReceivedAlarmMsg(Dir, Text, State) -> ok
 %% @end
 %%--------------------------------------------------------------------
-eReceivedAlarmMsg(_Dir, _Text, State) ->
-    State.
+eReceivedAlarmMsg(_Dir, _Text, _State) ->
+    ok.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Called when a peer connected to the users circle logs in.
 %%
-%% @spec eLoggedInMsg(Dir, User, State) -> NewState
+%% @spec eLoggedInMsg(Dir, User, State) -> ok
 %% @end
 %%--------------------------------------------------------------------
-eLoggedInMsg(_Dir, _User, State) ->
-    State.
+eLoggedInMsg(_Dir, _User, _State) ->
+    ok.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Called when a peer connected to the users circle logs out.
 %%
-%% @spec eLoggedOutMsg(Dir, User, State) -> NewState
+%% @spec eLoggedOutMsg(Dir, User, State) -> ok
 %% @end
 %%--------------------------------------------------------------------
-eLoggedOutMsg(_Dir, _User, State) ->
-    State.
+eLoggedOutMsg(_Dir, _User, _State) ->
+    ok.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Called every time the user changes his/her status in eTodo
 %% Status can be "Available" | "Away" | "Busy" | "Offline"
-%% @spec eSetStatusUpdate(Dir, User, Status, StatusMsg, State) ->
-%%       NewState
+%% @spec eSetStatusUpdate(Dir, User, Status, StatusMsg, State) -> ok
 %% @end
 %%--------------------------------------------------------------------
-eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg, State) ->
-    State.
+eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg, _State) ->
+    ok.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Called for right click menu
 %%
-%% @spec eMenuEvent(EScriptDir, User, MenuOption, ETodo, MenuText, State) ->
-%%       NewState
+%% @spec eMenuEvent(EScriptDir, User, MenuOption, ETodo, MenuText, State) -> ok
 %% @end
 %%--------------------------------------------------------------------
-eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, MenuText, State) ->
-    eTodoAPI:launchBrowser(MenuText),
-    State.
+eMenuEvent(_EScriptDir, _User, 55000, _ETodo, _MenuText, _State) ->
 
+    ok;
+eMenuEvent(_EScriptDir, _User, 55001, _ETodo, _MenuText, _State) ->
+    ok.
 
-getHttpLinks(Text, Link, REXP, SoFar) ->
-    case re:run(Text, Link) of
-        {match, [{Pos, Len}]} ->
-            Text2 = string:substr(Text, Pos + 1 + Len),
-            case re:run(Text2, REXP) of
-                {match, [{Pos2, Len2}]} ->
-                    HLINK = string:substr(Text, Pos + 1, Len) ++
-                        string:sub_string(Text2, Pos2 + 1, Len2),
-                    Text3 = string:substr(Text2, Pos2 + 1 + Len2),
-                    getHttpLinks(Text3, Link, REXP, [HLINK|SoFar]);
-                _ ->
-                    SoFar
-            end;
-        _ ->
-            SoFar
-    end.

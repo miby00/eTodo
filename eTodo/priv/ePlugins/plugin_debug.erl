@@ -9,171 +9,200 @@
 
 -module(plugin_debug).
 
--export([getName/0, getDesc/0, getMenu/1]).
+-export([getName/0, getDesc/0, getMenu/1, init/0, terminate/1]).
 
--export([eGetStatusUpdate/4,
-         eTimerStarted/6,
-         eTimerStopped/2,
-         eTimerEnded/3,
-         eReceivedMsg/4,
-         eReceivedSysMsg/2,
-         eReceivedAlarmMsg/2,
-         eLoggedInMsg/2,
-         eLoggedOutMsg/2,
-         eSetStatusUpdate/4,
-         eMenuEvent/5]).
+-export([eGetStatusUpdate/5,
+         eTimerStarted/7,
+         eTimerStopped/3,
+         eTimerEnded/4,
+         eReceivedMsg/5,
+         eReceivedSysMsg/3,
+         eReceivedAlarmMsg/3,
+         eLoggedInMsg/3,
+         eLoggedOutMsg/3,
+         eSetStatusUpdate/5,
+         eMenuEvent/6]).
 
 getName() -> "Debug plugin".
 
 getDesc() -> "Prints function calls and arguments in console.".
 
+-record(state, {callback = []}).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% initalize plugin.
+%% @spec init() -> State.
+%% @end
+%%--------------------------------------------------------------------
+init() -> #state{callback = init}.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Free internal data for plugin.
+%% @spec init() -> State.
+%% @end
+%%--------------------------------------------------------------------
+terminate(#state{callback = CBs}) ->
+    io("terminate(State): ~p~n", [CBs]),
+    ok.
+
 %%--------------------------------------------------------------------
 %% @doc
 %% Return key value list of right menu options.
 %% Menu option should be a unique integer bigger than 1300.
-%% @spec getMenu() -> [{menuOption, menuText}, ...]
+%% @spec getMenu(ETodo) -> [{menuOption, menuText}, ...]
 %% @end
 %%--------------------------------------------------------------------
 getMenu(_ETodo) -> [{60001, "Test menu"}].
-
-%% Calls are only made to plugin.beam
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Called every 15 seconds to check if someone changes status
 %% outside eTodo.
 %% Status can be "Available" | "Away" | "Busy" | "Offline"
-%% @spec eSetStatusUpdate(Dir, User, Status, StatusMsg) ->
-%%       {ok, Status, StatusMsg}
+%% @spec eSetStatusUpdate(Dir, User, Status, StatusMsg, State) ->
+%%       {ok, Status, StatusMsg, NewState}
 %% @end
 %%--------------------------------------------------------------------
-eGetStatusUpdate(Dir, User, Status, StatusMsg) ->
-    io("eSetStatusUpdate(Dir, User, Status, StatusMsg): ~p~n",
-       [[Dir, User, Status, StatusMsg]]),
-    {ok, Status, StatusMsg}.
-
-%% Casts are made to all plugin*.beam
+eGetStatusUpdate(Dir, User, Status, StatusMsg, State = #state{callback = CBs}) ->
+    State2 = State#state{callback = [eGetStatusUpdate|CBs]},
+    io("eSetStatusUpdate(Dir, User, Status, StatusMsg, State): ~p~n",
+       [[Dir, User, Status, StatusMsg, State2]]),
+    {ok, Status, StatusMsg, State2}.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user start timer
 %%
-%% @spec eTimerStarted(EScriptDir, User, Text, Hours, Min, Sec) -> ok
+%% @spec eTimerStarted(EScriptDir, User, Text, Hours, Min, Sec, State) ->
+%%                     NewState
 %% @end
 %%--------------------------------------------------------------------
-eTimerStarted(Dir, User, Text, Hours, Min, Sec) ->
-    io("eTimerStarted(Dir, User, Text, Hours, Min, Sec): ~p~n",
-        [[Dir, User, Text, Hours, Min, Sec]]),
-    ok.
+eTimerStarted(Dir, User, Text, Hours, Min, Sec, State = #state{callback = CBs}) ->
+    State2 = State#state{callback = [eTimerStarted|CBs]},
+    io("eTimerStarted(Dir, User, Text, Hours, Min, Sec, State): ~p~n",
+        [[Dir, User, Text, Hours, Min, Sec, State2]]),
+    State2.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user stopped timer
 %%
-%% @spec eTimerStopped(EScriptDir, User) -> ok
+%% @spec eTimerStopped(EScriptDir, User, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eTimerStopped(Dir, User) ->
-    io("eTimerStopped(Dir, User): ~p~n",
-        [[Dir, User]]),
-    ok.
+eTimerStopped(Dir, User, State = #state{callback = CBs}) ->
+    State2 = State#state{callback = [eTimerStopped|CBs]},
+    io("eTimerStopped(Dir, User, State): ~p~n",
+        [[Dir, User, State2]]),
+    State2.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Timer ended
 %%
-%% @spec eTimerEnded(EScriptDir, User, Text) -> ok
+%% @spec eTimerEnded(EScriptDir, User, Text, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eTimerEnded(Dir, User, Text) ->
-    io("eTimerEnded(Dir, User, Text): ~p~n",
-        [[Dir, User, Text]]),
-    ok.
+eTimerEnded(Dir, User, Text, State = #state{callback = CBs}) ->
+    State2 = State#state{callback = [eTimerEnded|CBs]},
+    io("eTimerEnded(Dir, User, Text, State): ~p~n",
+        [[Dir, User, Text, State2]]),
+    State2.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user receives a system message.
 %%
-%% @spec eReceivedMsg(Dir, User, Users, Text) -> ok
+%% @spec eReceivedMsg(Dir, User, Users, Text, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eReceivedMsg(Dir, User, Users, Text) ->
-    io("eReceivedMsg(Dir, User, Users, Text): ~p~n",
-       [[Dir, User, Users, Text]]),
-    ok.
+eReceivedMsg(Dir, User, Users, Text, State = #state{callback = CBs}) ->
+    State2 = State#state{callback = [eReceivedMsg|CBs]},
+    io("eReceivedMsg(Dir, User, Users, Text, State): ~p~n",
+       [[Dir, User, Users, Text, State2]]),
+    State2.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user receives an alarm.
 %%
-%% @spec eReceivedAlarmMsg(Dir, Text) -> ok
+%% @spec eReceivedAlarmMsg(Dir, Text, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eReceivedSysMsg(Dir, Text) ->
-    io("eReceivedAlarmMsg(Dir, Text): ~p~n",
-       [[Dir, Text]]),
-    ok.
+eReceivedSysMsg(Dir, Text, State = #state{callback = CBs}) ->
+    State2 = State#state{callback = [eReceviedSysMsg|CBs]},
+    io("eReceivedAlarmMsg(Dir, Text, State): ~p~n",
+       [[Dir, Text, State2]]),
+    State2.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user receives an alarm.
 %%
-%% @spec eReceivedAlarmMsg(Dir, Text) -> ok
+%% @spec eReceivedAlarmMsg(Dir, Text, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eReceivedAlarmMsg(Dir, Text) ->
-    io("eReceivedAlarmMsg(Dir, Text): ~p~n",
-       [[Dir, Text]]),
-    ok.
+eReceivedAlarmMsg(Dir, Text, State = #state{callback = CBs}) ->
+    State2 = State#state{callback = [eReceivedAlarmMsg|CBs]},
+    io("eReceivedAlarmMsg(Dir, Text, State): ~p~n",
+       [[Dir, Text, State2]]),
+    State2.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Called when a peer connected to the users circle logs in.
 %%
-%% @spec eLoggedInMsg(Dir, User) -> ok
+%% @spec eLoggedInMsg(Dir, User, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eLoggedInMsg(Dir, User) ->
-    io("eLoggedInMsg(Dir, User): ~p~n",
-       [[Dir, User]]),
-    ok.
+eLoggedInMsg(Dir, User, State = #state{callback = CBs}) ->
+    State2 = State#state{callback = [eLoggedInMsg|CBs]},
+    io("eLoggedInMsg(Dir, User, State): ~p~n",
+       [[Dir, User, State2]]),
+    State2.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Called when a peer connected to the users circle logs out.
 %%
-%% @spec eLoggedOutMsg(Dir, User) -> ok
+%% @spec eLoggedOutMsg(Dir, User, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eLoggedOutMsg(Dir, User) ->
-    io("eLoggedOutMsg(Dir, User): ~p~n", [[Dir, User]]),
-    ok.
+eLoggedOutMsg(Dir, User, State = #state{callback = CBs}) ->
+    State2 = State#state{callback = [eLoggedOutMsg|CBs]},
+    io("eLoggedOutMsg(Dir, User, State): ~p~n", [[Dir, User, State2]]),
+    State2.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Called every time the user changes his/her status in eTodo
 %% Status can be "Available" | "Away" | "Busy" | "Offline"
-%% @spec eSetStatusUpdate(Dir, User, Status, StatusMsg) -> ok
+%% @spec eSetStatusUpdate(Dir, User, Status, StatusMsg, State) ->
+%%       NewState
 %% @end
 %%--------------------------------------------------------------------
-eSetStatusUpdate(Dir, User, Status, StatusMsg) ->
-    io("eSetStatusUpdate(Dir, User, Status, StatusMsg): ~p~n",
-       [[Dir, User, Status, StatusMsg]]),
-    ok.
+eSetStatusUpdate(Dir, User, Status, StatusMsg, State = #state{callback = CBs}) ->
+    State2 = State#state{callback = [eSetStatusUpdate|CBs]},
+    io("eSetStatusUpdate(Dir, User, Status, StatusMsg, State): ~p~n",
+       [[Dir, User, Status, StatusMsg, State2]]),
+    State2.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Called for right click menu
 %%
-%% @spec eMenuEvent(EScriptDir, User, MenuOption, ETodo, MenuText) -> ok
+%% @spec eMenuEvent(EScriptDir, User, MenuOption, ETodo, MenuText, State) ->
+%%       NewState
 %% @end
 %%--------------------------------------------------------------------
-eMenuEvent(Dir, User, MenuOption, ETodo, MenuText) ->
-    io("eMenuEvent(Dir, User, MenuOption): ~p~n",
-       [[Dir, User, MenuOption, ETodo, MenuText]]),
-    ok.
+eMenuEvent(Dir, User, MenuOption, ETodo, MenuText, State = #state{callback = CBs}) ->
+    State2 = State#state{callback = [eMenuEvent|CBs]},
+    io("eMenuEvent(Dir, User, MenuOption, State): ~p~n",
+       [[Dir, User, MenuOption, ETodo, MenuText, State2]]),
+    State2.
 
-io(_Text, _Args) ->
-    %% Uncomment to make IO
-    io:format(_Text, _Args),
+io(Text, Args) ->
+    io:format(Text, Args),
     ok.

@@ -9,19 +9,19 @@
 
 -module(plugin_thunderlink).
 
--export([getName/0, getDesc/0, getMenu/1]).
+-export([getName/0, getDesc/0, getMenu/1, init/0, terminate/1]).
 
--export([eGetStatusUpdate/4,
-         eTimerStarted/6,
-         eTimerStopped/2,
-         eTimerEnded/3,
-         eReceivedMsg/4,
-         eReceivedSysMsg/2,
-         eReceivedAlarmMsg/2,
-         eLoggedInMsg/2,
-         eLoggedOutMsg/2,
-         eSetStatusUpdate/4,
-         eMenuEvent/5]).
+-export([eGetStatusUpdate/5,
+         eTimerStarted/7,
+         eTimerStopped/3,
+         eTimerEnded/4,
+         eReceivedMsg/5,
+         eReceivedSysMsg/3,
+         eReceivedAlarmMsg/3,
+         eLoggedInMsg/3,
+         eLoggedOutMsg/3,
+         eSetStatusUpdate/5,
+         eMenuEvent/6]).
 
 getName() -> "Thunderlink".
 
@@ -59,11 +59,29 @@ getDesc() -> "Support for thunderlinks to emails.".
                  lists,
                  listsDB}).
 
+-record(state, {}).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% initalize plugin.
+%% @spec init() -> State.
+%% @end
+%%--------------------------------------------------------------------
+init() -> #state{}.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Free internal data for plugin.
+%% @spec init() -> State.
+%% @end
+%%--------------------------------------------------------------------
+terminate(_State) -> ok.
+
 %%--------------------------------------------------------------------
 %% @doc
 %% Return key value list of right menu options.
 %% Menu option should be a unique integer bigger than 1300.
-%% @spec getMenu() -> [{menuOption, menuText}, ...]
+%% @spec getMenu(ETodo) -> [{menuOption, menuText}, ...]
 %% @end
 %%--------------------------------------------------------------------
 getMenu(ETodo) ->
@@ -78,123 +96,122 @@ getMenu([], _MenuOption, SoFar) -> SoFar;
 getMenu([TLink|Rest], MenuOption, SoFar) ->
     getMenu(Rest, MenuOption + 1, [{MenuOption, TLink}|SoFar]).
 
-%% Calls are only made to plugin.beam
-
 %%--------------------------------------------------------------------
 %% @doc
 %% Called every 15 seconds to check if someone changes status
 %% outside eTodo.
 %% Status can be "Available" | "Away" | "Busy" | "Offline"
-%% @spec eSetStatusUpdate(Dir, User, Status, StatusMsg) ->
-%%       {ok, Status, StatusMsg}
+%% @spec eSetStatusUpdate(Dir, User, Status, StatusMsg, State) ->
+%%       {ok, Status, StatusMsg, NewState}
 %% @end
 %%--------------------------------------------------------------------
-eGetStatusUpdate(_Dir, _User, Status, StatusMsg) ->
-    %% This function is called every 15 seconds, and should return
-    {ok, Status, StatusMsg}.
-
-%% Casts are made to all plugin*.beam
+eGetStatusUpdate(_Dir, _User, Status, StatusMsg, State) ->
+    {ok, Status, StatusMsg, State}.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user start timer
 %%
-%% @spec eTimerStarted(EScriptDir, User, Text, Hours, Min, Sec) -> ok
+%% @spec eTimerStarted(EScriptDir, User, Text, Hours, Min, Sec, State) ->
+%%                     NewState
 %% @end
 %%--------------------------------------------------------------------
-eTimerStarted(_EScriptDir, _User, _Text, _Hours, _Min, _Sec) ->
-    ok.
+eTimerStarted(_Dir, _User, _Text, _Hours, _Min, _Sec, State) ->
+    State.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user stopped timer
 %%
-%% @spec eTimerStopped(EScriptDir, User) -> ok
+%% @spec eTimerStopped(EScriptDir, User, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eTimerStopped(_EScriptDir, _User) ->
-    ok.
+eTimerStopped(_EScriptDir, _User, State) ->
+    State.
 
 %%--------------------------------------------------------------------
 %% @doc
-%% The timer ended
+%% Timer ended
 %%
-%% @spec eTimerEnded(EScriptDir, User, Text) -> ok
+%% @spec eTimerEnded(EScriptDir, User, Text, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eTimerEnded(_EScriptDir, _User, _Text) ->
-    ok.
+eTimerEnded(_EScriptDir, _User, _Text, State) ->
+    State.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user receives a system message.
 %%
-%% @spec eReceivedMsg(Dir, User, Users, Text) -> ok
+%% @spec eReceivedMsg(Dir, User, Users, Text, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eReceivedMsg(_EScriptDir, _User, _Users, _Text) ->
-    ok.
+eReceivedMsg(_EScriptDir, _User, _Users, _Text, State) ->
+    State.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user receives an alarm.
 %%
-%% @spec eReceivedAlarmMsg(Dir, Text) -> ok
+%% @spec eReceivedAlarmMsg(Dir, Text, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eReceivedSysMsg(_Dir, _Text) ->
-    ok.
+eReceivedSysMsg(_Dir, _Text, State) ->
+    State.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% The user receives an alarm.
 %%
-%% @spec eReceivedAlarmMsg(Dir, Text) -> ok
+%% @spec eReceivedAlarmMsg(Dir, Text, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eReceivedAlarmMsg(_Dir, _Text) ->
-    ok.
+eReceivedAlarmMsg(_Dir, _Text, State) ->
+    State.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Called when a peer connected to the users circle logs in.
 %%
-%% @spec eLoggedInMsg(Dir, User) -> ok
+%% @spec eLoggedInMsg(Dir, User, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eLoggedInMsg(_Dir, _User) ->
-    ok.
+eLoggedInMsg(_Dir, _User, State) ->
+    State.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Called when a peer connected to the users circle logs out.
 %%
-%% @spec eLoggedOutMsg(Dir, User) -> ok
+%% @spec eLoggedOutMsg(Dir, User, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eLoggedOutMsg(_Dir, _User) ->
-    ok.
+eLoggedOutMsg(_Dir, _User, State) ->
+    State.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Called every time the user changes his/her status in eTodo
 %% Status can be "Available" | "Away" | "Busy" | "Offline"
-%% @spec eSetStatusUpdate(Dir, User, Status, StatusMsg) -> ok
+%% @spec eSetStatusUpdate(Dir, User, Status, StatusMsg, State) ->
+%%       NewState
 %% @end
 %%--------------------------------------------------------------------
-eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg) ->
-    ok.
+eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg, State) ->
+    State.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Called for right click menu
 %%
-%% @spec eMenuEvent(EScriptDir, User, MenuOption, ETodo, MenuText) -> ok
+%% @spec eMenuEvent(EScriptDir, User, MenuOption, ETodo, MenuText, State) ->
+%%       NewState
 %% @end
 %%--------------------------------------------------------------------
-eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, MenuText) ->
+eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, MenuText, State) ->
     OSCMD = "\"/usr/lib/thunderbird/thunderbird\" -thunderlink ",
-    os:cmd(OSCMD ++ MenuText).
+    os:cmd(OSCMD ++ MenuText),
+    State.
 
 
 getThunderLinks(Text, Link, REXP, SoFar) ->
