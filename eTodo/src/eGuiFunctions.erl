@@ -727,7 +727,8 @@ createPluginMenu(Menu, ETodo) ->
 
 createPluginMenu2(_Menu, []) ->
     ok;
-createPluginMenu2(Menu, [{{pluginName, Name}, MenuOptions}|Rest]) ->
+createPluginMenu2(Menu, [{{MenuType, Name}, MenuOptions}|Rest])
+    when (MenuType == pluginName) or (MenuType == subMenu) ->
     SubMenu     = wxMenu:new([]),
     SubMenuItem = wxMenuItem:new([{parentMenu, Menu}, {id, ?wxID_ANY},
                                   {text, Name}, {subMenu, SubMenu},

@@ -85,7 +85,11 @@ terminate(_Reason, _State) -> ok.
 %% @end
 %%--------------------------------------------------------------------
 getMenu(_ETodo) -> [{55000, "Create JIRA Task"},
-                    {55001, "Update JIRA Task"}].
+                    {55001, "Update JIRA Task"},
+                    {{subMenu, "Create Task from feature"},
+                        [{55002, "Feature 1"},
+                         {55003, "Feature 2"},
+                         {55004, "Feature 3"}]}].
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -198,8 +202,18 @@ eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg, _State) ->
 %% @end
 %%--------------------------------------------------------------------
 eMenuEvent(_EScriptDir, _User, 55000, _ETodo, _MenuText, _State) ->
-
+    io:format(_MenuText),
     ok;
 eMenuEvent(_EScriptDir, _User, 55001, _ETodo, _MenuText, _State) ->
+    io:format(_MenuText),
+    ok;
+eMenuEvent(_EScriptDir, _User, 55002, _ETodo, _MenuText, _State) ->
+    io:format(_MenuText),
+    ok;
+eMenuEvent(_EScriptDir, _User, 55003, _ETodo, _MenuText, _State) ->
+    io:format(_MenuText),
+    ok;
+eMenuEvent(_EScriptDir, _User, 55004, _ETodo, _MenuText, _State) ->
+    io:format(_MenuText),
     ok.
 

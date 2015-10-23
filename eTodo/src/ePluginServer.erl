@@ -402,12 +402,26 @@ getModulesToCast(MenuOption, PluginMenuInfo) ->
 getModulesToCast(_MenuOption, [], Acc) ->
     Acc;
 getModulesToCast(MenuOption, [{MenuOptionsList, Module}|Rest], Acc) ->
-    case lists:keyfind(MenuOption, 1, MenuOptionsList) of
+    case checkModule(MenuOption, MenuOptionsList, Module) of
         {MenuOption, MenuText} ->
             getModulesToCast(MenuOption, Rest, [{Module, MenuText} | Acc]);
         false ->
             getModulesToCast(MenuOption, Rest, Acc)
     end.
+
+checkModule(_MenuOption, [], _Module) ->
+    false;
+checkModule(MenuOption, [{{subMenu, _}, MenuOptions}|Rest], Module) ->
+    case checkModule(MenuOption, MenuOptions, Module) of
+        {MenuOption, MenuText} ->
+            {MenuOption, MenuText};
+        false ->
+            checkModule(MenuOption, Rest, Module)
+    end;
+checkModule(MenuOption, [{MenuOption, MenuText}|_Rest], _Module) ->
+    {MenuOption, MenuText};
+checkModule(MenuOption, [{_MenuOption, _}|Rest], Module) ->
+    checkModule(MenuOption, Rest, Module).
 
 stopPluginServers([], Servers) ->
     Servers;
