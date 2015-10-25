@@ -272,11 +272,11 @@ handle_call(getInstalledPlugins, _From, State = #state{eAllPlugins = Plugins}) -
 handle_call(getConfiguredPlugins, _From, State = #state{ePlugins = Plugins}) ->
     {reply, Plugins, State};
 handle_call({getRightMenuForPlugins, ETodo},
-    _From, State = #state{ePlugins = Plugins}) ->
-    Menu = [{Plugin:getMenu(ETodo), Plugin} || Plugin <- Plugins,
-        Plugin:getMenu(ETodo) =/= []],
-    Reply = [{{pluginName, Plugin:getName()}, Plugin:getMenu(ETodo)} ||
-        Plugin <- Plugins, Plugin:getMenu(ETodo) =/= []],
+    _From, State = #state{ePlugins = Plugins, ePluginServers = Servers}) ->
+    Menu = [{getMenu(Plugin, ETodo, Servers), Plugin} || Plugin <- Plugins,
+        getMenu(Plugin, ETodo, Servers) =/= []],
+    Reply = [{{pluginName, Plugin:getName()}, getMenu(Plugin, ETodo, Servers)} ||
+        Plugin <- Plugins, getMenu(Plugin, ETodo, Servers) =/= []],
     {reply, Reply, State#state{ePluginMenu = Menu}};
 handle_call({Operation, Args}, From, State = #state{ePluginDir     = Dir,
                                                     ePluginServers = Servers}) ->
@@ -439,3 +439,10 @@ startPluginServers([], Servers) ->
 startPluginServers([Module|Rest], Servers) ->
     Servers2 = [{Module, ePlugin:start_link(Module)}|Servers],
     startPluginServers(Rest, Servers2).
+
+getMenu(_Plugin, _ETodo, []) ->
+    [];
+getMenu(Plugin, ETodo, [{Plugin, {ok, Pid}}|_Rest]) ->
+    ePlugin:getMenu(Pid, ETodo);
+getMenu(Plugin, ETodo, [{_Plugin, _}|Rest]) ->
+    getMenu(Plugin, ETodo, Rest).

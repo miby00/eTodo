@@ -9,7 +9,7 @@
 
 -module(plugin_template).
 
--export([getName/0, getDesc/0, getMenu/1, init/0, terminate/2]).
+-export([getName/0, getDesc/0, getMenu/2, init/0, terminate/2]).
 
 -export([eGetStatusUpdate/5,
          eTimerStarted/7,
@@ -49,10 +49,10 @@ terminate(_Reason, _State) -> ok.
 %% @doc
 %% Return key value list of right menu options.
 %% Menu option should be a unique integer bigger than 1300.
-%% @spec getMenu(ETodo) -> [{menuOption, menuText}, ...]
+%% @spec getMenu(ETodo, State) -> {ok, [{menuOption, menuText}, ...], NewState}
 %% @end
 %%--------------------------------------------------------------------
-getMenu(_ETodo) -> [].
+getMenu(_ETodo, State) -> {ok, [], State}.
 
 %%--------------------------------------------------------------------
 %% @doc

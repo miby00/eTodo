@@ -23,7 +23,8 @@
          code_change/3,
          stop/1]).
 
--export([eSetStatusUpdate/5,
+-export([getMenu/2,
+         eSetStatusUpdate/5,
          eGetStatusUpdate/5,
          eTimerStarted/7,
          eTimerStopped/3,
@@ -56,6 +57,16 @@ start_link(Module) ->
 
 stop(Pid) ->
     gen_server:cast(Pid, stop).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Called when the user changes status in eTodo
+%%
+%% @spec getMenu(Pid, ETodo) -> Menu
+%% @end
+%%--------------------------------------------------------------------
+getMenu(Pid, ETodo) ->
+    gen_server:call(Pid, {getMenu, ETodo}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -206,6 +217,20 @@ init([Module]) ->
              {noreply, NewState :: #state{}, timeout() | hibernate} |
              {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
              {stop, Reason :: term(), NewState :: #state{}}).
+handle_call({getMenu, ETodo}, _From,
+    State = #state{state = PState, module = Module}) ->
+    {Menu, State3} =
+        case catch apply(Module, getMenu, [ETodo, PState]) of
+            {ok, Menu2, PState2} ->
+                {Menu2, State#state{state = PState2}};
+            _ ->
+                {[], State}
+        end,
+
+    eLog:log(debug, ?MODULE, runCmd, [getMenu, ETodo, Menu],
+        "Result from port program", ?LINE),
+
+    {reply, Menu, State3};
 handle_call({eGetStatusUpdate, Args = [_User, Status, StatusMsg]}, _From,
             State = #state{state = PState, module = Module}) ->
     {Result2, State3} =

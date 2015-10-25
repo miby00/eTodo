@@ -9,7 +9,7 @@
 
 -module(plugin_httplink).
 
--export([getName/0, getDesc/0, getMenu/1, init/0, terminate/2]).
+-export([getName/0, getDesc/0, getMenu/2, init/0, terminate/2]).
 
 -export([eGetStatusUpdate/5,
          eTimerStarted/7,
@@ -81,15 +81,15 @@ terminate(_Reason, _State) -> ok.
 %% @doc
 %% Return key value list of right menu options.
 %% Menu option should be a unique integer bigger than 1300.
-%% @spec getMenu(ETodo) -> [{menuOption, menuText}, ...]
+%% @spec getMenu(ETodo, State) -> {ok, [{menuOption, menuText}, ...], NewState}
 %% @end
 %%--------------------------------------------------------------------
-getMenu(ETodo) ->
+getMenu(ETodo, State) ->
     Text = ETodo#etodo.description ++ " " ++ ETodo#etodo.comment,
     REXP = "[[:^space:]]*",
     LINK = "[hH][tT][tT][pP][sS]?://",
     HLinks = getHttpLinks(Text, LINK, REXP, []),
-    getMenu(HLinks, 50000, []).
+    {ok, getMenu(HLinks, 50000, []), State}.
 
 getMenu([], _MenuOption, SoFar) -> SoFar;
 getMenu([HLink|Rest], MenuOption, SoFar) ->

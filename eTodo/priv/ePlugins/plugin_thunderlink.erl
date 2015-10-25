@@ -9,7 +9,7 @@
 
 -module(plugin_thunderlink).
 
--export([getName/0, getDesc/0, getMenu/1, init/0, terminate/2]).
+-export([getName/0, getDesc/0, getMenu/2, init/0, terminate/2]).
 
 -export([eGetStatusUpdate/5,
          eTimerStarted/7,
@@ -81,16 +81,16 @@ terminate(_Reason, _State) -> ok.
 %% @doc
 %% Return key value list of right menu options.
 %% Menu option should be a unique integer bigger than 1300.
-%% @spec getMenu(ETodo) -> [{menuOption, menuText}, ...]
+%% @spec getMenu(ETodo, State) -> {ok, [{menuOption, menuText}, ...], NewState}
 %% @end
 %%--------------------------------------------------------------------
-getMenu(ETodo) ->
+getMenu(ETodo, State) ->
     Text = ETodo#etodo.description ++ " " ++ ETodo#etodo.comment,
     REXP = "[[:^space:]]*",
     LINK = "[tT][hH][uU][nN][dD][eE][rR][lL][iI][nN][kK]://" ++
            "[mM][eE][sS][sS][aA][gG][eE][iI][dD]=",
     TLinks = getThunderLinks(Text, LINK, REXP, []),
-    getMenu(TLinks, 70000, []).
+    {ok, getMenu(TLinks, 70000, []), State}.
 
 getMenu([], _MenuOption, SoFar) -> SoFar;
 getMenu([TLink|Rest], MenuOption, SoFar) ->
