@@ -62,9 +62,10 @@ getDesc() -> "Create JIRA task from eTodo.".
 -record(config, {baseurl = "http://jira.upp.telia.se:8080/rest/api",
                  user    = "miby00",
                  pwd     = "miby00",
+                 search  = "project=\"CallGuide Feature\" AND issuetype=\"CallGuide Feature\" AND status not in (RestrictedRelease, OnHold, GeneralAvailability, Closed) AND \"Fea. ConstrLeader\"=miby00",
                  bauth   = ""}).
 
--record(state, {config = #config{}}).
+-record(state, {config = #config{}, subMenu = []}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -82,7 +83,19 @@ init() ->
     UserPwd     = Config#config.user ++ ":" ++ Config#config.pwd,
     BAuth       = "Basic " ++ base64:encode_to_string(UserPwd),
     Config2     = Config#config{bauth = BAuth},
-    #state{config = Config2}.
+    Search      = Config#config.search,
+    Url         = Config2#config.baseurl ++ "/2/search?jql=" ++
+                  http_uri:encode(Search) ++ "&fields=summary,key",
+    Result      = httpRequest(Config2, get, Url),
+    SubMenu     = constructSubMenu(55002, Result),
+
+    case filelib:is_file("jira.config") of
+        true ->
+            ok;
+        false ->
+            file:write_file("jira.config", io_lib:format("~tp.~n", [Config2]))
+    end,
+    #state{config = Config2, subMenu = SubMenu}.
 
 httpRequest(#config{bauth = BAuth}, Method, Url) ->
     AuthOption  = {"Authorization", BAuth},
@@ -103,13 +116,7 @@ httpRequest(#config{bauth = BAuth}, Method, Url) ->
 %% @spec init() -> State.
 %% @end
 %%--------------------------------------------------------------------
-terminate(_Reason, #state{config = Cfg}) ->
-    case filelib:is_file("jira.config") of
-        true ->
-            ok;
-        false ->
-            file:write_file("jira.config", io_lib:format("~tp.~n", [Cfg]))
-    end,
+terminate(_Reason, _State) ->
     ok.
 
 %%--------------------------------------------------------------------
@@ -119,12 +126,26 @@ terminate(_Reason, #state{config = Cfg}) ->
 %% @spec getMenu(ETodo, State) -> {ok, [{menuOption, menuText}, ...], NewState}
 %% @end
 %%--------------------------------------------------------------------
-getMenu(_ETodo, State) -> {ok, [{55000, "Create JIRA Task"},
+getMenu(_ETodo, State = #state{subMenu = SubMenu}) ->
+    {ok, [{55000, "Create JIRA Task"},
                                 {55001, "Update JIRA Task"},
                                 {{subMenu, "Create Task from feature"},
-                                 [{55002, "Feature 1"},
-                                  {55003, "Feature 2"},
-                                  {55004, "Feature 3"}]}], State}.
+                                 SubMenu}], State}.
+
+constructSubMenu(MenuOption, Result) ->
+    MapResult = jsx:decode(Result, [return_maps]),
+    Issues    = maps:get(<<"issues">>, MapResult),
+    constructSubMenu2(MenuOption, Issues, []).
+
+constructSubMenu2(_MenuOption, [], SoFar) ->
+    SoFar;
+constructSubMenu2(MenuOption, [Feature|Rest], SoFar) ->
+    FeatureRef   = binary_to_list(maps:get(<<"key">>,     Feature)),
+    Fields       = maps:get(<<"fields">>, Feature),
+    FeatureDesc  = unicode:characters_to_binary(maps:get(<<"summary">>, Fields),
+                                                utf8, latin1),
+    FeatureMText = FeatureRef ++ ": " ++ binary_to_list(FeatureDesc),
+    constructSubMenu2(MenuOption + 1, Rest, [{MenuOption, FeatureMText}|SoFar]).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -239,10 +260,6 @@ eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg, State) ->
 %%--------------------------------------------------------------------
 eMenuEvent(_EScriptDir, _User, 55000, _ETodo, _MenuText, State) ->
     io:format(_MenuText),
-    Config = State#state.config,
-    Search = "project=\"CallGuide Feature\" AND issuetype=\"CallGuide Feature\" AND status not in (RestrictedRelease, OnHold, GeneralAvailability, Closed) AND \"Fea. ConstrLeader\"=miby00",
-    Url    = Config#config.baseurl ++ "/2/search?jql=" ++ http_uri:encode(Search),
-    Result = httpRequest(Config, get, Url),
     State;
 eMenuEvent(_EScriptDir, _User, 55001, _ETodo, _MenuText, State) ->
     io:format(_MenuText),

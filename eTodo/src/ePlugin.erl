@@ -199,7 +199,7 @@ eMenuEvent(Pid, Dir, User, MenuOption, ETodo, MenuText) ->
              {stop, Reason :: term()} | ignore).
 
 init([Module]) ->
-    State = Module:init(),
+    State = (catch Module:init()),
     {ok, #state{state = State, module = Module}}.
 
 %%--------------------------------------------------------------------
