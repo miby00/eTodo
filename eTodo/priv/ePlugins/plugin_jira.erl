@@ -103,16 +103,17 @@ terminate(_Reason, _State) ->
 %% @spec getMenu(ETodo, State) -> {ok, [{menuOption, menuText}, ...], NewState}
 %% @end
 %%--------------------------------------------------------------------
-getMenu(_ETodo, State = #state{config = Config = #{search  => Search,
-                                                   baseurl => BaseUrl}) ->
+getMenu(_ETodo, State = #state{config = Config}) ->
+    #{search   := Search,
+      baseurl  := BaseUrl} = Config,
     Url         = BaseUrl ++ "/2/search?jql=" ++
-                      http_uri:encode(Search) ++ "&fields=summary,key",
+        http_uri:encode(Search) ++ "&fields=summary,key",
     Result      = httpRequest(Config, get, Url),
     SubMenu     = constructSubMenu(55002, Result),
     {ok, [{55000, "Create JIRA Task"},
-                                {55001, "Update JIRA Task"},
-                                {{subMenu, "Create Task from feature"},
-                                 SubMenu}], State}.
+          {55001, "Update JIRA Task"},
+          {{subMenu, "Create Task from feature"},
+           SubMenu}], State}.
 
 httpRequest(#{bauth := BAuth}, Method, Url) ->
     AuthOption  = {"Authorization", BAuth},
@@ -135,7 +136,7 @@ constructSubMenu(MenuOption, Result) ->
 constructSubMenu2(_MenuOption, [], SoFar) ->
     SoFar;
 constructSubMenu2(MenuOption, [Feature|Rest], SoFar) ->
-    FeatureRef   = binary_to_list(maps:get(<<"key">>,     Feature)),
+    FeatureRef   = binary_to_list(maps:get(<<"key">>, Feature)),
     Fields       = maps:get(<<"fields">>, Feature),
     FeatureDesc  = unicode:characters_to_binary(maps:get(<<"summary">>, Fields),
                                                 utf8, latin1),
@@ -259,17 +260,14 @@ eMenuEvent(_EScriptDir, _User, 55000, _ETodo, _MenuText, State) ->
 eMenuEvent(_EScriptDir, _User, 55001, _ETodo, _MenuText, State) ->
     io:format(_MenuText),
     State;
-eMenuEvent(_EScriptDir, _User, 55002, _ETodo, _MenuText, State) ->
-    io:format(_MenuText),
-    State;
-eMenuEvent(_EScriptDir, _User, 55003, _ETodo, _MenuText, State) ->
-    io:format(_MenuText),
-    State;
-eMenuEvent(_EScriptDir, _User, 55004, _ETodo, _MenuText, State) ->
-    io:format(_MenuText),
-    State;
-eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, _MenuText, State) ->
-    io:format(integer_to_list(_MenuOption)),
+eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, MenuText,
+           State = #state{config = Config}) ->
+    [Key|_] = string:tokens(MenuText, ":"),
+    BaseUrl = maps:get(baseurl, Config),
+    FullUrl = BaseUrl ++ "/2/issue/" ++ Key,
+    Result  = httpRequest(Config, get, FullUrl),
+    Result2 = io_lib:format("~tp.~n", [jsx:decode(Result, [return_maps])]),
+    file:write_file("issue.json", Result2),
     State.
 
 defaultConfig() ->
@@ -278,4 +276,3 @@ defaultConfig() ->
       pwd     => "",
       search  => "project=\"CallGuide Feature\" AND issuetype=\"CallGuide Feature\" AND status not in (RestrictedRelease, OnHold, GeneralAvailability, Closed) AND \"Fea. ConstrLeader\"=currentUser()",
       bauth   => ""}.
-
