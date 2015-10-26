@@ -59,13 +59,9 @@ getName() -> "JIRA".
 
 getDesc() -> "Create JIRA task from eTodo.".
 
--record(config, {baseurl = "http://JIRA:8080/rest/api",
-                 user    = "",
-                 pwd     = "",
-                 search  = "project=\"CallGuide Feature\" AND issuetype=\"CallGuide Feature\" AND status not in (RestrictedRelease, OnHold, GeneralAvailability, Closed) AND \"Fea. ConstrLeader\"=currentUser()",
-                 bauth   = ""}).
+-record(state, {config = defaultConfig()}).
 
--record(state, {config = #config{}, subMenu = []}).
+-define(configFile, "jira.config").
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -74,41 +70,22 @@ getDesc() -> "Create JIRA task from eTodo.".
 %% @end
 %%--------------------------------------------------------------------
 init() ->
-    Config = case file:consult("jira.config") of
-                 {ok, Cfg} when is_record(Cfg, config) ->
+    Config = case file:consult(?configFile) of
+                 {ok, [Cfg]} when is_map(Cfg) ->
                      Cfg;
                  _ ->
-                     #config{}
+                     defaultConfig()
              end,
-    UserPwd     = Config#config.user ++ ":" ++ Config#config.pwd,
+    UserPwd     = maps:get(user, Config) ++ ":" ++ maps:get(pwd, Config),
     BAuth       = "Basic " ++ base64:encode_to_string(UserPwd),
-    Config2     = Config#config{bauth = BAuth},
-    Search      = Config#config.search,
-    Url         = Config2#config.baseurl ++ "/2/search?jql=" ++
-                  http_uri:encode(Search) ++ "&fields=summary,key",
-    Result      = httpRequest(Config2, get, Url),
-    SubMenu     = constructSubMenu(55002, Result),
-
-    case filelib:is_file("jira.config") of
+    Config2     = Config#{bauth := BAuth},
+    case filelib:is_file(?configFile) of
         true ->
             ok;
         false ->
-            file:write_file("jira.config", io_lib:format("~tp.~n", [Config2]))
+            file:write_file(?configFile, io_lib:format("~tp.~n", [Config2]))
     end,
-    #state{config = Config2, subMenu = SubMenu}.
-
-httpRequest(#config{bauth = BAuth}, Method, Url) ->
-    AuthOption  = {"Authorization", BAuth},
-    ContentType = {"Content-Type", "application/json"},
-    Request     = {Url, [AuthOption, ContentType]},
-    Options     = [{body_format,binary}],
-    case httpc:request(Method, Request, [{url_encode, false}], Options) of
-        {ok, {_StatusLine, _Headers, Body}} ->
-            file:write_file("json.txt", Body),
-            Body;
-        Else ->
-            Else
-    end.
+    #state{config = Config2}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -126,11 +103,29 @@ terminate(_Reason, _State) ->
 %% @spec getMenu(ETodo, State) -> {ok, [{menuOption, menuText}, ...], NewState}
 %% @end
 %%--------------------------------------------------------------------
-getMenu(_ETodo, State = #state{subMenu = SubMenu}) ->
+getMenu(_ETodo, State = #state{config = Config = #{search  => Search,
+                                                   baseurl => BaseUrl}) ->
+    Url         = BaseUrl ++ "/2/search?jql=" ++
+                      http_uri:encode(Search) ++ "&fields=summary,key",
+    Result      = httpRequest(Config, get, Url),
+    SubMenu     = constructSubMenu(55002, Result),
     {ok, [{55000, "Create JIRA Task"},
                                 {55001, "Update JIRA Task"},
                                 {{subMenu, "Create Task from feature"},
                                  SubMenu}], State}.
+
+httpRequest(#{bauth := BAuth}, Method, Url) ->
+    AuthOption  = {"Authorization", BAuth},
+    ContentType = {"Content-Type", "application/json"},
+    Request     = {Url, [AuthOption, ContentType]},
+    Options     = [{body_format,binary}],
+    case httpc:request(Method, Request, [{url_encode, false}], Options) of
+        {ok, {_StatusLine, _Headers, Body}} ->
+            file:write_file("json.txt", Body),
+            Body;
+        Else ->
+            Else
+    end.
 
 constructSubMenu(MenuOption, Result) ->
     MapResult = jsx:decode(Result, [return_maps]),
@@ -276,3 +271,11 @@ eMenuEvent(_EScriptDir, _User, 55004, _ETodo, _MenuText, State) ->
 eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, _MenuText, State) ->
     io:format(integer_to_list(_MenuOption)),
     State.
+
+defaultConfig() ->
+    #{baseurl => "http://JIRA:8080/rest/api",
+      user    => "",
+      pwd     => "",
+      search  => "project=\"CallGuide Feature\" AND issuetype=\"CallGuide Feature\" AND status not in (RestrictedRelease, OnHold, GeneralAvailability, Closed) AND \"Fea. ConstrLeader\"=currentUser()",
+      bauth   => ""}.
+
