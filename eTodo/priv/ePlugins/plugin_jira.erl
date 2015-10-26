@@ -59,10 +59,10 @@ getName() -> "JIRA".
 
 getDesc() -> "Create JIRA task from eTodo.".
 
--record(config, {baseurl = "http://jira.upp.telia.se:8080/rest/api",
-                 user    = "miby00",
-                 pwd     = "miby00",
-                 search  = "project=\"CallGuide Feature\" AND issuetype=\"CallGuide Feature\" AND status not in (RestrictedRelease, OnHold, GeneralAvailability, Closed) AND \"Fea. ConstrLeader\"=miby00",
+-record(config, {baseurl = "http://JIRA:8080/rest/api",
+                 user    = "",
+                 pwd     = "",
+                 search  = "project=\"CallGuide Feature\" AND issuetype=\"CallGuide Feature\" AND status not in (RestrictedRelease, OnHold, GeneralAvailability, Closed) AND \"Fea. ConstrLeader\"=currentUser()",
                  bauth   = ""}).
 
 -record(state, {config = #config{}, subMenu = []}).
