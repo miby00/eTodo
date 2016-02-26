@@ -85,7 +85,7 @@
                         updateTodoWindow/1,
                         updateValue/4,
 						userStatusUpdate/1,
-                        wxDate/1,
+                        wxDate2Date/1,
                         xrcId/1
                        ]).
 
@@ -514,28 +514,34 @@ getGuiText(State = #guiState{activeTodo = {ETodo, _}}) ->
                 comment      = Comment}.
 
 getGuiSettings(State = #guiState{activeTodo = {ETodo, _}}) ->
-    SharedObj   = obj("sharedWithText",  State),
-    StatusObj   = obj("statusChoice",    State),
-    PriorityObj = obj("priorityChoice",  State),
-    DueDateObj  = obj("dueDatePicker",   State),
-    ProgressObj = obj("progressInfo",    State),
-    OwnerObj    = obj("ownerChoice",     State),
-    SelNum1     = wxChoice:getSelection(StatusObj),
-    SelAtom1    = toDB(wxChoice:getString(StatusObj, SelNum1)),
-    SelNum2     = wxChoice:getSelection(PriorityObj),
-    SelAtom2    = toDB(wxChoice:getString(PriorityObj, SelNum2)),
-    SharedTxt   = wxStaticText:getLabel(SharedObj),
-    SharedWith  = string:tokens(SharedTxt, ";"),
-    DueTime     = wxDatePickerCtrl:getValue(DueDateObj),
-    Progress    = wxSpinCtrl:getValue(ProgressObj),
-    SelOwner    = wxChoice:getSelection(OwnerObj),
-    Owner       = wxChoice:getString(OwnerObj, SelOwner),
+    SharedObj       = obj("sharedWithText",  State),
+    StatusObj       = obj("statusChoice",    State),
+    PriorityObj     = obj("priorityChoice",  State),
+    DueDateObj      = obj("dueDatePicker",   State),
+    DueDateUsedObj  = obj("dueDateUsed",     State),
+    ProgressObj     = obj("progressInfo",    State),
+    OwnerObj        = obj("ownerChoice",     State),
+    SelNum1         = wxChoice:getSelection(StatusObj),
+    SelAtom1        = toDB(wxChoice:getString(StatusObj, SelNum1)),
+    SelNum2         = wxChoice:getSelection(PriorityObj),
+    SelAtom2        = toDB(wxChoice:getString(PriorityObj, SelNum2)),
+    SharedTxt       = wxStaticText:getLabel(SharedObj),
+    SharedWith      = string:tokens(SharedTxt, ";"),
+    DueTime         = case wxCheckBox:isChecked(DueDateUsedObj) of
+                          true ->
+                              wxDatePickerCtrl:getValue(DueDateObj);
+                          false ->
+                              undefined
+                      end,
+    Progress        = wxSpinCtrl:getValue(ProgressObj),
+    SelOwner        = wxChoice:getSelection(OwnerObj),
+    Owner           = wxChoice:getString(OwnerObj, SelOwner),
     ETodo#etodo{statusDB     = SelAtom1,
                 status       = toStr(SelAtom1),
                 priorityDB   = SelAtom2,
                 priority     = toStr(SelAtom2),
-                dueTimeDB    = wxDate(DueTime),
-                dueTime      = toStr(wxDate(DueTime)),
+                dueTimeDB    = wxDate2Date(DueTime),
+                dueTime      = toStr(wxDate2Date(DueTime)),
                 sharedWithDB = SharedWith,
                 sharedWith   = SharedTxt,
                 progress     = Progress,
@@ -1040,20 +1046,22 @@ connectMainFrame(Frame, Dict) ->
     Dict3  = connectItems(["mainTaskList"], ListEvents,         Frame, Dict2),
     Dict4  = connectItems(MenuChoice, command_choice_selected,  Frame, Dict3),
     Dict5  = connectItems(["dueDatePicker"], date_changed,      Frame, Dict4),
-    Dict6  = connectItems(TextAreas, command_text_updated,      Frame, Dict5),
-    Dict7  = connectItems(Buttons, command_button_clicked,      Frame, Dict6),
-    Dict8  = connectItems(TextFields, command_text_enter,       Frame, Dict7),
-    Dict9  = connectItems(["checkBoxUseFilter"],
-                          command_checkbox_clicked,             Frame, Dict8),
-    Dict10 = connectItems(["mainNotebook"],
-                          command_notebook_page_changed,        Frame, Dict9),
-	Dict11 = connectItems(["userCheckBox"],
-		                  command_listbox_selected,             Frame, Dict10),
-    Dict12 = connectItems(["progressInfo"],
-                          command_spinctrl_updated,             Frame, Dict11),
-    Dict13 = connectItems(["bookmarkBtn"], context_menu,        Frame, Dict12),
-    Dict14 = connectItems(["workLogStartDate"], date_changed,   Frame, Dict13),
-    connectItems(MenuItems, command_menu_selected,              Frame, Dict14).
+    Dict6  = connectItems(["dueDateUsed"],
+                          command_checkbox_clicked,             Frame, Dict5),
+    Dict7  = connectItems(TextAreas, command_text_updated,      Frame, Dict6),
+    Dict8  = connectItems(Buttons, command_button_clicked,      Frame, Dict7),
+    Dict9  = connectItems(TextFields, command_text_enter,       Frame, Dict8),
+    Dict10 = connectItems(["checkBoxUseFilter"],
+                          command_checkbox_clicked,             Frame, Dict9),
+    Dict11 = connectItems(["mainNotebook"],
+                          command_notebook_page_changed,        Frame, Dict10),
+	Dict12 = connectItems(["userCheckBox"],
+		                  command_listbox_selected,             Frame, Dict11),
+    Dict13 = connectItems(["progressInfo"],
+                          command_spinctrl_updated,             Frame, Dict12),
+    Dict14 = connectItems(["bookmarkBtn"], context_menu,        Frame, Dict13),
+    Dict15 = connectItems(["workLogStartDate"], date_changed,   Frame, Dict14),
+    connectItems(MenuItems, command_menu_selected,              Frame, Dict15).
 
 connectItems(_Items, [], _Frame, Dict) ->
     Dict;
@@ -1203,7 +1211,7 @@ fillRemoteConflict(ETodo, State) ->
     setSelection(StatusObj, ETodo#etodo.status),
     setSelection(PrioObj, ETodo#etodo.priority),
     wxTextCtrl:setValue(SharedObj, ETodo#etodo.sharedWith),
-    wxDatePickerCtrl:setValue(DueDateObj, wxDate(ETodo#etodo.dueTimeDB)),
+    wxDatePickerCtrl:setValue(DueDateObj, wxDate2Date(ETodo#etodo.dueTimeDB)),
     wxSpinCtrl:setValue(ProgressObj, default(ETodo#etodo.progress, 0)).
 
 fillLocalConflict(ETodo, State) ->
@@ -1221,7 +1229,7 @@ fillLocalConflict(ETodo, State) ->
     setSelection(StatusObj, ETodo#etodo.status),
     setSelection(PrioObj, ETodo#etodo.priority),
     wxTextCtrl:setValue(SharedObj, ETodo#etodo.sharedWith),
-    wxDatePickerCtrl:setValue(DueDateObj, wxDate(ETodo#etodo.dueTimeDB)),
+    wxDatePickerCtrl:setValue(DueDateObj, wxDate2Date(ETodo#etodo.dueTimeDB)),
     wxSpinCtrl:setValue(ProgressObj, default(ETodo#etodo.progress, 0)).
 
 getConflictSettings(Todo, State) ->
@@ -1250,7 +1258,7 @@ getConflictSettings(Todo, State) ->
               status      = SelAtom1,
               priority    = SelAtom2,
               sharedWith  = SharedWith,
-              dueTime     = wxDate(DueTime),
+              dueTime     = wxDate2Date(DueTime),
               progress    = Progress,
               owner       = Owner}.
 

@@ -38,6 +38,7 @@
          deleteToolEvent/4,
          descriptionAreaEvent/4,
          dueDatePickerEvent/4,
+         dueDateUsedEvent/4,
          exitMenuItemEvent/4,
          forwardToolEvent/4,
          guiEvent/4,
@@ -170,7 +171,8 @@
                         useFilter/3,
                         userStatusAvailable/1,
                         userStatusUpdate/1,
-                        wxDate/1,
+                        wxDate2Date/1,
+                        date2wxDate/1,
                         xrcId/1]).
 
 -import(eTodoUtils, [cancelTimer/1,
@@ -417,15 +419,15 @@ getTime(CheckObj, HourObj, MinObj) ->
 
 setDate(undefined, DateObj, Use)  ->
     wxCheckBox:setValue(Use, false),
-    wxDatePickerCtrl:setValue(DateObj, wxDate(undefined));
+    wxDatePickerCtrl:setValue(DateObj, date2wxDate(undefined));
 setDate(Date, DateObj, Use) ->
     wxCheckBox:setValue(Use, true),
-    wxDatePickerCtrl:setValue(DateObj, wxDate(Date)).
+    wxDatePickerCtrl:setValue(DateObj, date2wxDate(Date)).
 
 getDate(CheckObj, DateObj) ->
     case wxCheckBox:isChecked(CheckObj) of
         true ->
-            wxDate(wxDatePickerCtrl:getValue(DateObj));
+            wxDate2Date(wxDatePickerCtrl:getValue(DateObj));
         false ->
             undefined
     end.
@@ -523,7 +525,7 @@ useReminderEvent(_Type, _Id, _Frame, State) ->
 startDateChangedEvent(State) ->
     StartDateObj = dlgObj("startDate",  wxDatePickerCtrl, State),
     OKObj        = dlgObj("reminderOk", wxButton,         State),
-    case wxDate(wxDatePickerCtrl:getValue(StartDateObj)) of
+    case wxDate2Date(wxDatePickerCtrl:getValue(StartDateObj)) of
         undefined ->
             wxButton:disable(OKObj);
         _ ->
@@ -866,6 +868,9 @@ deleteAndUpdate(Size, Index, TodoList, State) ->
 %% Event to trigger gui save
 %%====================================================================
 dueDatePickerEvent(_Type, _Id, _Frame, State) ->
+    State.
+
+dueDateUsedEvent(_Type, _Id, _Frame, State) ->
     State.
 
 priorityChoiceEvent(_Type, _Id, _Frame, State) ->

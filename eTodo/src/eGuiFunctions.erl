@@ -62,7 +62,8 @@
          userStatusBusy/1,
          userStatusOffline/1,
          userStatusUpdate/1,
-         wxDate/1,
+         date2wxDate/1,
+         wxDate2Date/1,
          xrcId/1]).
 
 -import(eTodoUtils, [col/2,
@@ -293,6 +294,7 @@ type("ownerChoice")       -> wxChoice;
 type("useStartDate")      -> wxCheckBox;
 type("useEndDate")        -> wxCheckBox;
 type("checkBoxUseFilter") -> wxCheckBox;
+type("dueDateUsed")       -> wxCheckBox;
 type("progressInfo")      -> wxSpinCtrl;
 type("progressInfo1")     -> wxSpinCtrl;
 type("progressInfo2")     -> wxSpinCtrl;
@@ -408,10 +410,18 @@ updateGui(ETodo, Index, State) ->
     updateValue("commentArea",       State, ETodo#etodo.comment),
     doSetSelection("statusChoice",   State, ETodo#etodo.status),
     doSetSelection("priorityChoice", State, ETodo#etodo.priority),
-    DueDateObj  = obj("dueDatePicker", State),
-    ProgressObj = obj("progressInfo",  State),
-    OwnerObj    = obj("ownerChoice",   State),
-    wxDatePickerCtrl:setValue(DueDateObj, wxDate(ETodo#etodo.dueTimeDB)),
+    DueDateObj      = obj("dueDatePicker", State),
+    DueDateUsedObj  = obj("dueDateUsed",   State),
+    ProgressObj     = obj("progressInfo",  State),
+    OwnerObj        = obj("ownerChoice",   State),
+    case ETodo#etodo.dueTimeDB of
+        undefined ->
+            wxCheckBox:setValue(DueDateUsedObj, false),
+        wxDatePickerCtrl:setValue(DueDateObj, date2wxDate(undefined));
+        DueTimeDB ->
+            wxCheckBox:setValue(DueDateUsedObj, true),
+            wxDatePickerCtrl:setValue(DueDateObj, date2wxDate(DueTimeDB))
+    end,
     setOwner(OwnerObj, State#guiState.user, ETodo#etodo.owner),
 
 
@@ -495,7 +505,7 @@ updateGui(#etodo{description = OldDesc,
     setSelection("priorityChoice", State, Priority, OldPriority),
     DueDateObj  = obj("dueDatePicker", State),
     if DueTime =/= OldDueTime ->
-            wxDatePickerCtrl:setValue(DueDateObj, wxDate(DueTime));
+            wxDatePickerCtrl:setValue(DueDateObj, date2wxDate(DueTime));
        true ->
             ok
     end,
@@ -676,13 +686,14 @@ getActive(_)                                  -> 0.
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
-wxDate({{1970, _, _}, {_, _, _}}) -> undefined;
-wxDate({{2001, _, _}, {_, _, _}}) -> undefined;
+wxDate2Date({{1970, _, _}, {_, _, _}}) -> undefined;
+wxDate2Date({{YY, MM, DD}, {_, _, _}}) -> {YY, MM, DD};
+wxDate2Date({YY, MM, DD})              -> {YY, MM, DD};
+wxDate2Date(undefined)                 -> undefined.
 
-wxDate({{YY, MM, DD}, {_, _, _}}) -> {YY, MM, DD};
-
-wxDate({YY, MM, DD})              -> {{YY, MM, DD}, {0, 0, 0}};
-wxDate(undefined)                 -> {{1970, 1, 1}, {0, 0, 0}}.
+date2wxDate({YY, MM, DD})              -> {{YY, MM, DD}, {0, 0, 0}};
+date2wxDate({{YY, MM, DD}, {_, _, _}}) -> {{YY, MM, DD}, {0, 0, 0}};
+date2wxDate(undefined)                 -> {date(), {0, 0, 0}}.
 
 %%======================================================================
 %% Help functions for menu creation.
