@@ -1085,7 +1085,7 @@
                         <property name="tooltip"></property>
                         <property name="window_extra_style"></property>
                         <property name="window_name"></property>
-                        <property name="window_style"></property>
+                        <property name="window_style">wxTAB_TRAVERSAL</property>
                         <event name="OnChar"></event>
                         <event name="OnEnterWindow"></event>
                         <event name="OnEraseBackground"></event>
@@ -3231,7 +3231,7 @@
                                                                                             <property name="resize">Resizable</property>
                                                                                             <property name="show">1</property>
                                                                                             <property name="size"></property>
-                                                                                            <property name="style">wxDP_ALLOWNONE|wxDP_DROPDOWN</property>
+                                                                                            <property name="style">wxDP_DROPDOWN</property>
                                                                                             <property name="subclass"></property>
                                                                                             <property name="toolbar_pane">0</property>
                                                                                             <property name="tooltip"></property>
@@ -9680,7 +9680,7 @@
                                                 <property name="resize">Resizable</property>
                                                 <property name="show">1</property>
                                                 <property name="size"></property>
-                                                <property name="style">wxDP_ALLOWNONE|wxDP_DROPDOWN</property>
+                                                <property name="style">wxDP_DROPDOWN</property>
                                                 <property name="subclass"></property>
                                                 <property name="toolbar_pane">0</property>
                                                 <property name="tooltip"></property>
@@ -10452,7 +10452,7 @@
                                                 <property name="resize">Resizable</property>
                                                 <property name="show">1</property>
                                                 <property name="size"></property>
-                                                <property name="style">wxDP_ALLOWNONE|wxDP_DROPDOWN</property>
+                                                <property name="style">wxDP_DROPDOWN</property>
                                                 <property name="subclass"></property>
                                                 <property name="toolbar_pane">0</property>
                                                 <property name="tooltip"></property>
@@ -15238,7 +15238,7 @@
                         </object>
                         <object class="sizeritem" expanded="0">
                             <property name="border">5</property>
-                            <property name="flag">wxALIGN_BOTTOM|wxALL</property>
+                            <property name="flag">wxALL</property>
                             <property name="proportion">0</property>
                             <object class="wxButton" expanded="0">
                                 <property name="BottomDockable">1</property>
@@ -15326,7 +15326,7 @@
                         </object>
                         <object class="sizeritem" expanded="0">
                             <property name="border">5</property>
-                            <property name="flag">wxALIGN_BOTTOM|wxALL</property>
+                            <property name="flag">wxALL</property>
                             <property name="proportion">0</property>
                             <object class="wxButton" expanded="0">
                                 <property name="BottomDockable">1</property>
