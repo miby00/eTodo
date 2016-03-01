@@ -85,6 +85,7 @@
                         updateTodoWindow/1,
                         updateValue/4,
 						userStatusUpdate/1,
+                        date2wxDate/1,
                         wxDate2Date/1,
                         xrcId/1
                        ]).
@@ -1211,7 +1212,7 @@ fillRemoteConflict(ETodo, State) ->
     setSelection(StatusObj, ETodo#etodo.status),
     setSelection(PrioObj, ETodo#etodo.priority),
     wxTextCtrl:setValue(SharedObj, ETodo#etodo.sharedWith),
-    wxDatePickerCtrl:setValue(DueDateObj, wxDate2Date(ETodo#etodo.dueTimeDB)),
+    wxDatePickerCtrl:setValue(DueDateObj, date2wxDate(ETodo#etodo.dueTimeDB)),
     wxSpinCtrl:setValue(ProgressObj, default(ETodo#etodo.progress, 0)).
 
 fillLocalConflict(ETodo, State) ->
@@ -1229,7 +1230,7 @@ fillLocalConflict(ETodo, State) ->
     setSelection(StatusObj, ETodo#etodo.status),
     setSelection(PrioObj, ETodo#etodo.priority),
     wxTextCtrl:setValue(SharedObj, ETodo#etodo.sharedWith),
-    wxDatePickerCtrl:setValue(DueDateObj, wxDate2Date(ETodo#etodo.dueTimeDB)),
+    wxDatePickerCtrl:setValue(DueDateObj, date2wxDate(ETodo#etodo.dueTimeDB)),
     wxSpinCtrl:setValue(ProgressObj, default(ETodo#etodo.progress, 0)).
 
 getConflictSettings(Todo, State) ->
