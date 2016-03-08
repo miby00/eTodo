@@ -1087,19 +1087,24 @@ makeTimeLogReport(_User, Rows, AllTask) ->
 makeTimeLogReport2([Uid|Rest], Acc) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     AllLogged = eTodoDB:getAllLoggedWork(Uid),
-    Todo      = eTodoDB:getTodo(tryInt(Uid)),
-    Desc1     = eTodoDB:getWorkDesc(Uid),
-    Desc2     = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
-    Odd       = ((length(Rest) rem 2) =/= 0),
-    Opts2     = [{width, "20%"}, {align, center}],
-    Opts3     = [{width, "20%"}],
-    UidStr    = eTodoUtils:convertUid(tryInt(Uid)),
-    makeTimeLogReport2(Rest,
-                       [trTag(bgColor(Odd),
-                              [tdTag(Opts3, [aTag([{href, UidStr}], Desc2)]),
-                               tdTag(Opts2, time(Estimate) ++ ":00"),
-                               tdTag(Opts2, AllLogged),
-                               tdTag(Opts2, time(Remaining) ++ ":00")]) | Acc]);
+    case {Estimate, Remaining, AllLogged} of
+        {0, 0, "00:00"} ->
+            makeTimeLogReport2(Rest, Acc);
+        _ ->
+            Todo      = eTodoDB:getTodo(tryInt(Uid)),
+            Desc1     = eTodoDB:getWorkDesc(Uid),
+            Desc2     = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
+            Odd       = ((length(Acc) rem 2) =/= 0),
+            Opts2     = [{width, "20%"}, {align, center}],
+            Opts3     = [{width, "20%"}],
+            UidStr    = eTodoUtils:convertUid(tryInt(Uid)),
+            makeTimeLogReport2(Rest,
+                [trTag(bgColor(Odd),
+                    [tdTag(Opts3, [aTag([{href, UidStr}], Desc2)]),
+                        tdTag(Opts2, time(Estimate) ++ ":00"),
+                        tdTag(Opts2, AllLogged),
+                        tdTag(Opts2, time(Remaining) ++ ":00")]) | Acc])
+    end;
 makeTimeLogReport2([], Result) ->
     Opts = [{width, "20%"}, {align, center}],
     [trTag([{bgcolor, "black"}],
