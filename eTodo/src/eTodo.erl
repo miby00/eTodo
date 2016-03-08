@@ -667,14 +667,21 @@ handle_cast({loggedIn, User}, State = #guiState{userStatus = Users}) ->
 	{noreply, State2};
 handle_cast({loggedOut, User}, State = #guiState{userStatus= Users}) ->
     UserObj = obj("userCheckBox",  State),
-    case wxCheckListBox:findString(UserObj, User) of
-        Index when Index >= 0 ->
-            wxCheckListBox:delete(UserObj, Index);
-        _ ->
-            ok
-    end,
-    Users2 = lists:keydelete(User, #userStatus.userName, Users),
-    State2 = setPeerStatusIfNeeded(State#guiState{userStatus = Users2}),
+    Count   = wxCheckListBox:getCount(UserObj),
+    State2  =
+        case Count > 0 of
+            true ->
+                case wxCheckListBox:findString(UserObj, User) of
+                    Index when Index >= 0 ->
+                        wxCheckListBox:delete(UserObj, Index);
+                    _ ->
+                        ok
+                end,
+                Users2 = lists:keydelete(User, #userStatus.userName, Users),
+                setPeerStatusIfNeeded(State#guiState{userStatus = Users2});
+            false ->
+                State
+        end,
     {noreply, State2};
 handle_cast({todoCreated, TaskList, Row, Todo},
             State = #guiState{user       = User,
@@ -1075,14 +1082,9 @@ connectItems([Item | Rest], Event, Frame, Dict) ->
     Dict2 = connectItem(Frame, Item, Event, Dict),
     connectItems(Rest, Event, Frame, Dict2).
 
-connectItem(Frame, Name, Event, Dict)
-    when (Name == "mainTaskList") and (Event == command_list_key_down) ->
-    Id = xrcId(Name),
-    wxFrame:connect(Frame, Event, [{id, Id}, {skip, true}]),
-    dict:store(Id, Name, Dict);
 connectItem(Frame, Name, Event, Dict) ->
     Id = xrcId(Name),
-    wxFrame:connect(Frame, Event, [{id, Id}]),
+    wxFrame:connect(Frame, Event, [{id, Id}, {skip, true}]),
     dict:store(Id, Name, Dict).
 
 connectDialog(Dialog, Name, Dict) ->

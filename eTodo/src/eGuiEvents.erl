@@ -1007,7 +1007,7 @@ updateBookmarkButtonEvent(_Type, _Id, _Frame,
     Obj  = wxXmlResource:xrcctrl(Manage, "manageBookmarkBox", wxListBox),
     Obj2 = wxXmlResource:xrcctrl(Manage, "createBookmarkTxt", wxTextCtrl),
     {_, [Index]} = wxListBox:getSelections(Obj),
-    OldValue = wxListBox:getString(Obj, Index),
+    OldValue = listBoxGet(Obj, Index),
     NewValue = wxTextCtrl:getValue(Obj2),
     wxListBox:setString(Obj, Index, NewValue),
     wxTextCtrl:setValue(Obj2, ""),
@@ -1028,7 +1028,7 @@ removeBookmarkButtonEvent(_Type, _Id, _Frame,
     Obj2 = wxXmlResource:xrcctrl(Manage, "createBookmarkTxt", wxTextCtrl),
     case wxListBox:getSelections(Obj) of
         {_, [Index]} ->
-            ValueToRemove = wxListBox:getString(Obj, Index),
+            ValueToRemove = listBoxGet(Obj, Index),
             BookmCfg2 = lists:keydelete(ValueToRemove, 1, BookmCfg),
             wxListBox:delete(Obj, Index),
             wxTextCtrl:setValue(Obj2, ""),
@@ -1081,8 +1081,8 @@ moveColUpButtonEvent(Type, Id, Frame,
                      State = #guiState{sortColsDlg = SortCols}) ->
     Obj  = wxXmlResource:xrcctrl(SortCols, "sortColumnsBox", wxListBox),
     {_, [Index]} = wxListBox:getSelections(Obj),
-    MovedCol1 = wxListBox:getString(Obj, Index),
-    MovedCol2 = wxListBox:getString(Obj, Index - 1),
+    MovedCol1 = listBoxGet(Obj, Index),
+    MovedCol2 = listBoxGet(Obj, Index - 1),
     wxListBox:setString(Obj, Index, MovedCol2),
     wxListBox:setString(Obj, Index - 1, MovedCol1),
     wxListBox:select(Obj, Index - 1),
@@ -1092,8 +1092,8 @@ moveColDownButtonEvent(Type, Id, Frame,
                        State = #guiState{sortColsDlg = SortCols}) ->
     Obj  = wxXmlResource:xrcctrl(SortCols, "sortColumnsBox", wxListBox),
     {_, [Index]} = wxListBox:getSelections(Obj),
-    MovedCol1 = wxListBox:getString(Obj, Index),
-    MovedCol2 = wxListBox:getString(Obj, Index + 1),
+    MovedCol1 = listBoxGet(Obj, Index),
+    MovedCol2 = listBoxGet(Obj, Index + 1),
     wxListBox:setString(Obj, Index, MovedCol2),
     wxListBox:setString(Obj, Index + 1, MovedCol1),
     wxListBox:select(Obj, Index + 1),
@@ -1189,7 +1189,7 @@ manageBookmarkBoxEvent(_Type, _Id, _Frame,
     Obj3 = wxXmlResource:xrcctrl(Manage, "updateBookmarkButton", wxButton),
     case wxListBox:getSelections(Obj) of
         {_, [Index]} ->
-            Value = wxListBox:getString(Obj, Index),
+            Value = listBoxGet(Obj, Index),
             wxTextCtrl:setValue(Obj2, Value),
             wxButton:enable(Obj3);
         _ ->
@@ -1204,7 +1204,7 @@ manageOwnerBoxEvent(_Type, _Id, _Frame,
     Obj3 = wxXmlResource:xrcctrl(Manage, "updateOwnerButton", wxButton),
     case wxListBox:getSelections(Obj) of
         {_, [Index]} ->
-            Value = wxListBox:getString(Obj, Index),
+            Value = listBoxGet(Obj, Index),
             wxTextCtrl:setValue(Obj2, Value),
             wxButton:enable(Obj3);
         _ ->
@@ -1281,7 +1281,7 @@ removeListButtonEvent(_Type, _Id, _Frame,
     Obj2 = wxXmlResource:xrcctrl(Manage, "createListTxt", wxTextCtrl),
     case wxListBox:getSelections(Obj) of
         {_, [Index]} ->
-            case wxListBox:getString(Obj, Index) of
+            case listBoxGet(Obj, Index) of
                 ?defTaskList ->
                     ok;
                 _ ->
@@ -1299,7 +1299,7 @@ updateListButtonEvent(_Type, _Id, _Frame,
     Obj2 = wxXmlResource:xrcctrl(Manage, "createListTxt", wxTextCtrl),
     {_, [Index]} = wxListBox:getSelections(Obj),
     Lists = getItems(Obj),
-    OldValue = wxListBox:getString(Obj, Index),
+    OldValue = listBoxGet(Obj, Index),
     NewValue = wxTextCtrl:getValue(Obj2),
     case catch list_to_integer(NewValue) of
         {'EXIT', _} ->
@@ -1324,7 +1324,7 @@ manageListBoxEvent(_Type, _Id, _Frame,
     Obj3 = wxXmlResource:xrcctrl(Manage, "updateListButton", wxButton),
     case wxListBox:getSelections(Obj) of
         {_, [Index]} ->
-            case wxListBox:getString(Obj, Index) of
+            case listBoxGet(Obj, Index) of
                 ?defTaskList ->
                     wxButton:disable(Obj3);
                 Value ->
@@ -2447,7 +2447,7 @@ getItems(Obj) ->
 getItems(_Obj, -1, Items) ->
     Items;
 getItems(Obj, Index, Items) ->
-    Item = wxListBox:getString(Obj, Index),
+    Item = listBoxGet(Obj, Index),
     getItems(Obj, Index - 1, [Item|Items]).
 
 %%======================================================================
@@ -2490,3 +2490,11 @@ checkItemsInListWithClear(Obj, Index, List) ->
     checkItemsInListWithClear(Obj, Index - 1, List).
 
 
+listBoxGet(Obj, Index) ->
+    Count = wxListBox:getCount(Obj),
+    case Index < Count of
+        true ->
+            wxListBox:getString(Obj, Index);
+        false ->
+            ""
+    end.
