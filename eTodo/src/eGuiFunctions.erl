@@ -1461,12 +1461,17 @@ getPortrait(Peer) ->
 setPeerStatusIfNeeded(State = #guiState{userStatus = Users}) ->
     Obj   = obj("userCheckBox", State),
     Index = wxCheckListBox:getSelection(Obj),
-    User  = wxCheckListBox:getString(Obj, Index),
-    case lists:keyfind(User, #userStatus.userName, Users) of
-        UserStatus when is_record(UserStatus, userStatus) ->
-            setPeerStatus(UserStatus, State);
+    case Index >= 0 of
+        true ->
+            User  = wxCheckListBox:getString(Obj, Index),
+            case lists:keyfind(User, #userStatus.userName, Users) of
+                UserStatus when is_record(UserStatus, userStatus) ->
+                    setPeerStatus(UserStatus, State);
+                false ->
+                    clearPeerStatus(State)
+            end;
         false ->
-            clearPeerStatus(State)
+            ok
     end,
     State.
 
