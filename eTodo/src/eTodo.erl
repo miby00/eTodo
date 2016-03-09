@@ -1082,9 +1082,14 @@ connectItems([Item | Rest], Event, Frame, Dict) ->
     Dict2 = connectItem(Frame, Item, Event, Dict),
     connectItems(Rest, Event, Frame, Dict2).
 
-connectItem(Frame, Name, Event, Dict) ->
+connectItem(Frame, Name, Event, Dict)
+    when (Name == "mainTaskList") and (Event == command_list_key_down) ->
     Id = xrcId(Name),
     wxFrame:connect(Frame, Event, [{id, Id}, {skip, true}]),
+    dict:store(Id, Name, Dict);
+connectItem(Frame, Name, Event, Dict) ->
+    Id = xrcId(Name),
+    wxFrame:connect(Frame, Event, [{id, Id}]),
     dict:store(Id, Name, Dict).
 
 connectDialog(Dialog, Name, Dict) ->
