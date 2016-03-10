@@ -232,7 +232,7 @@ focusAndSelect(Index, State = #guiState{user    = User,
                                     ?wxLIST_STATE_SELECTED,
                                     ?wxLIST_STATE_SELECTED);
         _Row ->
-            ok
+            updateGui(makeETodo(#todo{}, User, Columns), 0, State)
     end,
     State.
 %%======================================================================
@@ -535,6 +535,10 @@ updateGui(#etodo{description = OldDesc,
     end,
     setDoneTimeStamp(ETodo, Index, State).
 
+setRowInfo(List, ETodo, Row) ->
+    Count = wxListCtrl:getItemCount(List),
+    setRowInfo(List, ETodo, Row, Count).
+
 setRowInfo(List, #etodo{priority       = Priority,
                         priorityCol    = PriorityCol,
                         status         = Status,
@@ -555,31 +559,36 @@ setRowInfo(List, #etodo{priority       = Priority,
                         sharedWithCol  = SharedWithCol,
                         uid            = Uid,
                         uidCol         = UidCol,
-                        hasSubTodo     = HasSubTodo}, Row) ->
+                        hasSubTodo     = HasSubTodo}, Row, Count) ->
 
-    wxListCtrl:setItem(List, Row, UidCol,        Uid),
-    wxListCtrl:setItem(List, Row, StatusCol,     Status),
-    wxListCtrl:setItem(List, Row, OwnerCol,      Owner),
-    wxListCtrl:setItem(List, Row, PriorityCol,   Priority),
-    wxListCtrl:setItem(List, Row, DueTimeCol,    DueTime),
-    wxListCtrl:setItem(List, Row, DescCol,       colFormat(Desc)),
-    wxListCtrl:setItem(List, Row, CommentCol,    colFormat(Comment)),
-    wxListCtrl:setItem(List, Row, SharedWithCol, SharedWith),
-    wxListCtrl:setItem(List, Row, CreateTimeCol, CreateTime),
-    wxListCtrl:setItem(List, Row, DoneTimeCol,   DoneTime),
-
-    case HasSubTodo of
-        false ->
-            case Status of
-                ?descDone ->
-                    wxListCtrl:setItemImage(List, Row, 2);
-                _ ->
-                    wxListCtrl:setItemImage(List, Row, 0)
-            end;
+    case Count > 0 of
         true ->
-            wxListCtrl:setItemImage(List, Row, 1)
-    end,
-    setColor(List, Row).
+            wxListCtrl:setItem(List, Row, UidCol,        Uid),
+            wxListCtrl:setItem(List, Row, StatusCol,     Status),
+            wxListCtrl:setItem(List, Row, OwnerCol,      Owner),
+            wxListCtrl:setItem(List, Row, PriorityCol,   Priority),
+            wxListCtrl:setItem(List, Row, DueTimeCol,    DueTime),
+            wxListCtrl:setItem(List, Row, DescCol,       colFormat(Desc)),
+            wxListCtrl:setItem(List, Row, CommentCol,    colFormat(Comment)),
+            wxListCtrl:setItem(List, Row, SharedWithCol, SharedWith),
+            wxListCtrl:setItem(List, Row, CreateTimeCol, CreateTime),
+            wxListCtrl:setItem(List, Row, DoneTimeCol,   DoneTime),
+
+            case HasSubTodo of
+                false ->
+                    case Status of
+                        ?descDone ->
+                            wxListCtrl:setItemImage(List, Row, 2);
+                        _ ->
+                            wxListCtrl:setItemImage(List, Row, 0)
+                    end;
+                true ->
+                    wxListCtrl:setItemImage(List, Row, 1)
+            end,
+            setColor(List, Row);
+        false ->
+            ok
+    end.
 
 setColor(List, Row) ->
     case Row rem 2 of
