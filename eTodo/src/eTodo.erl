@@ -78,6 +78,7 @@
                         setSelection/2,
                         setSelection/4,
                         setTaskLists/2,
+                        type/1,
                         updateGui/3,
                         updateGui/4,
                         updateTodo/4,
@@ -431,7 +432,36 @@ initGUI(Arg) ->
     State7 = eGuiFunctions:generateTimeLog(State6),
     State8 = eGuiFunctions:generateSchedule(State7),
 
+    %% setTabOrder(State8),
+
     {Frame, checkStatus(State8#guiState{columns = Columns})}.
+
+setTabOrder(State) ->
+    %%    Order = ["manageListsButton", "taskListChoice", "checkBoxUseFilter",
+    %%             "configureSearch", "searchText", "bookmarkBtn", "mainTaskList",
+    %%             "statusChoice", "priorityChoice", "setReminderButton",
+    %%             "dueDatePicker", "dueDateUsed", "descriptionArea", "commentArea",
+    %%             "progressInfo", "logWorkButton", "sendTaskButton", "commentButton",
+    %%             "addOwnerButton", "ownerChoice", "addListButton", "shareButton"],
+
+    %% Tab support seems broken
+    Order1 = ["manageListsButton", "taskListChoice", "checkBoxUseFilter",
+             "configureSearch", "searchText", "bookmarkBtn"],
+    setTabOrder(Order1, State),
+    Order2 = ["statusChoice", "priorityChoice", "setReminderButton",
+              "dueDatePicker", "dueDateUsed"],
+    setTabOrder(Order2, State),
+    Order3 = ["commentArea", "progressInfo", "logWorkButton", "sendTaskButton",
+              "commentButton"],
+    setTabOrder(Order3, State),
+    Order4 = ["addOwnerButton", "ownerChoice", "addListButton", "shareButton"],
+    setTabOrder(Order4, State).
+
+setTabOrder([Comp1, Comp2|Rest], State) ->
+    apply(type(Comp2), moveAfterInTabOrder, [obj(Comp2, State), obj(Comp1, State)]),
+    setTabOrder([Comp2|Rest], State);
+setTabOrder(_Comp, _State) ->
+    ok.
 
 setWindowSize(DefUser, Frame) ->
     UserCfg = eTodoDB:readUserCfg(DefUser),

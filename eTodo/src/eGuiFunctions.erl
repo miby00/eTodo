@@ -50,6 +50,7 @@
          setTaskLists/2,
          showBookmarkMenu/2,
          showMenu/4,
+         type/1,
          updateGui/3,
          updateGui/4,
          updateTodo/4,
@@ -215,7 +216,7 @@ focusAndSelect(Index, State = #guiState{user    = User,
     TodoList = getTodoList(TaskList, State),
     wxListCtrl:setFocus(TodoList),
     case wxListCtrl:getItemCount(TodoList) of
-        Row when Row > Index ->
+        Row when Row > Index and (Index >= 0) ->
             wxListCtrl:ensureVisible(TodoList, Index),
             wxListCtrl:setItemState(TodoList, Index,
                                     ?wxLIST_STATE_SELECTED,
@@ -231,7 +232,7 @@ focusAndSelect(Index, State = #guiState{user    = User,
                                     ?wxLIST_STATE_SELECTED,
                                     ?wxLIST_STATE_SELECTED);
         _Row ->
-            updateGui(makeETodo(#todo{}, User, Columns), 0, State)
+            ok
     end,
     State.
 %%======================================================================
@@ -305,6 +306,14 @@ type("listCheckBox")      -> wxCheckListBox;
 type("setReminderButton") -> wxBitmapButton;
 type("shareButton")       -> wxBitmapButton;
 type("shareButton2")      -> wxBitmapButton;
+type("manageListsButton") -> wxBitmapButton;
+type("configureSearch")   -> wxBitmapButton;
+type("bookmarkBtn")       -> wxBitmapButton;
+type("addOwnerButton")    -> wxBitmapButton;
+type("addListButton")     -> wxBitmapButton;
+type("logWorkButton")     -> wxBitmapButton;
+type("sendTaskButton")    -> wxBitmapButton;
+type("commentButton")     -> wxBitmapButton;
 type("taskEditPanel")     -> wxPanel;
 type("mainPanel")         -> wxPanel;
 type("infoIcon")          -> wxStaticBitmap;
@@ -669,15 +678,20 @@ updateTodoWindow(State = #guiState{searchCfg = Cfg,
                         Acc + 1
                 end, 0, ETodos),
     wxListCtrl:thaw(TodoList),
-    wxListCtrl:setItemState(TodoList, getActive(State),
-                            ?wxLIST_STATE_SELECTED,
-                            ?wxLIST_STATE_SELECTED),
+    case getActive(State) of
+        Active when Active >= 0 ->
+            wxListCtrl:setItemState(TodoList, getActive(State),
+                                    ?wxLIST_STATE_SELECTED,
+                                    ?wxLIST_STATE_SELECTED);
+        _ ->
+            ok
+    end,
     updateInfoIcon(State),
     State#guiState{rows = eRows:replace(ETodos, State#guiState.rows)}.
 
 
-getActive(#guiState{activeTodo = {_, Index}}) -> Index;
-getActive(_)                                  -> 0.
+getActive(#guiState{activeTodo = {_, Index}}) when Index > 0 -> Index;
+getActive(_)                                                 -> -1.
 
 %%======================================================================
 %% Function :
