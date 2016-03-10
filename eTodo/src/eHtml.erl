@@ -50,6 +50,8 @@
 -include("eTodo.hrl").
 -include_lib("inets/include/httpd.hrl").
 
+-define(DodgerBlue, "#1e90ff").
+
 -import(eTodoUtils, [toStr/1, toStr/2, tryInt/1,
                      makeStr/1, getRootDir/0, dateTime/0]).
 
@@ -739,7 +741,7 @@ generateMsg(Sender, Sender, Users, Text) ->
                   tdTag([{valign, "top"}, {align, "left"}, {width, "100%"}],
                         fontTag([{color, "Blue"}], [Sender, UserList])),
                   tdTag([{valign, "top"}, {width, "80"}, {align, "center"}],
-                        fontTag([{color, "DodgerBlue"}], toStr(time(), time))),
+                        fontTag([{color, ?DodgerBlue}], toStr(time(), time))),
                   tdTag([{valign, "top"}, {width, "40"}],
                         imgTag([{src, getRootDir() ++ "/Icons/" ++ Icon}]))]),
                trTag(
@@ -775,7 +777,7 @@ generateMsg(_User, Sender, Users, Text) ->
                  [tdTag([{valign, "top"}, {width, "40"}],
                         imgTag([{src, getRootDir() ++ "/Icons/" ++ Icon}])),
                   tdTag([{valign, "top"}, {width, "80"}, {align, "center"}],
-                        fontTag([{color, "DodgerBlue"}], toStr(time(), time))),
+                        fontTag([{color, ?DodgerBlue}], toStr(time(), time))),
                   tdTag([{valign, "top"}, {width, "100%"}],
                         fontTag([{color, "Blue"}], [Sender, UserList])),
                   tdTag([{width, "150"}], [])]),
@@ -831,7 +833,7 @@ generateSystemMsg(system, Text) ->
           [tdTag([{valign, "top"}],
                  imgTag([{src, getRootDir() ++ "/Icons/etodoChat.png"}])),
            tdTag([{valign, "top"}],
-                 fontTag([{color, "DodgerBlue"}],
+                 fontTag([{color, ?DodgerBlue}],
                          toStr(time(), time))),
            tdTag([{valign, "top"}],
                  fontTag([{color, "Blue"}], "eTodo"))]),
@@ -850,7 +852,7 @@ generateSystemMsg(Uid, Text) ->
           [tdTag([{valign, "top"}],
                  imgTag([{src, getRootDir() ++ "/Icons/etodoChat.png"}])),
            tdTag([{valign, "top"}],
-                 fontTag([{color, "DodgerBlue"}],
+                 fontTag([{color, ?DodgerBlue}],
                          toStr(time(), time))),
            tdTag([{valign, "top"}],
                  fontTag([{color, "Red"}],
@@ -879,7 +881,7 @@ generateAlarmMsg(timer, Text) ->
           [tdTag([{valign, "top"}],
                  imgTag([{src, getRootDir() ++ "/Icons/clockChat.png"}])),
            tdTag([{valign, "top"}],
-                 fontTag([{color, "DodgerBlue"}],
+                 fontTag([{color, ?DodgerBlue}],
                          toStr(time(), time))),
            tdTag([{valign, "top"}],
                  fontTag([{color, "Red"}], "Timer expired"))]),
@@ -898,7 +900,7 @@ generateAlarmMsg(Uid, Text) ->
           [tdTag([{valign, "top"}],
                  imgTag([{src, getRootDir() ++ "/Icons/clockChat.png"}])),
            tdTag([{valign, "top"}],
-                 fontTag([{color, "DodgerBlue"}],
+                 fontTag([{color, ?DodgerBlue}],
                          toStr(time(), time))),
            tdTag([{valign, "top"}],
                  fontTag([{color, "Red"}],
