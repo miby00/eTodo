@@ -446,7 +446,7 @@ updateValue(_Name, _State, Value, Value) ->
 updateValue(Name, State, Value, _OldValue) ->
     updateValue(Name, State, Value).
 
-updateValue(Name, State = #guiState{frame = Frame}, Value) ->
+updateValue(Name, State, Value) ->
     Obj = obj(Name, State),
     case {type(Name), Name} of
         {wxTextCtrl, Name} when

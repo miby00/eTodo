@@ -432,36 +432,7 @@ initGUI(Arg) ->
     State7 = eGuiFunctions:generateTimeLog(State6),
     State8 = eGuiFunctions:generateSchedule(State7),
 
-    %% setTabOrder(State8),
-
     {Frame, checkStatus(State8#guiState{columns = Columns})}.
-
-setTabOrder(State) ->
-    %%    Order = ["manageListsButton", "taskListChoice", "checkBoxUseFilter",
-    %%             "configureSearch", "searchText", "bookmarkBtn", "mainTaskList",
-    %%             "statusChoice", "priorityChoice", "setReminderButton",
-    %%             "dueDatePicker", "dueDateUsed", "descriptionArea", "commentArea",
-    %%             "progressInfo", "logWorkButton", "sendTaskButton", "commentButton",
-    %%             "addOwnerButton", "ownerChoice", "addListButton", "shareButton"],
-
-    %% Tab support seems broken
-    Order1 = ["manageListsButton", "taskListChoice", "checkBoxUseFilter",
-             "configureSearch", "searchText", "bookmarkBtn"],
-    setTabOrder(Order1, State),
-    Order2 = ["statusChoice", "priorityChoice", "setReminderButton",
-              "dueDatePicker", "dueDateUsed"],
-    setTabOrder(Order2, State),
-    Order3 = ["commentArea", "progressInfo", "logWorkButton", "sendTaskButton",
-              "commentButton"],
-    setTabOrder(Order3, State),
-    Order4 = ["addOwnerButton", "ownerChoice", "addListButton", "shareButton"],
-    setTabOrder(Order4, State).
-
-setTabOrder([Comp1, Comp2|Rest], State) ->
-    apply(type(Comp2), moveAfterInTabOrder, [obj(Comp2, State), obj(Comp1, State)]),
-    setTabOrder([Comp2|Rest], State);
-setTabOrder(_Comp, _State) ->
-    ok.
 
 setWindowSize(DefUser, Frame) ->
     UserCfg = eTodoDB:readUserCfg(DefUser),
@@ -892,26 +863,21 @@ handle_event(#wx{event = #wxHtmlLink{linkInfo = LinkInfo}}, State) ->
             {'EXIT', _Reason} ->
                 wx_misc:launchDefaultBrowser(LinkInfo#wxHtmlLinkInfo.href),
                 State2;
-            {uid, undefined} -> %% Task removed
-                State;
-            {uid, undefined, _} -> %% Task removed
-                State;
             {uid, Uid} ->
                 %% ETodo link clicked, select correct task in task list.
-                showTodo(Uid, State2);
+                case eTodoDB:getTodo(Uid) of
+                    undefined ->
+                        State2;
+                    _ ->
+                        showTodo(Uid, State2)
+                end;
             {uidAndDate, Uid, Date} ->
-                %% ETodo link clicked, open log work dialog.
-                Todo    = eTodoDB:getTodo(Uid),
-                User    = State#guiState.user,
-                Columns = State#guiState.columns,
-                ETodo   = makeETodo(Todo, User, Columns),
-                LWDlg   = State#guiState.logWorkDlg,
-                State3  = State#guiState{activeTodo = {ETodo, -1}},
-                DateObj = wxXmlResource:xrcctrl(LWDlg, "workDate", wxDatePickerCtrl),
-                wxDatePickerCtrl:setValue(DateObj, date2wxDate(Date)),
-                eGuiEvents:logWorkButtonEvent(undefined, undefined,
-                                              undefined, State3),
-                State3
+                case eTodoDB:getTodo(Uid) of
+                    undefined ->
+                        State2;
+                    _ ->
+                        showLogWork(Uid, Date, State2)
+                end
         end,
     {noreply, State4};
 
@@ -1505,3 +1471,20 @@ saveAvatar(Peer, Icon) ->
     CustomPortrait2 = getRootDir() ++ "/www/priv/Icons/portrait_" ++ Peer ++ ".png",
     file:write_file(CustomPortrait1, Icon),
     file:write_file(CustomPortrait2, Icon).
+
+%%====================================================================
+%% Show log work dialog.
+%%====================================================================
+showLogWork(Uid, Date, State) ->
+    %% ETodo link clicked, open log work dialog.
+    Todo    = eTodoDB:getTodo(Uid),
+    User    = State#guiState.user,
+    Columns = State#guiState.columns,
+    ETodo   = makeETodo(Todo, User, Columns),
+    LWDlg   = State#guiState.logWorkDlg,
+    State3  = State#guiState{activeTodo = {ETodo, -1}},
+    DateObj = wxXmlResource:xrcctrl(LWDlg, "workDate", wxDatePickerCtrl),
+    wxDatePickerCtrl:setValue(DateObj, date2wxDate(Date)),
+    eGuiEvents:logWorkButtonEvent(undefined, undefined,
+                                  undefined, State3),
+    State3.
