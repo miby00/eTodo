@@ -52,7 +52,7 @@
 
 -define(DodgerBlue, "#1e90ff").
 
--import(eTodoUtils, [toStr/1, toStr/2, tryInt/1,
+-import(eTodoUtils, [toStr/1, toStr/2, tryInt/1, getWeekDay/1,
                      makeStr/1, getRootDir/0, dateTime/0]).
 
 %%%=====================================================================
@@ -301,10 +301,7 @@ incDate(Date, Inc) ->
     Days = calendar:date_to_gregorian_days(Date),
     calendar:gregorian_days_to_date(Days + Inc).
 
-getWeekDay(Date) ->
-    DayNum = calendar:day_of_the_week(Date),
-    lists:nth(DayNum, ["Monday", "Tuesday", "Wednesday",
-                       "Thursday", "Friday", "Saturday", "Sunday"]).
+
 
 showLoggedWork(Date, [], _Days, Result) ->
     Opts  = [{class, "workLogColumn"}],

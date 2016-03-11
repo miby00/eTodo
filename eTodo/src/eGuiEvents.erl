@@ -184,7 +184,8 @@
                      taskInternal/1,
                      toStatusDB/1,
                      toStr/1,
-                     tryInt/1]).
+                     tryInt/1,
+                     getWeekDay/1]).
 
 -import(eRows, [findIndex/2,
                 getETodoAtIndex/2,
@@ -1441,6 +1442,7 @@ logWorkButtonEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
     Uid        = ETodo#etodo.uid,
     DateTime   = wxDatePickerCtrl:getValue(DateObj),
     {Date, _}  = DateTime,
+    wxDatePickerCtrl:setToolTip(DateObj, getWeekDay(Date)),
 
     {Date, Hours, Minutes} = eTodoDB:getLoggedWork(User, Uid, Date),
     {Estimate, Remaining}  = eTodoDB:getTime(Uid),

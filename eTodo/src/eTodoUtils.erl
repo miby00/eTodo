@@ -18,7 +18,7 @@
          taskInternal/1, taskExternal/1, convertUid/1,
          col/2, default/2, doneTime/2, dateTime/0, makeETodo/3,
          makeRef/0, getRootDir/0, apply/4, toColumn/1, toStatusDB/1,
-         addDateTime/2, tryInt/1, cancelTimer/1, getIp/0]).
+         addDateTime/2, tryInt/1, cancelTimer/1, getIp/0, getWeekDay/1]).
 
 %%%===================================================================
 %%% API
@@ -385,6 +385,10 @@ cancelTimer(Ref) ->
     %% Recieved pong, cancel timer.
     erlang:cancel_timer(Ref).
 
+getWeekDay(Date) ->
+    DayNum = calendar:day_of_the_week(Date),
+    lists:nth(DayNum, ["Monday", "Tuesday", "Wednesday",
+        "Thursday", "Friday", "Saturday", "Sunday"]).
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
