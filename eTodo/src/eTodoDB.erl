@@ -1933,4 +1933,4 @@ addToLoggedWork(LoggedWork, ShowInWL) ->
 updateEmptyLW([], SoFar) ->
     SoFar;
 updateEmptyLW([LW|Rest], SoFar) ->
-    updateEmptyLW(Rest, lists:keyreplace(LW#logWork.uid, #logWork.uid, SoFar, LW)).
+    updateEmptyLW(Rest, lists:keystore(LW#logWork.uid, #logWork.uid, SoFar, LW)).
