@@ -1090,11 +1090,14 @@ makeTimeLogReport2([Uid|Rest], Acc) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     AllLogged = eTodoDB:getAllLoggedWork(Uid),
     {ok, _Desc, _ShowInWL, ShowInTL} = eTodoDB:getWorkDescAll(Uid),
-    case {{Estimate, Remaining, AllLogged}, ShowInTL} of
-        {{0, 0, "00:00"}, false} ->
+    Todo = eTodoDB:getTodo(tryInt(Uid)),
+    Done = Todo#todo.status == done,
+    case {{Estimate, Remaining, AllLogged}, ShowInTL, Done} of
+        {{0, 0, "00:00"}, false, _Done} ->
+            makeTimeLogReport2(Rest, Acc);
+        {_Time, false, true} ->
             makeTimeLogReport2(Rest, Acc);
         _ ->
-            Todo      = eTodoDB:getTodo(tryInt(Uid)),
             Desc1     = eTodoDB:getWorkDesc(Uid),
             Desc2     = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
             Odd       = ((length(Acc) rem 2) =/= 0),
