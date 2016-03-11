@@ -53,7 +53,8 @@
 -define(DodgerBlue, "#1e90ff").
 
 -import(eTodoUtils, [toStr/1, toStr/2, tryInt/1, getWeekDay/1,
-                     makeStr/1, getRootDir/0, dateTime/0]).
+                     makeStr/1, getRootDir/0, dateTime/0,
+                     convertUid/1, convertUid/2]).
 
 %%%=====================================================================
 %%% API
@@ -353,17 +354,26 @@ makeWorkLogReport(Date, [{Act, Desc}|Rest],
                   Days = {D1, D2, D3, D4, D5, D6, D7}, SoFar) ->
     Odd    = ((length(Rest) rem 2) == 0),
     Opts   = [{align, center}],
-    UidStr = eTodoUtils:convertUid(list_to_integer(Act)),
+    Uid    = list_to_integer(Act),
+    UidStr = convertUid(Uid),
+
+    Link1  = aTag([{href, convertUid(Uid, Date)}], hours(Act, D1) ++ ":" ++ minutes(Act, D1)),
+    Link2  = aTag([{href, convertUid(Uid, incDate(Date, 1))}], hours(Act, D2) ++ ":" ++ minutes(Act, D2)),
+    Link3  = aTag([{href, convertUid(Uid, incDate(Date, 2))}], hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
+    Link4  = aTag([{href, convertUid(Uid, incDate(Date, 3))}], hours(Act, D4) ++ ":" ++ minutes(Act, D4)),
+    Link5  = aTag([{href, convertUid(Uid, incDate(Date, 4))}], hours(Act, D5) ++ ":" ++ minutes(Act, D5)),
+    Link6  = aTag([{href, convertUid(Uid, incDate(Date, 5))}], hours(Act, D6) ++ ":" ++ minutes(Act, D6)),
+    Link7  = aTag([{href, convertUid(Uid, incDate(Date, 6))}], hours(Act, D7) ++ ":" ++ minutes(Act, D7)),
 
     Row  = trTag(bgColor(Odd),
                  [tdTag(aTag([{href, UidStr}], empty(Desc, Act))),
-                  tdTag(Opts, hours(Act, D1) ++ ":" ++ minutes(Act, D1)),
-                  tdTag(Opts, hours(Act, D2) ++ ":" ++ minutes(Act, D2)),
-                  tdTag(Opts, hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
-                  tdTag(Opts, hours(Act, D4) ++ ":" ++ minutes(Act, D4)),
-                  tdTag(Opts, hours(Act, D5) ++ ":" ++ minutes(Act, D5)),
-                  tdTag(Opts, hours(Act, D6) ++ ":" ++ minutes(Act, D6)),
-                  tdTag(Opts, hours(Act, D7) ++ ":" ++ minutes(Act, D7))]),
+                  tdTag(Opts, Link1),
+                  tdTag(Opts, Link2),
+                  tdTag(Opts, Link3),
+                  tdTag(Opts, Link4),
+                  tdTag(Opts, Link5),
+                  tdTag(Opts, Link6),
+                  tdTag(Opts, Link7)]),
     makeWorkLogReport(Date, Rest, Days, [Row|SoFar]).
 
 empty("", Value)        -> Value;

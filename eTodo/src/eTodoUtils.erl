@@ -15,7 +15,7 @@
 
 %% API
 -export([makeStr/1, toStr/1, toStr/2, toDB/1, toDB/2,
-         taskInternal/1, taskExternal/1, convertUid/1,
+         taskInternal/1, taskExternal/1, convertUid/1, convertUid/2,
          col/2, default/2, doneTime/2, dateTime/0, makeETodo/3,
          makeRef/0, getRootDir/0, apply/4, toColumn/1, toStatusDB/1,
          addDateTime/2, tryInt/1, cancelTimer/1, getIp/0, getWeekDay/1]).
@@ -328,7 +328,10 @@ getIp(Addrs) ->
 convertUid(Uid) when is_list(Uid) ->
     binary_to_term(base64:decode(list_to_binary(Uid)));
 convertUid(Uid) ->
-    binary_to_list(base64:encode(term_to_binary(Uid))).
+    binary_to_list(base64:encode(term_to_binary({uid, Uid}))).
+
+convertUid(Uid, Date) ->
+    binary_to_list(base64:encode(term_to_binary({uidAndDate, Uid, Date}))).
 
 %%======================================================================
 %% Function : addDateTime({Date, Time}, {AddDate, AddTime}) -> NewDateTime

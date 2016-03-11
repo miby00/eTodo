@@ -887,16 +887,29 @@ handle_event(#wx{id = Id, event = #wxDate{type = Type}},
 
 handle_event(#wx{event = #wxHtmlLink{linkInfo = LinkInfo}}, State) ->
     State2 = saveGuiSettings(State),
-    State3 =
+    State4 =
         case catch convertUid(LinkInfo#wxHtmlLinkInfo.href) of
             {'EXIT', _Reason} ->
                 wx_misc:launchDefaultBrowser(LinkInfo#wxHtmlLinkInfo.href),
                 State2;
-            Uid ->
+            {uid, Uid} ->
                 %% ETodo link clicked, select correct task in task list.
-                showTodo(Uid, State2)
+                showTodo(Uid, State2);
+            {uidAndDate, Uid, Date} ->
+                %% ETodo link clicked, open log work dialog.
+                Todo    = eTodoDB:getTodo(Uid),
+                User    = State#guiState.user,
+                Columns = State#guiState.columns,
+                ETodo   = makeETodo(Todo, User, Columns),
+                LWDlg   = State#guiState.logWorkDlg,
+                State3  = State#guiState{activeTodo = {ETodo, -1}},
+                DateObj = wxXmlResource:xrcctrl(LWDlg, "workDate", wxDatePickerCtrl),
+                wxDatePickerCtrl:setValue(DateObj, date2wxDate(Date)),
+                eGuiEvents:logWorkButtonEvent(undefined, undefined,
+                                              undefined, State3),
+                State3
         end,
-    {noreply, State3};
+    {noreply, State4};
 
 handle_event(Event = #wx{}, State) ->
     eLog:log(debug, ?MODULE, handle_event, [Event],
