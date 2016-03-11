@@ -1089,8 +1089,9 @@ makeTimeLogReport(_User, Rows, AllTask) ->
 makeTimeLogReport2([Uid|Rest], Acc) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     AllLogged = eTodoDB:getAllLoggedWork(Uid),
-    case {Estimate, Remaining, AllLogged} of
-        {0, 0, "00:00"} ->
+    {ok, _Desc, _ShowInWL, ShowInTL} = eTodoDB:getWorkDescAll(Uid),
+    case {{Estimate, Remaining, AllLogged}, ShowInTL} of
+        {{0, 0, "00:00"}, false} ->
             makeTimeLogReport2(Rest, Acc);
         _ ->
             Todo      = eTodoDB:getTodo(tryInt(Uid)),

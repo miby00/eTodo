@@ -43,6 +43,7 @@
          getTodosSharedWith/2,
          getUsers/0,
          getWorkDesc/1,
+         getWorkDescAll/1,
          hasSubTodo/1,
          insertTodo/2,
          logWork/5,
@@ -59,7 +60,7 @@
          saveListCfg/4,
          saveTime/3,
          saveUserCfg/1,
-         saveWorkDesc/2,
+         saveWorkDesc/4,
          updateConnection/1,
          updateTodo/2,
          updateTodoNoDiff/2,
@@ -178,6 +179,9 @@ getLists(User, Uid) ->
 getWorkDesc(Uid) ->
     gen_server:call(?MODULE, {getWorkDesc, Uid}).
 
+getWorkDescAll(Uid) ->
+    gen_server:call(?MODULE, {getWorkDescAll, Uid}).
+
 getTime(Uid) ->
     gen_server:call(?MODULE, {getTime, Uid}).
 
@@ -258,8 +262,8 @@ saveListCfg(UserName, Key, Value) ->
 saveUserCfg(UserCfg) ->
     gen_server:call(?MODULE, {saveUserCfg, UserCfg}).
 
-saveWorkDesc(Uid, Desc) ->
-    gen_server:call(?MODULE, {saveWorkDesc, Uid, Desc}).
+saveWorkDesc(Uid, Desc, ShowInWL, ShowInTL) ->
+    gen_server:call(?MODULE, {saveWorkDesc, Uid, Desc, ShowInWL, ShowInTL}).
 
 saveTime(Uid, Estimate, Remaining) ->
     gen_server:call(?MODULE, {saveTime, Uid, Estimate, Remaining}).
@@ -636,13 +640,23 @@ handle_call({getAllLoggedWorkInt, Uid}, _From, State) ->
 handle_call({getWorkDesc, Uid}, _From, State) ->
     Result = default(matchOne(#workDesc{uid = Uid, _ = '_'}), #workDesc{}),
     {reply, Result#workDesc.shortDesc, State};
+handle_call({getWorkDescAll, Uid}, _From, State) ->
+    Result = default(matchOne(#workDesc{uid = Uid, _ = '_'}), #workDesc{}),
+    #workDesc{showInWorkLog = ShowInWorkLog,
+              showInTimeLog = ShowInTimeLog,
+              shortDesc     = ShortDescription} = Result,
+    {reply, {ok, ShortDescription, ShowInWorkLog, ShowInTimeLog}, State};
 handle_call({getTime, Uid}, _From, State) ->
     Result = default(matchOne(#logTime{uid = Uid, _ = '_'}), #logTime{}),
     {reply, {default(Result#logTime.timeEstimate, 0),
              default(Result#logTime.timeRemaining, 0)}, State};
-handle_call({saveWorkDesc, Uid, WorkDesc}, _From, State) ->
+handle_call({saveWorkDesc, Uid, WorkDesc, ShowInWorkLog, ShowInTimeLog},
+            _From, State) ->
     TS = fun() ->
-            mnesia:write(#workDesc{uid = Uid, shortDesc = WorkDesc})
+            mnesia:write(#workDesc{uid           = Uid,
+                                   shortDesc     = WorkDesc,
+                                   showInTimeLog = ShowInTimeLog,
+                                   showInWorkLog = ShowInWorkLog})
          end,
     Result = mnesia:transaction(TS),
     {reply, Result, State};
@@ -656,11 +670,10 @@ handle_call({saveTime, Uid, Estimate, Remaining}, _From, State) ->
     {reply, Result, State};
 handle_call({getLoggedWork, User, Date}, _From, State) ->
     LoggedWork = match(#logWork{userName = User, date = Date, _ = '_'}),
-
+    ShowInWL   = match(#workDesc{showInWorkLog = true, _ = '_'}),
+    AddToWL    = addToLoggedWork(LoggedWork, ShowInWL),
     Result = [{LW#logWork.uid, LW#logWork.hours, LW#logWork.minutes} ||
-                 LW <- LoggedWork,
-        {LW#logWork.hours, LW#logWork.minutes} =/= {0, 0},
-         LW#logWork.hours =/= undefined, LW#logWork.minutes =/= undefined],
+        LW <- AddToWL, showInWorkLog(LW)],
     {reply, Result, State};
 handle_call({logWork, User, Uid, Date, Hours, Minutes}, _From, State) ->
     LoggedWork = #logWork{userName = User,
@@ -1893,3 +1906,31 @@ totInt([], {SumHours, SumMin}) ->
     {SumHours2,  SumMinutes2};
 totInt([#logWork{hours = Hours, minutes = Min}|Rest], {SumHours, SumMin}) ->
     totInt(Rest, {SumHours + Hours, SumMin + Min}).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Get Work log data for task.
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+showInWorkLog(LW) ->
+    WorkDesc = default(matchOne(#workDesc{uid = LW#logWork.uid, _ = '_'}),
+                       #workDesc{}),
+    case  WorkDesc#workDesc.showInWorkLog == true of
+        true ->
+            true;
+        false ->
+            ({LW#logWork.hours, LW#logWork.minutes} =/= {0, 0}) and
+            (LW#logWork.hours =/= undefined) and
+            (LW#logWork.minutes =/= undefined)
+    end.
+
+addToLoggedWork(LoggedWork, ShowInWL) ->
+    EmptyLW = [#logWork{uid = WD#workDesc.uid, hours = 0, minutes = 0} ||
+                        WD <-  ShowInWL],
+    updateEmptyLW(LoggedWork, EmptyLW).
+
+updateEmptyLW([], SoFar) ->
+    SoFar;
+updateEmptyLW([LW|Rest], SoFar) ->
+    updateEmptyLW(Rest, lists:keyreplace(LW#logWork.uid, #logWork.uid, SoFar, LW)).

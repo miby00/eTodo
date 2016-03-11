@@ -210,13 +210,12 @@ getTodoLists(User) ->
 focusAndSelect(State) ->
     focusAndSelect(0, State).
 
-focusAndSelect(Index, State = #guiState{user    = User,
-                                        columns = Columns}) ->
+focusAndSelect(Index, State) ->
     TaskList = getTaskList(State),
     TodoList = getTodoList(TaskList, State),
     wxListCtrl:setFocus(TodoList),
     case wxListCtrl:getItemCount(TodoList) of
-        Row when Row > Index and (Index >= 0) ->
+        Row when (Row > Index) and (Index >= 0) ->
             wxListCtrl:ensureVisible(TodoList, Index),
             wxListCtrl:setItemState(TodoList, Index,
                                     ?wxLIST_STATE_SELECTED,
@@ -232,7 +231,7 @@ focusAndSelect(Index, State = #guiState{user    = User,
                                     ?wxLIST_STATE_SELECTED,
                                     ?wxLIST_STATE_SELECTED);
         _Row ->
-            updateGui(makeETodo(#todo{}, User, Columns), 0, State)
+            updateGui(undefined, 0, State)
     end,
     State.
 %%======================================================================
@@ -455,9 +454,7 @@ updateValue(Name, State = #guiState{frame = Frame}, Value) ->
               (Name == "commentArea")     ->
             %% Do not generate update event when showing new eTodo, only
             %% when the user edits the field.
-            wxFrame:disconnect(Frame, command_text_updated, [{id, xrcId(Name)}]),
-            wxTextCtrl:setValue(Obj, Value),
-            wxFrame:connect(Frame, command_text_updated, [{id, xrcId(Name)}]);
+            wxTextCtrl:changeValue(Obj, Value);
         {wxTextCtrl, Name} ->
             wxTextCtrl:setValue(Obj, Value);
         {wxStaticText, _} ->
@@ -687,16 +684,29 @@ updateTodoWindow(State = #guiState{searchCfg = Cfg,
                         Acc + 1
                 end, 0, ETodos),
     wxListCtrl:thaw(TodoList),
-    case getActive(State) of
-        Active when Active >= 0 ->
-            wxListCtrl:setItemState(TodoList, getActive(State),
-                                    ?wxLIST_STATE_SELECTED,
-                                    ?wxLIST_STATE_SELECTED);
-        _ ->
-            ok
-    end,
-    updateInfoIcon(State),
-    State#guiState{rows = eRows:replace(ETodos, State#guiState.rows)}.
+
+    Count  = wxListCtrl:getItemCount(TodoList),
+    State3 = case getActive(State) of
+                 Active when (Active >= 0) and (Active < Count) ->
+                     wxListCtrl:setItemState(TodoList, getActive(State),
+                                             ?wxLIST_STATE_SELECTED,
+                                             ?wxLIST_STATE_SELECTED),
+                     State;
+                 Active when Active == -1 ->
+                     State;
+                 _ ->
+                     case Count > 0 of
+                         true ->
+                             ETodo  = getETodoAtIndex(0, State#guiState.rows),
+                             State2 = updateGui(ETodo, 0, State),
+                             State2#guiState{activeTodo = {ETodo, 0}};
+                         false ->
+                             State2 = updateGui(undefined, 0, State),
+                             State2#guiState{activeTodo = {undefined, -1}}
+                     end
+             end,
+    updateInfoIcon(State3),
+    State3#guiState{rows = eRows:replace(ETodos, State#guiState.rows)}.
 
 
 getActive(#guiState{activeTodo = {_, Index}}) when Index > 0 -> Index;

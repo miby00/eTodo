@@ -85,7 +85,9 @@
 
 -record(logWork,   {userName, uid, date, hours, minutes}).
 
--record(workDesc,  {uid, shortDesc = ""}).
+-record(workDesc,  {uid, shortDesc = "",
+                    showInWorkLog = false,
+                    showInTimeLog = false}).
 
 -record(logTime,   {uid, timeEstimate = 0, timeRemaining = 0}).
 

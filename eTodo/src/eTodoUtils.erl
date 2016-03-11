@@ -175,12 +175,10 @@ taskExternal(owner)         -> ?owner.
 %% @end
 %%--------------------------------------------------------------------
 col(Desc, Columns) ->
-    case lists:keyfind(Desc, 2, Columns) of
-        {Col, _Desc} ->
+    case catch lists:keyfind(Desc, 2, Columns) of
+        {Col, _Desc} when Col =/= 'EXIT' ->
             Col;
-        false ->
-            eLog:log(error, ?MODULE, col, [Desc, Columns],
-                     "Column missing.", ?LINE),
+        _ ->
             0
     end.
 
