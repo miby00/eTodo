@@ -800,7 +800,7 @@ handle_cast({checkConflict, User, PeerUser,
 handle_cast({delayedUpdateGui, ETodo, Index}, State) ->
     %% Do not execute old update, because a new eTodo has already been selected.
     cancelTimer(State#guiState.delayedUpdate),
-    Ref = erlang:send_after(300, self(), {delayedUpdateGui, ETodo, Index}),
+    Ref = erlang:send_after(100, self(), {delayedUpdateGui, ETodo, Index}),
     {noreply, State#guiState{delayedUpdate = Ref}};
 handle_cast({launchBrowser, URL}, State) ->
     wx_misc:launchDefaultBrowser(URL),
