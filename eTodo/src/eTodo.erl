@@ -892,9 +892,9 @@ handle_event(#wx{event = #wxHtmlLink{linkInfo = LinkInfo}}, State) ->
             {'EXIT', _Reason} ->
                 wx_misc:launchDefaultBrowser(LinkInfo#wxHtmlLinkInfo.href),
                 State2;
-            {uid, undefined} -> %% Todo removed
+            {uid, undefined} -> %% Task removed
                 State;
-            {uid, undefined, _} -> %% Todo removed
+            {uid, undefined, _} -> %% Task removed
                 State;
             {uid, Uid} ->
                 %% ETodo link clicked, select correct task in task list.
