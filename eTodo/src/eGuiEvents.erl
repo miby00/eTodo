@@ -1464,7 +1464,7 @@ logWorkButtonEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
 
 logWorkCancelEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg}) ->
     wxDialog:hide(LWDlg),
-    State.
+    clearActive(State).
 
 logWorkOkEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
                                                      user       = User}) ->
@@ -1496,7 +1496,8 @@ logWorkOkEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
 
     wxDialog:hide(LWDlg),
     State2 = eGuiFunctions:generateWorkLog(State),
-    eGuiFunctions:generateTimeLog(State2).
+    State3 = eGuiFunctions:generateTimeLog(State2),
+    clearActive(State3).
 
 workDateEvent(Type, Id, Frame, State) ->
     logWorkButtonEvent(Type, Id, Frame, State).
@@ -1504,6 +1505,10 @@ workDateEvent(Type, Id, Frame, State) ->
 workLogStartDateEvent(_Type, _Id, _Frame, State) ->
     eGuiFunctions:generateWorkLog(State).
 
+clearActive(State=#guiState{activeTodo = {_, -1}}) ->
+    State#guiState{activeTodo = {undefined, -1}};
+clearActive(State) ->
+    State.
 %%====================================================================
 %% About
 %%====================================================================

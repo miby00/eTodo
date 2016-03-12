@@ -1110,13 +1110,20 @@ makeTimeLogReport2([Uid|Rest], Acc) ->
             Odd       = ((length(Acc) rem 2) =/= 0),
             Opts2     = [{width, "20%"}, {align, center}],
             Opts3     = [{width, "20%"}],
-            UidStr    = eTodoUtils:convertUid(tryInt(Uid)),
+            UidInt    = tryInt(Uid),
+            UidStr    = eTodoUtils:convertUid(UidInt),
+            Date      = date(),
+
+            Link1  = aTag([{href, convertUid(UidInt, Date)}], time(Estimate) ++ ":00"),
+            Link2  = aTag([{href, convertUid(UidInt, incDate(Date, 1))}], AllLogged),
+            Link3  = aTag([{href, convertUid(UidInt, incDate(Date, 2))}], time(Remaining) ++ ":00"),
+
             makeTimeLogReport2(Rest,
                 [trTag(bgColor(Odd),
                     [tdTag(Opts3, [aTag([{href, UidStr}], Desc2)]),
-                        tdTag(Opts2, time(Estimate) ++ ":00"),
-                        tdTag(Opts2, AllLogged),
-                        tdTag(Opts2, time(Remaining) ++ ":00")]) | Acc])
+                        tdTag(Opts2, Link1),
+                        tdTag(Opts2, Link2),
+                        tdTag(Opts2, Link3)]) | Acc])
     end;
 makeTimeLogReport2([], Result) ->
     Opts = [{width, "20%"}, {align, center}],
