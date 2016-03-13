@@ -22,6 +22,7 @@
          checkConflict/5,
          delayedUpdateGui/2,
          getSearchCfg/0,
+         getTimeReportData/0,
          loggedIn/1,
          loggedOut/1,
          msgEntry/3,
@@ -114,6 +115,9 @@ stop() ->
 
 getSearchCfg() ->
     wx_object:call(?MODULE, getSearchCfg).
+
+getTimeReportData() ->
+    wx_object:call(?MODULE, getTimeReportData).
 
 launchBrowser(URL) ->
     wx_object:cast(?MODULE, {launchBrowser, URL}), ok.
@@ -562,6 +566,11 @@ handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
 handle_call(getSearchCfg, _From, State = #guiState{searchCfg = Cfg}) ->
     {reply, Cfg, State};
+handle_call(getTimeReportData, _From, State) ->
+    TaskList = getTaskList(State),
+    AllTask  = TaskList == ?defTaskList,
+    Reply    = {ok, State#guiState.rows, AllTask},
+    {reply, Reply, State};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.

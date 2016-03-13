@@ -367,6 +367,43 @@ table.msgSent {
     background-color: #ffffff;
 }
 
+.timeReportTable {
+    border-color: #d0d0d0;
+    border-width: 6px;
+}
+
+.timeReportSum {
+    background-color: black;
+    color: white;
+    text-align: center;
+}
+
+.timeReportValue {
+    text-align: center;
+    color: darkred;
+}
+
+.timeReportDesc {
+    text-align: left;
+}
+
+.timeReportColumn {
+    text-align: center;
+}
+
+.timeReportHeading {
+    background-color: black;
+    color: white;
+}
+
+.trOdd {
+    background-color: #dcdcdc;
+}
+
+.trEven {
+    background-color: #ffffff;
+}
+
 input.rounded {
 
     border: 1px solid #ccc;

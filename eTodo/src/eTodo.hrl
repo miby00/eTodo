@@ -211,6 +211,7 @@
 
 -define(defInbox,       "Inbox").
 -define(defLoggedWork,  "-- Logged work --").
+-define(defTimeReport,  "-- Time report --").
 -define(defShowStatus,  "-- Show status --").
 
 -define(subTaskList,    "--> ").

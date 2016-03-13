@@ -27,7 +27,9 @@
          makeSceduleReport/1,
          createTaskForm/1,
          showStatus/3,
-         showLoggedWork/2]).
+         showLoggedWork/2,
+         showTimeReport/1,
+         showTimeReport/3]).
 
 -export([htmlTag/0,   htmlTag/1,   htmlTag/2,
          headTag/0,   headTag/1,   headTag/2,
@@ -499,9 +501,10 @@ createForm(User, Default) ->
     TodoLists =
         case eTodoDB:readUserCfg(User) of
             #userCfg{lists = undefined} ->
-                [?defLoggedWork, ?defShowStatus, ?defInbox, ?defTaskList];
+                [?defLoggedWork, ?defTimeReport, ?defShowStatus,
+                  ?defInbox, ?defTaskList];
             #userCfg{lists = Lists} ->
-                [?defLoggedWork, ?defShowStatus, ?defInbox|Lists]
+                [?defLoggedWork, ?defTimeReport, ?defShowStatus, ?defInbox|Lists]
         end,
     formTag([{action, "/eTodo/eWeb:listTodos"},
              {'accept-charset', "UTF-8"},
@@ -1133,6 +1136,72 @@ makeTimeLogReport2([], Result) ->
             tdTag(Opts, heading("Time spent(h)")),
             tdTag(Opts, heading("Time left(h)"))
            ])| lists:reverse(Result)].
+
+%%======================================================================
+%% Function : showTimeReport(User) -> Html
+%% Purpose  : Make time html report.
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+showTimeReport(User) ->
+    {ok, Rows, AllTask} = eTodo:getTimeReportData(),
+    showTimeReport(User, Rows, AllTask).
+
+showTimeReport(_User, Rows, AllTask) ->
+    Uids1 = [ETodo#etodo.uid || ETodo <- eRows:toList(Rows)],
+    Uids2 = case AllTask of
+                true ->
+                    Uids1; %% Subtodos all ready in list.
+                false ->
+                    addSubTodos(Uids1)
+            end,
+    {EstimateSum, SpentSum, RemainingSum} = sum(Uids2),
+    tableTag([showTimeReport2(Uids2, []),
+            trTag([{class, "timeReportTable"}],
+                [tdTag([{class, "timeReportDesc timeReportSum"}], "Total"),
+                    tdTag([{class, "timeReportSum timeReportColumn"}], EstimateSum),
+                    tdTag([{class, "timeReportSum timeReportColumn"}], SpentSum),
+                    tdTag([{class, "timeReportSum timeReportColumn"}], RemainingSum)
+                ])]).
+
+showTimeReport2([Uid|Rest], Acc) ->
+    {Estimate, Remaining} = eTodoDB:getTime(Uid),
+    AllLogged = eTodoDB:getAllLoggedWork(Uid),
+    {ok, _Desc, _ShowInWL, ShowInTL} = eTodoDB:getWorkDescAll(Uid),
+    Todo = eTodoDB:getTodo(tryInt(Uid)),
+    Done = Todo#todo.status == done,
+    case {{Estimate, Remaining, AllLogged}, ShowInTL, Done} of
+        {{0, 0, "00:00"}, false, _Done} ->
+            showTimeReport2(Rest, Acc);
+        {_Time, false, true} ->
+            showTimeReport2(Rest, Acc);
+        _ ->
+            Desc   = eTodoDB:getWorkDesc(Uid),
+            Odd    = ((length(Acc) rem 2) =/= 0),
+            Opts   = if Odd  -> [{class, "trOdd"}];
+                        true -> [{class, "trEven"}]
+                     end,
+            Opts2  = [{class, "timeReportValue"}],
+            UidInt = tryInt(Uid),
+            UidStr = eTodoUtils:convertUid(UidInt),
+
+            showTimeReport2(Rest,
+                [trTag(Opts,
+                    [tdTag(aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
+                        http_uri:encode(UidStr)}], empty(Desc, Uid))),
+                        tdTag(Opts2, time(Estimate) ++ ":00"),
+                        tdTag(Opts2, AllLogged),
+                        tdTag(Opts2, time(Remaining) ++ ":00")]) | Acc])
+    end;
+showTimeReport2([], Result) ->
+    Opts = [{class, "timeReportColumn"}],
+    [trTag([{class, "timeReportHeading"}],
+        [tdTag([{class, "timeReportDesc"}], "Task description"),
+            tdTag(Opts, "Time estimate(h)"),
+            tdTag(Opts, "Time spent(h)"),
+            tdTag(Opts, "Time left(h)")
+        ])| lists:reverse(Result)].
 
 sum(Uids) ->
     sum(Uids, {0, {0, 0}, 0}).

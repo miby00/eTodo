@@ -35,6 +35,7 @@
          index/3,
          showStatus/3,
          showLoggedWork/3,
+         showTimeReport/3,
          checkStatus/3,
          indexJSON/3,
          sendStatus/3,
@@ -168,6 +169,10 @@ showStatus(SessionId, Env, Input) ->
 
 showLoggedWork(SessionId, Env, Input) ->
     HtmlPage = call({showLoggedWork, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, HtmlPage).
+
+showTimeReport(SessionId, Env, Input) ->
+    HtmlPage = call({showTimeReport, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, HtmlPage).
 
 checkStatus(SessionId, Env, Input) ->
@@ -304,6 +309,8 @@ handle_call({listsTodos, _SessionId, _Env, Input}, _From,
         case List of
             ?defLoggedWork ->
                 doShowLoggedWork(User, Text);
+            ?defTimeReport ->
+                doShowTimeReport(User);
             ?defShowStatus ->
                 {Status, StatusMsg} = getStatus(User, SList),
                 eHtml:showStatus(User, Status, StatusMsg);
@@ -1173,6 +1180,19 @@ makeHtml(StatusMsg) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
+%% Construct time report html page.
+%% @spec doShowTimeReport(User) -> Html
+%% @end
+%%--------------------------------------------------------------------
+doShowTimeReport(User) ->
+    [eHtml:pageHeader(User),
+        eHtml:makeForm(User, ?defTaskList),
+        eHtml:showTimeReport(User),
+        eHtml:pageFooter()].
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
 %% Construct logged work html page.
 %% @spec doShowLoggedWork(User) -> Html
 %% @end
@@ -1185,6 +1205,7 @@ doShowLoggedWork(User, Text) ->
      eHtml:makeForm(User, ?defTaskList),
      eHtml:showLoggedWork(User, CalDate),
      eHtml:pageFooter()].
+
 
 checkInputForDate(Text) ->
     Numbers = lists:filter(fun(Char) ->
