@@ -63,7 +63,8 @@
                 users        = [],
                 headers      = [],
                 timers       = [],
-                status       = []}).
+                status       = [],
+                webState     = []}).
 
 -include("eTodo.hrl").
 -include_lib("inets/include/httpd.hrl").
@@ -297,7 +298,7 @@ handle_call({link, _SessionId, _Env, Input}, _From, State) ->
         end,
     {reply, FileData, State};
 
-handle_call({listsTodos, _SessionId, _Env, Input}, _From,
+handle_call({listsTodos, SessionId, _Env, Input}, _From,
             State = #state{user = User, status = SList}) ->
     Cfg = eTodo:getSearchCfg(),
     Flt = [?statusDone],
@@ -310,7 +311,12 @@ handle_call({listsTodos, _SessionId, _Env, Input}, _From,
             ?defLoggedWork ->
                 doShowLoggedWork(User, Text);
             ?defTimeReport ->
-                doShowTimeReport(User);
+                case getWebState(SessionId, State) of
+                    {ok, OldList, OldText} ->
+                        doShowTimeReport(User, OldList, OldText);
+                    _ ->
+                        doShowTimeReport(User, [], "")
+                end;
             ?defShowStatus ->
                 {Status, StatusMsg} = getStatus(User, SList),
                 eHtml:showStatus(User, Status, StatusMsg);
@@ -320,7 +326,8 @@ handle_call({listsTodos, _SessionId, _Env, Input}, _From,
                  eHtml:makeTaskList(User, conv(List), Flt, Text, Cfg),
                  eHtml:pageFooter()]
         end,
-    {reply, HtmlPage, State};
+    State2 = saveWebState(State, SessionId, List, Text),
+    {reply, HtmlPage, State2};
 %%--------------------------------------------------------------------
 %% JSON Stuff
 %%--------------------------------------------------------------------
@@ -1213,10 +1220,18 @@ makeHtml(StatusMsg) ->
 %% @spec doShowTimeReport(User) -> Html
 %% @end
 %%--------------------------------------------------------------------
-doShowTimeReport(User) ->
+doShowTimeReport(User, [], "") ->
     [eHtml:pageHeader(User),
         eHtml:makeForm(User, ?defTaskList),
         eHtml:showTimeReport(User),
+        eHtml:pageFooter()];
+doShowTimeReport(User, List, Text) ->
+    Cfg        = eTodo:getSearchCfg(),
+    ETodos     = eTodoDB:getETodos(User, List, [], Text, Cfg),
+    Uids       = [ETodo#etodo.uid || ETodo <- ETodos],
+    [eHtml:pageHeader(User),
+        eHtml:makeForm(User, List),
+        eHtml:showTimeReport(User, Uids, List == ?defTaskList),
         eHtml:pageFooter()].
 
 %%--------------------------------------------------------------------
@@ -1293,3 +1308,28 @@ replaceLastMsg([], _Html, Acc) ->
 replaceLastMsg([{SessionId, _OldHtml}|Rest], Html, Acc) ->
     replaceLastMsg(Rest, Html, [{SessionId, Html}|Acc]).
 
+saveWebState(State = #state{webState = WebState}, SessionId, List, SearchCfg) ->
+    WebState2 = removeOldSessions(WebState),
+    State#state{webState = [{SessionId, List, SearchCfg}|
+                            lists:keydelete(SessionId, 1, WebState2)]}.
+
+removeOldSessions(WebState) ->
+    removeOldSessions(WebState, []).
+
+removeOldSessions([], Acc) ->
+    Acc;
+removeOldSessions([Session = {SessionId, _List, _Text}|Rest], Acc) ->
+    case is_process_alive(SessionId) of
+        true ->
+            removeOldSessions(Rest, [Session|Acc]);
+        false ->
+            removeOldSessions(Rest, Acc)
+    end.
+
+getWebState(SessionId, #state{webState = WebState}) ->
+    case lists:keyfind(SessionId, 1, WebState) of
+        false ->
+            false;
+        {SessionId, List, Text} ->
+            {ok, List, Text}
+    end.

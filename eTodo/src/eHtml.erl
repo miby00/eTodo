@@ -57,7 +57,7 @@
 
 -import(eTodoUtils, [toStr/1, toStr/2, tryInt/1, getWeekDay/1,
                      makeStr/1, getRootDir/0, dateTime/0,
-                     convertUid/1, convertUid/2]).
+                     convertUid/1, convertUid/2, default/2]).
 
 %%%=====================================================================
 %%% API
@@ -1102,8 +1102,8 @@ makeTimeLogReport2([Uid|Rest], Acc) ->
     AllLogged = eTodoDB:getAllLoggedWork(Uid),
     {ok, _Desc, _ShowInWL, ShowInTL} = eTodoDB:getWorkDescAll(Uid),
     Todo = eTodoDB:getTodo(tryInt(Uid)),
-    Done = Todo#todo.status == done,
-    case {{Estimate, Remaining, AllLogged}, ShowInTL, Done} of
+    Done = (Todo#todo.status == done),
+    case {{Estimate, Remaining, AllLogged}, default(ShowInTL, false), Done} of
         {{0, 0, "00:00"}, false, _Done} ->
             makeTimeLogReport2(Rest, Acc);
         {_Time, false, true} ->
@@ -1186,9 +1186,10 @@ showTimeReport2([Uid|Rest], Acc) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     AllLogged = eTodoDB:getAllLoggedWork(Uid),
     {ok, _Desc, _ShowInWL, ShowInTL} = eTodoDB:getWorkDescAll(Uid),
-    Todo = eTodoDB:getTodo(tryInt(Uid)),
-    Done = Todo#todo.status == done,
-    case {{Estimate, Remaining, AllLogged}, ShowInTL, Done} of
+    UidInt = tryInt(Uid),
+    Todo = eTodoDB:getTodo(UidInt),
+    Done = (Todo#todo.status == done),
+    case {{Estimate, Remaining, AllLogged}, default(ShowInTL, false), Done} of
         {{0, 0, "00:00"}, false, _Done} ->
             showTimeReport2(Rest, Acc);
         {_Time, false, true} ->
@@ -1200,7 +1201,6 @@ showTimeReport2([Uid|Rest], Acc) ->
                         true -> [{class, "trEven"}]
                      end,
             Opts2  = [{class, "timeReportValue"}],
-            UidInt = tryInt(Uid),
             UidStr = eTodoUtils:convertUid(UidInt),
 
             showTimeReport2(Rest,
