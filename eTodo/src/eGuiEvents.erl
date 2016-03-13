@@ -45,6 +45,7 @@
          helpMenu1Event/4,
          linkFileMenuEvent/4,
          linkViewMenuEvent/4,
+         linkTimeReportMenuEvent/4,
          proxyLinkMenuEvent/4,
          listCancelEvent/4,
          listCheckListBoxEvent/4,
@@ -1569,6 +1570,28 @@ linkViewMenuEvent(_Type, _Id, _Frame, State = #guiState{searchCfg = Cfg,
     Link   = "https://" ++ Host ++ ":" ++ PortStr ++ "/eTodo/eWeb:show" ++ Args,
 
     eTodo:systemEntry(system, Link ++ " shows configured view in a browser."
+                      " Link added to clipboard."),
+    toClipboard(Link, State).
+
+linkTimeReportMenuEvent(_Type, _Id, _Frame, State = #guiState{searchCfg = Cfg,
+                                                              filter    = Flt,
+                                                              user      = User}) ->
+    PortStr   = toStr(eWeb:getPort()),
+    List      = toStr(getTaskList(State)),
+    Search    = wxComboBox:getValue(obj("searchText", State)),
+    SearchCfg = makeStr(Cfg),
+    Filter    = makeStr(useFilter(getTaskList(State), Flt, State)),
+    Args      =
+        "?list="      ++ http_uri:encode(List)      ++
+        "&search="    ++ http_uri:encode(Search)    ++
+        "&searchCfg=" ++ http_uri:encode(SearchCfg) ++
+        "&filter="    ++ http_uri:encode(Filter),
+
+    ConCfg = default(eTodoDB:getConnection(User), #conCfg{host = "localhost"}),
+    Host   = default(ConCfg#conCfg.host, "localhost"),
+    Link   = "https://" ++ Host ++ ":" ++ PortStr ++ "/eTodo/eWeb:showTimeReport" ++ Args,
+
+    eTodo:systemEntry(system, Link ++ " shows configured time report in a browser."
                       " Link added to clipboard."),
     toClipboard(Link, State).
 

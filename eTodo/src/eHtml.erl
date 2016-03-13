@@ -29,7 +29,8 @@
          showStatus/3,
          showLoggedWork/2,
          showTimeReport/1,
-         showTimeReport/3]).
+         showTimeReport/3,
+         showTimeReport/4]).
 
 -export([htmlTag/0,   htmlTag/1,   htmlTag/2,
          headTag/0,   headTag/1,   headTag/2,
@@ -1146,10 +1147,10 @@ makeTimeLogReport2([], Result) ->
 %%======================================================================
 showTimeReport(User) ->
     {ok, Rows, AllTask} = eTodo:getTimeReportData(),
-    showTimeReport(User, Rows, AllTask).
-
-showTimeReport(_User, Rows, AllTask) ->
     Uids1 = [ETodo#etodo.uid || ETodo <- eRows:toList(Rows)],
+    showTimeReport(User, Uids1, AllTask).
+
+showTimeReport(_User, Uids1, AllTask) ->
     Uids2 = case AllTask of
                 true ->
                     Uids1; %% Subtodos all ready in list.
@@ -1164,6 +1165,22 @@ showTimeReport(_User, Rows, AllTask) ->
                     tdTag([{class, "timeReportSum timeReportColumn"}], SpentSum),
                     tdTag([{class, "timeReportSum timeReportColumn"}], RemainingSum)
                 ])]).
+
+showTimeReport(_User, Uids1, AllTask, SharedUids) ->
+    Uids2 = case AllTask of
+                true ->
+                    Uids1; %% Subtodos all ready in list.
+                false ->
+                    addSubTodos(Uids1, SharedUids)
+            end,
+    {EstimateSum, SpentSum, RemainingSum} = sum(Uids2),
+    tableTag([showTimeReport2(Uids2, []),
+        trTag([{class, "timeReportTable"}],
+            [tdTag([{class, "timeReportDesc timeReportSum"}], "Total"),
+                tdTag([{class, "timeReportSum timeReportColumn"}], EstimateSum),
+                tdTag([{class, "timeReportSum timeReportColumn"}], SpentSum),
+                tdTag([{class, "timeReportSum timeReportColumn"}], RemainingSum)
+            ])]).
 
 showTimeReport2([Uid|Rest], Acc) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
@@ -1225,14 +1242,28 @@ sum([Uid|Rest], {Est, {Hours, Min}, Rem}) ->
 %% Notes    :
 %%======================================================================
 addSubTodos(Uids) ->
-    addSubTodos(Uids, []).
+    addSubTodos2(Uids, []).
 
-addSubTodos([], Acc) ->
+addSubTodos(Uids, SharedUids) ->
+    Uids2 = addSubTodos2(Uids, []),
+    filterNotInShared(Uids2, SharedUids, []).
+
+filterNotInShared([], _SharedUids, Acc) ->
     lists:reverse(Acc);
-addSubTodos([Uid|Rest], Acc) ->
+filterNotInShared([Uid|Rest], SharedUids, Acc) ->
+    case lists:member(Uid, SharedUids) of
+        true ->
+            filterNotInShared(Rest, SharedUids, [Uid|Acc]);
+        false ->
+            filterNotInShared(Rest, SharedUids, Acc)
+    end.
+
+addSubTodos2([], Acc) ->
+    lists:reverse(Acc);
+addSubTodos2([Uid|Rest], Acc) ->
     SUids = addSubTodos(eTodoDB:getSubTodos(tryInt(Uid))),
     Acc2  = addToAccNoDuplicate([Uid|SUids], Acc),
-    addSubTodos(Rest, Acc2).
+    addSubTodos2(Rest, Acc2).
 
 addToAccNoDuplicate([], Acc) ->
     Acc;

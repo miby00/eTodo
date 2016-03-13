@@ -68,7 +68,7 @@
 -include("eTodo.hrl").
 -include_lib("inets/include/httpd.hrl").
 
--import(eTodoUtils, [makeRef/0, toDB/1, toDB/2, dateTime/0,
+-import(eTodoUtils, [makeRef/0, toDB/1, toDB/2, dateTime/0, toStr/1,
                      getRootDir/0, apply/4, default/2, addDateTime/2,
                      tryInt/1]).
 
@@ -418,6 +418,33 @@ handle_call({show, SessionId, Env, Input}, _From,
 
     HtmlPage   = [eHtml:pageHeader(User),
                   [eHtml:makeHtmlTaskCSS2(ETodo) || ETodo <- ETodos],
+                  eHtml:pageFooter()],
+
+    SessionHdrList2 = keepAliveSessions(SessionHdrList),
+    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
+handle_call({showTimeReport, SessionId, Env, Input}, _From,
+            State = #state{user    = User,
+                           headers = SessionHdrList}) ->
+    Headers    = getHeaders(SessionId, State),
+    {_, WUser} = lists:keyfind(remote_user, 1, Env),
+    Dict       = makeDict(Input),
+    {ok, List} = find("list",      Dict),
+    {ok, Text} = find("search",    Dict),
+    {ok, Cfg}  = find("searchCfg", Dict),
+    {ok, Flt}  = find("filter",    Dict),
+
+    Todos      = eTodoDB:getTodosSharedWith(User, WUser),
+    SharedUids = [toStr(Todo#todo.uid) || Todo <- Todos],
+
+    Columns    = eTodoDB:getColumns(User),
+    SETodos    = [eTodoUtils:makeETodo(Todo, User, Columns) || Todo <- Todos],
+
+    ETodos     = filterETodos(User, List, Text, Flt, Cfg, SETodos),
+    Uids       = [ETodo#etodo.uid || ETodo <- ETodos],
+
+    HtmlPage   = [eHtml:pageHeader(User),
+                  eHtml:showTimeReport(User, Uids, List == ?defTaskList,
+                                       SharedUids),
                   eHtml:pageFooter()],
 
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
@@ -1007,6 +1034,8 @@ flattenMsg(HtmlIOList) ->
 %% @end
 %%--------------------------------------------------------------------
 userOK(_User, {show, _SessionId, _Env, _Input}) ->
+    true;
+userOK(_User, {showTimeReport, _SessionId, _Env, _Input}) ->
     true;
 userOK(_User, {link, _SessionId, _Env, _Input}) ->
     true;
