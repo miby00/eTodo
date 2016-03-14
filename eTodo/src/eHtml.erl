@@ -1149,8 +1149,9 @@ showTimeReport(_User, Uids1, AllTask) ->
                 false ->
                     addSubTodos(Uids1)
             end,
-    {EstimateSum, SpentSum, RemainingSum} = sum(Uids2),
-    tableTag([showTimeReport2(Uids2, []),
+    Uids3 = removeEmptyAndDone(Uids2),
+    {EstimateSum, SpentSum, RemainingSum} = sum(Uids3),
+    tableTag([showTimeReport2(Uids3, []),
             trTag([{class, "timeReportTable"}],
                 [tdTag([{class, "timeReportDesc timeReportSum"}], "Total"),
                     tdTag([{class, "timeReportSum timeReportColumn"}], EstimateSum),
@@ -1166,7 +1167,7 @@ showTimeReport(_User, Uids1, AllTask, SharedUids) ->
                     addSubTodos(Uids1, SharedUids)
             end,
     Uids3 = removeEmptyAndDone(Uids2),
-    {EstimateSum, SpentSum, RemainingSum} = sum(Uids2),
+    {EstimateSum, SpentSum, RemainingSum} = sum(Uids3),
     tableTag([showTimeReport2(Uids3, []),
         trTag([{class, "timeReportTable"}],
             [tdTag([{class, "timeReportDesc timeReportSum"}], "Total"),
