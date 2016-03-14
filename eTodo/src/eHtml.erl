@@ -1087,9 +1087,10 @@ makeTimeLogReport(_User, Rows, AllTask) ->
                 false ->
                     addSubTodos(Uids1)
             end,
+    Uids3 = removeEmptyAndDone(Uids2),
     Opts = [{width, "20%"}, {align, center}],
-    {EstimateSum, SpentSum, RemainingSum} = sum(Uids2),
-    tableTag([makeTimeLogReport2(Uids2, []),
+    {EstimateSum, SpentSum, RemainingSum} = sum(Uids3),
+    tableTag([makeTimeLogReport2(Uids3, []),
               trTag([{bgcolor, "black"}],
                     [tdTag([{width, "40%"}], heading("Total")),
                      tdTag(Opts, heading(EstimateSum)),
@@ -1100,35 +1101,26 @@ makeTimeLogReport(_User, Rows, AllTask) ->
 makeTimeLogReport2([Uid|Rest], Acc) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     AllLogged = eTodoDB:getAllLoggedWork(Uid),
-    {ok, _Desc, _ShowInWL, ShowInTL} = eTodoDB:getWorkDescAll(Uid),
-    Todo = eTodoDB:getTodo(tryInt(Uid)),
-    Done = (Todo#todo.status == done),
-    case {{Estimate, Remaining, AllLogged}, default(ShowInTL, false), Done} of
-        {{0, 0, "00:00"}, false, _Done} ->
-            makeTimeLogReport2(Rest, Acc);
-        {_Time, false, true} ->
-            makeTimeLogReport2(Rest, Acc);
-        _ ->
-            Desc1     = eTodoDB:getWorkDesc(Uid),
-            Desc2     = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
-            Odd       = ((length(Acc) rem 2) =/= 0),
-            Opts2     = [{width, "20%"}, {align, center}],
-            Opts3     = [{width, "20%"}],
-            UidInt    = tryInt(Uid),
-            UidStr    = eTodoUtils:convertUid(UidInt),
-            Date      = date(),
+    Todo      = eTodoDB:getTodo(tryInt(Uid)),
+    Desc1     = eTodoDB:getWorkDesc(Uid),
+    Desc2     = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
+    Odd       = ((length(Acc) rem 2) =/= 0),
+    Opts2     = [{width, "20%"}, {align, center}],
+    Opts3     = [{width, "20%"}],
+    UidInt    = tryInt(Uid),
+    UidStr    = eTodoUtils:convertUid(UidInt),
+    Date      = date(),
 
-            Link1  = aTag([{href, convertUid(UidInt, Date)}], time(Estimate) ++ ":00"),
-            Link2  = aTag([{href, convertUid(UidInt, incDate(Date, 1))}], AllLogged),
-            Link3  = aTag([{href, convertUid(UidInt, incDate(Date, 2))}], time(Remaining) ++ ":00"),
+    Link1  = aTag([{href, convertUid(UidInt, Date)}], time(Estimate) ++ ":00"),
+    Link2  = aTag([{href, convertUid(UidInt, incDate(Date, 1))}], AllLogged),
+    Link3  = aTag([{href, convertUid(UidInt, incDate(Date, 2))}], time(Remaining) ++ ":00"),
 
-            makeTimeLogReport2(Rest,
-                [trTag(bgColor(Odd),
-                    [tdTag(Opts3, [aTag([{href, UidStr}], Desc2)]),
-                        tdTag(Opts2, Link1),
-                        tdTag(Opts2, Link2),
-                        tdTag(Opts2, Link3)]) | Acc])
-    end;
+    makeTimeLogReport2(Rest,
+        [trTag(bgColor(Odd),
+            [tdTag(Opts3, [aTag([{href, UidStr}], Desc2)]),
+                tdTag(Opts2, Link1),
+                tdTag(Opts2, Link2),
+                        tdTag(Opts2, Link3)]) | Acc]);
 makeTimeLogReport2([], Result) ->
     Opts = [{width, "20%"}, {align, center}],
     [trTag([{bgcolor, "black"}],
@@ -1173,8 +1165,9 @@ showTimeReport(_User, Uids1, AllTask, SharedUids) ->
                 false ->
                     addSubTodos(Uids1, SharedUids)
             end,
+    Uids3 = removeEmptyAndDone(Uids2),
     {EstimateSum, SpentSum, RemainingSum} = sum(Uids2),
-    tableTag([showTimeReport2(Uids2, []),
+    tableTag([showTimeReport2(Uids3, []),
         trTag([{class, "timeReportTable"}],
             [tdTag([{class, "timeReportDesc timeReportSum"}], "Total"),
                 tdTag([{class, "timeReportSum timeReportColumn"}], EstimateSum),
@@ -1182,7 +1175,12 @@ showTimeReport(_User, Uids1, AllTask, SharedUids) ->
                 tdTag([{class, "timeReportSum timeReportColumn"}], RemainingSum)
             ])]).
 
-showTimeReport2([Uid|Rest], Acc) ->
+removeEmptyAndDone(Uids) ->
+    removeEmptyAndDone(Uids, []).
+
+removeEmptyAndDone([], Acc) ->
+    lists:reverse(Acc);
+removeEmptyAndDone([Uid|Rest], Acc) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     AllLogged = eTodoDB:getAllLoggedWork(Uid),
     {ok, _Desc, _ShowInWL, ShowInTL} = eTodoDB:getWorkDescAll(Uid),
@@ -1191,26 +1189,31 @@ showTimeReport2([Uid|Rest], Acc) ->
     Done = (Todo#todo.status == done),
     case {{Estimate, Remaining, AllLogged}, default(ShowInTL, false), Done} of
         {{0, 0, "00:00"}, false, _Done} ->
-            showTimeReport2(Rest, Acc);
+            removeEmptyAndDone(Rest, Acc);
         {_Time, false, true} ->
-            showTimeReport2(Rest, Acc);
+            removeEmptyAndDone(Rest, Acc);
         _ ->
-            Desc   = eTodoDB:getWorkDesc(Uid),
-            Odd    = ((length(Acc) rem 2) =/= 0),
-            Opts   = if Odd  -> [{class, "trOdd"}];
-                        true -> [{class, "trEven"}]
-                     end,
-            Opts2  = [{class, "timeReportValue"}],
-            UidStr = eTodoUtils:convertUid(UidInt),
+            removeEmptyAndDone(Rest, [Uid|Acc])
+    end.
 
-            showTimeReport2(Rest,
-                [trTag(Opts,
-                    [tdTag(aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
-                        http_uri:encode(UidStr)}], empty(Desc, Uid))),
-                        tdTag(Opts2, time(Estimate) ++ ":00"),
-                        tdTag(Opts2, AllLogged),
-                        tdTag(Opts2, time(Remaining) ++ ":00")]) | Acc])
-    end;
+showTimeReport2([Uid|Rest], Acc) ->
+    {Estimate, Remaining} = eTodoDB:getTime(Uid),
+    AllLogged = eTodoDB:getAllLoggedWork(Uid),
+    UidInt    = tryInt(Uid),
+    Desc      = eTodoDB:getWorkDesc(Uid),
+    Odd       = ((length(Acc) rem 2) =/= 0),
+    Opts      = if Odd  -> [{class, "trOdd"}];
+                   true -> [{class, "trEven"}]
+                end,
+    Opts2     = [{class, "timeReportValue"}],
+    UidStr    = eTodoUtils:convertUid(UidInt),
+    showTimeReport2(Rest,
+        [trTag(Opts,
+            [tdTag(aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
+                http_uri:encode(UidStr)}], empty(Desc, Uid))),
+                tdTag(Opts2, time(Estimate) ++ ":00"),
+                tdTag(Opts2, AllLogged),
+                tdTag(Opts2, time(Remaining) ++ ":00")]) | Acc]);
 showTimeReport2([], Result) ->
     Opts = [{class, "timeReportColumn"}],
     [trTag([{class, "timeReportHeading"}],
