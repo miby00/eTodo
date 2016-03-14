@@ -672,15 +672,18 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info({removeSession, Pid}, State = #state{lastMsg = LastMsg,
-                                                 headers = Headers,
-                                                 timers  = Timers}) ->
-    LastMsg2 = lists:keydelete({remote, Pid}, 1, LastMsg),
-    Headers2 = lists:keydelete({remote, Pid}, 1, Headers),
-    Timers2  = lists:keydelete(Pid, 1, Timers),
-    {noreply, State#state{lastMsg = LastMsg2,
-                          headers = Headers2,
-                          timers  = Timers2}};
+handle_info({removeSession, Pid}, State = #state{lastMsg  = LastMsg,
+                                                 headers  = Headers,
+                                                 timers   = Timers,
+                                                 webState = WebState}) ->
+    LastMsg2  = lists:keydelete({remote, Pid}, 1, LastMsg),
+    Headers2  = lists:keydelete({remote, Pid}, 1, Headers),
+    WebState2 = lists:keydelete({remote, Pid}, 1, WebState),
+    Timers2   = lists:keydelete(Pid, 1, Timers),
+    {noreply, State#state{lastMsg  = LastMsg2,
+                          headers  = Headers2,
+                          timers   = Timers2,
+                          webState = WebState2}};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -1318,6 +1321,9 @@ removeOldSessions(WebState) ->
 
 removeOldSessions([], Acc) ->
     Acc;
+removeOldSessions([Session = {{remote, SessionId}, _List, _Text}|Rest], Acc) ->
+    evalRemove(SessionId),
+    removeOldSessions(Rest, [Session|Acc]);
 removeOldSessions([Session = {SessionId, _List, _Text}|Rest], Acc) ->
     case is_process_alive(SessionId) of
         true ->
