@@ -247,9 +247,19 @@ obj(Name, Frame) ->
     %% Cache for faster access.
     case get({wxObj, Name}) of
         undefined ->
-            Obj = wxXmlResource:xrcctrl(Frame, Name, type(Name)),
-            put({wxObj, Name}, Obj),
-            Obj;
+            case wxXmlResource:xrcctrl(Frame, Name, type(Name)) of
+                {wx_ref, 0, _Type, _Args} ->
+                    eLog:log(error, ?MODULE, obj,
+                             [Frame, Name, type(Name)],
+                             "Object not found.", ?LINE),
+                    undefined;
+                Obj ->
+                    eLog:log(debug, ?MODULE, obj,
+                             [Frame, Name, type(Name)],
+                              "Object not found in cache, cache object", ?LINE),
+                    put({wxObj, Name}, Obj),
+                    Obj
+            end;
         Obj ->
             Obj
     end.
