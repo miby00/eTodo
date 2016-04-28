@@ -126,7 +126,7 @@ eTimerEnded(Pid, Dir, User, Text) ->
 %% @end
 %%--------------------------------------------------------------------
 eReceivedMsg(Pid, Dir, User, Users, Text) ->
-    gen_server:cast(Pid, {eReceivedMsg, [Dir, User, makeStr(Users), Text]}).
+    gen_server:cast(Pid, {eReceivedMsg, [Dir, User, Users, Text]}).
 
 %%--------------------------------------------------------------------
 %% @doc
