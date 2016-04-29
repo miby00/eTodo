@@ -358,10 +358,8 @@ handle_call({createTodo, _SessionId, _Env, _Input}, _From,
                   eHtml:createTaskForm(User),
                   eHtml:pageFooter()],
     {reply, HtmlPage, State};
-handle_call({createTask, _SessionId, _Env, Input}, _From,
+handle_call({createTask, _SessionId, Env, Input}, _From,
             State = #state{user = User}) ->
-    Cfg  = eTodo:getSearchCfg(),
-    Flt  = [?statusDone],
     Dict = makeDict(Input),
 
     {ok, TaskList} = find("list",     Dict),
@@ -388,10 +386,9 @@ handle_call({createTask, _SessionId, _Env, Input}, _From,
                               parent   = tryInt(TaskList)}, Todo),
 
     eTodo:todoCreated(TaskList, Row, Todo),
-    HtmlPage   = [eHtml:pageHeader(User),
-                  eHtml:makeForm(User, TaskList),
-                  eHtml:makeTaskList(User, conv(TaskList), Flt, [], Cfg),
-                  eHtml:pageFooter()],
+    Host       = proplists:get_value(http_origin, Env),
+    Redirect   = Host ++ "/eTodo/eWeb:listTodos?list=" ++ TaskList ++ "&search=",
+    HtmlPage   = ["location: " ++ Redirect ++ "\r\n\r\n"],
     {reply, HtmlPage, State};
 handle_call({showTodo, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->

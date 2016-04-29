@@ -555,7 +555,7 @@ createTaskForm(User) ->
                 end,
     [formTag([{action,           "/eTodo/eWeb:createTask"},
               {'accept-charset', "UTF-8"},
-              {method,           "get"}],
+              {method,           "post"}],
              [tableTag([{id, "createTable"}],
                        [trTag(
                           [tdTag([{class, "description"}],"Set task list:"),
