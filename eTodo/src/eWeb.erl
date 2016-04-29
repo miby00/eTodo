@@ -1018,15 +1018,16 @@ find(Key, Dict) ->
 %% @end
 %%--------------------------------------------------------------------
 webProxyCall(Pid, Headers, Message, Timeout, From) ->
-    case apply(ePeer, webProxyCall, [Pid, Message, Timeout], "") of
+    HtmlPage = apply(ePeer, webProxyCall, [Pid, Message, Timeout], ""), 
+    case lists:concat(HtmlPage) of
         "location:" ++ Rest ->
             {Hdr, Bdy} = splitHdr("location:" ++ Rest),
             gen_server:reply(From, Hdr ++ Headers ++ Bdy);
         "status:" ++ Rest ->
             {Hdr, Bdy} = splitHdr("status:" ++ Rest),
             gen_server:reply(From, Hdr ++ Headers ++ Bdy);
-        HtmlPage ->
-            gen_server:reply(From, Headers ++ HtmlPage)
+        Html ->
+            gen_server:reply(From, Headers ++ Html)
     end.
 
 splitHdr(Html) ->
