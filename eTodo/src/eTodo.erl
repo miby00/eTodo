@@ -693,14 +693,14 @@ handle_cast({loggedOut, User}, State = #guiState{userStatus= Users}) ->
                 State
         end,
     {noreply, State2};
-handle_cast({todoCreated, TaskList, Row, Todo},
+handle_cast({todoCreated, TaskList, _DBRow, Todo},
             State = #guiState{user       = User,
                               columns    = Columns}) ->
-
     State2 = case getTaskList(State) of
                  TaskList ->
                      ETodo    = makeETodo(Todo, User, Columns),
                      TodoList = getTodoList(TaskList, State),
+                     Row = wxListCtrl:getItemCount(TodoList),
                      addTodo(TodoList, ETodo, Row, State);
                  _ ->
                      State
