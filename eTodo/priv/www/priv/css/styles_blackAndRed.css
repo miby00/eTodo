@@ -7,6 +7,11 @@ body {
 
 select {
     -webkit-appearance: menulist-button;
+    height: 35px;
+    padding: 6px;
+    border: none;
+    border-radius: 4px;
+    background-color: #f1f1f1;
 }
 
 input, select, textarea {
@@ -19,6 +24,7 @@ input, select, textarea {
 td {
     height: 1.5em;
     page-break-inside: avoid;
+    padding: 3px;
 }
 
 tr {
@@ -192,6 +198,9 @@ table.msgSent {
     background: transparent url("/priv/Icons/search.png") no-repeat center;
     cursor: pointer; /* hand-shaped cursor */
     text-indent: -9999px;
+    background-color: DarkRed;
+    border-color: Black;
+    border-radius: 5px;
 }
 
 .description {
@@ -212,6 +221,11 @@ table.msgSent {
     margin-left: 1%;
     width: 99%;
     float: right;
+    padding: 12px 6px;
+    box-sizing: border-box;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    background-color: #f8f8f8;
 }
 
 #createTable {
@@ -220,6 +234,14 @@ table.msgSent {
 
 #createTask {
     float: right;
+    background-color: DarkRed;
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    text-decoration: none;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 5px;
 }
 
 #userSelect {
@@ -233,7 +255,6 @@ table.msgSent {
     height: 20px;
     float: right;
     margin-right: 10px;
-    float: right;
 }
 
 #sendButton {
@@ -243,6 +264,8 @@ table.msgSent {
     background: transparent url("/priv/Icons/send.png") no-repeat center;
     cursor: pointer; /* hand-shaped cursor */
     text-indent: -9999px;
+    background-color: DarkRed;
+    border-color: Black;
 }
 
 #footer {
@@ -445,15 +468,15 @@ input.rounded {
 
 }
 
-	input.rounded:focus {
+input.rounded:focus {
 
-      /* supported IE8+ and all other browsers tested.
-	   * optional, but gives the input focues when selected.
-	   * change to a color that suits your design.
-	   */
-      border-color: #339933;
+    /* supported IE8+ and all other browsers tested.
+     * optional, but gives the input focues when selected.
+     * change to a color that suits your design.
+     */
+    border-color: #339933;
 
-    }
+}
 
 /* Modify stylesheet after size of web window */
 
