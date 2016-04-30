@@ -6,23 +6,26 @@ body {
 
 select {
     -webkit-appearance: menulist-button;
-    height: 35px;
+    height: 2em;
     padding: 6px;
     border: none;
-    border-radius: 4px;
+    border-radius: 3px;
     background-color: #f1f1f1;
 }
 
 input, select, textarea {
     font-size: 1.0em;
-    color: DarkBlue;
+    color: DarkRed;
+    background-color: white;
     font-family: Ubuntu, sans-serif;
 }
 
 td {
-    height: 1.5em;
+    height: 2em;
     page-break-inside: avoid;
     padding: 3px;
+    border-radius: 3px;
+    border: 1px;
 }
 
 tr {
@@ -161,14 +164,16 @@ table.msgSent {
 #taskSelect {
     width: 30%;
     margin-top: 1px;
-    height:30px;
+    height: 2em;
+    padding: 3px;
+    border-radius: 3px;
 }
 
 #searchField {
     width: 61%;
     margin-left: 1%;
     height: 20px;
-    margin-top: 0px;
+    margin-top: 1px;
     margin-right: 10px;
     float: right;
 }
@@ -237,7 +242,6 @@ table.msgSent {
     height: 20px;
     float: right;
     margin-right: 10px;
-    float: right;
 }
 
 #sendButton {
@@ -462,12 +466,23 @@ input.rounded {
         font-size: 0.7em;
     }
 
+    select {
+        padding: 3px;
+        border-radius: 3px;
+    }
+
     input, select, textarea {
         font-size: 1.0em;
     }
 
     td {
-        height: 1.2em;
+        padding: 2px;
+    }
+
+    .textField {
+        padding: 9px 6px;
+        border: 2px solid #ccc;
+        border-radius: 3px;
     }
 
     .msgTime {
