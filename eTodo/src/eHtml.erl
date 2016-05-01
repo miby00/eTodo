@@ -427,9 +427,6 @@ pageHeader(Extra, UserName) ->
     {ok, Styles} = file:read_file(StyleSheet),
     Content = "width=device-width; initial-scale=1.0; "
         "maximum-scale=1.0; user-scalable=0;",
-    Font =  "<link rel='stylesheet' type='text/css' "
-        "href='https://fonts.googleapis.com/css"
-        "?family=Ubuntu:regular,bold&subset=Latin'>",
     ManifestFile = filename:join(["priv", "css", "manifest.json"]),
     Manifest     = "<link rel='manifest' href='/" ++ ManifestFile ++ "'>",
     IconFile     = filename:join(["priv", "Icons", "etodoSuper.png"]),
@@ -442,7 +439,7 @@ pageHeader(Extra, UserName) ->
          metaTag([{"http-equiv", "Content-Type"},
                   {content,      "text/html; charset=UTF-8"}]),
 
-         Font, Manifest, Icon,
+         Manifest, Icon,
          styleTag([{type, "text/css"}], Styles),
          javascript()
         ]),
