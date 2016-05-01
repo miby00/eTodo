@@ -7,8 +7,7 @@ body {
 
 select {
     -webkit-appearance: menulist-button;
-    height: 2em;
-    padding: 6px;
+    height: 28px;
     border: none;
     border-radius: 3px;
     background-color: #f1f1f1;
@@ -22,7 +21,7 @@ input, select, textarea {
 }
 
 td {
-    height: 2em;
+    height: 28px;
     page-break-inside: avoid;
     padding: 3px;
     border-radius: 3px;
@@ -43,8 +42,17 @@ tr {
 
 #footer {
     width: 96%;
-    height: 2em;
+    height: 50px;
+    bottom: 0;
+    padding-bottom: 4px;
+    margin-bottom: 0;
+    position: fixed;
+    z-index: 150;
+    _position: absolute;
+    _top: expression(eval(document.documentElement.scrollTop+
+        (document.documentElement.clientHeight-this.offsetHeight)));
 }
+
 
 #container {
     width: 100%;
@@ -178,7 +186,7 @@ table.msgSent {
 #taskSelect {
     width: 30%;
     margin-top: 1px;
-    height: 2em;
+    height: 28px;
     padding: 3px;
     border-radius: 3px;
 }
@@ -186,7 +194,7 @@ table.msgSent {
 #searchField {
     width: 61%;
     margin-left: 1%;
-    height: 20px;
+    height: 28px;
     margin-top: 1px;
     margin-right: 10px;
     float: right;
@@ -247,15 +255,17 @@ table.msgSent {
 
 #userSelect {
     width: 25%;
-    height: 30px;
-    margin-top: 0px;
+    margin-top: 6px;
+    padding: 3px;
+    height: 28px;
 }
 
 #sendMessage {
     width: 69%;
-    height: 20px;
+    height: 28px;
     float: right;
     margin-right: 10px;
+    margin-top: 6px;
 }
 
 #sendButton {
@@ -267,21 +277,13 @@ table.msgSent {
     text-indent: -9999px;
     background-color: DarkRed;
     border-color: Black;
+    border-radius: 5px;
+    margin-top: 4px;
 }
 
-#footer {
-    bottom: 0;
-    padding-bottom: 4px;
-    margin-bottom: 0;
-    position: fixed;
-    z-index: 150;
-    _position: absolute;
-    _top: expression(eval(document.documentElement.scrollTop+
-        (document.documentElement.clientHeight-this.offsetHeight)));
-}
 
 #messageField {
-    margin-bottom: 3em;
+    margin-bottom: 56px;
 }
 
 #timerContainer {
@@ -430,7 +432,7 @@ table.msgSent {
 
 input.rounded {
 
-    border: 1px solid #ccc;
+    border: none;
     /* Safari 5, Chrome support border-radius without vendor prefix.
      * FF 3.0/3.5/3.6, Mobile Safari 4.0.4 require vendor prefix.
      * No support in Safari 3/4, IE 6/7/8, Opera 10.0.
@@ -451,7 +453,7 @@ input.rounded {
      * otherwise the text is too close to the radius.
      * on a smaller radius/font it may not be necessary
      */
-    padding: 4px 7px;
+    padding: 0px 4px;
 
     /* only needed for webkit browsers which show a rectangular outline;
      * others do not do outline when radius used.
@@ -522,7 +524,6 @@ input.rounded:focus {
 
     #footer {
         width: 94%;
-        height: 1.5em;
     }
 
     #taskSelect {
