@@ -2035,9 +2035,9 @@ settingsMenuEvent(_Type, _Id, _Frame,
 
 webUIEnabledEvent(_Type, _Id, _Frame,
                   State = #guiState{settingsDlg = Settings}) ->
-    WOnObj   = wxXmlResource:xrcctrl(Settings, "webUIEnabled", wxCheckBox),
-    WPwdObj  = wxXmlResource:xrcctrl(Settings, "webPassword",  wxTextCtrl),
-    WPortObj = wxXmlResource:xrcctrl(Settings, "webPort",      wxTextCtrl),
+    WOnObj   = wxXmlResource:xrcctrl(Settings, "webUIEnabled",  wxCheckBox),
+    WPwdObj  = wxXmlResource:xrcctrl(Settings, "webPassword",   wxTextCtrl),
+    WPortObj = wxXmlResource:xrcctrl(Settings, "webPort",       wxTextCtrl),
 
     case wxCheckBox:isChecked(WOnObj) of
         true ->
@@ -2093,6 +2093,21 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     EPortObj = wxXmlResource:xrcctrl(Settings, "eTodoPort",     wxTextCtrl),
     EHostObj = wxXmlResource:xrcctrl(Settings, "eTodoHostName", wxTextCtrl),
     WOnObj   = wxXmlResource:xrcctrl(Settings, "webUIEnabled",  wxCheckBox),
+    ThemeObj = wxXmlResource:xrcctrl(Settings, "themeRadioBox", wxRadioBox),
+
+    FileName   = lists:concat(["styles_", User, ".css"]),
+    DestFile   = filename:join([getRootDir(), "www", "priv", "css", FileName]),
+    BlueTheme  = filename:join([getRootDir(),
+                                "www", "priv", "css", "styles.css"]),
+    BlackTheme = filename:join([getRootDir(),
+                                "www", "priv", "css", "styles-black.css"]),
+
+    case wxRadioBox:getSelection(ThemeObj) of
+        0 ->
+            file:copy(BlueTheme,  DestFile);
+        1 ->
+            file:copy(BlackTheme, DestFile)
+    end,
 
     PeerUser = wxTextCtrl:getValue(PeerObj),
     PeerHost = wxTextCtrl:getValue(HostObj),

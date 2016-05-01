@@ -14,7 +14,7 @@ select {
 
 input, select, textarea {
     font-size: 1.0em;
-    color: DarkRed;
+    color: DarkBlue;
     background-color: white;
     font-family: Ubuntu, sans-serif;
 }
