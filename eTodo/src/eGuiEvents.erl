@@ -2055,6 +2055,8 @@ setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
     EPortObj = wxXmlResource:xrcctrl(Settings, "eTodoPort",    wxTextCtrl),
     WOnObj   = wxXmlResource:xrcctrl(Settings, "webUIEnabled", wxCheckBox),
     EHostObj = wxXmlResource:xrcctrl(Settings, "eTodoHostName", wxTextCtrl),
+    ThemeObj = wxXmlResource:xrcctrl(Settings, "themeRadioBox", wxRadioBox),
+
     IPAddr   = eTodoUtils:getIp(),
     UConCfg  = default(eTodoDB:getConnection(User), #conCfg{}),
 
@@ -2063,11 +2065,13 @@ setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
     #userCfg{webEnabled  = WEnabled,
              webPort     = WPort,
              webPassword = WPasswd,
-             conPort     = EPort} = eTodoDB:readUserCfg(User),
+             conPort     = EPort,
+             theme       = Selected} = eTodoDB:readUserCfg(User),
     wxTextCtrl:setValue(WPortObj, toStr(default(WPort, 8099))),
     wxTextCtrl:setValue(EPortObj, toStr(default(EPort, 19000))),
     wxTextCtrl:setValue(WPwdObj,  default(WPasswd, "")),
     wxCheckBox:setValue(WOnObj,   default(WEnabled, false)),
+    wxRadioBox:setSelection(ThemeObj, default(Selected, 0)),
     webUIEnabledEvent(undefined, undefined, undefined, State).
 
 setDefaultValues(ConCfg, #guiState{user = User, settingsDlg = Settings}) ->
@@ -2075,6 +2079,7 @@ setDefaultValues(ConCfg, #guiState{user = User, settingsDlg = Settings}) ->
     HostObj  = wxXmlResource:xrcctrl(Settings, "hostName",      wxTextCtrl),
     PortObj  = wxXmlResource:xrcctrl(Settings, "peerPort",      wxTextCtrl),
     EHostObj = wxXmlResource:xrcctrl(Settings, "eTodoHostName", wxTextCtrl),
+
     UConCfg  = default(eTodoDB:getConnection(User), #conCfg{}),
     IPAddr   = eTodoUtils:getIp(),
 
@@ -2102,12 +2107,14 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     BlackTheme = filename:join([getRootDir(),
                                 "www", "priv", "css", "styles-black.css"]),
 
-    case wxRadioBox:getSelection(ThemeObj) of
-        0 ->
-            file:copy(BlueTheme,  DestFile);
-        1 ->
-            file:copy(BlackTheme, DestFile)
-    end,
+    Selection = case wxRadioBox:getSelection(ThemeObj) of
+                    0 ->
+                        file:copy(BlueTheme,  DestFile),
+                        0;
+                    1 ->
+                        file:copy(BlackTheme, DestFile),
+                        1
+                end,
 
     PeerUser = wxTextCtrl:getValue(PeerObj),
     PeerHost = wxTextCtrl:getValue(HostObj),
@@ -2135,7 +2142,8 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
                                webEnabled  = WEnabled,
                                webPassword = WPwd,
                                webPort     = toInt(WebPort),
-                               conPort     = toInt(EPort)},
+                               conPort     = toInt(EPort),
+                               theme       = Selection},
     eTodoDB:saveUserCfg(UserCfg2),
     executeChanges(UserCfg, UserCfg2),
     wxDialog:hide(Settings),

@@ -61,7 +61,8 @@
                    splitterMsg     = 100,
                    filter          = [],
                    bookmCfg        = [],
-                   plugins         = []}).
+                   plugins         = [],
+                   theme           = 0}).
 
 -record(listCfg,  {key,
                    userName,
