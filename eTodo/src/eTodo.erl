@@ -387,6 +387,10 @@ initGUI(Arg) ->
 
     State2 = State#guiState{filter    = UserConfig#userCfg.filter},
     State3 = State2#guiState{bookmCfg = default(UserConfig#userCfg.bookmCfg, [])},
+
+    TodoLists = getTodoLists(DefUser),
+    setTaskLists(TodoLists, State3),
+
     State4 = updateTodoWindow(State3),
 
     ePluginServer:setConfiguredPlugins(default(UserConfig#userCfg.plugins, [])),
@@ -404,10 +408,6 @@ initGUI(Arg) ->
 
     %% Set where help is shown.
     wxFrame:setStatusBarPane(Frame, 3),
-
-    TodoLists = getTodoLists(DefUser),
-
-    setTaskLists(TodoLists, State5),
 
     %% Disable backTool
     Back    = xrcId("backTool"),

@@ -381,6 +381,8 @@ setTaskLists(Lists, State = #guiState{user = User}) ->
     wxChoice:clear(Obj2),
     Default =
         case TaskList of
+            ?defTaskList ->
+                default(UserCfg#userCfg.lastTaskList, ?defTaskList);
             Uid when is_integer(Uid) ->
                 SubTaskText = ?subTaskList ++ toStr(Uid),
                 wxChoice:append(Obj2, SubTaskText),

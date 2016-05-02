@@ -893,7 +893,7 @@ ownerChoiceEvent(_Type, _Id, _Frame, State) ->
 progressInfoEvent(_Type, _Id, _Frame, State) ->
     State.
 
-taskListChoiceEvent(_Type, _Id, _Frame, State) ->
+taskListChoiceEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
     Back    = xrcId("backTool"),
     ToolBar = State#guiState.toolBar,
     wxToolBar:enableTool(ToolBar, Back, false),
@@ -901,7 +901,9 @@ taskListChoiceEvent(_Type, _Id, _Frame, State) ->
         case getTaskList(State#guiState{drillDown = []}) of
             ?subTaskList ++ _ ->
                 updateTodoWindow(State#guiState{activeTodo = {undefined, -1}});
-            _ ->
+            TaskList ->
+                UserCfg = eTodoDB:readUserCfg(User),
+                eTodoDB:saveUserCfg(UserCfg#userCfg{lastTaskList = TaskList}),
                 updateTodoWindow(State#guiState{activeTodo = {undefined, -1},
                                                 drillDown  = []})
         end,

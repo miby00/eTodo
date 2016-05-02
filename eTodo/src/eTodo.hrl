@@ -62,7 +62,8 @@
                    filter          = [],
                    bookmCfg        = [],
                    plugins         = [],
-                   theme           = 0}).
+                   theme           = 0,
+                   lastTaskList}).
 
 -record(listCfg,  {key,
                    userName,
