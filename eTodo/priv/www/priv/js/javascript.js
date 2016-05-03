@@ -63,6 +63,20 @@ function sendStatus(Id, Uid)
     AJAX.send(null);
 }
 
+function sendPriority(Id, Uid)
+{
+    var AJAX = newAJAX();
+    if (AJAX == null)
+    {
+        alert("Initialisation of AJAX failed.");
+        return false;
+    }
+    var Data = document.getElementById(Id).value;
+    var url= '/eTodo/eWeb:sendPriority?priority=' + Data + '&uid=' + Uid;
+    AJAX.open("GET", url, true);
+    AJAX.send(null);
+}
+
 function sendMsg(ToId, MsgId)
 {
     var Msg = encodeURIComponent(document.getElementById(MsgId).value);

@@ -39,6 +39,7 @@
          checkStatus/3,
          indexJSON/3,
          sendStatus/3,
+         sendPriority/3,
          saveTodo/3,
          sendMsg/3,
          checkForMessage/3,
@@ -186,6 +187,9 @@ indexJSON(SessionId, Env, Input) ->
 
 sendStatus(SessionId, Env, Input) ->
     Status = call({sendStatus, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, Status).
+sendPriority(SessionId, Env, Input) ->
+    Status = call({sendPriority, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, Status).
 saveTodo(SessionId, Env, Input) ->
     Status = call({saveTodo, SessionId, Env, Input}),
@@ -527,6 +531,17 @@ handle_call({sendStatus, _SessionId, _Env, Input}, _From,
     StatusDB = eTodoUtils:toDB(Status),
     DoneTime = eTodoUtils:doneTime(Todo1#todo.doneTime, StatusDB),
     Todo2 = Todo1#todo{status = StatusDB, doneTime = DoneTime},
+    eTodoDB:updateTodo(User, Todo2),
+    eTodo:todoUpdated(User, Todo2),
+    {reply, "ok", State};
+handle_call({sendPriority, _SessionId, _Env, Input}, _From,
+            State = #state{user = User}) ->
+    Dict = makeDict(Input),
+    {ok, Prio} = find("priority", Dict),
+    {ok, Uid}  = find("uid",      Dict),
+    Todo1 = eTodoDB:getTodo(list_to_integer(Uid)),
+    PrioDB = eTodoUtils:toDB(Prio),
+    Todo2 = Todo1#todo{priority = PrioDB},
     eTodoDB:updateTodo(User, Todo2),
     eTodo:todoUpdated(User, Todo2),
     {reply, "ok", State};

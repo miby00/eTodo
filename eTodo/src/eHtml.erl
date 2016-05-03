@@ -640,7 +640,7 @@ makeHtmlTaskCSS(#etodo{uid         = Uid,
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     [makeTableHeader(Uid, HasSubTodo), "<tr>",
      headerCellCSS(?status), createStatusDataCell(Status, Uid),
-     headerCellCSS(?prio),   dataCellCSS2(Priority, ""),
+     headerCellCSS(?prio),   createPriorityDataCell(Priority, Uid),
      "</tr><tr>",
      headerCellCSS(?sharedWith), dataCellCSS(SharedWith, ""),
      headerCellCSS(?owner),      dataCellCSS(Owner,      ""),
@@ -720,12 +720,18 @@ dataCellCSS2(Text, Extra) ->
     ["<td class=data2 ", Extra, ">", makeHtml(Text, "/priv"), "</td>\r\n"].
 
 createStatusDataCell(Status, Uid) ->
-    ["<td><select name='status' id='id", Uid, "' ",
-     "OnChange=\"sendStatus('id", Uid, "', '", Uid, "');\" ",
+    ["<td><select class='status' id='idStatus", Uid, "' ",
+     "OnChange=\"sendStatus('idStatus", Uid, "', '", Uid, "');\" ",
      "OnClick=\"event.cancelBubble = true;\">\r\n",
      createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA], Status),
      "</select></td>"].
 
+createPriorityDataCell(Prio, Uid) ->
+    ["<td><select class='priority' id='idPriority", Uid, "' ",
+        "OnChange=\"sendPriority('idPriority", Uid, "', '", Uid, "');\" ",
+        "OnClick=\"event.cancelBubble = true;\">\r\n",
+        createForm2([?descLow, ?descMedium, ?descHigh, ?descNA], Prio),
+        "</select></td>"].
 %%======================================================================
 %% Function :
 %% Purpose  :
