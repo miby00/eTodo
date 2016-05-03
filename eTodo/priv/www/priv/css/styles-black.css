@@ -151,7 +151,7 @@ table.msgSent {
 .data2 {
     color: DarkRed;
     background-color: white;
-    width: 21%;
+    width: 31%;
 }
 
 .header {
@@ -599,7 +599,7 @@ input.rounded:focus {
     }
 
     .data2 {
-        width: 25%;
+        width: 35%;
     }
 
     .msgTime {
@@ -675,7 +675,7 @@ input.rounded:focus {
     }
 
     .data2 {
-        width: 27%;
+        width: 39%;
     }
 
     .header {
