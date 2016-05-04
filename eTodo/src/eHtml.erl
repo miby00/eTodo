@@ -32,23 +32,23 @@
          showTimeReport/3,
          showTimeReport/4]).
 
--export([htmlTag/0,   htmlTag/1,   htmlTag/2,
-         headTag/0,   headTag/1,   headTag/2,
-         bodyTag/0,   bodyTag/1,   bodyTag/2,
-         titleTag/1,  titleTag/2,
-         styleTag/1,  styleTag/2,
-         tableTag/0,  tableTag/1,  tableTag/2,
-         divTag/0,    divTag/1,    divTag/2,
-         fontTag/0,   fontTag/1,   fontTag/2,
-         pTag/0,      pTag/1,      pTag/2,
-         bTag/0,      bTag/1,      bTag/2,
-         tdTag/0,     tdTag/1,     tdTag/2,
-         trTag/0,     trTag/1,     trTag/2,
+-export([htmlTag/0, htmlTag/1, htmlTag/2,
+         headTag/0, headTag/1, headTag/2,
+         bodyTag/0, bodyTag/1, bodyTag/2,
+         titleTag/1, titleTag/2,
+         styleTag/1, styleTag/2,
+         tableTag/0, tableTag/1, tableTag/2,
+         divTag/0, divTag/1, divTag/2,
+         fontTag/0, fontTag/1, fontTag/2,
+         pTag/0, pTag/1, pTag/2,
+         bTag/0, bTag/1, bTag/2,
+         tdTag/0, tdTag/1, tdTag/2,
+         trTag/0, trTag/1, trTag/2,
          brTag/0,
-         formTag/0,   formTag/1,   formTag/2,
-         aTag/0,      aTag/1,      aTag/2,
+         formTag/0, formTag/1, formTag/2,
+         aTag/0, aTag/1, aTag/2,
          selectTag/1, selectTag/2, inputTag/1,
-         metaTag/1,   imgTag/1]).
+         metaTag/1, imgTag/1]).
 
 -include("eTodo.hrl").
 -include_lib("inets/include/httpd.hrl").
@@ -67,73 +67,73 @@
 %% Make functions of HTML tags so we can produce html by calling them.
 %%======================================================================
 
-htmlTag()               -> tag(html, [],   []).
-htmlTag(Content)        -> tag(html, [],   Content).
-htmlTag(Attr, Content)  -> tag(html, Attr, Content).
+htmlTag() -> tag(html, [], []).
+htmlTag(Content) -> tag(html, [], Content).
+htmlTag(Attr, Content) -> tag(html, Attr, Content).
 
-headTag()               -> tag(head, [],   []).
-headTag(Content)        -> tag(head, [],   Content).
-headTag(Attr, Content)  -> tag(head, Attr, Content).
+headTag() -> tag(head, [], []).
+headTag(Content) -> tag(head, [], Content).
+headTag(Attr, Content) -> tag(head, Attr, Content).
 
-bodyTag()               -> tag(body, [],   []).
-bodyTag(Content)        -> tag(body, [],   Content).
-bodyTag(Attr, Content)  -> tag(body, Attr, Content).
+bodyTag() -> tag(body, [], []).
+bodyTag(Content) -> tag(body, [], Content).
+bodyTag(Attr, Content) -> tag(body, Attr, Content).
 
-titleTag(Content)       -> tag(title, [],   Content).
+titleTag(Content) -> tag(title, [], Content).
 titleTag(Attr, Content) -> tag(title, Attr, Content).
 
-styleTag(Content)       -> tag(style, [],   Content).
+styleTag(Content) -> tag(style, [], Content).
 styleTag(Attr, Content) -> tag(style, Attr, Content).
 
-tableTag()              -> tag(table, [],   []).
-tableTag(Content)       -> tag(table, [],   Content).
+tableTag() -> tag(table, [], []).
+tableTag(Content) -> tag(table, [], Content).
 tableTag(Attr, Content) -> tag(table, Attr, Content).
 
-divTag()               -> tag('div', [],   []).
-divTag(Content)        -> tag('div', [],   Content).
-divTag(Attr, Content)  -> tag('div', Attr, Content).
+divTag() -> tag('div', [], []).
+divTag(Content) -> tag('div', [], Content).
+divTag(Attr, Content) -> tag('div', Attr, Content).
 
-fontTag()               -> tag(font,  [],   []).
-fontTag(Content)        -> tag(font,  [],   Content).
-fontTag(Attr, Content)  -> tag(font,  Attr, Content).
+fontTag() -> tag(font, [], []).
+fontTag(Content) -> tag(font, [], Content).
+fontTag(Attr, Content) -> tag(font, Attr, Content).
 
-aTag()                  -> tag(a,     [],   []).
-aTag(Content)           -> tag(a,     [],   Content).
-aTag(Attr, Content)     -> tag(a,     Attr, Content).
+aTag() -> tag(a, [], []).
+aTag(Content) -> tag(a, [], Content).
+aTag(Attr, Content) -> tag(a, Attr, Content).
 
-pTag()                  -> tag(p,     [],   []).
-pTag(Content)           -> tag(p,     [],   Content).
-pTag(Attr, Content)     -> tag(p,     Attr, Content).
+pTag() -> tag(p, [], []).
+pTag(Content) -> tag(p, [], Content).
+pTag(Attr, Content) -> tag(p, Attr, Content).
 
-bTag()                  -> tag(b,     [],   []).
-bTag(Content)           -> tag(b,     [],   Content).
-bTag(Attr, Content)     -> tag(b,     Attr, Content).
+bTag() -> tag(b, [], []).
+bTag(Content) -> tag(b, [], Content).
+bTag(Attr, Content) -> tag(b, Attr, Content).
 
-trTag()                 -> tag(tr,    [],   []).
-trTag(Content)          -> tag(tr,    [],   Content).
-trTag(Attr, Content)    -> tag(tr,    Attr, Content).
+trTag() -> tag(tr, [], []).
+trTag(Content) -> tag(tr, [], Content).
+trTag(Attr, Content) -> tag(tr, Attr, Content).
 
-tdTag()                 -> tag(td,    [],   []).
-tdTag(Content)          -> tag(td,    [],   Content).
-tdTag(Attr, Content)    -> tag(td,    Attr, Content).
+tdTag() -> tag(td, [], []).
+tdTag(Content) -> tag(td, [], Content).
+tdTag(Attr, Content) -> tag(td, Attr, Content).
 
-formTag()               -> tag(form,  [],   []).
-formTag(Content)        -> tag(form,  [],   Content).
-formTag(Attr, Content)  -> tag(form,  Attr, Content).
+formTag() -> tag(form, [], []).
+formTag(Content) -> tag(form, [], Content).
+formTag(Attr, Content) -> tag(form, Attr, Content).
 
-selectTag(Content)      -> tag(select,  [],   Content).
-selectTag(Attr, Content)-> tag(select,  Attr, Content).
+selectTag(Content) -> tag(select, [], Content).
+selectTag(Attr, Content) -> tag(select, Attr, Content).
 
-inputTag(Attr)          -> cTag(input,  Attr).
+inputTag(Attr) -> cTag(input, Attr).
 
-imgTag(Attr)            -> cTag(img,  Attr).
+imgTag(Attr) -> cTag(img, Attr).
 
-metaTag(Attr)           -> cTag(meta, Attr).
+metaTag(Attr) -> cTag(meta, Attr).
 
-brTag()                 -> cTag(br, []).
+brTag() -> cTag(br, []).
 
-tag(Tag, Attr, Content)  ->
-    HTag  = [$<, toStr(Tag), attr(Attr), $>, Content, $<, $/, toStr(Tag), $>],
+tag(Tag, Attr, Content) ->
+    HTag = [$<, toStr(Tag), attr(Attr), $>, Content, $<, $/, toStr(Tag), $>],
     case lists:keyfind(nonEmpty, 1, Attr) of
         {nonEmpty, Value} ->
             nonEmpty(Value, HTag);
@@ -151,14 +151,14 @@ attr(Attr) ->
 
 attr([], Acc) ->
     Acc;
-attr([{nonEmpty, _}|Rest], Acc) ->
+attr([{nonEmpty, _} | Rest], Acc) ->
     attr(Rest, Acc);
-attr([{Name, Value}|Rest], Acc) when is_integer(Value) ->
+attr([{Name, Value} | Rest], Acc) when is_integer(Value) ->
     attr(Rest, [Acc, 32, toStr(Name), $=, toStr(Value)]);
-attr([{Name, Value}|Rest], Acc) ->
+attr([{Name, Value} | Rest], Acc) ->
     attr(Rest, [Acc, 32, toStr(Name), $=, $', toStr(Value), $']);
-attr([Name|Rest], Acc) ->
-    attr([{Name, Name}|Rest], Acc).
+attr([Name | Rest], Acc) ->
+    attr([{Name, Name} | Rest], Acc).
 
 %%======================================================================
 %% Function :
@@ -169,14 +169,14 @@ attr([Name|Rest], Acc) ->
 %%======================================================================
 printTaskList(User, List, Filter, SearchText, Cfg) ->
     ETodos = eTodoDB:getETodos(User, List, Filter, SearchText, Cfg),
-    Body   = [[makePrintTaskList(ETodo), pTag()] || ETodo <- ETodos],
+    Body = [[makePrintTaskList(ETodo), pTag()] || ETodo <- ETodos],
     ["<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' ",
      "'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>",
-     htmlTag([{"xmlns",    "http://www.w3.org/1999/xhtml"},
+     htmlTag([{"xmlns", "http://www.w3.org/1999/xhtml"},
               {"xml:lang", "en"},
-              {"lang",     "en"}],
+              {"lang", "en"}],
              [headTag([metaTag([{"http-equiv", "Content-Type"},
-                                {content,      "text/html; charset=UTF-8"}]),
+                                {content, "text/html; charset=UTF-8"}]),
                        titleTag("eTodo - " ++ User)]),
               bodyTag(Body)])].
 
@@ -187,19 +187,19 @@ printTaskList(User, List, Filter, SearchText, Cfg) ->
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
-makePrintTaskList(#etodo{status      = Status,
-                         priority    = Priority,
-                         dueTime     = DueTime,
+makePrintTaskList(#etodo{status = Status,
+                         priority = Priority,
+                         dueTime = DueTime,
                          description = Description,
-                         comment     = Comment,
-                         sharedWith  = SharedWith,
-                         createTime  = CreateTime,
-                         doneTime    = DoneTime,
-                         progress    = Progress,
-                         owner       = Owner,
-                         uid         = Uid}) ->
+                         comment = Comment,
+                         sharedWith = SharedWith,
+                         createTime = CreateTime,
+                         doneTime = DoneTime,
+                         progress = Progress,
+                         owner = Owner,
+                         uid = Uid}) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
-    AllLoggedWork         = eTodoDB:getAllLoggedWork(Uid),
+    AllLoggedWork = eTodoDB:getAllLoggedWork(Uid),
 
     [tableTag([{width, "100%"}, {bgcolor, "#b9c9fe"}],
               [trTag([headerCell(?status),
@@ -236,7 +236,7 @@ headerCell(Text) ->
           fontTag([{size, 1}], bTag([Text, $:]))).
 
 dataCell(Text, Extra) ->
-    tdTag([{bgcolor, "#e8edff"}|Extra], fontTag([{size, 1}], makeHtml(Text))).
+    tdTag([{bgcolor, "#e8edff"} | Extra], fontTag([{size, 1}], makeHtml(Text))).
 
 %%======================================================================
 %% Function : makeWorkLogReport(User, Date) -> Html
@@ -295,10 +295,10 @@ tot(Days) ->
     tot(Days, {0, 0}).
 
 tot([], {SumHours, SumMin}) ->
-    SumHours2   = SumHours + (SumMin div 60),
+    SumHours2 = SumHours + (SumMin div 60),
     SumMinutes2 = SumMin rem 60,
     time(SumHours2) ++ ":" ++ time(SumMinutes2);
-tot([{_, Hours, Min}|Rest], {SumHours, SumMin}) ->
+tot([{_, Hours, Min} | Rest], {SumHours, SumMin}) ->
     tot(Rest, {SumHours + Hours, SumMin + Min}).
 
 incDate(Date, Inc) ->
@@ -308,38 +308,38 @@ incDate(Date, Inc) ->
 
 
 showLoggedWork(Date, [], _Days, Result) ->
-    Opts  = [{class, "workLogColumn"}],
+    Opts = [{class, "workLogColumn"}],
     Opts2 = [{class, "workLogColumn workLogColBig"}],
     [trTag([{class, "workLogHeading"}],
            [tdTag([{class, "workLogDesc"}], "Task description"),
             tdTag(Opts2, getWeekDay(Date)),
             tdTag(Opts2, getWeekDay(incDate(Date, 1))),
             tdTag(Opts2, getWeekDay(incDate(Date, 2))),
-            tdTag(Opts,  getWeekDay(incDate(Date, 3))),
-            tdTag(Opts,  getWeekDay(incDate(Date, 4))),
-            tdTag(Opts,  getWeekDay(incDate(Date, 5))),
-            tdTag(Opts,  getWeekDay(incDate(Date, 6)))
-           ])| lists:reverse(Result)];
-showLoggedWork(Date, [{Act, Desc}|Rest],
+            tdTag(Opts, getWeekDay(incDate(Date, 3))),
+            tdTag(Opts, getWeekDay(incDate(Date, 4))),
+            tdTag(Opts, getWeekDay(incDate(Date, 5))),
+            tdTag(Opts, getWeekDay(incDate(Date, 6)))
+           ]) | lists:reverse(Result)];
+showLoggedWork(Date, [{Act, Desc} | Rest],
                Days = {D1, D2, D3, D4, D5, D6, D7}, SoFar) ->
-    Odd    = ((length(Rest) rem 2) == 0),
+    Odd = ((length(Rest) rem 2) == 0),
     UidStr = eTodoUtils:convertUid(list_to_integer(Act)),
-    Opts   = if Odd  -> [{class, "lwOdd"}];
-                true -> [{class, "lwEven"}]
-             end,
+    Opts = if Odd -> [{class, "lwOdd"}];
+              true -> [{class, "lwEven"}]
+           end,
     Opts2 = [{class, "workLogValue"}],
     Opts3 = [{class, "workLogValue workLogColBig"}],
-    Row  = trTag(Opts,
-                 [tdTag(aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
-                                   http_uri:encode(UidStr)}], empty(Desc, Act))),
-                  tdTag(Opts3, hours(Act, D1) ++ ":" ++ minutes(Act, D1)),
-                  tdTag(Opts3, hours(Act, D2) ++ ":" ++ minutes(Act, D2)),
-                  tdTag(Opts3, hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
-                  tdTag(Opts2, hours(Act, D4) ++ ":" ++ minutes(Act, D4)),
-                  tdTag(Opts2, hours(Act, D5) ++ ":" ++ minutes(Act, D5)),
-                  tdTag(Opts2, hours(Act, D6) ++ ":" ++ minutes(Act, D6)),
-                  tdTag(Opts2, hours(Act, D7) ++ ":" ++ minutes(Act, D7))]),
-    showLoggedWork(Date, Rest, Days, [Row|SoFar]).
+    Row = trTag(Opts,
+                [tdTag(aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
+                                  http_uri:encode(UidStr)}], empty(Desc, Act))),
+                 tdTag(Opts3, hours(Act, D1) ++ ":" ++ minutes(Act, D1)),
+                 tdTag(Opts3, hours(Act, D2) ++ ":" ++ minutes(Act, D2)),
+                 tdTag(Opts3, hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
+                 tdTag(Opts2, hours(Act, D4) ++ ":" ++ minutes(Act, D4)),
+                 tdTag(Opts2, hours(Act, D5) ++ ":" ++ minutes(Act, D5)),
+                 tdTag(Opts2, hours(Act, D6) ++ ":" ++ minutes(Act, D6)),
+                 tdTag(Opts2, hours(Act, D7) ++ ":" ++ minutes(Act, D7))]),
+    showLoggedWork(Date, Rest, Days, [Row | SoFar]).
 
 makeWorkLogReport(Date, [], _Days, Result) ->
     Opts = [{width, "11%"}, {align, center}],
@@ -352,36 +352,36 @@ makeWorkLogReport(Date, [], _Days, Result) ->
             tdTag(Opts, heading(getWeekDay(incDate(Date, 4)))),
             tdTag(Opts, heading(getWeekDay(incDate(Date, 5)))),
             tdTag(Opts, heading(getWeekDay(incDate(Date, 6))))
-           ])| lists:reverse(Result)];
-makeWorkLogReport(Date, [{Act, Desc}|Rest],
+           ]) | lists:reverse(Result)];
+makeWorkLogReport(Date, [{Act, Desc} | Rest],
                   Days = {D1, D2, D3, D4, D5, D6, D7}, SoFar) ->
-    Odd    = ((length(Rest) rem 2) == 0),
-    Opts   = [{align, center}],
-    Uid    = list_to_integer(Act),
+    Odd = ((length(Rest) rem 2) == 0),
+    Opts = [{align, center}],
+    Uid = list_to_integer(Act),
     UidStr = convertUid(Uid),
 
-    Link1  = aTag([{href, convertUid(Uid, Date)}], hours(Act, D1) ++ ":" ++ minutes(Act, D1)),
-    Link2  = aTag([{href, convertUid(Uid, incDate(Date, 1))}], hours(Act, D2) ++ ":" ++ minutes(Act, D2)),
-    Link3  = aTag([{href, convertUid(Uid, incDate(Date, 2))}], hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
-    Link4  = aTag([{href, convertUid(Uid, incDate(Date, 3))}], hours(Act, D4) ++ ":" ++ minutes(Act, D4)),
-    Link5  = aTag([{href, convertUid(Uid, incDate(Date, 4))}], hours(Act, D5) ++ ":" ++ minutes(Act, D5)),
-    Link6  = aTag([{href, convertUid(Uid, incDate(Date, 5))}], hours(Act, D6) ++ ":" ++ minutes(Act, D6)),
-    Link7  = aTag([{href, convertUid(Uid, incDate(Date, 6))}], hours(Act, D7) ++ ":" ++ minutes(Act, D7)),
+    Link1 = aTag([{href, convertUid(Uid, Date)}], hours(Act, D1) ++ ":" ++ minutes(Act, D1)),
+    Link2 = aTag([{href, convertUid(Uid, incDate(Date, 1))}], hours(Act, D2) ++ ":" ++ minutes(Act, D2)),
+    Link3 = aTag([{href, convertUid(Uid, incDate(Date, 2))}], hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
+    Link4 = aTag([{href, convertUid(Uid, incDate(Date, 3))}], hours(Act, D4) ++ ":" ++ minutes(Act, D4)),
+    Link5 = aTag([{href, convertUid(Uid, incDate(Date, 4))}], hours(Act, D5) ++ ":" ++ minutes(Act, D5)),
+    Link6 = aTag([{href, convertUid(Uid, incDate(Date, 5))}], hours(Act, D6) ++ ":" ++ minutes(Act, D6)),
+    Link7 = aTag([{href, convertUid(Uid, incDate(Date, 6))}], hours(Act, D7) ++ ":" ++ minutes(Act, D7)),
 
-    Row  = trTag(bgColor(Odd),
-                 [tdTag(aTag([{href, UidStr}], empty(Desc, Act))),
-                  tdTag(Opts, Link1),
-                  tdTag(Opts, Link2),
-                  tdTag(Opts, Link3),
-                  tdTag(Opts, Link4),
-                  tdTag(Opts, Link5),
-                  tdTag(Opts, Link6),
-                  tdTag(Opts, Link7)]),
-    makeWorkLogReport(Date, Rest, Days, [Row|SoFar]).
+    Row = trTag(bgColor(Odd),
+                [tdTag(aTag([{href, UidStr}], empty(Desc, Act))),
+                 tdTag(Opts, Link1),
+                 tdTag(Opts, Link2),
+                 tdTag(Opts, Link3),
+                 tdTag(Opts, Link4),
+                 tdTag(Opts, Link5),
+                 tdTag(Opts, Link6),
+                 tdTag(Opts, Link7)]),
+    makeWorkLogReport(Date, Rest, Days, [Row | SoFar]).
 
-empty("", Value)        -> Value;
+empty("", Value) -> Value;
 empty(undefined, Value) -> Value;
-empty(Value, _)         -> makeHtml(Value).
+empty(Value, _) -> makeHtml(Value).
 
 bgColor(false) ->
     [{bgcolor, "white"}];
@@ -428,16 +428,16 @@ pageHeader(Extra, UserName) ->
     Content = "width=device-width; initial-scale=1.0; "
         "maximum-scale=1.0; user-scalable=0;",
     ManifestFile = filename:join(["priv", "css", "manifest.json"]),
-    Manifest     = "<link rel='manifest' href='/" ++ ManifestFile ++ "'>",
-    IconFile     = filename:join(["priv", "Icons", "etodoSuper.png"]),
-    Icon         = "<link rel='icon' sizes='192x192' href='/" ++ IconFile ++ "'>",
+    Manifest = "<link rel='manifest' href='/" ++ ManifestFile ++ "'>",
+    IconFile = filename:join(["priv", "Icons", "etodoSuper.png"]),
+    Icon = "<link rel='icon' sizes='192x192' href='/" ++ IconFile ++ "'>",
     ["<!DOCTYPE html><html>",
      [headTag(
         [titleTag(["eTodo - ", UserName]),
          metaTag([{name, "mobile-web-app-capable"}, {content, "yes"}]),
          metaTag([{content, Content}, {name, "viewport"}]),
          metaTag([{"http-equiv", "Content-Type"},
-                  {content,      "text/html; charset=UTF-8"}]),
+                  {content, "text/html; charset=UTF-8"}]),
 
          Manifest, Icon,
          styleTag([{type, "text/css"}], Styles),
@@ -485,11 +485,11 @@ pageFooter() ->
 makeForm(User, Default) ->
     [tableTag([{id, "tableHeader"}],
               [trTag([tdTag([{id, "toolbar"}],
-                            [aTag([{id,   "createTodo"},
+                            [aTag([{id, "createTodo"},
                                    {href, "/eTodo/eWeb:createTodo"}],
                                   [imgTag([{src, "/priv/Icons/createNew.png"},
                                            {alt, "Create new"}])]),
-                             aTag([{id,   "message"},
+                             aTag([{id, "message"},
                                    {href, "/eTodo/eWeb:message"}],
                                   [imgTag([{src, "/priv/Icons/message.png"},
                                            {alt, "Messages"}])])]),
@@ -500,25 +500,25 @@ createForm(User, Default) ->
         case eTodoDB:readUserCfg(User) of
             #userCfg{lists = undefined} ->
                 [?defLoggedWork, ?defTimeReport, ?defShowStatus,
-                  ?defInbox, ?defTaskList];
+                 ?defInbox, ?defTaskList];
             #userCfg{lists = Lists} ->
-                [?defLoggedWork, ?defTimeReport, ?defShowStatus, ?defInbox|Lists]
+                [?defLoggedWork, ?defTimeReport, ?defShowStatus, ?defInbox | Lists]
         end,
     formTag([{action, "/eTodo/eWeb:listTodos"},
              {'accept-charset', "UTF-8"},
              {id, "searchForm"},
              {method, "get"}],
-            [selectTag([{id,       "taskSelect"},
-                        {name,     "list"},
+            [selectTag([{id, "taskSelect"},
+                        {name, "list"},
                         {onchange, "submitForm()"}],
                        createForm2(TodoLists, Default)),
-             inputTag([{type,    "submit"},
-                       {id,      "searchButton"},
+             inputTag([{type, "submit"},
+                       {id, "searchButton"},
                        {onclick, "submitForm()"},
-                       {value,   "Search"}]),
-             inputTag([{type,  "text"},
-                       {name,  "search"},
-                       {id,    "searchField"},
+                       {value, "Search"}]),
+             inputTag([{type, "text"},
+                       {name, "search"},
+                       {id, "searchField"},
                        {class, "rounded"}])]).
 
 createForm2(List, Default) ->
@@ -526,12 +526,12 @@ createForm2(List, Default) ->
 
 createForm([], Result, _Default) ->
     Result;
-createForm([Value|Rest], SoFar, Value) ->
+createForm([Value | Rest], SoFar, Value) ->
     Value2 = unicode:characters_to_binary(Value, utf8),
     Option = ["<option value='", Value2, "' selected='selected'>",
               Value2, "</option>\r\n"],
     createForm(Rest, [Option, SoFar], Value);
-createForm([Value|Rest], SoFar, Default) ->
+createForm([Value | Rest], SoFar, Default) ->
     Value2 = unicode:characters_to_binary(Value, utf8),
     Option = ["<option value='", Value2, "'>", Value2, "</option>\r\n"],
     createForm(Rest, [Option, SoFar], Default).
@@ -550,15 +550,15 @@ createTaskForm(User) ->
                     #userCfg{lists = Lists} ->
                         Lists
                 end,
-    [formTag([{action,           "/eTodo/eWeb:createTask"},
+    [formTag([{action, "/eTodo/eWeb:createTask"},
               {'accept-charset', "UTF-8"},
-              {method,           "post"}],
+              {method, "post"}],
              [tableTag([{id, "createTable"}],
                        [trTag(
-                          [tdTag([{class, "description"}],"Set task list:"),
+                          [tdTag([{class, "description"}], "Set task list:"),
                            tdTag([{class, "value"}],
                                  [selectTag([{class, "selects"},
-                                             {name,  "list"}],
+                                             {name, "list"}],
                                             createForm2(TaskLists,
                                                         ?defTaskList))]),
                            tdTag(),
@@ -577,7 +577,7 @@ createTaskForm(User) ->
                            tdTag([{class, "description"}], "Set prio:"),
                            tdTag([{class, "value"}],
                                  selectTag([{class, "selects"},
-                                            {name,  "prio"}],
+                                            {name, "prio"}],
                                            createForm2([?descLow,
                                                         ?descMedium,
                                                         ?descHigh,
@@ -585,23 +585,23 @@ createTaskForm(User) ->
                                                        ?descNA)))]),
                         trTag(
                           [tdTag([{class, "description"}], "Description:"),
-                           tdTag([{class,   "value"},
+                           tdTag([{class, "value"},
                                   {colspan, 3}],
                                  inputTag([{class, "textField"},
-                                           {type,  "text"},
-                                           {name,  "desc"}]))]),
+                                           {type, "text"},
+                                           {name, "desc"}]))]),
                         trTag(
                           [tdTag([{class, "description"}], "Comment:"),
-                           tdTag([{class,   "value"},
+                           tdTag([{class, "value"},
                                   {colspan, 3}],
                                  inputTag([{class, "textField"},
-                                           {type,  "text"},
-                                           {name,  "comment"}]))]),
+                                           {type, "text"},
+                                           {name, "comment"}]))]),
                         trTag(
                           [tdTag([{colspan, 4}],
-                                 inputTag([{type,  "submit"},
-                                           {name,  "submit"},
-                                           {id,    "createTask"},
+                                 inputTag([{type, "submit"},
+                                           {name, "submit"},
+                                           {id, "createTask"},
                                            {value, "Create task"}]))])])])].
 
 %%======================================================================
@@ -622,9 +622,8 @@ makeTaskList(User, List, Filter, SearchText, Cfg) ->
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
-makeHtmlTaskCSS(ETodo = #etodo {hasSubTodo = true}) ->
-    makeHtmlTaskCSS2(ETodo);
-makeHtmlTaskCSS(#etodo{uid         = Uid,
+makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
+                       uid         = Uid,
                        status      = Status,
                        priority    = Priority,
                        dueTime     = DueTime,
@@ -634,24 +633,58 @@ makeHtmlTaskCSS(#etodo{uid         = Uid,
                        createTime  = CreateTime,
                        doneTime    = DoneTime,
                        progress    = Progress,
-                       owner       = Owner,
-                       hasSubTodo  = HasSubTodo}) ->
+                       owner       = Owner}) ->
+    ProgStr = toStr(Progress),
+    {Estimate, Remaining} = eTodoDB:getTime(Uid),
+    [makeTableHeader(Uid, true), "<tr>",
+     headerCellCSS(?status), createStatusDataCell(Status, Uid),
+     headerCellCSS(?prio), createPriorityDataCell(Priority, Uid),
+     "</tr><tr>",
+     headerCellCSS(?sharedWith), dataCellCSS(SharedWith, ""),
+     headerCellCSS(?owner), dataCellCSS(Owner, ""),
+     "</tr><tr>",
+     headerCellCSS(?createTime), dataCellCSS2(CreateTime, ""),
+     headerCellCSS(?dueTime), dataCellCSS2(DueTime, ""),
+     "</tr><tr>",
+     headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, ""),
+     headerCellCSS("Progress(%)"), dataCellCSS2(ProgStr, ""),
+     "</tr><tr>",
+     headerCellCSS("Estimate(h)"), dataCellCSS(toStr(Estimate), ""),
+     headerCellCSS("Remaining(h)"), dataCellCSS2(toStr(Remaining), ""),
+     "</tr><tr>",
+     headerCellCSS(?description), dataCellCSS(Description, "colspan=3"),
+     nonEmpty(Comment, ["</tr><tr>",
+                        headerCellCSS(?comment),
+                        dataCellCSS(Comment, "colspan=3")]),
+     "</tr></table>"];
+makeHtmlTaskCSS(#etodo{uid = Uid,
+                       status = Status,
+                       priority = Priority,
+                       dueTime = DueTime,
+                       description = Description,
+                       comment = Comment,
+                       sharedWith = SharedWith,
+                       createTime = CreateTime,
+                       doneTime = DoneTime,
+                       progress    = Progress,
+                       owner = Owner,
+                       hasSubTodo = HasSubTodo}) ->
     ProgStr = toStr(Progress),
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     [makeTableHeader(Uid, HasSubTodo), "<tr>",
      headerCellCSS(?status), createStatusDataCell(Status, Uid),
-     headerCellCSS(?prio),   createPriorityDataCell(Priority, Uid),
+     headerCellCSS(?prio), createPriorityDataCell(Priority, Uid),
      "</tr><tr>",
      headerCellCSS(?sharedWith), dataCellCSS(SharedWith, ""),
-     headerCellCSS(?owner),      dataCellCSS(Owner,      ""),
+     headerCellCSS(?owner), dataCellCSS(Owner, ""),
      "</tr><tr class='hideRow'>",
      headerCellCSS(?createTime), dataCellCSS2(CreateTime, ""),
-     headerCellCSS(?dueTime),    dataCellCSS2(DueTime,    ""),
+     headerCellCSS(?dueTime), dataCellCSS2(DueTime, ""),
      "</tr><tr class='hideRow'>",
      headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, ""),
-     headerCellCSS("Progress(%)"),  dataCellCSS2(ProgStr, ""),
+     headerCellCSS("Progress(%)"), dataCellCSS2(ProgStr, ""),
      "</tr><tr class='hideRow'>",
-     headerCellCSS("Estimate(h)"),  dataCellCSS(toStr(Estimate),   ""),
+     headerCellCSS("Estimate(h)"), dataCellCSS(toStr(Estimate), ""),
      headerCellCSS("Remaining(h)"), dataCellCSS2(toStr(Remaining), ""),
      "</tr><tr>",
      headerCellCSS(?description), dataCellCSS(Description, "colspan=3"),
@@ -659,34 +692,34 @@ makeHtmlTaskCSS(#etodo{uid         = Uid,
      headerCellCSS(?comment), dataCellCSS(Comment, "colspan=3"),
      "</tr></table>"].
 
-makeHtmlTaskCSS2(#etodo{uid         = Uid,
-                        status      = Status,
-                        priority    = Priority,
-                        dueTime     = DueTime,
+makeHtmlTaskCSS2(#etodo{uid = Uid,
+                        status = Status,
+                        priority = Priority,
+                        dueTime = DueTime,
                         description = Description,
-                        comment     = Comment,
-                        sharedWith  = SharedWith,
-                        createTime  = CreateTime,
-                        doneTime    = DoneTime,
-                        progress    = Progress,
-                        owner       = Owner,
-                        hasSubTodo  = HasSubTodo}) ->
+                        comment = Comment,
+                        sharedWith = SharedWith,
+                        createTime = CreateTime,
+                        doneTime = DoneTime,
+                        progress = Progress,
+                        owner = Owner,
+                        hasSubTodo = HasSubTodo}) ->
     ProgStr = toStr(Progress),
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     [makeTableHeader(Uid, HasSubTodo), "<tr>",
-     headerCellCSS(?status), dataCellCSS2(Status,   ""),
-     headerCellCSS(?prio),   dataCellCSS2(Priority, ""),
+     headerCellCSS(?status), dataCellCSS2(Status, ""),
+     headerCellCSS(?prio), dataCellCSS2(Priority, ""),
      "</tr><tr>",
      headerCellCSS(?sharedWith), dataCellCSS(SharedWith, ""),
-     headerCellCSS(?owner),      dataCellCSS(Owner,      ""),
+     headerCellCSS(?owner), dataCellCSS(Owner, ""),
      "</tr><tr>",
      headerCellCSS(?createTime), dataCellCSS2(CreateTime, ""),
-     headerCellCSS(?dueTime),    dataCellCSS2(DueTime,    ""),
+     headerCellCSS(?dueTime), dataCellCSS2(DueTime, ""),
      "</tr><tr>",
      headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, ""),
-     headerCellCSS("Progress(%)"),  dataCellCSS2(ProgStr, ""),
+     headerCellCSS("Progress(%)"), dataCellCSS2(ProgStr, ""),
      "</tr><tr>",
-     headerCellCSS("Estimate(h)"),  dataCellCSS(toStr(Estimate),   ""),
+     headerCellCSS("Estimate(h)"), dataCellCSS(toStr(Estimate), ""),
      headerCellCSS("Remaining(h)"), dataCellCSS2(toStr(Remaining), ""),
      "</tr><tr>",
      headerCellCSS(?description), dataCellCSS(Description, "colspan=3"),
@@ -728,10 +761,10 @@ createStatusDataCell(Status, Uid) ->
 
 createPriorityDataCell(Prio, Uid) ->
     ["<td><select class='priority' id='idPriority", Uid, "' ",
-        "OnChange=\"sendPriority('idPriority", Uid, "', '", Uid, "');\" ",
-        "OnClick=\"event.cancelBubble = true;\">\r\n",
-        createForm2([?descLow, ?descMedium, ?descHigh, ?descNA], Prio),
-        "</select></td>"].
+     "OnChange=\"sendPriority('idPriority", Uid, "', '", Uid, "');\" ",
+     "OnClick=\"event.cancelBubble = true;\">\r\n",
+     createForm2([?descLow, ?descMedium, ?descHigh, ?descNA], Prio),
+     "</select></td>"].
 %%======================================================================
 %% Function :
 %% Purpose  :
@@ -740,15 +773,15 @@ createPriorityDataCell(Prio, Uid) ->
 %% Notes    :
 %%======================================================================
 generateMsg(Sender, Sender, Users, Text) ->
-    Icon      = getIcon(Users),
-    Portrait  = getPortrait(Sender),
+    Icon = getIcon(Users),
+    Portrait = getPortrait(Sender),
     WPortrait = getWebPortrait(Sender),
-    UserList  = case Users of
-                    [] ->
-                        "";
-                    _ ->
-                        [" to ", makeHtml(makeStr(Users))]
-                end,
+    UserList = case Users of
+                   [] ->
+                       "";
+                   _ ->
+                       [" to ", makeHtml(makeStr(Users))]
+               end,
     {tableTag([{align, "right"}, {width, "100%"}],
               [trTag(
                  [tdTag([{width, "150"}], []),
@@ -777,15 +810,15 @@ generateMsg(Sender, Sender, Users, Text) ->
                         imgTag([{src, WPortrait}, {class, "portrait"}])),
                   tdTag()])])};
 generateMsg(_User, Sender, Users, Text) ->
-    Icon      = getIcon(Users),
-    Portrait  = getPortrait(Sender),
+    Icon = getIcon(Users),
+    Portrait = getPortrait(Sender),
     WPortrait = getWebPortrait(Sender),
-    UserList  = case Users of
-                    [] ->
-                        "";
-                    _ ->
-                        [" to ", makeHtml(makeStr(Users))]
-                end,
+    UserList = case Users of
+                   [] ->
+                       "";
+                   _ ->
+                       [" to ", makeHtml(makeStr(Users))]
+               end,
     {tableTag([{align, "left"}, {width, "100%"}],
               [trTag(
                  [tdTag([{valign, "top"}, {width, "40"}],
@@ -857,7 +890,7 @@ generateSystemMsg(system, Text) ->
           [tdTag([{class, "msgImg"}],
                  imgTag([{src, "/priv/Icons/etodoChat.png"}])),
            tdTag([{class, "msgTime"}], toStr(time(), time)),
-           tdTag([{class, "msgText"}],"eTodo")]),
+           tdTag([{class, "msgText"}], "eTodo")]),
         trTag([tdTag(), tdTag(), tdTag(makeHtml(Text, "/priv"))])])};
 generateSystemMsg(Uid, Text) ->
     UidStr = eTodoUtils:convertUid(Uid),
@@ -939,23 +972,23 @@ generateAlarmMsg(Uid, Text) ->
 %%======================================================================
 createSendMsg(Default, Users) ->
     UserList = ["All" | Users],
-    Script   = "sendMsg(\"userSelect\", \"sendMessage\");",
+    Script = "sendMsg(\"userSelect\", \"sendMessage\");",
     tableTag([{id, "footer"}],
              [trTag(
                 [tdTag(
-                   [selectTag([{id,   "userSelect"},
+                   [selectTag([{id, "userSelect"},
                                {name, "users"}],
                               createForm2(UserList, Default)),
-                    inputTag([{type,      "submit"},
-                              {name,      "submit"},
-                              {id,        "sendButton"},
-                              {value,     "Send"},
+                    inputTag([{type, "submit"},
+                              {name, "submit"},
+                              {id, "sendButton"},
+                              {value, "Send"},
                               {"OnClick", Script}]),
-                    inputTag([{type,      "text"},
-                              {name,      "sendMsg"},
+                    inputTag([{type, "text"},
+                              {name, "sendMsg"},
                               {onkeydown, "return checkForEnter(event);"},
-                              {id,        "sendMessage"},
-                              {class,     "rounded"}])])])]).
+                              {id, "sendMessage"},
+                              {class, "rounded"}])])])]).
 
 %%%===================================================================
 %%% Callbacks
@@ -988,72 +1021,72 @@ checkForLinks(Text, Dir) ->
 html("", _Dir, SoFar) -> lists:flatten(SoFar);
 
 %% Row
-html([13, 10|Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "<br />"]);
-html([10|Rest],     Dir, SoFar) -> html(Rest, Dir, [SoFar, "<br />"]);
+html([13, 10 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "<br />"]);
+html([10 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "<br />"]);
 
 %% -
-html([8211|Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "-"]);
+html([8211 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "-"]);
 
 %% :-) :) =) :] :> C: (:
-html([$:, $-, $)|Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
-html([$:, $)    |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
-html([$=, $)    |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
-html([$:, $]    |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
-html([$:, $>    |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
-html([$C, $:    |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
-html([$(, $:    |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
+html([$:, $-, $) | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
+html([$:, $) | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
+html([$=, $) | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
+html([$:, $] | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
+html([$:, $> | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
+html([$C, $: | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
+html([$(, $: | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
 
 %% :-(  :(  =(  :< :[
-html([$:, $-, $(|Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
-html([$:, $(    |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
-html([$=, $(    |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
-html([$:, $<    |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
-html([$:, $[    |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
+html([$:, $-, $( | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
+html([$:, $( | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
+html([$=, $( | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
+html([$:, $< | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
+html([$:, $[ | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
 
 %% ;-)  ;)  ^.~
-html([$;, $-, $)|Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, wink(Dir)]);
-html([$;, $)    |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, wink(Dir)]);
-html([$^, $., $~|Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, wink(Dir)]);
+html([$;, $-, $) | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, wink(Dir)]);
+html([$;, $) | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, wink(Dir)]);
+html([$^, $., $~ | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, wink(Dir)]);
 
 %% =D :D
-html([$=, $D |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, lol(Dir)]);
-html([$:, $D |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, lol(Dir)]);
+html([$=, $D | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, lol(Dir)]);
+html([$:, $D | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, lol(Dir)]);
 
 %% =O   :O   O:
-html([$=, $O   |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, shocked(Dir)]);
-html([$:, $O   |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, shocked(Dir)]);
-html([$O, $:   |Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, shocked(Dir)]);
-html([$:, $-, $O|Rest], Dir, SoFar)-> html(Rest, Dir, [SoFar, shocked(Dir)]);
+html([$=, $O | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, shocked(Dir)]);
+html([$:, $O | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, shocked(Dir)]);
+html([$O, $: | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, shocked(Dir)]);
+html([$:, $-, $O | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, shocked(Dir)]);
 
 %% =P   :P
-html([$=, $P|Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, mischief(Dir)]);
-html([$:, $P|Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, mischief(Dir)]);
+html([$=, $P | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, mischief(Dir)]);
+html([$:, $P | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, mischief(Dir)]);
 
 %% :,(
-html([$:, $,, $(|Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, crying(Dir)]);
+html([$:, $,, $( | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, crying(Dir)]);
 
 %% <3
-html([$<, $3|Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, heart(Dir)]);
+html([$<, $3 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, heart(Dir)]);
 
-html([229|Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&aring;"]);
-html([228|Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&auml;"]);
-html([246|Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&ouml;"]);
-html([197|Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&Aring;"]);
-html([196|Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&Auml;"]);
-html([214|Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&Ouml;"]);
-html([$<|Rest], Dir, SoFar)   -> html(Rest, Dir, [SoFar, "&lt;"]);
-html([$>|Rest], Dir, SoFar)   -> html(Rest, Dir, [SoFar, "&gt;"]);
-html([$&|Rest], Dir, SoFar)   -> html(Rest, Dir, [SoFar, "&amp;"]);
-html([$"|Rest], Dir, SoFar)   -> html(Rest, Dir, [SoFar, "&quot;"]);
-html([Char|Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, Char]).
+html([229 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&aring;"]);
+html([228 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&auml;"]);
+html([246 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&ouml;"]);
+html([197 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&Aring;"]);
+html([196 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&Auml;"]);
+html([214 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&Ouml;"]);
+html([$< | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&lt;"]);
+html([$> | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&gt;"]);
+html([$& | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&amp;"]);
+html([$" | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&quot;"]);
+html([Char | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, Char]).
 
-heart(Dir)    -> smileHdr(Dir) ++ "heart.png' align=middle>&nbsp;".
-happy(Dir)    -> smileHdr(Dir) ++ "happy.png' align=middle>&nbsp;".
-sad(Dir)      -> smileHdr(Dir) ++ "sad.png' align=middle>&nbsp;".
-wink(Dir)     -> smileHdr(Dir) ++ "wink.png' align=middle>&nbsp;".
-lol(Dir)      -> smileHdr(Dir) ++ "lol.png' align=middle>&nbsp;".
-shocked(Dir)  -> smileHdr(Dir) ++ "shocked.png' align=middle>&nbsp;".
-crying(Dir)   -> smileHdr(Dir) ++ "crying.png' align=middle>&nbsp;".
+heart(Dir) -> smileHdr(Dir) ++ "heart.png' align=middle>&nbsp;".
+happy(Dir) -> smileHdr(Dir) ++ "happy.png' align=middle>&nbsp;".
+sad(Dir) -> smileHdr(Dir) ++ "sad.png' align=middle>&nbsp;".
+wink(Dir) -> smileHdr(Dir) ++ "wink.png' align=middle>&nbsp;".
+lol(Dir) -> smileHdr(Dir) ++ "lol.png' align=middle>&nbsp;".
+shocked(Dir) -> smileHdr(Dir) ++ "shocked.png' align=middle>&nbsp;".
+crying(Dir) -> smileHdr(Dir) ++ "crying.png' align=middle>&nbsp;".
 mischief(Dir) -> smileHdr(Dir) ++ "mischief.png' align=middle>&nbsp;".
 
 smileHdr(Dir) -> "&nbsp;<img class='emote' src='" ++ Dir ++ "/Icons/".
@@ -1069,10 +1102,10 @@ showStatus(User, Status, StatusMsg) ->
     OnLoad = "OnLoad=\"setTimeout('checkStatus()', 100);\" id='theBody'",
     [pageHeader(OnLoad, User),
      divTag([{id, "timerContainer"}],
-            [divTag([{id, "timerUser"}],      [User]),
-             divTag([{id, "timerStatus"}],    [Status]),
+            [divTag([{id, "timerUser"}], [User]),
+             divTag([{id, "timerStatus"}], [Status]),
              divTag([{id, "timerStatusMsg"}], [makeHtml(StatusMsg)]),
-             divTag([{id, "timerField"}],     [])]),
+             divTag([{id, "timerField"}], [])]),
      pageFooter()].
 
 %%======================================================================
@@ -1101,29 +1134,29 @@ makeTimeLogReport(_User, Rows, AllTask) ->
                      tdTag(Opts, heading(RemainingSum))
                     ])]).
 
-makeTimeLogReport2([Uid|Rest], Acc) ->
+makeTimeLogReport2([Uid | Rest], Acc) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     AllLogged = eTodoDB:getAllLoggedWork(Uid),
-    Todo      = eTodoDB:getTodo(tryInt(Uid)),
-    Desc1     = eTodoDB:getWorkDesc(Uid),
-    Desc2     = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
-    Odd       = ((length(Acc) rem 2) =/= 0),
-    Opts2     = [{width, "20%"}, {align, center}],
-    Opts3     = [{width, "20%"}],
-    UidInt    = tryInt(Uid),
-    UidStr    = eTodoUtils:convertUid(UidInt),
-    Date      = date(),
+    Todo = eTodoDB:getTodo(tryInt(Uid)),
+    Desc1 = eTodoDB:getWorkDesc(Uid),
+    Desc2 = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
+    Odd = ((length(Acc) rem 2) =/= 0),
+    Opts2 = [{width, "20%"}, {align, center}],
+    Opts3 = [{width, "20%"}],
+    UidInt = tryInt(Uid),
+    UidStr = eTodoUtils:convertUid(UidInt),
+    Date = date(),
 
-    Link1  = aTag([{href, convertUid(UidInt, Date)}], time(Estimate) ++ ":00"),
-    Link2  = aTag([{href, convertUid(UidInt, incDate(Date, 1))}], AllLogged),
-    Link3  = aTag([{href, convertUid(UidInt, incDate(Date, 2))}], time(Remaining) ++ ":00"),
+    Link1 = aTag([{href, convertUid(UidInt, Date)}], time(Estimate) ++ ":00"),
+    Link2 = aTag([{href, convertUid(UidInt, incDate(Date, 1))}], AllLogged),
+    Link3 = aTag([{href, convertUid(UidInt, incDate(Date, 2))}], time(Remaining) ++ ":00"),
 
     makeTimeLogReport2(Rest,
-        [trTag(bgColor(Odd),
-            [tdTag(Opts3, [aTag([{href, UidStr}], Desc2)]),
-                tdTag(Opts2, Link1),
-                tdTag(Opts2, Link2),
-                        tdTag(Opts2, Link3)]) | Acc]);
+                       [trTag(bgColor(Odd),
+                              [tdTag(Opts3, [aTag([{href, UidStr}], Desc2)]),
+                               tdTag(Opts2, Link1),
+                               tdTag(Opts2, Link2),
+                               tdTag(Opts2, Link3)]) | Acc]);
 makeTimeLogReport2([], Result) ->
     Opts = [{width, "20%"}, {align, center}],
     [trTag([{bgcolor, "black"}],
@@ -1131,7 +1164,7 @@ makeTimeLogReport2([], Result) ->
             tdTag(Opts, heading("Time estimate(h)")),
             tdTag(Opts, heading("Time spent(h)")),
             tdTag(Opts, heading("Time left(h)"))
-           ])| lists:reverse(Result)].
+           ]) | lists:reverse(Result)].
 
 %%======================================================================
 %% Function : showTimeReport(User) -> Html
@@ -1155,12 +1188,12 @@ showTimeReport(_User, Uids1, AllTask) ->
     Uids3 = removeEmptyAndDone(Uids2),
     {EstimateSum, SpentSum, RemainingSum} = sum(Uids3),
     tableTag([showTimeReport2(Uids3, []),
-            trTag([{class, "timeReportTable"}],
-                [tdTag([{class, "timeReportDesc timeReportSum"}], "Total"),
-                    tdTag([{class, "timeReportSum timeReportColumn"}], EstimateSum),
-                    tdTag([{class, "timeReportSum timeReportColumn"}], SpentSum),
-                    tdTag([{class, "timeReportSum timeReportColumn"}], RemainingSum)
-                ])]).
+              trTag([{class, "timeReportTable"}],
+                    [tdTag([{class, "timeReportDesc timeReportSum"}], "Total"),
+                     tdTag([{class, "timeReportSum timeReportColumn"}], EstimateSum),
+                     tdTag([{class, "timeReportSum timeReportColumn"}], SpentSum),
+                     tdTag([{class, "timeReportSum timeReportColumn"}], RemainingSum)
+                    ])]).
 
 showTimeReport(_User, Uids1, AllTask, SharedUids) ->
     Uids2 = case AllTask of
@@ -1172,19 +1205,19 @@ showTimeReport(_User, Uids1, AllTask, SharedUids) ->
     Uids3 = removeEmptyAndDone(Uids2),
     {EstimateSum, SpentSum, RemainingSum} = sum(Uids3),
     tableTag([showTimeReport2(Uids3, []),
-        trTag([{class, "timeReportTable"}],
-            [tdTag([{class, "timeReportDesc timeReportSum"}], "Total"),
-                tdTag([{class, "timeReportSum timeReportColumn"}], EstimateSum),
-                tdTag([{class, "timeReportSum timeReportColumn"}], SpentSum),
-                tdTag([{class, "timeReportSum timeReportColumn"}], RemainingSum)
-            ])]).
+              trTag([{class, "timeReportTable"}],
+                    [tdTag([{class, "timeReportDesc timeReportSum"}], "Total"),
+                     tdTag([{class, "timeReportSum timeReportColumn"}], EstimateSum),
+                     tdTag([{class, "timeReportSum timeReportColumn"}], SpentSum),
+                     tdTag([{class, "timeReportSum timeReportColumn"}], RemainingSum)
+                    ])]).
 
 removeEmptyAndDone(Uids) ->
     removeEmptyAndDone(Uids, []).
 
 removeEmptyAndDone([], Acc) ->
     lists:reverse(Acc);
-removeEmptyAndDone([Uid|Rest], Acc) ->
+removeEmptyAndDone([Uid | Rest], Acc) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     AllLogged = eTodoDB:getAllLoggedWork(Uid),
     {ok, _Desc, _ShowInWL, ShowInTL} = eTodoDB:getWorkDescAll(Uid),
@@ -1197,48 +1230,48 @@ removeEmptyAndDone([Uid|Rest], Acc) ->
         {_Time, false, true} ->
             removeEmptyAndDone(Rest, Acc);
         _ ->
-            removeEmptyAndDone(Rest, [Uid|Acc])
+            removeEmptyAndDone(Rest, [Uid | Acc])
     end.
 
-showTimeReport2([Uid|Rest], Acc) ->
+showTimeReport2([Uid | Rest], Acc) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     AllLogged = eTodoDB:getAllLoggedWork(Uid),
-    UidInt    = tryInt(Uid),
-    Desc      = eTodoDB:getWorkDesc(Uid),
-    Odd       = ((length(Acc) rem 2) =/= 0),
-    Opts      = if Odd  -> [{class, "trOdd"}];
-                   true -> [{class, "trEven"}]
-                end,
-    Opts2     = [{class, "timeReportValue"}],
-    UidStr    = eTodoUtils:convertUid(UidInt),
+    UidInt = tryInt(Uid),
+    Desc = eTodoDB:getWorkDesc(Uid),
+    Odd = ((length(Acc) rem 2) =/= 0),
+    Opts = if Odd -> [{class, "trOdd"}];
+              true -> [{class, "trEven"}]
+           end,
+    Opts2 = [{class, "timeReportValue"}],
+    UidStr = eTodoUtils:convertUid(UidInt),
     showTimeReport2(Rest,
-        [trTag(Opts,
-            [tdTag(aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
-                http_uri:encode(UidStr)}], empty(Desc, Uid))),
-                tdTag(Opts2, time(Estimate) ++ ":00"),
-                tdTag(Opts2, AllLogged),
-                tdTag(Opts2, time(Remaining) ++ ":00")]) | Acc]);
+                    [trTag(Opts,
+                           [tdTag(aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
+                                             http_uri:encode(UidStr)}], empty(Desc, Uid))),
+                            tdTag(Opts2, time(Estimate) ++ ":00"),
+                            tdTag(Opts2, AllLogged),
+                            tdTag(Opts2, time(Remaining) ++ ":00")]) | Acc]);
 showTimeReport2([], Result) ->
     Opts = [{class, "timeReportColumn"}],
     [trTag([{class, "timeReportHeading"}],
-        [tdTag([{class, "timeReportDesc"}], "Task description"),
+           [tdTag([{class, "timeReportDesc"}], "Task description"),
             tdTag(Opts, "Time estimate(h)"),
             tdTag(Opts, "Time spent(h)"),
             tdTag(Opts, "Time left(h)")
-        ])| lists:reverse(Result)].
+           ]) | lists:reverse(Result)].
 
 sum(Uids) ->
     sum(Uids, {0, {0, 0}, 0}).
 
 sum([], {Est, {Hours, Min}, Rem}) ->
-    SumHours   = Hours + (Min div 60),
+    SumHours = Hours + (Min div 60),
     SumMinutes = Min rem 60,
     {time(Est) ++ ":00",
      time(SumHours) ++ ":" ++ time(SumMinutes),
      time(Rem) ++ ":00"};
-sum([Uid|Rest], {Est, {Hours, Min}, Rem}) ->
+sum([Uid | Rest], {Est, {Hours, Min}, Rem}) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
-    {WHours, WMin}        = eTodoDB:getAllLoggedWorkInt(Uid),
+    {WHours, WMin} = eTodoDB:getAllLoggedWorkInt(Uid),
     sum(Rest, {Est + Estimate, {WHours + Hours, WMin + Min}, Rem + Remaining}).
 
 %%======================================================================
@@ -1257,25 +1290,25 @@ addSubTodos(Uids, SharedUids) ->
 
 filterNotInShared([], _SharedUids, Acc) ->
     lists:reverse(Acc);
-filterNotInShared([Uid|Rest], SharedUids, Acc) ->
+filterNotInShared([Uid | Rest], SharedUids, Acc) ->
     case lists:member(Uid, SharedUids) of
         true ->
-            filterNotInShared(Rest, SharedUids, [Uid|Acc]);
+            filterNotInShared(Rest, SharedUids, [Uid | Acc]);
         false ->
             filterNotInShared(Rest, SharedUids, Acc)
     end.
 
 addSubTodos2([], Acc) ->
     lists:reverse(Acc);
-addSubTodos2([Uid|Rest], Acc) ->
+addSubTodos2([Uid | Rest], Acc) ->
     SUids = addSubTodos(eTodoDB:getSubTodos(tryInt(Uid))),
-    Acc2  = addToAccNoDuplicate([Uid|SUids], Acc),
+    Acc2 = addToAccNoDuplicate([Uid | SUids], Acc),
     addSubTodos2(Rest, Acc2).
 
 addToAccNoDuplicate([], Acc) ->
     Acc;
-addToAccNoDuplicate([Uid|Rest], Acc) ->
-    addToAccNoDuplicate(Rest, [toStr(Uid)|lists:delete(Uid, Acc)]).
+addToAccNoDuplicate([Uid | Rest], Acc) ->
+    addToAccNoDuplicate(Rest, [toStr(Uid) | lists:delete(Uid, Acc)]).
 
 %%======================================================================
 %% Function : makeSceduleReport(User) -> Html
@@ -1285,58 +1318,58 @@ addToAccNoDuplicate([Uid|Rest], Acc) ->
 %% Notes    :
 %%======================================================================
 makeSceduleReport(User) ->
-    Opts        = [{width, "25%"}, {align, center}],
-    Opts2       = [{width, "20%"}, {align, center}],
-    Alarms      = getAlarmList(User),
-    ETodos      = getTodoInfo(User),
+    Opts = [{width, "25%"}, {align, center}],
+    Opts2 = [{width, "20%"}, {align, center}],
+    Alarms = getAlarmList(User),
+    ETodos = getTodoInfo(User),
     TimeMarkers = getTimeMarkers(),
     Events = lists:reverse(lists:keysort(1, TimeMarkers ++ Alarms ++ ETodos)),
     tableTag([trTag([{bgcolor, "black"}],
                     [tdTag([{width, "35%"}], heading("Description")),
-                     tdTag(Opts,  heading("Next alarm")),
+                     tdTag(Opts, heading("Next alarm")),
                      tdTag(Opts2, heading("Due date")),
-                     tdTag(Opts2, heading("Time left(h)"))])|
+                     tdTag(Opts2, heading("Time left(h)"))]) |
               makeSceduleReport2(Events, [])]).
 
 getTodoInfo(User) ->
-    TodoList  = eTodoDB:getTodos(User, ?defTaskList),
+    TodoList = eTodoDB:getTodos(User, ?defTaskList),
     getTodoInfo(TodoList, date(), []).
 
 getTodoInfo([], _Now, Acc) ->
     Acc;
-getTodoInfo([#todo{status = done}|Rest], Now, Acc) ->
+getTodoInfo([#todo{status = done} | Rest], Now, Acc) ->
     getTodoInfo(Rest, Now, Acc);
-getTodoInfo([#todo{dueTime = undefined}|Rest], Now, Acc) ->
+getTodoInfo([#todo{dueTime = undefined} | Rest], Now, Acc) ->
     getTodoInfo(Rest, Now, Acc);
-getTodoInfo([#todo{uid = Uid, dueTime = DueDate}|Rest], Now, Acc) ->
+getTodoInfo([#todo{uid = Uid, dueTime = DueDate} | Rest], Now, Acc) ->
     NextAlarm = {DueDate, {0, 0, 0}},
     {Desc, DueDate, UidStr, RemTime} = doSaveAlarmInfo(Uid),
     getTodoInfo(Rest, Now, [{NextAlarm, "", DueDate,
                              UidStr, Desc, RemTime} | Acc]);
-getTodoInfo([_Todo|Rest], Now, Acc) ->
+getTodoInfo([_Todo | Rest], Now, Acc) ->
     getTodoInfo(Rest, Now, Acc).
 
 getAlarmList(User) ->
-    AlarmList  = eTodoDB:getReminders(User),
+    AlarmList = eTodoDB:getReminders(User),
     getAlarmInfo(AlarmList, date(), []).
 
 getAlarmInfo([], _Now, Acc) ->
     Acc;
 %% New alarm
-getAlarmInfo([#alarmCfg{startDate  = StartDate,
-                        startTime  = StartTime,
-                        uid        = Uid,
-                        nextAlarm  = undefined}|Rest], Now, Acc)
+getAlarmInfo([#alarmCfg{startDate = StartDate,
+                        startTime = StartTime,
+                        uid = Uid,
+                        nextAlarm = undefined} | Rest], Now, Acc)
   when Now =< StartDate ->
     NextAlarm = {StartDate, repairTime(StartTime)},
     saveAlarmInfo(Uid, Rest, Now, NextAlarm, Acc);
 %% Alarm that never will be activated
-getAlarmInfo([#alarmCfg{nextAlarm = never}|Rest], Now, Acc) ->
+getAlarmInfo([#alarmCfg{nextAlarm = never} | Rest], Now, Acc) ->
     getAlarmInfo(Rest, Now, Acc);
-getAlarmInfo([#alarmCfg{uid = Uid, nextAlarm  = {Date, Time}}|Rest], Now, Acc)
-        when Now =< Date ->
+getAlarmInfo([#alarmCfg{uid = Uid, nextAlarm = {Date, Time}} | Rest], Now, Acc)
+  when Now =< Date ->
     saveAlarmInfo(Uid, Rest, Now, {Date, Time}, Acc);
-getAlarmInfo([_Alarm|Rest], Now, Acc) ->
+getAlarmInfo([_Alarm | Rest], Now, Acc) ->
     getAlarmInfo(Rest, Now, Acc).
 
 saveAlarmInfo(Uid, Rest, Now, NextAlarm, Acc) ->
@@ -1345,25 +1378,25 @@ saveAlarmInfo(Uid, Rest, Now, NextAlarm, Acc) ->
                               UidStr, Desc, RemTime} | Acc]).
 
 doSaveAlarmInfo(Uid) ->
-    Todo    = eTodoDB:getTodo(tryInt(Uid)),
-    Desc1   = eTodoDB:getWorkDesc(toStr(Uid)),
-    Desc2   = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
+    Todo = eTodoDB:getTodo(tryInt(Uid)),
+    Desc1 = eTodoDB:getWorkDesc(toStr(Uid)),
+    Desc2 = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
     DueDate = Todo#todo.dueTime,
-    UidStr  = eTodoUtils:convertUid(tryInt(Uid)),
+    UidStr = eTodoUtils:convertUid(tryInt(Uid)),
     {_, RemTime} = eTodoDB:getTime(toStr(Uid)),
     {Desc2, DueDate, UidStr, RemTime}.
 
 makeSceduleReport2([], Acc) ->
     Acc;
-makeSceduleReport2([{_Key, Desc}|Rest], Acc) ->
+makeSceduleReport2([{_Key, Desc} | Rest], Acc) ->
     Odd = ((length(Rest) rem 2) =/= 0),
     makeSceduleReport2(Rest, [trTag(bgColor(Odd),
                                     [tdTag([{width, "35%"}], bTag(Desc)),
                                      tdTag([{width, "25%"}], ""),
                                      tdTag([{width, "20%"}], ""),
-                                     tdTag([{width, "20%"}], "")])|Acc]);
+                                     tdTag([{width, "20%"}], "")]) | Acc]);
 makeSceduleReport2([{_Key, DateTime, DueDate,
-                     UidStr, Desc, RemTime}|Rest], Acc) ->
+                     UidStr, Desc, RemTime} | Rest], Acc) ->
     Odd = ((length(Rest) rem 2) =/= 0),
     makeSceduleReport2(Rest, [trTag(bgColor(Odd),
                                     [tdTag([{width, "35%"}],
@@ -1376,7 +1409,7 @@ makeSceduleReport2([{_Key, DateTime, DueDate,
                                            toStr(DueDate)),
                                      tdTag([{width, "20%"},
                                             {align, "center"}],
-                                           toStr(RemTime))])|Acc]).
+                                           toStr(RemTime))]) | Acc]).
 
 getTimeMarkers() ->
     Date = date(),
@@ -1392,6 +1425,6 @@ getTimeMarkers() ->
      {{incDate(Date, 7), Time}, "Week(s) away"},
      {{incDate(Date, 31), Time}, "Month(s) away"}].
 
-repairTime({H, M})    -> {H, M, 0};
+repairTime({H, M}) -> {H, M, 0};
 repairTime(undefined) -> {0, 0, 0};
-repairTime(Time)      -> Time.
+repairTime(Time) -> Time.
