@@ -1,7 +1,8 @@
-function openInNewTab(url)
+function openLink(url)
 {
-    window.open(url, '_blank');
-    window.focus();
+    window.open(url, '_self');
+    /* window.open(url, '_blank') */
+    /* window.focus(); */
 }
 
 function showDetails(uid) {

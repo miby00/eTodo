@@ -487,7 +487,7 @@ makeForm(User, Default) ->
               [trTag([tdTag([{id, "toolbar"}],
                             [aTag([{id, "createTodo"},
                                    {href, "/eTodo/eWeb:createTodo?list=" ++
-                                       http_uri:encode(Default)}],
+                                        http_uri:encode(Default)}],
                                   [imgTag([{src, "/priv/Icons/createNew.png"},
                                            {alt, "Create new"}])]),
                              aTag([{id, "message"},
@@ -500,10 +500,20 @@ createForm(User, Default) ->
     TodoLists =
         case eTodoDB:readUserCfg(User) of
             #userCfg{lists = undefined} ->
-                [?defLoggedWork, ?defTimeReport, ?defShowStatus,
-                 ?defInbox, ?defTaskList];
+                lists:sort([guiName(Default) | lists:delete(Default,
+                                                            [?defLoggedWork,
+                                                             ?defTimeReport,
+                                                             ?defShowStatus,
+                                                             ?defInbox,
+                                                             ?defTaskList])]);
             #userCfg{lists = Lists} ->
-                [?defLoggedWork, ?defTimeReport, ?defShowStatus, ?defInbox | Lists]
+                lists:sort([guiName(Default)| lists:delete(Default,
+                                                           [?defLoggedWork,
+                                                            ?defTimeReport,
+                                                            ?defShowStatus,
+                                                            ?defInbox |
+                                                            Lists])])
+
         end,
     formTag([{action, "/eTodo/eWeb:listTodos"},
              {'accept-charset', "UTF-8"},
@@ -512,7 +522,7 @@ createForm(User, Default) ->
             [selectTag([{id, "taskSelect"},
                         {name, "list"},
                         {onchange, "submitForm()"}],
-                       createForm2(TodoLists, Default)),
+                       createForm2(TodoLists, guiName(Default))),
              inputTag([{type, "submit"},
                        {id, "searchButton"},
                        {onclick, "submitForm()"},
@@ -544,9 +554,12 @@ createForm([Value | Rest], SoFar, Default) ->
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
+createTaskForm(User, ?subTaskList ++ TaskList) ->
+    createTaskForm(User, TaskList);
 createTaskForm(User, TaskList) ->
     UserCfg   = eTodoDB:readUserCfg(User),
-    TaskLists = default(UserCfg#userCfg.lists, [?defTaskList]),
+    TaskList1 = default(UserCfg#userCfg.lists, [?defTaskList]),
+    TaskLists = lists:sort([TaskList | lists:delete(TaskList, TaskList1)]),
     [formTag([{action, "/eTodo/eWeb:createTask"},
               {'accept-charset', "UTF-8"},
               {method, "post"}],
@@ -737,7 +750,7 @@ makeTableHeader(Uid, false) ->
      "OnClick=\"showDetails(", Uid, ");\">"];
 makeTableHeader(Uid, true) ->
     ["<table class='subTodoTable' id='table", Uid, "' "
-     "OnClick=\"openInNewTab('/eTodo/eWeb:listTodos",
+     "OnClick=\"openLink('/eTodo/eWeb:listTodos",
      "?list=", Uid, "&search=&submit=Search');\">"].
 
 headerCellCSS(Text) ->
@@ -1425,3 +1438,11 @@ getTimeMarkers() ->
 repairTime({H, M}) -> {H, M, 0};
 repairTime(undefined) -> {0, 0, 0};
 repairTime(Time) -> Time.
+
+guiName(TaskList) ->
+    case catch list_to_integer(TaskList) of
+        {'EXIT', _} ->
+            TaskList;
+        _ ->
+            ?subTaskList ++ TaskList
+    end.
