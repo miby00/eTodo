@@ -305,10 +305,10 @@ handle_call({link, _SessionId, _Env, Input}, _From, State) ->
 handle_call({listsTodos, SessionId, _Env, Input}, _From,
             State = #state{user = User, status = SList}) ->
     Cfg = eTodo:getSearchCfg(),
-    Flt = [?statusDone],
     Dict = makeDict(Input),
     {ok, List} = find("list",   Dict),
     {ok, Text} = find("search", Dict),
+    Flt        = eTodo:getFilterCfg(List),
 
     HtmlPage   =
         case List of
@@ -339,10 +339,10 @@ handle_call({listsTodos, SessionId, _Env, Input}, _From,
 handle_call({listTodosJSON, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
     Cfg  = eTodo:getSearchCfg(),
-    Flt  = [?statusDone],
     Dict = makeDict(Input),
     {ok, List} = find("list",   Dict),
     {ok, Text} = find("search", Dict),
+    Flt        = eTodo:getFilterCfg(List),
 
     JSONData   = [eJSON:makeTodoList(User, conv(List), Flt, Text, Cfg)],
     {reply, ["Content-Type: application/x-javascript\r\n\r\n",JSONData], State};
@@ -483,7 +483,7 @@ handle_call({index, SessionId, _Env, _Input}, _From,
             State = #state{user    = User,
                            headers = SessionHdrList}) ->
     Headers = getHeaders(SessionId, State),
-    Flt = [?statusDone],
+    Flt = eTodo:getFilterCfg(?defTaskList),
     HtmlPage = [eHtml:pageHeader(User),
                 eHtml:makeForm(User, ?defTaskList),
                 eHtml:makeTaskList(User, ?defTaskList, Flt, [], undefined),
@@ -525,7 +525,7 @@ handle_call({showLoggedWork, SessionId, _Env, Input}, _From,
     {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
 handle_call({indexJSON, _SessionId, _Env, _Input}, _From,
             State = #state{user = User}) ->
-    Flt = [?statusDone],
+    Flt = eTodo:getFilterCfg(?defTaskList),
     HtmlPage = [
                 eJSON:makeTodoList(User, ?defTaskList, Flt, [], undefined)
                ],

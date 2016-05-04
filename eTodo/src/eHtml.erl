@@ -766,14 +766,16 @@ createStatusDataCell(Status, Uid) ->
     ["<td><select class='status' id='idStatus", Uid, "' ",
      "OnChange=\"sendStatus('idStatus", Uid, "', '", Uid, "');\" ",
      "OnClick=\"event.cancelBubble = true;\">\r\n",
-     createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA], Status),
+     createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
+                 default(Status, ?descNA)),
      "</select></td>"].
 
 createPriorityDataCell(Prio, Uid) ->
     ["<td><select class='priority' id='idPriority", Uid, "' ",
      "OnChange=\"sendPriority('idPriority", Uid, "', '", Uid, "');\" ",
      "OnClick=\"event.cancelBubble = true;\">\r\n",
-     createForm2([?descLow, ?descMedium, ?descHigh, ?descNA], Prio),
+     createForm2([?descLow, ?descMedium, ?descHigh, ?descNA],
+                 default(Prio, ?descNA)),
      "</select></td>"].
 %%======================================================================
 %% Function :
