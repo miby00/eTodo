@@ -355,11 +355,14 @@ handle_call({listListsJSON, _SessionId, _Env, Input}, _From,
     HtmlPage   = [eJSON:makeForm(User, List)],
     {reply, ["Content-Type: application/x-javascript\r\n\r\n",HtmlPage], State};
 
-handle_call({createTodo, _SessionId, _Env, _Input}, _From,
+handle_call({createTodo, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
+    Dict = makeDict(Input),
+    {ok, TaskList} = find("list", Dict),
+
     HtmlPage   = [eHtml:pageHeader(User),
-                  eHtml:makeForm(User, ?defTaskList),
-                  eHtml:createTaskForm(User),
+                  eHtml:makeForm(User, TaskList),
+                  eHtml:createTaskForm(User, TaskList),
                   eHtml:pageFooter()],
     {reply, HtmlPage, State};
 handle_call({createTask, _SessionId, Env, Input}, _From,
@@ -390,8 +393,13 @@ handle_call({createTask, _SessionId, Env, Input}, _From,
                               parent   = tryInt(TaskList)}, Todo),
 
     eTodo:todoCreated(TaskList, Row, Todo),
-    Host       = proplists:get_value(http_origin, Env),
+    HttpHost   = "https://" ++ proplists:get_value(http_host, Env, ""),
+    Host       = default(proplists:get_value(http_origin, Env), HttpHost),
+
+    io:format("~s~n", [Host]),
+
     Redirect   = Host ++ "/eTodo/eWeb:listTodos?list=" ++ TaskList ++ "&search=",
+
     HtmlPage   = ["location: " ++ Redirect ++ "\r\n\r\n"],
     {reply, HtmlPage, State};
 handle_call({showTodo, _SessionId, _Env, Input}, _From,

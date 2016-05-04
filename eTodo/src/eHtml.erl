@@ -25,7 +25,7 @@
          makeWorkLogReport/2,
          makeTimeLogReport/3,
          makeSceduleReport/1,
-         createTaskForm/1,
+         createTaskForm/2,
          showStatus/3,
          showLoggedWork/2,
          showTimeReport/1,
@@ -486,7 +486,8 @@ makeForm(User, Default) ->
     [tableTag([{id, "tableHeader"}],
               [trTag([tdTag([{id, "toolbar"}],
                             [aTag([{id, "createTodo"},
-                                   {href, "/eTodo/eWeb:createTodo"}],
+                                   {href, "/eTodo/eWeb:createTodo?list=" ++
+                                       http_uri:encode(Default)}],
                                   [imgTag([{src, "/priv/Icons/createNew.png"},
                                            {alt, "Create new"}])]),
                              aTag([{id, "message"},
@@ -543,13 +544,9 @@ createForm([Value | Rest], SoFar, Default) ->
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
-createTaskForm(User) ->
-    TaskLists = case eTodoDB:readUserCfg(User) of
-                    #userCfg{lists = undefined} ->
-                        [?defTaskList];
-                    #userCfg{lists = Lists} ->
-                        Lists
-                end,
+createTaskForm(User, TaskList) ->
+    UserCfg   = eTodoDB:readUserCfg(User),
+    TaskLists = default(UserCfg#userCfg.lists, [?defTaskList]),
     [formTag([{action, "/eTodo/eWeb:createTask"},
               {'accept-charset', "UTF-8"},
               {method, "post"}],
@@ -560,7 +557,7 @@ createTaskForm(User) ->
                                  [selectTag([{class, "selects"},
                                              {name, "list"}],
                                             createForm2(TaskLists,
-                                                        ?defTaskList))]),
+                                                        TaskList))]),
                            tdTag(),
                            tdTag()]),
                         trTag(
@@ -674,7 +671,7 @@ makeHtmlTaskCSS(#etodo{uid = Uid,
     [makeTableHeader(Uid, HasSubTodo), "<tr>",
      headerCellCSS(?status), createStatusDataCell(Status, Uid),
      headerCellCSS(?prio), createPriorityDataCell(Priority, Uid),
-     "</tr><tr>",
+     "</tr><tr class='hideRow'>",
      headerCellCSS(?sharedWith), dataCellCSS(SharedWith, ""),
      headerCellCSS(?owner), dataCellCSS(Owner, ""),
      "</tr><tr class='hideRow'>",

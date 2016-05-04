@@ -8,6 +8,7 @@ function showDetails(uid) {
     var Element = document.getElementById('table' + uid);
     if (Element.classList.contains('tCompact')) {
         Element.classList.remove('tCompact');
+        Element.childNodes[0].childNodes[1].classList.remove('hideRow');
         Element.childNodes[0].childNodes[2].classList.remove('hideRow');
         Element.childNodes[0].childNodes[3].classList.remove('hideRow');
         Element.childNodes[0].childNodes[4].classList.remove('hideRow');
@@ -15,6 +16,7 @@ function showDetails(uid) {
     }
     else {
         Element.classList.add('tCompact');
+        addClass(Element.childNodes[0].childNodes[1], 'hideRow');
         addClass(Element.childNodes[0].childNodes[2], 'hideRow');
         addClass(Element.childNodes[0].childNodes[3], 'hideRow');
         addClass(Element.childNodes[0].childNodes[4], 'hideRow');
