@@ -63,7 +63,8 @@
                    bookmCfg        = [],
                    plugins         = [],
                    theme           = 0,
-                   lastTaskList}).
+                   lastTaskList,
+                   webSettings     = []}).
 
 -record(listCfg,  {key,
                    userName,
@@ -194,6 +195,7 @@
 -define(descMedium,     "Medium").
 -define(descHigh,       "High").
 
+-define(descDef,        "Default").
 -define(descAssigned,   "Assigned").
 
 -define(uid,            "Id").

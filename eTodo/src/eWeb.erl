@@ -28,6 +28,7 @@
          listListsJSON/3,
          listTodos/3,
          listTodosJSON/3,
+         settings/3,
          createTodo/3,
          createTask/3,
          showTodo/3,
@@ -41,6 +42,7 @@
          sendStatus/3,
          sendPriority/3,
          saveTodo/3,
+         sendSetting/3,
          sendMsg/3,
          checkForMessage/3,
          message/3]).
@@ -65,7 +67,8 @@
                 headers      = [],
                 timers       = [],
                 status       = [],
-                webState     = []}).
+                webState     = [],
+                settings     = []}).
 
 -include("eTodo.hrl").
 -include_lib("inets/include/httpd.hrl").
@@ -141,6 +144,10 @@ listListsJSON(SessionId, Env, Input) ->
     HtmlPage = call({listListsJSON, SessionId, Env, Input}),
     mod_esi:deliver(SessionId,HtmlPage).
 
+settings(SessionId, Env, Input) ->
+    HtmlPage = call({settings, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, HtmlPage).
+
 createTodo(SessionId, Env, Input) ->
     HtmlPage = call({createTodo, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, HtmlPage).
@@ -193,6 +200,9 @@ sendPriority(SessionId, Env, Input) ->
     mod_esi:deliver(SessionId, Status).
 saveTodo(SessionId, Env, Input) ->
     Status = call({saveTodo, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, Status).
+sendSetting(SessionId, Env, Input) ->
+    Status = call({sendSetting, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, Status).
 sendMsg(SessionId, Env, Input) ->
     Status = call({sendMsg, SessionId, Env, Input}),
@@ -258,7 +268,7 @@ handle_call(getPort, _From, State = #state{port = Port}) ->
     {reply, Port, State};
 
 handle_call({call, Message, Timeout}, From,
-             State = #state{headers = SessionHdrs}) ->
+            State = #state{headers = SessionHdrs}) ->
     SessionId = getSessionId(Message),
     Headers   = getHeaders(SessionId, State),
     State2    = State#state{headers = keepAliveSessions(SessionHdrs)},
@@ -308,7 +318,7 @@ handle_call({listsTodos, SessionId, _Env, Input}, _From,
     Dict = makeDict(Input),
     {ok, List} = find("list",   Dict),
     {ok, Text} = find("search", Dict),
-    Flt        = eTodo:getFilterCfg(List),
+    Flt        = getFilterCfg(List, User),
 
     HtmlPage   =
         case List of
@@ -342,7 +352,7 @@ handle_call({listTodosJSON, _SessionId, _Env, Input}, _From,
     Dict = makeDict(Input),
     {ok, List} = find("list",   Dict),
     {ok, Text} = find("search", Dict),
-    Flt        = eTodo:getFilterCfg(List),
+    Flt        = getFilterCfg(List, User),
 
     JSONData   = [eJSON:makeTodoList(User, conv(List), Flt, Text, Cfg)],
     {reply, ["Content-Type: application/x-javascript\r\n\r\n",JSONData], State};
@@ -355,6 +365,16 @@ handle_call({listListsJSON, _SessionId, _Env, Input}, _From,
     HtmlPage   = [eJSON:makeForm(User, List)],
     {reply, ["Content-Type: application/x-javascript\r\n\r\n",HtmlPage], State};
 
+handle_call({settings, _SessionId, _Env, Input}, _From,
+            State = #state{user = User}) ->
+    Dict = makeDict(Input),
+    {ok, List} = find("list",   Dict),
+
+    HtmlPage   = [eHtml:pageHeader(User),
+                  eHtml:makeForm(User, List),
+                  eHtml:settingsForm(User, List),
+                  eHtml:pageFooter()],
+    {reply, HtmlPage, State};
 handle_call({createTodo, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
     Dict = makeDict(Input),
@@ -465,16 +485,19 @@ handle_call({showTimeReport, SessionId, Env, Input}, _From,
 
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
     {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
-handle_call({message, _SessionId, _Env, _Input}, _From,
+handle_call({message, _SessionId, _Env, Input}, _From,
             State = #state{user        = User,
                            users       = Users,
                            messages    = Messages,
                            subscribers = Subs}) ->
+    Dict = makeDict(Input),
+    {ok, List} = find("list",   Dict),
+
     [gen_server:reply(From, "noMessages") || From <- Subs],
     TopMessages = top(Messages, 100),
     HtmlPage    = [eHtml:pageHeader(
                      "OnLoad=\"setTimeout('checkForMessage()', 10000);\"", User),
-                   eHtml:makeForm(User, ?defTaskList),
+                   eHtml:makeForm(User, List),
                    "<div id=\"messageField\">" ++ TopMessages ++ "</div>",
                    eHtml:createSendMsg("All", lists:delete(User, Users)),
                    eHtml:pageFooter()],
@@ -483,7 +506,7 @@ handle_call({index, SessionId, _Env, _Input}, _From,
             State = #state{user    = User,
                            headers = SessionHdrList}) ->
     Headers = getHeaders(SessionId, State),
-    Flt = eTodo:getFilterCfg(?defTaskList),
+    Flt = getFilterCfg(?defTaskList, User),
     HtmlPage = [eHtml:pageHeader(User),
                 eHtml:makeForm(User, ?defTaskList),
                 eHtml:makeTaskList(User, ?defTaskList, Flt, [], undefined),
@@ -525,7 +548,7 @@ handle_call({showLoggedWork, SessionId, _Env, Input}, _From,
     {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
 handle_call({indexJSON, _SessionId, _Env, _Input}, _From,
             State = #state{user = User}) ->
-    Flt = eTodo:getFilterCfg(?defTaskList),
+    Flt = getFilterCfg(?defTaskList, User),
     HtmlPage = [
                 eJSON:makeTodoList(User, ?defTaskList, Flt, [], undefined)
                ],
@@ -580,6 +603,18 @@ handle_call({saveTodo, _SessionId, _Env, Input}, _From,
     assignLists(User, Uid, Lists),
     eTodo:todoUpdated(User, Todo2),
     {reply, "ok", State};
+handle_call({sendSetting, _SessionId, _Env, Input}, _From,
+            State = #state{user = User}) ->
+    Dict = makeDict(Input),
+    {ok, Key}   = find("key",   Dict),
+    {ok, Value} = find("value", Dict),
+
+    UserCfg     = eTodoDB:readUserCfg(User),
+    WebSettings = default(UserCfg#userCfg.webSettings, []),
+    NewSettings = lists:keystore(Key, 1, WebSettings, {Key, Value}),
+    eTodoDB:saveUserCfg(UserCfg#userCfg{webSettings = NewSettings}),
+
+    {reply, "ok", State};
 handle_call({sendMsg, _SessionId, _Env, Input}, _From,
             State = #state{user = User, users = Users}) ->
     Dict = makeDict(Input),
@@ -598,15 +633,15 @@ handle_call({sendMsg, _SessionId, _Env, Input}, _From,
 
 %% No messages to send to web client
 handle_call({checkForMessage, _SessionId, _Env, _Input}, From,
-    State = #state{subscribers = Subscribers, messages = []}) ->
+            State = #state{subscribers = Subscribers, messages = []}) ->
     %% Remove subscriber after 10 secs.
     timer:apply_after(10000, ?MODULE, removeSubscriber, [From]),
     {noreply, State#state{subscribers = [From|Subscribers]}};
 %% New messages to be sent to web client.
 handle_call({checkForMessage, SessionId, _Env, _Input}, From,
-    State = #state{messages    = [Html|Messages],
-                   subscribers = Subscribers,
-                   lastMsg     = LastMsg}) ->
+            State = #state{messages    = [Html|Messages],
+                           subscribers = Subscribers,
+                           lastMsg     = LastMsg}) ->
     LastMsg2 = keepAliveSessions(LastMsg),
     case lists:keytake(SessionId, 1, LastMsg2) of
         {value, {SessionId, Html}, _LastMsg} ->
@@ -1041,7 +1076,7 @@ find(Key, Dict) ->
 %% @end
 %%--------------------------------------------------------------------
 webProxyCall(Pid, Headers, Message, Timeout, From) ->
-    HtmlPage = apply(ePeer, webProxyCall, [Pid, Message, Timeout], ""), 
+    HtmlPage = apply(ePeer, webProxyCall, [Pid, Message, Timeout], ""),
     case lists:concat(HtmlPage) of
         "location:" ++ Rest ->
             {Hdr, Bdy} = splitHdr("location:" ++ Rest),
@@ -1264,17 +1299,17 @@ makeHtml(StatusMsg) ->
 %%--------------------------------------------------------------------
 doShowTimeReport(User, [], "") ->
     [eHtml:pageHeader(User),
-        eHtml:makeForm(User, ?defTaskList),
-        eHtml:showTimeReport(User),
-        eHtml:pageFooter()];
+     eHtml:makeForm(User, ?defTaskList),
+     eHtml:showTimeReport(User),
+     eHtml:pageFooter()];
 doShowTimeReport(User, List, Text) ->
     Cfg        = eTodo:getSearchCfg(),
     ETodos     = eTodoDB:getETodos(User, List, [], Text, Cfg),
     Uids       = [ETodo#etodo.uid || ETodo <- ETodos],
     [eHtml:pageHeader(User),
-        eHtml:makeForm(User, List),
-        eHtml:showTimeReport(User, Uids, List == ?defTaskList),
-        eHtml:pageFooter()].
+     eHtml:makeForm(User, List),
+     eHtml:showTimeReport(User, Uids, List == ?defTaskList),
+     eHtml:pageFooter()].
 
 %%--------------------------------------------------------------------
 %% @private
@@ -1378,3 +1413,36 @@ getWebState(SessionId, #state{webState = WebState}) ->
         {SessionId, List, Text} ->
             {ok, List, Text}
     end.
+
+getFilterCfg(List, User) ->
+    UserCfg     = eTodoDB:readUserCfg(User),
+    WebSettings = default(UserCfg#userCfg.webSettings, []),
+    FltStatus = proplists:get_value("filterStatus", WebSettings, ?descDef),
+    FltPrio   = proplists:get_value("filterPrio",   WebSettings, ?descDef),
+    DefFilter = eTodo:getFilterCfg(List),
+    Filter1   = applyFilter(status, FltStatus, DefFilter),
+    Filter2   = applyFilter(prio, FltPrio, Filter1),
+    io:format("~p~n", [Filter2]),
+    Filter2.
+
+applyFilter(_Type, ?descDef, DefFilter) ->
+    DefFilter;
+applyFilter(status, Value, DefFilter) ->
+    AllStatus = [?statusDone, ?statusInProgress, ?statusPlanning, ?statusNone],
+    Filter    = lists:delete(toFlt(status, Value), AllStatus),
+    (DefFilter -- AllStatus) ++ Filter;
+applyFilter(prio, Value, DefFilter) ->
+    AllPrio  = [?prioHigh, ?prioLow, ?prioMedium, ?prioNone],
+    Filter    = lists:delete(toFlt(prio, Value), AllPrio),
+    (DefFilter -- AllPrio) ++ Filter.
+
+toFlt(status, ?descPlanning)   -> ?statusPlanning;
+toFlt(status, ?descInProgress) -> ?statusInProgress;
+toFlt(status, ?descDone)       -> ?statusDone;
+toFlt(status, ?descNA)         -> ?statusNone;
+toFlt(prio,   ?descHigh)       -> ?prioHigh;
+toFlt(prio,   ?descMedium)     -> ?prioMedium;
+toFlt(prio,   ?descLow)        -> ?prioLow;
+toFlt(prio,   ?descNA)         -> ?prioNone;
+toFlt(_Type,  Desc)            -> Desc.
+

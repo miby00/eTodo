@@ -26,6 +26,7 @@
          makeTimeLogReport/3,
          makeSceduleReport/1,
          createTaskForm/2,
+         settingsForm/2,
          showStatus/3,
          showLoggedWork/2,
          showTimeReport/1,
@@ -155,6 +156,13 @@ attr([{nonEmpty, _} | Rest], Acc) ->
     attr(Rest, Acc);
 attr([{Name, Value} | Rest], Acc) when is_integer(Value) ->
     attr(Rest, [Acc, 32, toStr(Name), $=, toStr(Value)]);
+attr([{Name, Value} | Rest], Acc) when is_list(Value) ->
+    case lists:member($', Value) of
+        false ->
+            attr(Rest, [Acc, 32, toStr(Name), $=, $', toStr(Value), $']);
+        true ->
+            attr(Rest, [Acc, 32, toStr(Name), $=, $", toStr(Value), $"])
+    end;
 attr([{Name, Value} | Rest], Acc) ->
     attr(Rest, [Acc, 32, toStr(Name), $=, $', toStr(Value), $']);
 attr([Name | Rest], Acc) ->
@@ -491,9 +499,15 @@ makeForm(User, Default) ->
                                   [imgTag([{src, "/priv/Icons/createNew.png"},
                                            {alt, "Create new"}])]),
                              aTag([{id, "message"},
-                                   {href, "/eTodo/eWeb:message"}],
+                                   {href, "/eTodo/eWeb:message?list=" ++
+                                        http_uri:encode(Default)}],
                                   [imgTag([{src, "/priv/Icons/message.png"},
-                                           {alt, "Messages"}])])]),
+                                           {alt, "Messages"}])]),
+                             aTag([{id, "settings"},
+                                   {href, "/eTodo/eWeb:settings?list=" ++
+                                        http_uri:encode(Default)}],
+                                  [imgTag([{src, "/priv/Icons/settings.png"},
+                                           {alt, "Settings"}])])]),
                       tdTag(createForm(User, Default))])])].
 
 createForm(User, Default) ->
@@ -521,11 +535,11 @@ createForm(User, Default) ->
              {method, "get"}],
             [selectTag([{id, "taskSelect"},
                         {name, "list"},
-                        {onchange, "submitForm()"}],
+                        {onchange, "submitForm('searchForm')"}],
                        createForm2(TodoLists, guiName(Default))),
              inputTag([{type, "submit"},
                        {id, "searchButton"},
-                       {onclick, "submitForm()"},
+                       {onclick, "submitForm('searchForm')"},
                        {value, "Search"}]),
              inputTag([{type, "text"},
                        {name, "search"},
@@ -546,6 +560,47 @@ createForm([Value | Rest], SoFar, Default) ->
     Value2 = unicode:characters_to_binary(Value, utf8),
     Option = ["<option value='", Value2, "'>", Value2, "</option>\r\n"],
     createForm(Rest, [Option, SoFar], Default).
+
+%%======================================================================
+%% Function :
+%% Purpose  :
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+settingsForm(User, _Default) ->
+
+    %% Get web settings.
+    UserCfg     = eTodoDB:readUserCfg(User),
+    WebSettings = default(UserCfg#userCfg.webSettings, []),
+    DefStatus = proplists:get_value("filterStatus", WebSettings, ?descDef),
+    DefPrio   = proplists:get_value("filterPrio",   WebSettings, ?descDef),
+
+    StatusList = [?descDef, ?descPlanning, ?descInProgress, ?descDone, ?descNA],
+    PrioList   = [?descDef, ?descLow, ?descMedium, ?descHigh, ?descNA],
+    tableTag([{id, "settingsTable"}],
+             [trTag(
+                [tdTag("Keep tasks with status"),
+                 tdTag(formTag([{'accept-charset', "UTF-8"},
+                                {id, "filterStatusForm"},
+                                {method, "post"}],
+                               [selectTag([{id, "filterStatus"},
+                                           {name, "filterStatus"},
+                                           {class, "selects"},
+                                           {onchange,
+                                            "sendSetting('filterStatus')"}],
+                                          createForm2(StatusList, DefStatus))]))]),
+              trTag(
+                [tdTag("Keep tasks with prio"),
+                 tdTag(formTag([{'accept-charset', "UTF-8"},
+                                {id, "filterPrioForm"},
+                                {method, "post"}],
+                               [selectTag([{id, "filterPrio"},
+                                           {name, "filterPrio"},
+                                           {class, "selects"},
+                                           {onchange,
+                                            "sendSetting('filterPrio')"}],
+                                          createForm2(PrioList, DefPrio))]))])]).
 
 %%======================================================================
 %% Function :

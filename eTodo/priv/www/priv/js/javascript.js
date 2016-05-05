@@ -25,9 +25,24 @@ function showDetails(uid) {
     }
 }
 
-function submitForm() {
-    var FormElement = document.getElementById('searchForm');
+function submitForm(value) {
+    console.log(value);
+    var FormElement = document.getElementById(value);
     FormElement.submit();
+}
+
+function sendSetting(Id)
+{
+    var AJAX = newAJAX();
+    if (AJAX == null)
+    {
+        alert("Initialisation of AJAX failed.");
+        return false;
+    }
+    var Data = document.getElementById(Id).value;
+    var url  = '/eTodo/eWeb:sendSetting?key=' + Id + '&value=' + Data;
+    AJAX.open("GET", url, true);
+    AJAX.send(null);
 }
 
 function checkForEnter (event) {
