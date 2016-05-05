@@ -416,8 +416,6 @@ handle_call({createTask, _SessionId, Env, Input}, _From,
     HttpHost   = "https://" ++ proplists:get_value(http_host, Env, ""),
     Host       = default(proplists:get_value(http_origin, Env), HttpHost),
 
-    io:format("~s~n", [Host]),
-
     Redirect   = Host ++ "/eTodo/eWeb:listTodos?list=" ++ TaskList ++ "&search=",
 
     HtmlPage   = ["location: " ++ Redirect ++ "\r\n\r\n"],
@@ -1421,9 +1419,7 @@ getFilterCfg(List, User) ->
     FltPrio   = proplists:get_value("filterPrio",   WebSettings, ?descDef),
     DefFilter = eTodo:getFilterCfg(List),
     Filter1   = applyFilter(status, FltStatus, DefFilter),
-    Filter2   = applyFilter(prio, FltPrio, Filter1),
-    io:format("~p~n", [Filter2]),
-    Filter2.
+    applyFilter(prio, FltPrio, Filter1).
 
 applyFilter(_Type, ?descDef, DefFilter) ->
     DefFilter;
