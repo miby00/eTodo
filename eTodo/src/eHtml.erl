@@ -568,8 +568,7 @@ createForm([Value | Rest], SoFar, Default) ->
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
-settingsForm(User, _Default) ->
-
+settingsForm(User, List) ->
     %% Get web settings.
     UserCfg     = eTodoDB:readUserCfg(User),
     WebSettings = default(UserCfg#userCfg.webSettings, []),
@@ -580,27 +579,29 @@ settingsForm(User, _Default) ->
     PrioList   = [?descDef, ?descLow, ?descMedium, ?descHigh, ?descNA],
     tableTag([{id, "settingsTable"}],
              [trTag(
-                [tdTag("Keep tasks with status"),
-                 tdTag(formTag([{'accept-charset', "UTF-8"},
-                                {id, "filterStatusForm"},
-                                {method, "post"}],
-                               [selectTag([{id, "filterStatus"},
-                                           {name, "filterStatus"},
-                                           {class, "selects"},
-                                           {onchange,
+                     [tdTag("Keep tasks with status"),
+                      tdTag([selectTag([{id, "filterStatus"},
+                                        {name, "filterStatus"},
+                                        {class, "selects"},
+                                        {onchange,
                                             "sendSetting('filterStatus')"}],
-                                          createForm2(StatusList, DefStatus))]))]),
-              trTag(
-                [tdTag("Keep tasks with prio"),
-                 tdTag(formTag([{'accept-charset', "UTF-8"},
-                                {id, "filterPrioForm"},
-                                {method, "post"}],
-                               [selectTag([{id, "filterPrio"},
-                                           {name, "filterPrio"},
-                                           {class, "selects"},
-                                           {onchange,
-                                            "sendSetting('filterPrio')"}],
-                                          createForm2(PrioList, DefPrio))]))])]).
+                                       createForm2(StatusList, DefStatus))])]),
+                  trTag(
+                     [tdTag("Keep tasks with prio"),
+                      tdTag([selectTag([{id, "filterPrio"},
+                                        {name, "filterPrio"},
+                                        {class, "selects"},
+                                        {onchange, "sendSetting('filterPrio')"}],
+                                       createForm2(PrioList, DefPrio))])]),
+                   trTag(
+                       [tdTag([{colspan, 2}],
+                           [inputTag([{type,  "button"},
+                                      {id,    "doneBtn"},
+                                      {value, "List tasks"},
+                                      {onclick, "openLink('/eTodo/eWeb"
+                                                ":listTodos?list=" ++
+                                                http_uri:encode(List) ++ "');"}])])])
+                   ]).
 
 %%======================================================================
 %% Function :

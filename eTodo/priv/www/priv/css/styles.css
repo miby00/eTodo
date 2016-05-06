@@ -250,7 +250,7 @@ table.msgSent {
     background-size: 10px 100%;
 }
 
-#createTask {
+#createTask, #doneBtn {
     float: right;
     background-color: #2F3FBD;
     border: none;
