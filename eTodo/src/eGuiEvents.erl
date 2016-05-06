@@ -154,6 +154,7 @@
                         obj/2,
                         pos/2,
                         saveColumnSizes/1,
+                        resendUnreadMsgs/1,
                         setColumnWidth/4,
                         setColor/2,
                         setOwner/3,
@@ -232,6 +233,11 @@ loginMenuItemEvent(_Type, _Id, _Frame,  State = #guiState{loginDlg = Login}) ->
     wxTextCtrl:setFocus(PasswordObj),
     wxCheckBox:setValue(ShowLoginObj, default(ShowLogin, false)),
     wxDialog:show(Login),
+
+    %% Set focus to password field.
+    wxTextCtrl:setValue(PasswordObj, ""),
+    wxTextCtrl:setFocus(PasswordObj),
+    wxTextCtrl:setFocus(PasswordObj),
     State.
 
 loginOkEvent(Type, Id, Frame,  State = #guiState{loginDlg = Login,
@@ -309,6 +315,7 @@ loginToCircle(Default, OldUser, User, Circle, Password, Md5Pwd,
     eWeb:start_link(User),
     State3  = updateTodoWindow(State2),
     State4 = userStatusAvailable(State3),
+    resendUnreadMsgs(User),
     focusAndSelect(State4#guiState{loggedIn = true}).
 
 loginCancelEvent(_Type, _Id, _Frame,  State = #guiState{loginDlg = Login}) ->
@@ -2468,9 +2475,11 @@ mainNotebookEvent(_Type, _Id, _Frame, State) ->
             State
     end.
 
-clearMsgCounter(State) ->
+clearMsgCounter(State = #guiState{user = User}) ->
     Notebook = obj("mainNotebook",  State),
     wxNotebook:setPageText(Notebook, 1, "Messages"),
+    UserCfg = eTodoDB:readUserCfg(User),
+    eTodoDB:saveUserCfg(UserCfg#userCfg{unreadMsgs = []}),
     State#guiState{unreadMsgs = 0}.
 
 clearSysMsgCounter(State) ->

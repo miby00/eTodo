@@ -72,6 +72,7 @@
                         obj/2,
                         pos/2,
                         saveColumnSizes/1,
+                        saveMsg/5,
                         setColumnWidth/4,
                         setDoneTimeStamp/3,
                         setOwner/3,
@@ -654,6 +655,7 @@ handle_cast({msgEntry, User, Users, Text},
     State2 = chatMsgStatusBar(Msg, State),
     raiseIfIconified(Frame),
     ReplyAll = lists:delete(UserName, Users),
+    saveMsg(UserName, User, Users, Text, State),
     {noreply, State2#guiState{reply = User, replyAll = ReplyAll}};
 handle_cast({systemEntry, system, Text}, State) ->
     MsgObj       = obj("msgTextWin",    State),

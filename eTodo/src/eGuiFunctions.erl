@@ -38,6 +38,8 @@
          obj/2,
          pos/2,
          saveColumnSizes/1,
+         saveMsg/5,
+         resendUnreadMsgs/1,
          setColumnWidth/4,
          setColor/2,
          setDoneTimeStamp/3,
@@ -1638,3 +1640,34 @@ getWorkDesc("", Description) when length(Description) > 25 ->
     string:sub_string(Description, 1, 25);
 getWorkDesc("",    Description)-> Description;
 getWorkDesc(Desc, _Description) -> Desc.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+saveMsg(UserName, User, Users, Text, State) ->
+    UserCfg  = eTodoDB:readUserCfg(UserName),
+    Unread   = default(UserCfg#userCfg.unreadMsgs, []),
+    Notebook = obj("mainNotebook",  State),
+    CurrPage = wxNotebook:getCurrentPage(Notebook),
+    MsgPage  = wxNotebook:getPage(Notebook, 1),
+    UserCfg2 = case CurrPage of
+                   MsgPage ->
+                       UserCfg#userCfg{unreadMsgs = []};
+                   _ ->
+                       Unread2 = [{User, Users, Text} | Unread],
+                       UserCfg#userCfg{unreadMsgs = Unread2}
+               end,
+    eTodoDB:saveUserCfg(UserCfg2).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+resendUnreadMsgs(User) ->
+    UserCfg   = eTodoDB:readUserCfg(User),
+    Unread    = UserCfg#userCfg.unreadMsgs,
+    RevUnread = lists:reverse(Unread),
+    [eTodo:msgEntry(User, Users, Text) || {User, Users, Text} <- RevUnread].

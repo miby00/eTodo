@@ -64,7 +64,8 @@
                    plugins         = [],
                    theme           = 0,
                    lastTaskList,
-                   webSettings     = []}).
+                   webSettings     = [],
+                   unreadMsgs      = []}).
 
 -record(listCfg,  {key,
                    userName,
