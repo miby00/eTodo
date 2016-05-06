@@ -240,7 +240,6 @@ loginMenuItemEvent(_Type, _Id, _Frame,  State = #guiState{loginDlg = Login}) ->
     %% Set focus to password field.
     wxTextCtrl:setValue(PasswordObj, ""),
     wxTextCtrl:setFocus(PasswordObj),
-    wxTextCtrl:setFocus(PasswordObj),
     State.
 
 loginOkEvent(Type, Id, Frame,  State = #guiState{loginDlg = Login,
