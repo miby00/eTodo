@@ -77,6 +77,24 @@
                      getRootDir/0, apply/4, default/2, addDateTime/2,
                      tryInt/1]).
 
+-import(eHtml, [htmlTag/0, htmlTag/1, htmlTag/2,
+                headTag/0, headTag/1, headTag/2,
+                bodyTag/0, bodyTag/1, bodyTag/2,
+                titleTag/1, titleTag/2,
+                styleTag/1, styleTag/2,
+                tableTag/0, tableTag/1, tableTag/2,
+                divTag/0, divTag/1, divTag/2,
+                fontTag/0, fontTag/1, fontTag/2,
+                pTag/0, pTag/1, pTag/2,
+                bTag/0, bTag/1, bTag/2,
+                tdTag/0, tdTag/1, tdTag/2,
+                trTag/0, trTag/1, trTag/2,
+                brTag/0,
+                formTag/0, formTag/1, formTag/2,
+                aTag/0, aTag/1, aTag/2,
+                selectTag/1, selectTag/2, inputTag/1,
+                metaTag/1, imgTag/1]).
+
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -291,7 +309,9 @@ handle_call({call, Message, Timeout}, From,
             Message2 = makeRemoteSessionId(Msg),
             spawn(?MODULE, webProxyCall,
                   [Pid, Headers2, Message2, Timeout, From]),
-            {noreply, State3}
+            {noreply, State3};
+        {notConnected, State3} ->
+            {reply, unAuthorized(State3#state.user), State3}
     end;
 
 handle_call({link, _SessionId, _Env, Input}, _From, State) ->
@@ -933,13 +953,7 @@ proxyCall({Message, SessionId, Env, Input},
         {ok, User} when is_list(User) ->
             case getPeer(User) of
                 undefined ->
-                    Headers1 = removeCookieIfPresent("eWebProxy", Env),
-                    Headers2 = removeCookieIfPresent("eWebToken", Env, Headers1),
-                    SessionHdrList2 =
-                        lists:keystore(SessionId, 1,
-                                       SessionHdrList,
-                                       {SessionId, Headers2}),
-                    {false, State#state{headers = SessionHdrList2}};
+                    {notConnected, State};
                 Pid ->
                     Headers =
                         case find("token", Dict) of
@@ -1442,3 +1456,11 @@ toFlt(prio,   ?descLow)        -> ?prioLow;
 toFlt(prio,   ?descNA)         -> ?prioNone;
 toFlt(_Type,  Desc)            -> Desc.
 
+unAuthorized(UserName) ->
+    htmlTag([headTag([titleTag(["eTodo - ", UserName])]),
+             bodyTag(["<h1>Unauthorized</h1>"
+                      "This server could not verify that you are authorized "
+                      "to access the document you requested. Either you "
+                      "supplied the wrong credentials (e.g., bad password), "
+                      "or your browser doesn't understand how to supply the "
+                      "credentials required."])]).
