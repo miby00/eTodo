@@ -234,6 +234,9 @@ loginMenuItemEvent(_Type, _Id, _Frame,  State = #guiState{loginDlg = Login}) ->
     wxCheckBox:setValue(ShowLoginObj, default(ShowLogin, false)),
     wxDialog:show(Login),
 
+    %% Make sure login dialog is on top.
+    wxDialog:raise(Login),
+
     %% Set focus to password field.
     wxTextCtrl:setValue(PasswordObj, ""),
     wxTextCtrl:setFocus(PasswordObj),
