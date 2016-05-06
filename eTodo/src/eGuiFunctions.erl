@@ -1666,8 +1666,8 @@ saveMsg(UserName, User, Users, Text, State) ->
 %% @spec
 %% @end
 %%--------------------------------------------------------------------
-resendUnreadMsgs(User) ->
-    UserCfg   = eTodoDB:readUserCfg(User),
+resendUnreadMsgs(UserName) ->
+    UserCfg   = eTodoDB:readUserCfg(UserName),
     Unread    = UserCfg#userCfg.unreadMsgs,
     RevUnread = lists:reverse(Unread),
     [eTodo:msgEntry(User, Users, Text) || {User, Users, Text} <- RevUnread].
