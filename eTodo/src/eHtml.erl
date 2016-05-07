@@ -576,15 +576,18 @@ createForm([Value | Rest], SoFar, Default) ->
 %%======================================================================
 settingsPage(User, List) ->
     %% Get web settings.
-    UserCfg     = eTodoDB:readUserCfg(User),
-    WebSettings = default(UserCfg#userCfg.webSettings, []),
-    DefStatus   = proplists:get_value("filterStatus", WebSettings, ?descDef),
-    DefPrio     = proplists:get_value("filterPrio",   WebSettings, ?descDef),
-    DefListType = proplists:get_value("listType",     WebSettings, ?descDef),
+    UserCfg      = eTodoDB:readUserCfg(User),
+    WebSettings  = default(UserCfg#userCfg.webSettings, []),
+    DefStatus    = proplists:get_value("filterStatus", WebSettings, ?descDef),
+    DefPrio      = proplists:get_value("filterPrio",   WebSettings, ?descDef),
+    DefListType  = proplists:get_value("listType",     WebSettings, ?descDef),
+    DefSortOrder = proplists:get_value("sortOrder",     WebSettings, ?descDef),
 
     StatusList = [?descDef, ?descPlanning, ?descInProgress, ?descDone, ?descNA],
     PrioList   = [?descDef, ?descLow, ?descMedium, ?descHigh, ?descNA],
     ListTypes  = [?descDef, ?descCompact],
+    SortOrders = [?descDef, ?status, ?prio, ?description,
+                  ?createTime, ?dueTime, ?doneTimestamp],
     [tableTag([{id, "filterSettings"}],
               [trTag(
                  [thTag([{colspan, 2}, {class, "tableHeader"}],
@@ -616,7 +619,15 @@ settingsPage(User, List) ->
                                     {class,   "selects"},
                                     {onchange,
                                      "sendSetting('listType')"}],
-                                   createForm2(ListTypes, DefListType))])])
+                                   createForm2(ListTypes, DefListType))])]),
+               trTag(
+                 [tdTag("Task sort order"),
+                  tdTag([selectTag([{id,      "sortOrder"},
+                                    {name,    "sortOrder"},
+                                    {class,   "selects"},
+                                    {onchange,
+                                     "sendSetting('sortOrder')"}],
+                                   createForm2(SortOrders, DefSortOrder))])])
               ]),
      inputTag([{type,  "button"},
                {id,    "doneBtn"},
@@ -700,8 +711,48 @@ createTaskForm(User, TaskList) ->
 %% Notes    :
 %%======================================================================
 makeTaskList(User, List, Filter, SearchText, Cfg) ->
-    ETodos = eTodoDB:getETodos(User, List, Filter, SearchText, Cfg),
-    [makeHtmlTaskCSS(ETodo, User) || ETodo <- ETodos].
+    ETodos       = eTodoDB:getETodos(User, List, Filter, SearchText, Cfg),
+    SortedETodos = sortETodos(User, ETodos),
+    [makeHtmlTaskCSS(ETodo, User) || ETodo <- SortedETodos].
+
+sortETodos(User, ETodos) ->
+    UserCfg  = eTodoDB:readUserCfg(User),
+    Settings = default(UserCfg#userCfg.webSettings, []),
+    Sorting  = proplists:get_value("sortOrder", Settings, ?descDef),
+    doSortETodos(Sorting, ETodos).
+
+%% Sorting alternatives
+%% ?descDef, ?status, ?prio, ?description, ?createTime
+
+doSortETodos(?descDef, ETodos) ->
+    ETodos;
+doSortETodos(?status, ETodos) ->
+    L1 = [{ETodo, makeSortValue(?status, ETodo#etodo.status)} || ETodo <- ETodos],
+    L2 = lists:keysort(2, L1),
+    [ETodo || {ETodo, _} <- L2];
+doSortETodos(?prio, ETodos) ->
+    L1 = [{ETodo, makeSortValue(?prio, ETodo#etodo.priority)} || ETodo <- ETodos],
+    L2 = lists:keysort(2, L1),
+    [ETodo || {ETodo, _} <- L2];
+doSortETodos(?description, ETodos) ->
+    L1 = [{ETodo, string:to_lower(ETodo#etodo.description)} || ETodo <- ETodos],
+    L2 = lists:keysort(2, L1),
+    [ETodo || {ETodo, _} <- L2];
+doSortETodos(?createTime, ETodos) ->
+    lists:keysort(#etodo.createTime, ETodos);
+doSortETodos(?dueTime, ETodos) ->
+    lists:keysort(#etodo.dueTime, ETodos);
+doSortETodos(?doneTimestamp, ETodos) ->
+    lists:keysort(#etodo.doneTime, ETodos).
+
+makeSortValue(?status, ?descPlanning)   -> 1;
+makeSortValue(?status, ?descInProgress) -> 2;
+makeSortValue(?status, ?descDone)       -> 3;
+makeSortValue(?status, _)               -> 4;
+makeSortValue(?prio,   ?descHigh)       -> 1;
+makeSortValue(?prio,   ?descMedium)     -> 2;
+makeSortValue(?prio,   ?descLow)        -> 3;
+makeSortValue(?prio,   _)               -> 4.
 
 %%======================================================================
 %% Function :
