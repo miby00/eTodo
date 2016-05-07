@@ -170,7 +170,7 @@ table.msgSent {
 }
 
 .cstatus {
-    width: 70px;
+    width: 110px;
     vertical-align: text-top;
     padding-top: 0px;
 }
@@ -641,14 +641,6 @@ input.rounded {
         width: 110px;
     }
 
-    .cstatus {
-        width: 110px;
-    }
-
-    #toolbar {
-        width: 110px;
-    }
-
     #footer {
         width: 96%;
     }
@@ -703,14 +695,6 @@ input.rounded {
     }
 
     .header {
-        width: 110px;
-    }
-
-    .cstatus {
-        width: 110px;
-    }
-
-    #toolbar {
         width: 110px;
     }
 
