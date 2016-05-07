@@ -35,9 +35,9 @@ input, select, textarea {
 }
 
 td {
-    height: 28px;
+    height: 26px;
     page-break-inside: avoid;
-    padding: 3px;
+    padding: 2px;
     border-radius: 3px;
     border: 1px;
 }
@@ -556,10 +556,6 @@ input.rounded:focus {
 
     input, select, textarea {
         font-size: 1.0em;
-    }
-
-    td {
-        padding: 2px;
     }
 
     .textField {
