@@ -791,10 +791,10 @@ makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
      headerCellCSS("Estimate(h)"), dataCellCSS(toStr(Estimate), ""),
      headerCellCSS("Remaining(h)"), dataCellCSS2(toStr(Remaining), ""),
      "</tr><tr>",
-     headerCellCSS(?description), dataCellCSS(Description, "colspan=3"),
-     nonEmpty(Comment, ["</tr><tr>",
-                        headerCellCSS(?comment),
-                        dataCellCSS(Comment, "colspan=3")]),
+     headerCellCSS(?description), dataCellCSS4("desc", Description,
+     "colspan=3", Uid), "</tr><tr>",
+     headerCellCSS(?comment),
+     dataCellCSS4("comment", Comment, "colspan=3", Uid),
      "</tr></table>"];
 makeHtmlTaskCSS(#etodo{uid = Uid,
                        status = Status,
@@ -824,7 +824,7 @@ makeHtmlTaskCSS(#etodo{uid = Uid,
              "<tr class='hideRow'>"
      end,
      createStatusDataCell2(Status, Uid),
-     dataCellCSS3(Description, "colspan=3"),
+     dataCellCSS3(Description, "colspan=3", Uid),
      CompactTable,
      headerCellCSS(?status), createStatusDataCell(Status, Uid),
      headerCellCSS(?prio), createPriorityDataCell(Priority, Uid),
@@ -841,9 +841,9 @@ makeHtmlTaskCSS(#etodo{uid = Uid,
      headerCellCSS("Estimate(h)"), dataCellCSS(toStr(Estimate), ""),
      headerCellCSS("Remaining(h)"), dataCellCSS2(toStr(Remaining), ""),
      "</tr>", CompactTable,
-     headerCellCSS(?description), dataCellCSS(Description, "colspan=3"),
-     "</tr><tr class='hideRow'>",
-     headerCellCSS(?comment), dataCellCSS(Comment, "colspan=3"),
+     headerCellCSS(?description), dataCellCSS4(?description, Description,
+     "colspan=3", Uid), "</tr><tr class='hideRow'>",
+     headerCellCSS(?comment), dataCellCSS4(?comment, Comment, "colspan=3", Uid),
      "</tr></table>"].
 
 makeHtmlTaskCSS2(#etodo{uid = Uid,
@@ -912,8 +912,14 @@ dataCellCSS(Text, Extra) ->
 dataCellCSS2(Text, Extra) ->
     ["<td class=data2 ", Extra, ">", makeHtml(Text, "/priv"), "</td>\r\n"].
 
-dataCellCSS3(Text, Extra) ->
-    ["<td class=data3 ", Extra, ">", makeHtml(Text, "/priv"), "</td>\r\n"].
+dataCellCSS3(Text, Extra, Uid) ->
+    ["<td class=data3 id ='compactDesc", Uid, "' ", Extra, ">",
+        makeHtml(Text, "/priv"), "</td>\r\n"].
+
+dataCellCSS4(Type, Text, Extra, Uid) ->
+    ["<td class=data contenteditable OnClick=\"event.cancelBubble = true;\" ",
+     "OnBlur=\"saveChanges('", Type, "', '", Uid, "');\" id='", Type, Uid, "' ",
+     Extra, ">", makeHtml(Text, "/priv"), "</td>\r\n"].
 
 createStatusDataCell(Status, Uid) ->
     ["<td><select class='status' id='idStatus", Uid, "' ",
@@ -1618,3 +1624,4 @@ compactTable(User) ->
         ?descCompact ->
             true
     end.
+

@@ -43,6 +43,7 @@
          sendPriority/3,
          saveTodo/3,
          sendSetting/3,
+         sendFieldChange/3,
          sendMsg/3,
          checkForMessage/3,
          message/3]).
@@ -221,6 +222,9 @@ saveTodo(SessionId, Env, Input) ->
     mod_esi:deliver(SessionId, Status).
 sendSetting(SessionId, Env, Input) ->
     Status = call({sendSetting, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, Status).
+sendFieldChange(SessionId, Env, Input) ->
+    Status = call({sendFieldChange, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, Status).
 sendMsg(SessionId, Env, Input) ->
     Status = call({sendMsg, SessionId, Env, Input}),
@@ -633,6 +637,26 @@ handle_call({sendSetting, _SessionId, _Env, Input}, _From,
     eTodoDB:saveUserCfg(UserCfg#userCfg{webSettings = NewSettings}),
 
     {reply, "ok", State};
+handle_call({sendFieldChange, _SessionId, _Env, Input}, _From,
+            State = #state{user = User}) ->
+    Dict = makeDict(Input),
+    {ok, Field} = find("field", Dict),
+    {ok, Value} = find("value", Dict),
+    {ok, Uid}   = find("uid",   Dict),
+
+    Todo = eTodoDB:getTodo(list_to_integer(Uid)),
+    case Field of
+        ?description ->
+            Todo2 = Todo#todo{description = Value},
+            eTodoDB:updateTodo(User, Todo2),
+            eTodo:todoUpdated(User, Todo2);
+        ?comment ->
+            Todo2 = Todo#todo{comment = Value},
+            eTodoDB:updateTodo(User, Todo2),
+            eTodo:todoUpdated(User, Todo2)
+    end,
+    {reply, "ok", State};
+
 handle_call({sendMsg, _SessionId, _Env, Input}, _From,
             State = #state{user = User, users = Users}) ->
     Dict = makeDict(Input),

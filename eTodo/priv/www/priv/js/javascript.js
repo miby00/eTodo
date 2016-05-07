@@ -5,6 +5,31 @@ function openLink(url)
     /* window.focus(); */
 }
 
+function saveChanges(type, uid) {
+    var Element = document.getElementById(type + uid);
+    if (type == 'Description') {
+        var CompactDesc = document.getElementById('compactDesc' + uid);
+        if (CompactDesc.innerHTML != Element.innerHTML) {
+            CompactDesc.innerHTML = Element.innerHTML;
+        }
+        else {
+            return
+        }
+    }
+
+    var AJAX = newAJAX();
+    if (AJAX == null)
+    {
+        alert("Initialisation of AJAX failed.");
+        return false;
+    }
+    var Data = Element.innerText;
+    var url  = '/eTodo/eWeb:sendFieldChange?field=' + type +
+        '&value=' + encodeURIComponent(Data) + '&uid=' + uid;
+    AJAX.open("GET", url, true);
+    AJAX.send(null);
+}
+
 function showDetails(uid) {
     var Element = document.getElementById('table' + uid);
     if (Element.classList.contains('tCompact')) {
