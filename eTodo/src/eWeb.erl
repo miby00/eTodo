@@ -392,7 +392,7 @@ handle_call({settings, _SessionId, _Env, Input}, _From,
 
     HtmlPage   = [eHtml:pageHeader(User),
                   eHtml:makeForm(User, List),
-                  eHtml:settingsForm(User, List),
+                  eHtml:settingsPage(User, List),
                   eHtml:pageFooter()],
     {reply, HtmlPage, State};
 handle_call({createTodo, _SessionId, _Env, Input}, _From,
@@ -450,7 +450,7 @@ handle_call({showTodo, _SessionId, _Env, Input}, _From,
     ETodo       = eTodoUtils:makeETodo(Todo, User, Columns),
     HtmlPage    = [eHtml:pageHeader(User),
                    eHtml:makeForm(User, ?defTaskList),
-                   eHtml:makeHtmlTaskCSS(ETodo),
+                   eHtml:makeHtmlTaskCSS(ETodo, User),
                    eHtml:pageFooter()],
     {reply, HtmlPage, State};
 handle_call({show, SessionId, Env, Input}, _From,
@@ -471,7 +471,7 @@ handle_call({show, SessionId, Env, Input}, _From,
     ETodos     = filterETodos(User, List, Text, Flt, Cfg, SETodos),
 
     HtmlPage   = [eHtml:pageHeader(User),
-                  [eHtml:makeHtmlTaskCSS2(ETodo) || ETodo <- ETodos],
+                  [eHtml:makeHtmlTaskCSS2(ETodo, User) || ETodo <- ETodos],
                   eHtml:pageFooter()],
 
     SessionHdrList2 = keepAliveSessions(SessionHdrList),

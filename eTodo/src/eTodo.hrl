@@ -197,6 +197,7 @@
 -define(descHigh,       "High").
 
 -define(descDef,        "Default").
+-define(descCompact,    "Compact").
 -define(descAssigned,   "Assigned").
 
 -define(uid,            "Id").

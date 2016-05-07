@@ -131,6 +131,16 @@ table.msgSent {
     margin-left: 9%;
 }
 
+.divider {
+    display: block;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    margin-left: auto;
+    margin-right: auto;
+    border-style: inset;
+    border-width: 1px;
+}
+
 .hideRow {
     display: none;
 }
@@ -140,6 +150,10 @@ table.msgSent {
 }
 
 .todoTable {
+}
+
+.tableHeader {
+    text-align: left;
 }
 
 .data {
@@ -154,10 +168,22 @@ table.msgSent {
     width: 31%;
 }
 
+.data3 {
+    color: DarkRed;
+    background-color: white;
+    width: 100%;
+}
+
 .header {
     width: 70px;
     font-weight: bold;
     color: white;
+}
+
+.cstatus {
+    width: 70px;
+    vertical-align: text-top;
+    padding-top: 0px;
 }
 
 .emote {
@@ -211,6 +237,16 @@ table.msgSent {
     height: 28px;
     padding: 3px;
     border-radius: 3px;
+}
+
+#filterSettings{
+    margin-top: 1em;
+    padding: 1em;
+}
+
+#presentationSettings{
+    margin-top: 1em;
+    padding: 1em;
 }
 
 #searchField {
@@ -273,6 +309,10 @@ table.msgSent {
     margin: 4px 2px;
     cursor: pointer;
     border-radius: 5px;
+}
+
+#doneBtn {
+    margin-top: 1em;
 }
 
 #userSelect {
@@ -621,6 +661,11 @@ input.rounded:focus {
         width: 110px;
     }
 
+    .cstatus {
+        width: 110px;
+    }
+
+
     #toolbar {
         width: 110px;
     }
@@ -679,6 +724,10 @@ input.rounded:focus {
     }
 
     .header {
+        width: 110px;
+    }
+
+    .cstatus {
         width: 110px;
     }
 

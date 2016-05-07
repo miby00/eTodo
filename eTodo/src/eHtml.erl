@@ -18,15 +18,15 @@
          generateAlarmMsg/2,
          printTaskList/5,
          makeTaskList/5,
-         makeHtmlTaskCSS/1,
-         makeHtmlTaskCSS2/1,
+         makeHtmlTaskCSS/2,
+         makeHtmlTaskCSS2/2,
          makeForm/2,
          makeHtml/1,
          makeWorkLogReport/2,
          makeTimeLogReport/3,
          makeSceduleReport/1,
          createTaskForm/2,
-         settingsForm/2,
+         settingsPage/2,
          showStatus/3,
          showLoggedWork/2,
          showTimeReport/1,
@@ -44,6 +44,7 @@
          pTag/0, pTag/1, pTag/2,
          bTag/0, bTag/1, bTag/2,
          tdTag/0, tdTag/1, tdTag/2,
+         thTag/0, thTag/1, thTag/2,
          trTag/0, trTag/1, trTag/2,
          brTag/0,
          formTag/0, formTag/1, formTag/2,
@@ -117,6 +118,10 @@ trTag(Attr, Content) -> tag(tr, Attr, Content).
 tdTag() -> tag(td, [], []).
 tdTag(Content) -> tag(td, [], Content).
 tdTag(Attr, Content) -> tag(td, Attr, Content).
+
+thTag() -> tag(th, [], []).
+thTag(Content) -> tag(th, [], Content).
+thTag(Attr, Content) -> tag(th, Attr, Content).
 
 formTag() -> tag(form, [], []).
 formTag(Content) -> tag(form, [], Content).
@@ -569,40 +574,56 @@ createForm([Value | Rest], SoFar, Default) ->
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
-settingsForm(User, List) ->
+settingsPage(User, List) ->
     %% Get web settings.
     UserCfg     = eTodoDB:readUserCfg(User),
     WebSettings = default(UserCfg#userCfg.webSettings, []),
-    DefStatus = proplists:get_value("filterStatus", WebSettings, ?descDef),
-    DefPrio   = proplists:get_value("filterPrio",   WebSettings, ?descDef),
+    DefStatus   = proplists:get_value("filterStatus", WebSettings, ?descDef),
+    DefPrio     = proplists:get_value("filterPrio",   WebSettings, ?descDef),
+    DefListType = proplists:get_value("listType",     WebSettings, ?descDef),
 
     StatusList = [?descDef, ?descPlanning, ?descInProgress, ?descDone, ?descNA],
     PrioList   = [?descDef, ?descLow, ?descMedium, ?descHigh, ?descNA],
-    tableTag([{id, "settingsTable"}],
-             [trTag(
-                     [tdTag("Keep tasks with status"),
-                      tdTag([selectTag([{id,      "filterStatus"},
-                                        {name,    "filterStatus"},
-                                        {class,   "selects"},
-                                        {onchange,
-                                            "sendSetting('filterStatus')"}],
-                                       createForm2(StatusList, DefStatus))])]),
-                  trTag(
-                     [tdTag("Keep tasks with prio"),
-                      tdTag([selectTag([{id, "filterPrio"},
-                                        {name, "filterPrio"},
-                                        {class, "selects"},
-                                        {onchange, "sendSetting('filterPrio')"}],
-                                       createForm2(PrioList, DefPrio))])]),
-                   trTag(
-                       [tdTag([{colspan, 2}],
-                           [inputTag([{type,  "button"},
-                                      {id,    "doneBtn"},
-                                      {value, "List tasks"},
-                                      {onclick, "openLink('/eTodo/eWeb"
-                                                ":listTodos?list=" ++
-                                                http_uri:encode(List) ++ "');"}])])])
-                   ]).
+    ListTypes  = [?descDef, ?descCompact],
+    [tableTag([{id, "filterSettings"}],
+              [trTag(
+                 [thTag([{colspan, 2}, {class, "tableHeader"}],
+                        "Filter settings")]),
+               trTag(
+                 [tdTag("Keep tasks with status"),
+                  tdTag([selectTag([{id,      "filterStatus"},
+                                    {name,    "filterStatus"},
+                                    {class,   "selects"},
+                                    {onchange,
+                                     "sendSetting('filterStatus')"}],
+                                   createForm2(StatusList, DefStatus))])]),
+               trTag(
+                 [tdTag("Keep tasks with prio"),
+                  tdTag([selectTag([{id, "filterPrio"},
+                                    {name, "filterPrio"},
+                                    {class, "selects"},
+                                    {onchange, "sendSetting('filterPrio')"}],
+                                   createForm2(PrioList, DefPrio))])])
+              ]),
+     tableTag([{id, "presentationSettings"}],
+              [trTag(
+                 [thTag([{colspan, 2}, {class, "tableHeader"}],
+                        "Presentation")]),
+               trTag(
+                 [tdTag("Task list type"),
+                  tdTag([selectTag([{id,      "listType"},
+                                    {name,    "listType"},
+                                    {class,   "selects"},
+                                    {onchange,
+                                     "sendSetting('listType')"}],
+                                   createForm2(ListTypes, DefListType))])])
+              ]),
+     inputTag([{type,  "button"},
+               {id,    "doneBtn"},
+               {value, "List tasks"},
+               {onclick, "openLink('/eTodo/eWeb"
+                ":listTodos?list=" ++
+                    http_uri:encode(List) ++ "');"}])].
 
 %%======================================================================
 %% Function :
@@ -680,7 +701,7 @@ createTaskForm(User, TaskList) ->
 %%======================================================================
 makeTaskList(User, List, Filter, SearchText, Cfg) ->
     ETodos = eTodoDB:getETodos(User, List, Filter, SearchText, Cfg),
-    [makeHtmlTaskCSS(ETodo) || ETodo <- ETodos].
+    [makeHtmlTaskCSS(ETodo, User) || ETodo <- ETodos].
 
 %%======================================================================
 %% Function :
@@ -700,10 +721,10 @@ makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
                        createTime  = CreateTime,
                        doneTime    = DoneTime,
                        progress    = Progress,
-                       owner       = Owner}) ->
+                       owner       = Owner}, User) ->
     ProgStr = toStr(Progress),
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
-    [makeTableHeader(Uid, true), "<tr>",
+    [makeTableHeader(User, Uid, true), "<tr>",
      headerCellCSS(?status), createStatusDataCell(Status, Uid),
      headerCellCSS(?prio), createPriorityDataCell(Priority, Uid),
      "</tr><tr>",
@@ -735,10 +756,25 @@ makeHtmlTaskCSS(#etodo{uid = Uid,
                        doneTime = DoneTime,
                        progress    = Progress,
                        owner = Owner,
-                       hasSubTodo = HasSubTodo}) ->
+                       hasSubTodo = HasSubTodo}, User) ->
     ProgStr = toStr(Progress),
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
-    [makeTableHeader(Uid, HasSubTodo), "<tr>",
+    CompactTable = case compactTable(User) of
+                       true ->
+                           "<tr class='hideRow'>";
+                       false ->
+                           "<tr>"
+                   end,
+    [makeTableHeader(User, Uid, HasSubTodo),
+     case compactTable(User) of
+         true ->
+             "<tr>";
+         false ->
+             "<tr class='hideRow'>"
+     end,
+     createStatusDataCell2(Status, Uid),
+     dataCellCSS3(Description, "colspan=3"),
+     CompactTable,
      headerCellCSS(?status), createStatusDataCell(Status, Uid),
      headerCellCSS(?prio), createPriorityDataCell(Priority, Uid),
      "</tr><tr class='hideRow'>",
@@ -753,7 +789,7 @@ makeHtmlTaskCSS(#etodo{uid = Uid,
      "</tr><tr class='hideRow'>",
      headerCellCSS("Estimate(h)"), dataCellCSS(toStr(Estimate), ""),
      headerCellCSS("Remaining(h)"), dataCellCSS2(toStr(Remaining), ""),
-     "</tr><tr>",
+     "</tr>", CompactTable,
      headerCellCSS(?description), dataCellCSS(Description, "colspan=3"),
      "</tr><tr class='hideRow'>",
      headerCellCSS(?comment), dataCellCSS(Comment, "colspan=3"),
@@ -770,10 +806,10 @@ makeHtmlTaskCSS2(#etodo{uid = Uid,
                         doneTime = DoneTime,
                         progress = Progress,
                         owner = Owner,
-                        hasSubTodo = HasSubTodo}) ->
+                        hasSubTodo = HasSubTodo}, User) ->
     ProgStr = toStr(Progress),
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
-    [makeTableHeader(Uid, HasSubTodo), "<tr>",
+    [makeTableHeader(User, Uid, HasSubTodo), "<tr>",
      headerCellCSS(?status), dataCellCSS2(Status, ""),
      headerCellCSS(?prio), dataCellCSS2(Priority, ""),
      "</tr><tr>",
@@ -802,10 +838,16 @@ nonEmpty(undefined, _) ->
 nonEmpty(_, Value) ->
     Value.
 
-makeTableHeader(Uid, false) ->
-    ["<table class='todoTable tCompact' id='table", Uid, "' ",
-     "OnClick=\"showDetails(", Uid, ");\">"];
-makeTableHeader(Uid, true) ->
+makeTableHeader(User, Uid, false) ->
+    case compactTable(User) of
+        true ->
+            ["<table class='todoTable tCompact ttCompact' id='table", Uid, "' ",
+             "OnClick=\"showDetails(", Uid, ");\">"];
+        false ->
+            ["<table class='todoTable tCompact' id='table", Uid, "' ",
+             "OnClick=\"showDetails(", Uid, ");\">"]
+    end;
+makeTableHeader(_User, Uid, true) ->
     ["<table class='subTodoTable' id='table", Uid, "' "
      "OnClick=\"openLink('/eTodo/eWeb:listTodos",
      "?list=", Uid, "&search=&submit=Search');\">"].
@@ -819,8 +861,18 @@ dataCellCSS(Text, Extra) ->
 dataCellCSS2(Text, Extra) ->
     ["<td class=data2 ", Extra, ">", makeHtml(Text, "/priv"), "</td>\r\n"].
 
+dataCellCSS3(Text, Extra) ->
+    ["<td class=data3 ", Extra, ">", makeHtml(Text, "/priv"), "</td>\r\n"].
+
 createStatusDataCell(Status, Uid) ->
     ["<td><select class='status' id='idStatus", Uid, "' ",
+     "OnChange=\"sendStatus('idStatus", Uid, "', '", Uid, "');\" ",
+     "OnClick=\"event.cancelBubble = true;\">\r\n",
+     createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
+                 default(Status, ?descNA)),
+     "</select></td>"].
+createStatusDataCell2(Status, Uid) ->
+    ["<td class='cstatus'><select class='status cstatus' id='idStatus", Uid, "' ",
      "OnChange=\"sendStatus('idStatus", Uid, "', '", Uid, "');\" ",
      "OnClick=\"event.cancelBubble = true;\">\r\n",
      createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
@@ -1504,4 +1556,14 @@ guiName(TaskList) ->
             TaskList;
         _ ->
             ?subTaskList ++ TaskList
+    end.
+
+compactTable(User) ->
+    UserCfg  = eTodoDB:readUserCfg(User),
+    Settings = default(UserCfg#userCfg.webSettings, []),
+    case proplists:get_value("listType", Settings, ?descDef) of
+        ?descDef ->
+            false;
+        ?descCompact ->
+            true
     end.

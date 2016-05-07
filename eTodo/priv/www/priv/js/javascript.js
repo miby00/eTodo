@@ -13,15 +13,25 @@ function showDetails(uid) {
         Element.childNodes[0].childNodes[2].classList.remove('hideRow');
         Element.childNodes[0].childNodes[3].classList.remove('hideRow');
         Element.childNodes[0].childNodes[4].classList.remove('hideRow');
+        Element.childNodes[0].childNodes[5].classList.remove('hideRow');
         Element.childNodes[0].childNodes[6].classList.remove('hideRow');
+        Element.childNodes[0].childNodes[7].classList.remove('hideRow');
+        if (Element.classList.contains('ttCompact')) {
+            addClass(Element.childNodes[0].childNodes[0], 'hideRow');
+        }
     }
     else {
         Element.classList.add('tCompact');
-        addClass(Element.childNodes[0].childNodes[1], 'hideRow');
         addClass(Element.childNodes[0].childNodes[2], 'hideRow');
         addClass(Element.childNodes[0].childNodes[3], 'hideRow');
         addClass(Element.childNodes[0].childNodes[4], 'hideRow');
-        addClass(Element.childNodes[0].childNodes[6], 'hideRow');
+        addClass(Element.childNodes[0].childNodes[5], 'hideRow');
+        addClass(Element.childNodes[0].childNodes[7], 'hideRow');
+        if (Element.classList.contains('ttCompact')) {
+            Element.childNodes[0].childNodes[0].classList.remove('hideRow');
+            addClass(Element.childNodes[0].childNodes[1], 'hideRow');
+            addClass(Element.childNodes[0].childNodes[6], 'hideRow');
+        }
     }
 }
 
