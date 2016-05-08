@@ -248,6 +248,9 @@ table.msgSent {
 
 #presentationSettings{
     padding: 1em;
+}
+
+#createTableForm {
     margin-top: 1em;
 }
 
@@ -280,6 +283,10 @@ table.msgSent {
     width: 27%
 }
 
+.longvalue {
+    width: 100%
+}
+
 .selects {
     margin-left: 1%;
     width: 99%;
@@ -301,7 +308,7 @@ table.msgSent {
     background-size: 10px 100%;
 }
 
-#createTask, #doneBtn {
+#createTask, #doneBtn, #createTaskListBtn{
     float: right;
     background-color: #2F3FBD;
     border: none;
