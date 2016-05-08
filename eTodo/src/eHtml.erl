@@ -586,7 +586,7 @@ settingsPage(User, List) ->
     StatusList = [?descDef, ?descPlanning, ?descInProgress, ?descDone, ?descNA],
     PrioList   = [?descDef, ?descLow, ?descMedium, ?descHigh, ?descNA],
     ListTypes  = [?descDef, ?descCompact],
-    SortOrders = [?descDef, ?status, ?prio, ?description,
+    SortOrders = [?descDef, ?status, ?prio, ?description, ?comment,
                   ?createTime, ?dueTime, ?doneTimestamp],
     [tableTag([{id, "filterSettings"}],
               [trTag(
@@ -736,6 +736,10 @@ doSortETodos(?prio, ETodos) ->
     [ETodo || {ETodo, _} <- L2];
 doSortETodos(?description, ETodos) ->
     L1 = [{ETodo, string:to_lower(ETodo#etodo.description)} || ETodo <- ETodos],
+    L2 = lists:keysort(2, L1),
+    [ETodo || {ETodo, _} <- L2];
+doSortETodos(?comment, ETodos) ->
+    L1 = [{ETodo, string:to_lower(ETodo#etodo.comment)} || ETodo <- ETodos],
     L2 = lists:keysort(2, L1),
     [ETodo || {ETodo, _} <- L2];
 doSortETodos(?createTime, ETodos) ->
