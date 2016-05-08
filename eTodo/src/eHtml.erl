@@ -170,8 +170,8 @@ attr([{Name, Value} | Rest], Acc) when is_list(Value) ->
     end;
 attr([{Name, Value} | Rest], Acc) ->
     attr(Rest, [Acc, 32, toStr(Name), $=, $', toStr(Value), $']);
-attr([Name | Rest], Acc) ->
-    attr([{Name, Name} | Rest], Acc).
+attr([Field | Rest], Acc) ->
+    attr(Rest, [Acc, 32, Field]).
 
 %%======================================================================
 %% Function :
@@ -438,8 +438,8 @@ pageHeader(UserName) ->
 pageHeader(Extra, UserName) ->
     StyleSheet = getStyleSheet(UserName),
     {ok, Styles} = file:read_file(StyleSheet),
-    Content = "width=device-width; initial-scale=1.0; "
-        "maximum-scale=1.0; user-scalable=0;",
+    Content = "width=device-width, initial-scale=1.0, "
+        "maximum-scale=1.0, user-scalable=0",
     ManifestFile = filename:join(["priv", "css", "manifest.json"]),
     Manifest = "<link rel='manifest' href='/" ++ ManifestFile ++ "'>",
     IconFile = filename:join(["priv", "Icons", "etodoSuper.png"]),
@@ -775,27 +775,32 @@ makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
                        owner       = Owner}, User) ->
     ProgStr = toStr(Progress),
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
-    [makeTableHeader(User, Uid, true), "<tr>",
-     headerCellCSS(?status), createStatusDataCell(Status, Uid),
-     headerCellCSS(?prio), createPriorityDataCell(Priority, Uid),
-     "</tr><tr>",
-     headerCellCSS(?sharedWith), dataCellCSS(SharedWith, ""),
-     headerCellCSS(?owner), dataCellCSS(Owner, ""),
-     "</tr><tr>",
-     headerCellCSS(?createTime), dataCellCSS2(CreateTime, ""),
-     headerCellCSS(?dueTime), dataCellCSS2(DueTime, ""),
-     "</tr><tr>",
-     headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, ""),
-     headerCellCSS("Progress(%)"), dataCellCSS2(ProgStr, ""),
-     "</tr><tr>",
-     headerCellCSS("Estimate(h)"), dataCellCSS(toStr(Estimate), ""),
-     headerCellCSS("Remaining(h)"), dataCellCSS2(toStr(Remaining), ""),
-     "</tr><tr>",
-     headerCellCSS(?description), dataCellCSS4("desc", Description,
-     "colspan=3", Uid), "</tr><tr>",
-     headerCellCSS(?comment),
-     dataCellCSS4("comment", Comment, "colspan=3", Uid),
-     "</tr></table>"];
+    [makeTableHeader(User, Uid, true),
+     trTag(
+       [headerCellCSS(?status), createStatusDataCell(Status, Uid),
+        headerCellCSS(?prio), createPriorityDataCell(Priority, Uid)]),
+     trTag(
+       [headerCellCSS(?sharedWith), dataCellCSS(SharedWith, []),
+        headerCellCSS(?owner), dataCellCSS(Owner, [])]),
+     trTag(
+       [headerCellCSS(?createTime), dataCellCSS2(CreateTime, []),
+        headerCellCSS(?dueTime), dataCellCSS2(DueTime, [])]),
+     trTag(
+       [headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, []),
+        headerCellCSS(?progress),
+           dataCellCSS4(?progress, ProgStr, [], Uid)]),
+     trTag(
+       [headerCellCSS(?estimate),
+           dataCellCSS4(?estimate, toStr(Estimate), [], Uid),
+        headerCellCSS(?remaining),
+           dataCellCSS4(?remaining, toStr(Remaining), [], Uid)]),
+     trTag(
+       [headerCellCSS(?description),
+        dataCellCSS4(?description, Description, [{colspan, 3}], Uid)]),
+     trTag(
+       [headerCellCSS(?comment),
+        dataCellCSS4(?comment, Comment, [{colspan, 3}], Uid)]),
+     "</table>"];
 makeHtmlTaskCSS(#etodo{uid = Uid,
                        status = Status,
                        priority = Priority,
@@ -812,39 +817,52 @@ makeHtmlTaskCSS(#etodo{uid = Uid,
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     CompactTable = case compactTable(User) of
                        true ->
-                           "<tr class='hideRow'>";
+                           [{class, "hideRow"}];
                        false ->
-                           "<tr>"
+                           []
                    end,
+    CompactTable2 = case compactTable(User) of
+                        false ->
+                            [{class, "hideRow"}];
+                        true ->
+                            []
+                    end,
     [makeTableHeader(User, Uid, HasSubTodo),
-     case compactTable(User) of
-         true ->
-             "<tr>";
-         false ->
-             "<tr class='hideRow'>"
-     end,
-     createStatusDataCell2(Status, Uid),
-     dataCellCSS3(Description, "colspan=3", Uid),
-     CompactTable,
-     headerCellCSS(?status), createStatusDataCell(Status, Uid),
-     headerCellCSS(?prio), createPriorityDataCell(Priority, Uid),
-     "</tr><tr class='hideRow'>",
-     headerCellCSS(?sharedWith), dataCellCSS(SharedWith, ""),
-     headerCellCSS(?owner), dataCellCSS(Owner, ""),
-     "</tr><tr class='hideRow'>",
-     headerCellCSS(?createTime), dataCellCSS2(CreateTime, ""),
-     headerCellCSS(?dueTime), dataCellCSS2(DueTime, ""),
-     "</tr><tr class='hideRow'>",
-     headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, ""),
-     headerCellCSS("Progress(%)"), dataCellCSS2(ProgStr, ""),
-     "</tr><tr class='hideRow'>",
-     headerCellCSS("Estimate(h)"), dataCellCSS(toStr(Estimate), ""),
-     headerCellCSS("Remaining(h)"), dataCellCSS2(toStr(Remaining), ""),
-     "</tr>", CompactTable,
-     headerCellCSS(?description), dataCellCSS4(?description, Description,
-     "colspan=3", Uid), "</tr><tr class='hideRow'>",
-     headerCellCSS(?comment), dataCellCSS4(?comment, Comment, "colspan=3", Uid),
-     "</tr></table>"].
+     trTag(
+       CompactTable2,
+       [createStatusDataCell2(Status, Uid),
+        dataCellCSS3(Description, "colspan=3", Uid)]),
+     trTag(
+       CompactTable,
+       [headerCellCSS(?status), createStatusDataCell(Status, Uid),
+        headerCellCSS(?prio), createPriorityDataCell(Priority, Uid)]),
+     trTag(
+       [{class, "hideRow"}],
+       [headerCellCSS(?sharedWith), dataCellCSS(SharedWith, []),
+        headerCellCSS(?owner), dataCellCSS(Owner, [])]),
+     trTag(
+       [{class, "hideRow"}],
+       [headerCellCSS(?createTime), dataCellCSS2(CreateTime, []),
+        headerCellCSS(?dueTime), dataCellCSS2(DueTime, [])]),
+     trTag(
+       [{class, "hideRow"}],
+       [headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, []),
+        headerCellCSS(?progress), dataCellCSS4(?progress, ProgStr, [], Uid)]),
+     trTag(
+       [{class, "hideRow"}],
+       [headerCellCSS(?estimate),
+           dataCellCSS4(?estimate, toStr(Estimate), [], Uid),
+        headerCellCSS(?remaining),
+           dataCellCSS4(?remaining, toStr(Remaining), [], Uid)]),
+     trTag(
+       CompactTable,
+       [headerCellCSS(?description),
+        dataCellCSS4(?description, Description, [{colspan, 3}], Uid)]),
+     trTag(
+       [{class, "hideRow"}],
+       [headerCellCSS(?comment),
+        dataCellCSS4(?comment, Comment, [{colspan, 3}], Uid)]),
+     "</table>"].
 
 makeHtmlTaskCSS2(#etodo{uid = Uid,
                         status = Status,
@@ -860,32 +878,33 @@ makeHtmlTaskCSS2(#etodo{uid = Uid,
                         hasSubTodo = HasSubTodo}, User) ->
     ProgStr = toStr(Progress),
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
-    [makeTableHeader(User, Uid, HasSubTodo), "<tr>",
-     headerCellCSS(?status), dataCellCSS2(Status, ""),
-     headerCellCSS(?prio), dataCellCSS2(Priority, ""),
-     "</tr><tr>",
-     headerCellCSS(?sharedWith), dataCellCSS(SharedWith, ""),
-     headerCellCSS(?owner), dataCellCSS(Owner, ""),
-     "</tr><tr>",
-     headerCellCSS(?createTime), dataCellCSS2(CreateTime, ""),
-     headerCellCSS(?dueTime), dataCellCSS2(DueTime, ""),
-     "</tr><tr>",
-     headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, ""),
-     headerCellCSS("Progress(%)"), dataCellCSS2(ProgStr, ""),
-     "</tr><tr>",
-     headerCellCSS("Estimate(h)"), dataCellCSS(toStr(Estimate), ""),
-     headerCellCSS("Remaining(h)"), dataCellCSS2(toStr(Remaining), ""),
-     "</tr><tr>",
-     headerCellCSS(?description), dataCellCSS(Description, "colspan=3"),
-     nonEmpty(Comment, ["</tr><tr>",
-                        headerCellCSS(?comment),
-                        dataCellCSS(Comment, "colspan=3")]),
-     "</tr></table>"].
+    [makeTableHeader(User, Uid, HasSubTodo),
+     trTag(
+       [headerCellCSS(?status), dataCellCSS2(Status, []),
+        headerCellCSS(?prio), dataCellCSS2(Priority, [])]),
+     trTag(
+       [headerCellCSS(?sharedWith), dataCellCSS(SharedWith, []),
+        headerCellCSS(?owner), dataCellCSS(Owner, [])]),
+     trTag(
+       [headerCellCSS(?createTime), dataCellCSS2(CreateTime, []),
+        headerCellCSS(?dueTime), dataCellCSS2(DueTime, [])]),
+     trTag(
+       [headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, []),
+        headerCellCSS(?progress), dataCellCSS2(ProgStr, [])]),
+     trTag(
+       [headerCellCSS(?estimate), dataCellCSS(toStr(Estimate), []),
+        headerCellCSS(?remaining), dataCellCSS2(toStr(Remaining), [])]),
+     trTag(
+       [headerCellCSS(?description), dataCellCSS(Description, [{colspan, 3}])]),
+     nonEmpty(
+       Comment,
+       [trTag([headerCellCSS(?comment), dataCellCSS(Comment, [{colspan, 3}])])]),
+     "</table>"].
 
-nonEmpty("", _) ->
-    "";
+nonEmpty([], _) ->
+    [];
 nonEmpty(undefined, _) ->
-    "";
+    [];
 nonEmpty(_, Value) ->
     Value.
 
@@ -904,45 +923,64 @@ makeTableHeader(_User, Uid, true) ->
      "?list=", Uid, "&search=&submit=Search');\">"].
 
 headerCellCSS(Text) ->
-    ["<td class=header>", Text, ":</td>\r\n"].
+    tdTag([{class, "header"}], [Text, ":"]).
 
 dataCellCSS(Text, Extra) ->
-    ["<td class=data ", Extra, ">", makeHtml(Text, "/priv"), "</td>\r\n"].
+    tdTag([{class, "data"}] ++ Extra, [makeHtml(Text, "/priv")]).
 
 dataCellCSS2(Text, Extra) ->
-    ["<td class=data2 ", Extra, ">", makeHtml(Text, "/priv"), "</td>\r\n"].
+    tdTag([{class, "data2"}] ++ Extra, [makeHtml(Text, "/priv")]).
 
 dataCellCSS3(Text, Extra, Uid) ->
-    ["<td class=data3 id ='compactDesc", Uid, "' ", Extra, ">",
-        makeHtml(Text, "/priv"), "</td>\r\n"].
+    CompactId = "compactDesc" ++ toStr(Uid),
+    tdTag([{class, "data3"},
+           {id, CompactId}] ++ Extra, [makeHtml(Text, "/priv")]).
 
 dataCellCSS4(Type, Text, Extra, Uid) ->
-    ["<td class=data contenteditable OnClick=\"event.cancelBubble = true;\" ",
-     "OnBlur=\"saveChanges('", Type, "', '", Uid, "');\" id='", Type, Uid, "' ",
-     Extra, ">", makeHtml(Text, "/priv"), "</td>\r\n"].
+    Id = Type ++ toStr(Uid),
+    tdTag(
+      [{class, "data"},
+       {id,    Id},
+       "contenteditable",
+       {onclick, "event.cancelBubble = true;"},
+       {onblur,  "saveChanges('" ++ Type ++ "', '"++ toStr(Uid) ++  "');\""}]
+      ++ Extra, [makeHtml(Text, "/priv")]).
 
 createStatusDataCell(Status, Uid) ->
-    ["<td><select class='status' id='idStatus", Uid, "' ",
-     "OnChange=\"sendStatus('idStatus", Uid, "', '", Uid, "');\" ",
-     "OnClick=\"event.cancelBubble = true;\">\r\n",
-     createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
-                 default(Status, ?descNA)),
-     "</select></td>"].
+    SelectId   = "idStatus" ++ toStr(Uid),
+    SendStatus = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
+    tdTag(
+      selectTag(
+        [{class,    "status"},
+         {id,       SelectId},
+         {onchange, "sendStatus(" ++ SendStatus ++ ");"},
+         {onclick,  "event.cancelBubble = true;"}],
+        createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
+                    default(Status, ?descNA)))).
 createStatusDataCell2(Status, Uid) ->
-    ["<td class='cstatus'><select class='status cstatus' id='idStatus", Uid, "' ",
-     "OnChange=\"sendStatus('idStatus", Uid, "', '", Uid, "');\" ",
-     "OnClick=\"event.cancelBubble = true;\">\r\n",
-     createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
-                 default(Status, ?descNA)),
-     "</select></td>"].
+    SelectId   = "idStatus" ++ toStr(Uid),
+    SendStatus = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
+    tdTag(
+      selectTag(
+        [{class,    "status cstatus"},
+         {id,       SelectId},
+         {onchange, "sendStatus(" ++ SendStatus ++ ");"},
+         {onclick,  "event.cancelBubble = true;"}],
+        createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
+                    default(Status, ?descNA)))).
 
 createPriorityDataCell(Prio, Uid) ->
-    ["<td><select class='priority' id='idPriority", Uid, "' ",
-     "OnChange=\"sendPriority('idPriority", Uid, "', '", Uid, "');\" ",
-     "OnClick=\"event.cancelBubble = true;\">\r\n",
-     createForm2([?descLow, ?descMedium, ?descHigh, ?descNA],
-                 default(Prio, ?descNA)),
-     "</select></td>"].
+    SelectId   = "idPriority" ++ toStr(Uid),
+    SendStatus = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
+    tdTag(
+      selectTag(
+        [{class,    "priority"},
+         {id,       SelectId},
+         {onchange, "sendStatus(" ++ SendStatus ++ ");"},
+         {onclick,  "event.cancelBubble = true;"}],
+        createForm2([?descLow, ?descMedium, ?descHigh, ?descNA],
+                    default(Prio, ?descNA)))).
+
 %%======================================================================
 %% Function :
 %% Purpose  :

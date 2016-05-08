@@ -17,6 +17,20 @@ function saveChanges(type, uid) {
         }
     }
 
+    if (type == 'Progress(%)') {
+        var Progress = Element.innerText;
+        if (!(Progress >= 0 && Progress <= 100) || !(isInt(Progress))) {
+            return
+        }
+    }
+
+    if (type == 'Estimate(%)' || type == 'Remaining(h)') {
+        var FieldValue = Element.innerText;
+        if (!isInt(FieldValue)) {
+            return
+        }
+    }
+
     var AJAX = newAJAX();
     if (AJAX == null)
     {
@@ -28,6 +42,15 @@ function saveChanges(type, uid) {
         '&value=' + encodeURIComponent(Data) + '&uid=' + uid;
     AJAX.open("GET", url, true);
     AJAX.send(null);
+}
+
+function isInt(value) {
+    var x;
+    if (isNaN(value)) {
+        return false;
+    }
+    x = parseFloat(value);
+    return (x | 0) === x;
 }
 
 function showDetails(uid) {

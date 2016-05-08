@@ -211,6 +211,10 @@
 -define(doneTimestamp,  "Done time").
 -define(owner,          "Owner").
 
+-define(estimate,       "Estimate(h)").
+-define(remaining,      "Remaining(h)").
+-define(progress,       "Progress(%)").
+
 -define(sbNotLoggedIn,  "Not logged in").
 
 -define(defTaskList,    "All tasks").

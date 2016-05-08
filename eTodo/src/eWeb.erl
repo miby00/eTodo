@@ -643,8 +643,9 @@ handle_call({sendFieldChange, _SessionId, _Env, Input}, _From,
     {ok, Field} = find("field", Dict),
     {ok, Value} = find("value", Dict),
     {ok, Uid}   = find("uid",   Dict),
+    IntUid      = list_to_integer(Uid),
 
-    Todo = eTodoDB:getTodo(list_to_integer(Uid)),
+    Todo = eTodoDB:getTodo(IntUid),
     case Field of
         ?description ->
             Todo2 = Todo#todo{description = Value},
@@ -653,7 +654,17 @@ handle_call({sendFieldChange, _SessionId, _Env, Input}, _From,
         ?comment ->
             Todo2 = Todo#todo{comment = Value},
             eTodoDB:updateTodo(User, Todo2),
-            eTodo:todoUpdated(User, Todo2)
+            eTodo:todoUpdated(User, Todo2);
+        ?progress ->
+            Todo2 = Todo#todo{progress = list_to_integer(Value)},
+            eTodoDB:updateTodo(User, Todo2),
+            eTodo:todoUpdated(User, Todo2);
+        ?estimate ->
+            {_Estimate, Remaining} = eTodoDB:getTime(Uid),
+            eTodoDB:saveTime(Uid, list_to_integer(Value), Remaining);
+        ?remaining ->
+            {Estimate, _Remaining} = eTodoDB:getTime(Uid),
+            eTodoDB:saveTime(Uid, Estimate, list_to_integer(Value))
     end,
     {reply, "ok", State};
 
