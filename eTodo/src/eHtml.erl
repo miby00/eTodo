@@ -960,7 +960,7 @@ createStatusDataCell(Status, Uid) ->
 createStatusDataCell2(Status, Uid) ->
     SelectId   = "idStatus" ++ toStr(Uid),
     SendStatus = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
-    tdTag(
+    tdTag([{class, "cstatus"}],
       selectTag(
         [{class,    "status cstatus"},
          {id,       SelectId},
