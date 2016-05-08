@@ -303,7 +303,7 @@ table.msgSent {
     background-color: #f8f8f8;
 }
 
-#createTable {
+#createTable, #createTaskList {
     background: url("/priv/Icons/bg.png") repeat-x top left;
     background-size: 10px 100%;
 }
