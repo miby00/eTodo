@@ -26,6 +26,7 @@
          makeTimeLogReport/3,
          makeSceduleReport/1,
          createTaskForm/2,
+         createTaskListForm/0,
          settingsPage/2,
          showStatus/3,
          showLoggedWork/2,
@@ -649,59 +650,88 @@ createTaskForm(User, TaskList) ->
     UserCfg   = eTodoDB:readUserCfg(User),
     TaskList1 = default(UserCfg#userCfg.lists, [?defTaskList]),
     TaskLists = lists:sort([TaskList | lists:delete(TaskList, TaskList1)]),
-    [formTag([{action, "/eTodo/eWeb:createTask"},
-              {'accept-charset', "UTF-8"},
-              {method, "post"}],
-             [tableTag([{id, "createTable"}],
-                       [trTag(
-                          [tdTag([{class, "description"}], "Set task list:"),
-                           tdTag([{class, "value"}],
-                                 [selectTag([{class, "selects"},
-                                             {name, "list"}],
-                                            createForm2(TaskLists,
-                                                        TaskList))]),
-                           tdTag(),
-                           tdTag()]),
-                        trTag(
-                          [tdTag([{class, "description"}], "Set status:"),
-                           tdTag([{class, "value"}],
-                                 [selectTag([{class, "selects"},
-                                             {name, "status"}],
-                                            createForm2([?descPlanning,
-                                                         ?descInProgress,
-                                                         ?descDone,
-                                                         ?descNA],
-                                                        ?descNA)
-                                           )]),
-                           tdTag([{class, "description"}], "Set prio:"),
-                           tdTag([{class, "value"}],
-                                 selectTag([{class, "selects"},
-                                            {name, "prio"}],
-                                           createForm2([?descLow,
-                                                        ?descMedium,
-                                                        ?descHigh,
+    formTag([{action, "/eTodo/eWeb:createTask"},
+             {'accept-charset', "UTF-8"},
+             {method, "post"},
+             {id, "createTableForm"}],
+            [tableTag([{id, "createTable"}],
+                      [trTag(
+                         [tdTag([{class, "header"}], "Set task list:"),
+                          tdTag([{class, "value"}],
+                                [selectTag([{class, "selects"},
+                                            {name,  "list"}],
+                                           createForm2(TaskLists,
+                                                       TaskList))]),
+                          tdTag(),
+                          tdTag()]),
+                       trTag(
+                         [tdTag([{class, "header"}], "Set status:"),
+                          tdTag([{class, "value"}],
+                                [selectTag([{class, "selects"},
+                                            {name, "status"}],
+                                           createForm2([?descPlanning,
+                                                        ?descInProgress,
+                                                        ?descDone,
                                                         ?descNA],
-                                                       ?descNA)))]),
-                        trTag(
-                          [tdTag([{class, "description"}], "Description:"),
-                           tdTag([{class, "value"},
-                                  {colspan, 3}],
-                                 inputTag([{class, "textField"},
-                                           {type, "text"},
-                                           {name, "desc"}]))]),
-                        trTag(
-                          [tdTag([{class, "description"}], "Comment:"),
-                           tdTag([{class, "value"},
-                                  {colspan, 3}],
-                                 inputTag([{class, "textField"},
-                                           {type, "text"},
-                                           {name, "comment"}]))]),
-                        trTag(
-                          [tdTag([{colspan, 4}],
-                                 inputTag([{type, "submit"},
-                                           {name, "submit"},
-                                           {id, "createTask"},
-                                           {value, "Create task"}]))])])])].
+                                                       ?descNA)
+                                          )]),
+                          tdTag([{class, "header"}], "Set prio:"),
+                          tdTag([{class, "value"}],
+                                selectTag([{class, "selects"},
+                                           {name, "prio"}],
+                                          createForm2([?descLow,
+                                                       ?descMedium,
+                                                       ?descHigh,
+                                                       ?descNA],
+                                                      ?descNA)))]),
+                       trTag(
+                         [tdTag([{class, "header"}], "Description:"),
+                          tdTag([{class, "longvalue"},
+                                 {colspan, 3}],
+                                inputTag([{class, "textField"},
+                                          {type,  "text"},
+                                          {name,  "desc"}]))]),
+                       trTag(
+                         [tdTag([{class, "header"}], "Comment:"),
+                          tdTag([{class, "longvalue"},
+                                 {colspan, 3}],
+                                inputTag([{class, "textField"},
+                                          {type,  "text"},
+                                          {name,  "comment"}]))]),
+                       trTag(
+                         [tdTag([{colspan, 4}],
+                                inputTag([{type,  "submit"},
+                                          {name,  "submit"},
+                                          {id,    "createTask"},
+                                          {value, "Create task"}]))])])]).
+
+%%======================================================================
+%% Function :
+%% Purpose  :
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+createTaskListForm() ->
+    formTag([{action, "/eTodo/eWeb:createTaskList"},
+             {'accept-charset', "UTF-8"},
+             {method, "post"}],
+            [tableTag([{id, createTaskList}],
+                      [trTag(
+                         [tdTag([{class, "header"}], "List name:"),
+                          tdTag([{class, "longvalue"},
+                                 {colspan, 3}],
+                                inputTag([{class,  "textField"},
+                                          {type,   "text"},
+                                          {id,     "listName"},
+                                          {onblur, "enableButton('listName', 'createTaskListBtn');"},
+                                          {name,   "listName"}]))]),
+                       trTag(
+                         [tdTag([{colspan, 4}],
+                                inputTag([{type,     "submit"},
+                                          {disabled, "true"},
+                                          {id,       "createTaskListBtn"},
+                                          {value,    "Create list"}]))])])]).
 
 %%======================================================================
 %% Function :
@@ -792,12 +822,12 @@ makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
      trTag(
        [headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, []),
         headerCellCSS(?progress),
-           dataCellCSS4(?progress, ProgStr, [], Uid)]),
+        dataCellCSS4(?progress, ProgStr, [], Uid)]),
      trTag(
        [headerCellCSS(?estimate),
-           dataCellCSS4(?estimate, toStr(Estimate), [], Uid),
+        dataCellCSS4(?estimate, toStr(Estimate), [], Uid),
         headerCellCSS(?remaining),
-           dataCellCSS4(?remaining, toStr(Remaining), [], Uid)]),
+        dataCellCSS4(?remaining, toStr(Remaining), [], Uid)]),
      trTag(
        [headerCellCSS(?description),
         dataCellCSS4(?description, Description, [{colspan, 3}], Uid)]),
@@ -855,9 +885,9 @@ makeHtmlTaskCSS(#etodo{uid = Uid,
      trTag(
        [{class, "hideRow"}],
        [headerCellCSS(?estimate),
-           dataCellCSS4(?estimate, toStr(Estimate), [], Uid),
+        dataCellCSS4(?estimate, toStr(Estimate), [], Uid),
         headerCellCSS(?remaining),
-           dataCellCSS4(?remaining, toStr(Remaining), [], Uid)]),
+        dataCellCSS4(?remaining, toStr(Remaining), [], Uid)]),
      trTag(
        CompactTable,
        [headerCellCSS(?description),
@@ -965,13 +995,13 @@ createStatusDataCell2(Status, Uid) ->
     SelectId   = "idStatus" ++ toStr(Uid),
     SendStatus = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
     tdTag([{class, "cstatus"}],
-      selectTag(
-        [{class,    "status cstatus"},
-         {id,       SelectId},
-         {onchange, "sendStatus(" ++ SendStatus ++ ");"},
-         {onclick,  "event.cancelBubble = true;"}],
-        createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
-                    default(Status, ?descNA)))).
+          selectTag(
+            [{class,    "status cstatus"},
+             {id,       SelectId},
+             {onchange, "sendStatus(" ++ SendStatus ++ ");"},
+             {onclick,  "event.cancelBubble = true;"}],
+            createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
+                        default(Status, ?descNA)))).
 
 createPriorityDataCell(Prio, Uid) ->
     SelectId   = "idPriority" ++ toStr(Uid),

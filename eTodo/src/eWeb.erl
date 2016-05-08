@@ -31,6 +31,7 @@
          settings/3,
          createTodo/3,
          createTask/3,
+         createTaskList/3,
          showTodo/3,
          show/3,
          index/3,
@@ -173,6 +174,10 @@ createTodo(SessionId, Env, Input) ->
 
 createTask(SessionId, Env, Input) ->
     HtmlPage = call({createTask, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, HtmlPage).
+
+createTaskList(SessionId, Env, Input) ->
+    HtmlPage = call({createTaskList, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, HtmlPage).
 
 showTodo(SessionId, Env, Input) ->
@@ -406,8 +411,34 @@ handle_call({createTodo, _SessionId, _Env, Input}, _From,
 
     HtmlPage   = [eHtml:pageHeader(User),
                   eHtml:makeForm(User, TaskList),
+                  eHtml:createTaskListForm(),
                   eHtml:createTaskForm(User, TaskList),
                   eHtml:pageFooter()],
+    {reply, HtmlPage, State};
+handle_call({createTaskList, _SessionId, Env, Input}, _From,
+            State = #state{user = User}) ->
+    Dict = makeDict(Input),
+    {ok, TaskList} = find("listName", Dict),
+
+    case catch list_to_integer(TaskList) of
+        {'EXIT', _} ->
+            UserCfg    = eTodoDB:readUserCfg(User),
+            TaskLists1 = default(UserCfg#userCfg.lists, []),
+            TaskLists2 = [TaskList|lists:delete(TaskList, TaskLists1)],
+            TaskLists3 = TaskLists2 -- [?defInbox, ?defLoggedWork,
+                                        ?defShowStatus, ?defTimeReport],
+            eTodoDB:saveUserCfg(UserCfg#userCfg{lists = TaskLists3});
+        _ ->
+            %% Do not allow integer lists.
+            ok
+    end,
+
+    HttpHost  = "https://" ++ proplists:get_value(http_host, Env, ""),
+    Host      = default(proplists:get_value(http_origin, Env), HttpHost),
+
+    Redirect = Host ++ "/eTodo/eWeb:listTodos?list=" ++ TaskList ++ "&search=",
+
+    HtmlPage = ["location: " ++ Redirect ++ "\r\n\r\n"],
     {reply, HtmlPage, State};
 handle_call({createTask, _SessionId, Env, Input}, _From,
             State = #state{user = User}) ->

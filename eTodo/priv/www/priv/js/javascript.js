@@ -222,6 +222,11 @@ function checkStatus() {
     setTimeout('checkStatus()', 1000);
 }
 
+function enableButton(id1, id2) {
+    var val = document.getElementById(id1).value;
+    document.getElementById(id2).disabled = (val == '');
+}
+
 function handleStatusResult(responseText, status)
 {
     if (status == 200) {
