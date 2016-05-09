@@ -22,6 +22,7 @@
          makeHtmlTaskCSS2/2,
          makeForm/2,
          makeHtml/1,
+         makeText/1,
          makeWorkLogReport/2,
          makeTimeLogReport/3,
          makeSceduleReport/1,
@@ -1278,68 +1279,150 @@ html([10 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "<br />"]);
 html([8211 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "-"]);
 
 %% :-) :) =) :] :> C: (:
-html([$:, $-, $) | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
-html([$:, $) | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
-html([$=, $) | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
-html([$:, $] | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
-html([$:, $> | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
-html([$C, $: | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
-html([$(, $: | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, happy(Dir)]);
+html([$:, $-, $) | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, happy(Dir, [$:, $-, $)])]);
+html([$:, $) | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, happy(Dir, [$:, $)])]);
+html([$=, $) | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, happy(Dir, [$=, $)])]);
+html([$:, $] | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, happy(Dir, [$:, $]])]);
+html([$:, $> | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, happy(Dir, [$:, $>])]);
+html([$C, $: | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, happy(Dir, [$C, $:])]);
+html([$(, $: | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, happy(Dir, [$(, $:])]);
 
 %% :-(  :(  =(  :< :[
-html([$:, $-, $( | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
-html([$:, $( | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
-html([$=, $( | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
-html([$:, $< | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
-html([$:, $[ | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, sad(Dir)]);
+html([$:, $-, $( | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, sad(Dir, [$:, $-, $(])]);
+html([$:, $( | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, sad(Dir, [$:, $(])]);
+html([$=, $( | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, sad(Dir, [$=, $(])]);
+html([$:, $< | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, sad(Dir, [$:, $<])]);
+html([$:, $[ | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, sad(Dir, [$:, $[])]);
 
 %% ;-)  ;)  ^.~
-html([$;, $-, $) | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, wink(Dir)]);
-html([$;, $) | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, wink(Dir)]);
-html([$^, $., $~ | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, wink(Dir)]);
+html([$;, $-, $) | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, wink(Dir, [$;, $-, $)])]);
+html([$;, $) | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, wink(Dir, [$;, $)])]);
+html([$^, $., $~ | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, wink(Dir, [$^, $., $~])]);
 
 %% =D :D
-html([$=, $D | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, lol(Dir)]);
-html([$:, $D | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, lol(Dir)]);
+html([$=, $D | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, lol(Dir, [$=, $D])]);
+html([$:, $D | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, lol(Dir, [$:, $D])]);
 
 %% =O   :O   O:
-html([$=, $O | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, shocked(Dir)]);
-html([$:, $O | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, shocked(Dir)]);
-html([$O, $: | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, shocked(Dir)]);
-html([$:, $-, $O | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, shocked(Dir)]);
+html([$=, $O | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, shocked(Dir, [$=, $O])]);
+html([$:, $O | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, shocked(Dir, [$:, $O])]);
+html([$O, $: | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, shocked(Dir, [$O, $:])]);
+html([$:, $-, $O | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, shocked(Dir, [$:, $-, $O])]);
 
 %% =P   :P
-html([$=, $P | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, mischief(Dir)]);
-html([$:, $P | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, mischief(Dir)]);
+html([$=, $P | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, mischief(Dir, [$=, $P])]);
+html([$:, $P | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, mischief(Dir, [$:, $P])]);
 
 %% :,(
-html([$:, $,, $( | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, crying(Dir)]);
+html([$:, $,, $( | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, crying(Dir, [$:, $,, $(])]);
 
 %% <3
-html([$<, $3 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, heart(Dir)]);
+html([$<, $3 | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, heart(Dir, [$<, $3])]);
 
-html([229 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&aring;"]);
-html([228 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&auml;"]);
-html([246 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&ouml;"]);
-html([197 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&Aring;"]);
-html([196 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&Auml;"]);
-html([214 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&Ouml;"]);
-html([$< | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&lt;"]);
-html([$> | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&gt;"]);
-html([$& | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&amp;"]);
-html([$" | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "&quot;"]);
+html([229 | Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&aring;"]);
+html([228 | Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&auml;"]);
+html([246 | Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&ouml;"]);
+html([197 | Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&Aring;"]);
+html([196 | Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&Auml;"]);
+html([214 | Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&Ouml;"]);
+html([$< | Rest], Dir, SoFar)   -> html(Rest, Dir, [SoFar, "&lt;"]);
+html([$> | Rest], Dir, SoFar)   -> html(Rest, Dir, [SoFar, "&gt;"]);
+html([$& | Rest], Dir, SoFar)   -> html(Rest, Dir, [SoFar, "&amp;"]);
+html([$" | Rest], Dir, SoFar)   -> html(Rest, Dir, [SoFar, "&quot;"]);
 html([Char | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, Char]).
 
-heart(Dir) -> smileHdr(Dir) ++ "heart.png' align=middle>&nbsp;".
-happy(Dir) -> smileHdr(Dir) ++ "happy.png' align=middle>&nbsp;".
-sad(Dir) -> smileHdr(Dir) ++ "sad.png' align=middle>&nbsp;".
-wink(Dir) -> smileHdr(Dir) ++ "wink.png' align=middle>&nbsp;".
-lol(Dir) -> smileHdr(Dir) ++ "lol.png' align=middle>&nbsp;".
-shocked(Dir) -> smileHdr(Dir) ++ "shocked.png' align=middle>&nbsp;".
-crying(Dir) -> smileHdr(Dir) ++ "crying.png' align=middle>&nbsp;".
-mischief(Dir) -> smileHdr(Dir) ++ "mischief.png' align=middle>&nbsp;".
+heart(Dir, Txt)    -> smileHdr(Dir, Txt) ++ "heart.png' align=middle>&nbsp;".
+happy(Dir, Txt)    -> smileHdr(Dir, Txt) ++ "happy.png' align=middle>&nbsp;".
+sad(Dir, Txt)      -> smileHdr(Dir, Txt) ++ "sad.png' align=middle>&nbsp;".
+wink(Dir, Txt)     -> smileHdr(Dir, Txt) ++ "wink.png' align=middle>&nbsp;".
+lol(Dir, Txt)      -> smileHdr(Dir, Txt) ++ "lol.png' align=middle>&nbsp;".
+shocked(Dir, Txt)  -> smileHdr(Dir, Txt) ++ "shocked.png' align=middle>&nbsp;".
+crying(Dir, Txt)   -> smileHdr(Dir, Txt) ++ "crying.png' align=middle>&nbsp;".
+mischief(Dir, Txt) -> smileHdr(Dir, Txt) ++ "mischief.png' align=middle>&nbsp;".
 
-smileHdr(Dir) -> "&nbsp;<img class='emote' src='" ++ Dir ++ "/Icons/".
+smileHdr(Dir, Txt) ->
+    "&nbsp;<img class='emote' alt='" ++ Txt ++ "' src='" ++ Dir ++ "/Icons/".
+
+makeText(Text) ->
+    makeText(Text, text, [], []).
+
+makeText([], _State, Alt, SoFar) ->
+    lists:reverse(Alt ++ SoFar);
+makeText("<br>" ++ Rest, text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, [10, 13|SoFar]);
+makeText("<br />" ++ Rest, text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, [10, 13|SoFar]);
+makeText("&aring;" ++ Rest, text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, [229|SoFar]);
+makeText("&auml;" ++ Rest, text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, [228|SoFar]);
+makeText("&ouml;" ++ Rest, text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, [246|SoFar]);
+makeText("&Aring;" ++ Rest, text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, [197|SoFar]);
+makeText("&Auml;" ++ Rest, text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, [196|SoFar]);
+makeText("&Ouml;" ++ Rest, text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, [214|SoFar]);
+makeText("&lt;" ++ Rest, text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, [$<|SoFar]);
+makeText("&gt;" ++ Rest, text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, [$>|SoFar]);
+makeText("&amp;" ++ Rest, text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, [$&|SoFar]);
+makeText("&quot;" ++ Rest, text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, [$"|SoFar]);
+%% Remove extra inserted white space.
+makeText("&nbsp;" ++ Rest, text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, SoFar);
+
+makeText([$<|Rest], text, _Alt, SoFar) ->
+    makeText(Rest, tag, [], SoFar);
+makeText([Char|Rest], text, Alt, SoFar) ->
+    makeText(Rest, text, Alt, [Char|SoFar]);
+
+makeText([$>|Rest], tag, Alt, SoFar) ->
+    makeText(Rest, text, Alt, SoFar);
+makeText("alt='" ++ Rest, tag, _Alt, SoFar) ->
+    makeText(Rest, alt, [], SoFar);
+makeText("alt=\"" ++ Rest, tag, _Alt, SoFar) ->
+    makeText(Rest, alt, [], SoFar);
+makeText([_Char|Rest], tag, _Alt, SoFar) ->
+    makeText(Rest, tag, [], SoFar);
+
+makeText([$'|Rest], alt, Alt, SoFar) ->
+    makeText(Rest, tag, [], Alt ++ SoFar);
+makeText([$"|Rest], alt, Alt, SoFar) ->
+    makeText(Rest, tag, [], Alt ++ SoFar);
+makeText([Char|Rest], alt, Alt, SoFar) ->
+    makeText(Rest, alt, [Char|Alt], SoFar).
+
+
 
 %%======================================================================
 %% Function :

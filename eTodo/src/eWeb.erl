@@ -671,12 +671,14 @@ handle_call({sendSetting, _SessionId, _Env, Input}, _From,
 handle_call({sendFieldChange, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
     Dict = makeDict(Input),
-    {ok, Field} = find("field", Dict),
-    {ok, Value} = find("value", Dict),
-    {ok, Uid}   = find("uid",   Dict),
-    IntUid      = list_to_integer(Uid),
+    {ok, Field}     = find("field", Dict),
+    {ok, HtmlValue} = find("value", Dict),
+    {ok, Uid}       = find("uid",   Dict),
+    IntUid          = list_to_integer(Uid),
 
-    Todo = eTodoDB:getTodo(IntUid),
+    Value = eHtml:makeText(HtmlValue),
+    Todo  = eTodoDB:getTodo(IntUid),
+
     case Field of
         ?description ->
             Todo2 = Todo#todo{description = Value},

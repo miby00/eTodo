@@ -18,14 +18,14 @@ function saveChanges(type, uid) {
     }
 
     if (type == 'Progress(%)') {
-        var Progress = Element.innerText;
+        var Progress = Element.innerHTML;
         if (!(Progress >= 0 && Progress <= 100) || !(isInt(Progress))) {
             return
         }
     }
 
     if (type == 'Estimate(%)' || type == 'Remaining(h)') {
-        var FieldValue = Element.innerText;
+        var FieldValue = Element.innerHTML;
         if (!isInt(FieldValue)) {
             return
         }
@@ -37,7 +37,7 @@ function saveChanges(type, uid) {
         alert("Initialisation of AJAX failed.");
         return false;
     }
-    var Data = Element.innerText;
+    var Data = Element.innerHTML;
     var url  = '/eTodo/eWeb:sendFieldChange?field=' + type +
         '&value=' + encodeURIComponent(Data) + '&uid=' + uid;
     AJAX.open("GET", url, true);
