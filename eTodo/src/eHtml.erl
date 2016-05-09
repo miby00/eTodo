@@ -26,6 +26,7 @@
          makeWorkLogReport/2,
          makeTimeLogReport/3,
          makeSceduleReport/1,
+         loginForm/1,
          createTaskForm/2,
          createTaskListForm/0,
          settingsPage/2,
@@ -637,6 +638,40 @@ settingsPage(User, List) ->
                {onclick, "openLink('/eTodo/eWeb"
                 ":listTodos?list=" ++
                     http_uri:encode(List) ++ "');"}])].
+
+%%======================================================================
+%% Function :
+%% Purpose  :
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+loginForm(User) ->
+    formTag([{action, "/eTodo/eWeb:checkCredentials"},
+             {'accept-charset', "UTF-8"},
+             {method, "post"},
+             {id, "loginTableForm"}],
+            [divTag([{class,"centeredLogin"}],
+                    [tableTag([{id, "loginFormTable"}],
+                              [trTag(
+                                 [tdTag([{class, "header"}], "UserName"),
+                                  tdTag([{class, "longvalue"}],
+                                        inputTag([{class, "textField"},
+                                                  {type,  "text"},
+                                                  {value, User},
+                                                  {name,  "username"}]))]),
+                               trTag(
+                                 [tdTag([{class, "header"}], "Password"),
+                                  tdTag([{class, "longvalue"}],
+                                        inputTag([{class, "textField"},
+                                                  {type,  "password"},
+                                                  {name,  "password"}]))]),
+                               trTag(
+                                 [tdTag([{colspan, 2}],
+                                        inputTag([{type,  "submit"},
+                                                  {name,  "login"},
+                                                  {id,    "login"},
+                                                  {value, "Login"}]))])])])]).
 
 %%======================================================================
 %% Function :

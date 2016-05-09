@@ -24,6 +24,8 @@
          webProxyCall/5,
          removeSubscriber/1,
          getPort/0,
+         login/3,
+         checkCredentials/3,
          link/3,
          listListsJSON/3,
          listTodos/3,
@@ -70,10 +72,14 @@
                 timers       = [],
                 status       = [],
                 webState     = [],
-                settings     = []}).
+                settings     = [],
+                key}).
 
 -include("eTodo.hrl").
 -include_lib("inets/include/httpd.hrl").
+-include_lib("inets/include/mod_auth.hrl").
+
+-define(directory, "/eTodoLoginInfo").
 
 -import(eTodoUtils, [makeRef/0, toDB/1, toDB/2, dateTime/0, toStr/1,
                      getRootDir/0, apply/4, default/2, addDateTime/2,
@@ -150,6 +156,14 @@ webProxyCall(Message, Timeout) ->
 
 link(SessionId, Env, Input) ->
     FileData = call({link, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, FileData).
+
+login(SessionId, Env, Input) ->
+    FileData = gen_server:call(?MODULE, {login, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, FileData).
+
+checkCredentials(SessionId, Env, Input) ->
+    FileData = gen_server:call(?MODULE, {checkCredentials, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, FileData).
 
 listTodos(SessionId, Env, Input) ->
@@ -259,9 +273,11 @@ init([User]) ->
     filelib:ensure_dir(FileName),
     GuestUsers = getGuestUsers(User),
     Port = startWebServer(User, GuestUsers),
+    Key = {crypto:strong_rand_bytes(16), crypto:strong_rand_bytes(16)},
     {ok, #state{port       = Port,
                 user       = User,
-                guestUsers = GuestUsers}}.
+                guestUsers = GuestUsers,
+                key        = Key}}.
 
 getGuestUsers(User) ->
     %% Minimize guests to those users which the peer has shared todos with.
@@ -294,18 +310,40 @@ getGuestUsers(User) ->
 handle_call(getPort, _From, State = #state{port = Port}) ->
     {reply, Port, State};
 
-handle_call({call, Message, Timeout}, From,
-            State = #state{headers = SessionHdrs}) ->
-    SessionId = getSessionId(Message),
-    Headers   = getHeaders(SessionId, State),
-    State2    = State#state{headers = keepAliveSessions(SessionHdrs)},
+handle_call({login, _SessionId, _Env, _Input}, _From,
+            State = #state{user = User}) ->
+    HtmlPage =[eHtml:pageHeader(User),
+               eHtml:loginForm(User),
+               eHtml:pageFooter()],
+    {reply, HtmlPage, State};
+
+handle_call({checkCredentials, _SessionId, Env, Input}, _From,
+            State = #state{port = Port, key = Key}) ->
+    Dict = makeDict(Input),
+    {ok, UserName} = find("username", Dict),
+    {ok, Password} = find("password", Dict),
+
+    case catch mod_auth:get_user(UserName, [{dir, ?directory}, {port, Port}]) of
+        {ok, #httpd_user{password = Password}} ->
+            Cookie   = createCookie(Env, UserName, Key),
+            HtmlPage = setCookie("eSessionId", Cookie, redirect("index", Env)),
+            {reply, HtmlPage, State};
+        _ ->
+            HtmlPage = removeCookie("eSessionId", redirect("login", Env)),
+            {reply, HtmlPage, State}
+    end;
+
+handle_call({call, Message = {_Message, SessionId, Env, _Input}, Timeout}, From,
+            State = #state{headers = SessionHdrs, key = Key}) ->
+    State2 = State#state{headers = keepAliveSessions(SessionHdrs)},
+    WUser  = getUser(Env, Key),
     case proxyCall(Message, State2) of
         {false, State3 = #state{user = User}} ->
-            case userOK(User, Message) of
+            case userOK(User, Message, WUser) of
                 true ->
                     handle_call(Message, From, State3);
                 false ->
-                    {reply, Headers, State}
+                   {reply, redirect("login", Env), State}
             end;
         {true, Pid, State3} ->
             Headers2 = getHeaders(SessionId, State3),
@@ -433,12 +471,7 @@ handle_call({createTaskList, _SessionId, Env, Input}, _From,
             ok
     end,
 
-    HttpHost  = "https://" ++ proplists:get_value(http_host, Env, ""),
-    Host      = default(proplists:get_value(http_origin, Env), HttpHost),
-
-    Redirect = Host ++ "/eTodo/eWeb:listTodos?list=" ++ TaskList ++ "&search=",
-
-    HtmlPage = ["location: " ++ Redirect ++ "\r\n\r\n"],
+    HtmlPage = redirect("listTodos?list=" ++ TaskList ++ "&search=", Env),
     {reply, HtmlPage, State};
 handle_call({createTask, _SessionId, Env, Input}, _From,
             State = #state{user = User}) ->
@@ -468,13 +501,8 @@ handle_call({createTask, _SessionId, Env, Input}, _From,
                               parent   = tryInt(TaskList)}, Todo),
 
     eTodo:todoCreated(TaskList, Row, Todo),
-    HttpHost   = "https://" ++ proplists:get_value(http_host, Env, ""),
-    Host       = default(proplists:get_value(http_origin, Env), HttpHost),
-
-    Redirect   = Host ++ "/eTodo/eWeb:listTodos?list=" ++ TaskList ++ "&search=",
-
-    HtmlPage   = ["location: " ++ Redirect ++ "\r\n\r\n"],
-    {reply, HtmlPage, State};
+    HtmlPage = redirect("listTodos?list=" ++ TaskList ++ "&search=", Env),
+   {reply, HtmlPage, State};
 handle_call({showTodo, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
     Dict        = makeDict(Input),
@@ -490,9 +518,10 @@ handle_call({showTodo, _SessionId, _Env, Input}, _From,
     {reply, HtmlPage, State};
 handle_call({show, SessionId, Env, Input}, _From,
             State = #state{user    = User,
-                           headers = SessionHdrList}) ->
+                           headers = SessionHdrList,
+                           key     = Key}) ->
     Headers    = getHeaders(SessionId, State),
-    {_, WUser} = lists:keyfind(remote_user, 1, Env),
+    WUser      = getUser(Env, Key),
     Dict       = makeDict(Input),
     {ok, List} = find("list",      Dict),
     {ok, Text} = find("search",    Dict),
@@ -513,9 +542,11 @@ handle_call({show, SessionId, Env, Input}, _From,
     {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
 handle_call({showTimeReport, SessionId, Env, Input}, _From,
             State = #state{user    = User,
-                           headers = SessionHdrList}) ->
+                           headers = SessionHdrList,
+                           key     = Key}) ->
     Headers    = getHeaders(SessionId, State),
-    {_, WUser} = lists:keyfind(remote_user, 1, Env),
+    WUser      = getUser(Env, Key),
+
     Dict       = makeDict(Input),
     {ok, List} = find("list",      Dict),
     {ok, Text} = find("search",    Dict),
@@ -873,15 +904,15 @@ getSeconds({_, Ref}) ->
 addUsers([], _CPwd, _Port) ->
     ok;
 addUsers([User|Rest], CPwd, Port) ->
-    mod_auth:add_user(User, CPwd, "User", Port, "/eTodo"),
-    mod_auth:add_group_member("users", User, Port, "/eTodo"),
+    mod_auth:add_user(User, CPwd, "User", Port, ?directory),
+    mod_auth:add_group_member("users", User, Port, ?directory),
     addUsers(Rest, CPwd, Port).
 
 delUsers([], _Port) ->
     ok;
 delUsers([User|Rest], Port) ->
-    mod_auth:delete_user(User, Port, "/eTodo"),
-    mod_auth:delete_group_member("users", User, Port, "/eTodo"),
+    mod_auth:delete_user(User, Port, ?directory),
+    mod_auth:delete_group_member("users", User, Port, ?directory),
     delUsers(Rest, Port).
 
 startWebServer(User, GuestUsers) ->
@@ -892,8 +923,8 @@ startWebServer(User, GuestUsers) ->
         true ->
             application:start(inets),
             Port = doStartWebServer(WPort, WPort + 10),
-            mod_auth:add_user(User, WPwd, "Super User", Port, "/eTodo"),
-            mod_auth:add_group_member("users", User, Port, "/eTodo"),
+            mod_auth:add_user(User, WPwd, "Super User", Port, ?directory),
+            mod_auth:add_group_member("users", User, Port, ?directory),
             CPwd  = ePeerCircle:getPwd(),
             addUsers(GuestUsers, CPwd, Port),
             PortStr = integer_to_list(Port),
@@ -937,13 +968,12 @@ doStartWebServer(Port, MaxPort) ->
                                  {server_name,   "eTodo"},
                                  {server_root,   SrvRoot},
                                  {document_root, DocRoot},
-                                 {directory,
-                                  {"/eTodo", [
-                                              {auth_name, "eTodo Server"},
-                                              {allow_from, all},
-                                              {auth_type, mnesia},
-                                              {require_group, ["users"]}
-                                             ]}},
+                                 {directory, {?directory, [
+                                                           {auth_name, "eTodo Server"},
+                                                           {allow_from, all},
+                                                           {auth_type, mnesia},
+                                                           {require_group, ["users"]}
+                                                          ]}},
                                  {socket_type, {essl, [{certfile, CertFile}]}},
                                  {ipfamily, inet},
                                  {erl_script_alias, {"/eTodo", [eWeb]}},
@@ -1197,19 +1227,11 @@ flattenMsg(HtmlIOList) ->
 %% @spec userOK(User, Message) -> true | false.
 %% @end
 %%--------------------------------------------------------------------
-userOK(_User, {show, _SessionId, _Env, _Input}) ->
-    true;
-userOK(_User, {showTimeReport, _SessionId, _Env, _Input}) ->
-    true;
-userOK(_User, {link, _SessionId, _Env, _Input}) ->
-    true;
-userOK(User, {_Msg, _SessionId, Env, _Input}) ->
-    case lists:keyfind(remote_user, 1, Env) of
-        {_, User} ->
-            true;
-        _ ->
-            false
-    end.
+userOK(_User, {show, _SessionId, _Env, _Input}, _WUser)           -> true;
+userOK(_User, {showTimeReport, _SessionId, _Env, _Input}, _WUser) -> true;
+userOK(_User, {link, _SessionId, _Env, _Input}, _WUser)           -> true;
+userOK(User, {_Msg, _SessionId, _Env, _Input}, User)               -> true;
+userOK(_User, {_Msg, _SessionId, _Env, _Input}, _WUser)           -> false.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -1441,11 +1463,6 @@ keepAliveSessions(SessionTuple) ->
             NewSessionTuple
     end.
 
-getSessionId({_Message, SessionId, _Env, _Input}) ->
-    SessionId;
-getSessionId(_) ->
-    undefined.
-
 makeRemoteSessionId({Message, SessionId, Env, Input}) ->
     {Message, {remote, SessionId}, Env, Input}.
 
@@ -1532,3 +1549,36 @@ unAuthorized(UserName) ->
                       "supplied the wrong credentials (e.g., bad password), "
                       "or your browser doesn't understand how to supply the "
                       "credentials required."])]).
+
+redirect(Page, Env) ->
+    Redirect = getHost(Env) ++ "/eTodo/eWeb:" ++ Page,
+    ["location: " ++ Redirect ++ "\r\n\r\n"].
+
+getHost(Env) ->
+    HttpHost = "https://" ++ proplists:get_value(http_host, Env, ""),
+    default(proplists:get_value(http_origin, Env), HttpHost).
+
+createCookie(Env, UserName, Key) ->
+    Binary1 = term_to_binary(#{host => getHost(Env), user => UserName}),
+    Binary2 = encrypt(Key, Binary1),
+    base64:encode_to_string(Binary2).
+
+getUser(Env, Key) ->
+    Cookie      = default(getCookie("eSessionId", Env),
+                          createCookie(Env, "", Key)),
+    Binary1     = base64:decode(Cookie),
+    Binary2     = decrypt(Key, Binary1),
+    SessionInfo = binary_to_term(Binary2),
+    Host        = getHost(Env),
+    case maps:get(host, SessionInfo) of
+        Host ->
+            maps:get(user, SessionInfo, "");
+        _ ->
+            ""
+    end.
+
+encrypt({Key, IV}, Binary) ->
+    crypto:aes_cfb_128_encrypt(Key, IV, Binary).
+
+decrypt({Key, IV}, Binary) ->
+    crypto:aes_cfb_128_decrypt(Key, IV, Binary).
