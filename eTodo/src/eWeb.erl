@@ -343,7 +343,8 @@ handle_call({call, Message = {_Message, SessionId, Env, _Input}, Timeout}, From,
                 true ->
                     handle_call(Message, From, State3);
                 false ->
-                   {reply, redirect("login", Env), State}
+                    HtmlPage = removeCookie("eSessionId", redirect("login", Env)),
+                    {reply, HtmlPage, State}
             end;
         {true, Pid, State3} ->
             Headers2 = getHeaders(SessionId, State3),
@@ -502,7 +503,7 @@ handle_call({createTask, _SessionId, Env, Input}, _From,
 
     eTodo:todoCreated(TaskList, Row, Todo),
     HtmlPage = redirect("listTodos?list=" ++ TaskList ++ "&search=", Env),
-   {reply, HtmlPage, State};
+    {reply, HtmlPage, State};
 handle_call({showTodo, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
     Dict        = makeDict(Input),
@@ -1230,7 +1231,7 @@ flattenMsg(HtmlIOList) ->
 userOK(_User, {show, _SessionId, _Env, _Input}, _WUser)           -> true;
 userOK(_User, {showTimeReport, _SessionId, _Env, _Input}, _WUser) -> true;
 userOK(_User, {link, _SessionId, _Env, _Input}, _WUser)           -> true;
-userOK(User, {_Msg, _SessionId, _Env, _Input}, User)               -> true;
+userOK(User, {_Msg, _SessionId, _Env, _Input}, User)              -> true;
 userOK(_User, {_Msg, _SessionId, _Env, _Input}, _WUser)           -> false.
 
 %%--------------------------------------------------------------------
@@ -1564,20 +1565,22 @@ createCookie(Env, UserName, Key) ->
     base64:encode_to_string(Binary2).
 
 getUser(Env, Key) ->
-    Cookie  = default(getCookie("eSessionId", Env), createCookie(Env, "", Key)),
-    Binary1 = base64:decode(Cookie),
-    Binary2 = decrypt(Key, Binary1),
-    case catch binary_to_term(Binary2) of
-        {'EXIT', _} ->
-            "";
-        SessionInfo ->
-            Host = getHost(Env),
-            case maps:get(host, SessionInfo) of
-                Host ->
-                    maps:get(user, SessionInfo, "");
-                _ ->
-                    ""
-            end
+    try
+        Cookie      = default(getCookie("eSessionId", Env),
+                              createCookie(Env, "", Key)),
+        Binary1     = base64:decode(Cookie),
+        Binary2     = decrypt(Key, Binary1),
+        SessionInfo = binary_to_term(Binary2),
+        Host = getHost(Env),
+        case maps:get(host, SessionInfo) of
+            Host ->
+                maps:get(user, SessionInfo, "");
+            _ ->
+                ""
+        end
+    catch
+        _:_ ->
+            ""
     end.
 
 encrypt({Key, IV}, Binary) ->
