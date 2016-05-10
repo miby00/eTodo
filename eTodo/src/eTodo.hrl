@@ -192,6 +192,8 @@
 -define(descInProgress, "In progress").
 -define(descDone,       "Done").
 
+-define(descAll,        "All").
+
 -define(descLow,        "Low").
 -define(descMedium,     "Medium").
 -define(descHigh,       "High").

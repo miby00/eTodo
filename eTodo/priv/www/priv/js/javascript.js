@@ -127,18 +127,39 @@ function newAJAX()
 
 function sendStatus(Id, Uid)
 {
+    var Data = document.getElementById(Id).value;
+
+    if (Id == 'idStatus' + Uid) {
+        document.getElementById('idStatusc' + Uid).value = Data;
+    } else {
+        document.getElementById('idStatus' + Uid).value = Data;
+    }
+
+    setTextDecoration(Data, Uid);
+
     var AJAX = newAJAX();
     if (AJAX == null)
     {
         alert("Initialisation of AJAX failed.");
         return false;
     }
-    var Data = document.getElementById(Id).value;
     var url= '/eTodo/eWeb:sendStatus?status=' + Data + '&uid=' + Uid;
     AJAX.open("GET", url, true);
     AJAX.send(null);
 }
 
+function setTextDecoration(Data, Uid)
+{
+    if (Data == 'Done') {
+        addClass(document.getElementById('compactDesc' + Uid), 'done');
+        addClass(document.getElementById('Comment' + Uid),     'done');
+        addClass(document.getElementById('Description' + Uid), 'done');
+    } else  {
+        document.getElementById('compactDesc' + Uid).classList.remove('done');
+        document.getElementById('Comment' + Uid).classList.remove('done');
+        document.getElementById('Description' + Uid).classList.remove('done');
+    }
+}
 function sendPriority(Id, Uid)
 {
     var AJAX = newAJAX();

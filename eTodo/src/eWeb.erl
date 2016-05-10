@@ -1526,10 +1526,16 @@ getFilterCfg(List, User) ->
 
 applyFilter(_Type, ?descDef, DefFilter) ->
     DefFilter;
+applyFilter(status, ?descAll, DefFilter) ->
+    AllStatus = [?statusDone, ?statusInProgress, ?statusPlanning, ?statusNone],
+    (DefFilter -- AllStatus);
 applyFilter(status, Value, DefFilter) ->
     AllStatus = [?statusDone, ?statusInProgress, ?statusPlanning, ?statusNone],
     Filter    = lists:delete(toFlt(status, Value), AllStatus),
     (DefFilter -- AllStatus) ++ Filter;
+applyFilter(prio, ?descAll, DefFilter) ->
+    AllPrio  = [?prioHigh, ?prioLow, ?prioMedium, ?prioNone],
+    (DefFilter -- AllPrio);
 applyFilter(prio, Value, DefFilter) ->
     AllPrio  = [?prioHigh, ?prioLow, ?prioMedium, ?prioNone],
     Filter    = lists:delete(toFlt(prio, Value), AllPrio),

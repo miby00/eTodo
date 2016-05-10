@@ -586,8 +586,9 @@ settingsPage(User, List) ->
     DefListType  = proplists:get_value("listType",     WebSettings, ?descDef),
     DefSortOrder = proplists:get_value("sortOrder",     WebSettings, ?descDef),
 
-    StatusList = [?descDef, ?descPlanning, ?descInProgress, ?descDone, ?descNA],
-    PrioList   = [?descDef, ?descLow, ?descMedium, ?descHigh, ?descNA],
+    StatusList = [?descDef, ?descPlanning, ?descInProgress,
+                  ?descDone, ?descNA, ?descAll],
+    PrioList   = [?descDef, ?descLow, ?descMedium, ?descHigh, ?descNA, ?descAll],
     ListTypes  = [?descDef, ?descCompact],
     SortOrders = [?descDef, ?status, ?prio, ?description, ?comment,
                   ?createTime, ?dueTime, ?doneTimestamp],
@@ -816,8 +817,8 @@ doSortETodos(?doneTimestamp, ETodos) ->
 
 makeSortValue(?status, ?descPlanning)   -> 1;
 makeSortValue(?status, ?descInProgress) -> 2;
-makeSortValue(?status, ?descDone)       -> 3;
-makeSortValue(?status, _)               -> 4;
+makeSortValue(?status, ?descDone)       -> 4;
+makeSortValue(?status, _)               -> 3;
 makeSortValue(?prio,   ?descHigh)       -> 1;
 makeSortValue(?prio,   ?descMedium)     -> 2;
 makeSortValue(?prio,   ?descLow)        -> 3;
@@ -833,6 +834,7 @@ makeSortValue(?prio,   _)               -> 4.
 makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
                        uid         = Uid,
                        status      = Status,
+                       statusDB    = StatusDB,
                        priority    = Priority,
                        dueTime     = DueTime,
                        description = Description,
@@ -843,6 +845,7 @@ makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
                        progress    = Progress,
                        owner       = Owner}, User) ->
     ProgStr = toStr(Progress),
+    StStr   = atom_to_list(StatusDB),
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     [makeTableHeader(User, Uid, true),
      trTag(
@@ -857,32 +860,34 @@ makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
      trTag(
        [headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, []),
         headerCellCSS(?progress),
-        dataCellCSS4(?progress, ProgStr, [], Uid)]),
+        dataCellCSS4(?progress, ProgStr, [], StStr, Uid)]),
      trTag(
        [headerCellCSS(?estimate),
-        dataCellCSS4(?estimate, toStr(Estimate), [], Uid),
+        dataCellCSS4(?estimate, toStr(Estimate), [], StStr, Uid),
         headerCellCSS(?remaining),
-        dataCellCSS4(?remaining, toStr(Remaining), [], Uid)]),
+        dataCellCSS4(?remaining, toStr(Remaining), [], StStr, Uid)]),
      trTag(
        [headerCellCSS(?description),
-        dataCellCSS4(?description, Description, [{colspan, 3}], Uid)]),
+        dataCellCSS4(?description, Description, [{colspan, 3}], StStr, Uid)]),
      trTag(
        [headerCellCSS(?comment),
-        dataCellCSS4(?comment, Comment, [{colspan, 3}], Uid)]),
+        dataCellCSS4(?comment, Comment, [{colspan, 3}], StStr, Uid)]),
      "</table>"];
-makeHtmlTaskCSS(#etodo{uid = Uid,
-                       status = Status,
-                       priority = Priority,
-                       dueTime = DueTime,
+makeHtmlTaskCSS(#etodo{uid         = Uid,
+                       status      = Status,
+                       statusDB    = StatusDB,
+                       priority    = Priority,
+                       dueTime     = DueTime,
                        description = Description,
-                       comment = Comment,
-                       sharedWith = SharedWith,
-                       createTime = CreateTime,
-                       doneTime = DoneTime,
+                       comment     = Comment,
+                       sharedWith  = SharedWith,
+                       createTime  = CreateTime,
+                       doneTime    = DoneTime,
                        progress    = Progress,
-                       owner = Owner,
-                       hasSubTodo = HasSubTodo}, User) ->
+                       owner       = Owner,
+                       hasSubTodo  = HasSubTodo}, User) ->
     ProgStr = toStr(Progress),
+    StStr   = atom_to_list(StatusDB),
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     CompactTable = case compactTable(User) of
                        true ->
@@ -900,7 +905,7 @@ makeHtmlTaskCSS(#etodo{uid = Uid,
      trTag(
        CompactTable2,
        [createStatusDataCell2(Status, Uid),
-        dataCellCSS3(Description, "colspan=3", Uid)]),
+        dataCellCSS3(Description, [{colspan, 3}], StStr, Uid)]),
      trTag(
        CompactTable,
        [headerCellCSS(?status), createStatusDataCell(Status, Uid),
@@ -916,21 +921,21 @@ makeHtmlTaskCSS(#etodo{uid = Uid,
      trTag(
        [{class, "hideRow"}],
        [headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, []),
-        headerCellCSS(?progress), dataCellCSS4(?progress, ProgStr, [], Uid)]),
+        headerCellCSS(?progress), dataCellCSS4(?progress, ProgStr, [], StStr, Uid)]),
      trTag(
        [{class, "hideRow"}],
        [headerCellCSS(?estimate),
-        dataCellCSS4(?estimate, toStr(Estimate), [], Uid),
+        dataCellCSS4(?estimate, toStr(Estimate), [], StStr, Uid),
         headerCellCSS(?remaining),
-        dataCellCSS4(?remaining, toStr(Remaining), [], Uid)]),
+        dataCellCSS4(?remaining, toStr(Remaining), [], StStr, Uid)]),
      trTag(
        CompactTable,
        [headerCellCSS(?description),
-        dataCellCSS4(?description, Description, [{colspan, 3}], Uid)]),
+        dataCellCSS4(?description, Description, [{colspan, 3}], StStr, Uid)]),
      trTag(
        [{class, "hideRow"}],
        [headerCellCSS(?comment),
-        dataCellCSS4(?comment, Comment, [{colspan, 3}], Uid)]),
+        dataCellCSS4(?comment, Comment, [{colspan, 3}], StStr, Uid)]),
      "</table>"].
 
 makeHtmlTaskCSS2(#etodo{uid = Uid,
@@ -1000,12 +1005,25 @@ dataCellCSS(Text, Extra) ->
 dataCellCSS2(Text, Extra) ->
     tdTag([{class, "data2"}] ++ Extra, [makeHtml(Text, "/priv")]).
 
-dataCellCSS3(Text, Extra, Uid) ->
+dataCellCSS3(Text, Extra, "done", Uid) ->
+    CompactId = "compactDesc" ++ toStr(Uid),
+    tdTag([{class, "data3 done"},
+        {id, CompactId}] ++ Extra, [makeHtml(Text, "/priv")]);
+dataCellCSS3(Text, Extra, _StStr, Uid) ->
     CompactId = "compactDesc" ++ toStr(Uid),
     tdTag([{class, "data3"},
            {id, CompactId}] ++ Extra, [makeHtml(Text, "/priv")]).
 
-dataCellCSS4(Type, Text, Extra, Uid) ->
+dataCellCSS4(Type, Text, Extra, "done", Uid) ->
+    Id = Type ++ toStr(Uid),
+    tdTag(
+        [{class, "data done"},
+            {id,    Id},
+            "contenteditable",
+            {onclick, "event.cancelBubble = true;"},
+            {onblur,  "saveChanges('" ++ Type ++ "', '"++ toStr(Uid) ++  "');\""}]
+        ++ Extra, [makeHtml(Text, "/priv")]);
+dataCellCSS4(Type, Text, Extra, _StStr, Uid) ->
     Id = Type ++ toStr(Uid),
     tdTag(
       [{class, "data"},
@@ -1027,7 +1045,7 @@ createStatusDataCell(Status, Uid) ->
         createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
                     default(Status, ?descNA)))).
 createStatusDataCell2(Status, Uid) ->
-    SelectId   = "idStatus" ++ toStr(Uid),
+    SelectId   = "idStatusc" ++ toStr(Uid),
     SendStatus = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
     tdTag([{class, "cstatus"}],
           selectTag(

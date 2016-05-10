@@ -192,6 +192,10 @@ table.msgSent {
     width: 31%;
 }
 
+.done {
+    text-decoration: line-through;
+}
+
 .header {
     width: 70px;
     font-weight: bold;
