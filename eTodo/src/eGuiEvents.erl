@@ -232,13 +232,12 @@ loginMenuItemEvent(_Type, _Id, _Frame,  State = #guiState{loginDlg = Login}) ->
     wxTextCtrl:setValue(PasswordObj, ""),
     wxTextCtrl:setFocus(PasswordObj),
     wxCheckBox:setValue(ShowLoginObj, default(ShowLogin, false)),
-    wxDialog:show(Login),
+    wxTextCtrl:setValue(PasswordObj, ""),
 
     %% Make sure login dialog is on top.
+    wxDialog:show(Login),
     wxDialog:raise(Login),
-
-    %% Set focus to password field.
-    wxTextCtrl:setValue(PasswordObj, ""),
+    wxDialog:setFocus(Login),
     wxTextCtrl:setFocus(PasswordObj),
     State.
 
@@ -857,6 +856,7 @@ doDelete(State = #guiState{user = User}) ->
 
             %% Select correct task
             State3 = deleteAndUpdate(Index, TodoList, State2),
+
             focusAndSelect(Index, State3#guiState{activeTodo = {undefined, -1}});
         _ ->
             focusAndSelect(0, State)

@@ -1564,21 +1564,24 @@ createCookie(Env, UserName, Key) ->
     base64:encode_to_string(Binary2).
 
 getUser(Env, Key) ->
-    Cookie      = default(getCookie("eSessionId", Env),
-                          createCookie(Env, "", Key)),
-    Binary1     = base64:decode(Cookie),
-    Binary2     = decrypt(Key, Binary1),
-    SessionInfo = binary_to_term(Binary2),
-    Host        = getHost(Env),
-    case maps:get(host, SessionInfo) of
-        Host ->
-            maps:get(user, SessionInfo, "");
-        _ ->
-            ""
+    Cookie  = default(getCookie("eSessionId", Env), createCookie(Env, "", Key)),
+    Binary1 = base64:decode(Cookie),
+    Binary2 = decrypt(Key, Binary1),
+    case catch binary_to_term(Binary2) of
+        {'EXIT', _} ->
+            "";
+        SessionInfo ->
+            Host = getHost(Env),
+            case maps:get(host, SessionInfo) of
+                Host ->
+                    maps:get(user, SessionInfo, "");
+                _ ->
+                    ""
+            end
     end.
 
 encrypt({Key, IV}, Binary) ->
-    crypto:aes_cfb_128_encrypt(Key, IV, Binary).
+    crypto:block_encrypt(aes_cfb128, Key, IV, Binary).
 
 decrypt({Key, IV}, Binary) ->
-    crypto:aes_cfb_128_decrypt(Key, IV, Binary).
+    crypto:block_decrypt(aes_cfb128, Key, IV, Binary).

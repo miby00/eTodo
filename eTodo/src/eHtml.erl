@@ -652,26 +652,24 @@ loginForm(User) ->
              {method, "post"},
              {id, "loginTableForm"}],
             [divTag([{class,"centeredLogin"}],
-                    [tableTag([{id, "loginFormTable"}],
-                              [trTag(
-                                 [tdTag([{class, "header"}], "UserName"),
-                                  tdTag([{class, "longvalue"}],
-                                        inputTag([{class, "textField"},
-                                                  {type,  "text"},
-                                                  {value, User},
-                                                  {name,  "username"}]))]),
-                               trTag(
-                                 [tdTag([{class, "header"}], "Password"),
-                                  tdTag([{class, "longvalue"}],
-                                        inputTag([{class, "textField"},
-                                                  {type,  "password"},
-                                                  {name,  "password"}]))]),
-                               trTag(
-                                 [tdTag([{colspan, 2}],
-                                        inputTag([{type,  "submit"},
-                                                  {name,  "login"},
-                                                  {id,    "login"},
-                                                  {value, "Login"}]))])])])]).
+                    [divTag([{id, "eTodoImg"}],
+                        imgTag([{src, "/priv/Icons/ETodo-300.png"},
+                                {alt, "eTodo heading"},
+                                {id, "eTodoHeading"}])),
+                     divTag([{class, "loginHdr"}], "UserName"),
+                     inputTag([{class, "loginInput"},
+                               {type,  "text"},
+                               {value, User},
+                               {name,  "username"}]),
+                     divTag([{class, "loginHdr"}], "Password"),
+                     divTag([{class, "loginValue"}],
+                     inputTag([{class, "loginInput"},
+                               {type,  "password"},
+                               {name,  "password"}])),
+                     inputTag([{type,  "submit"},
+                               {name,  "login"},
+                               {id,    "login"},
+                               {value, "Login"}])])]).
 
 %%======================================================================
 %% Function :
