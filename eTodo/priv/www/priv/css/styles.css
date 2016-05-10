@@ -338,7 +338,7 @@ table.msgSent {
 }
 
 #eTodoHeading {
-    display: table-row;
+    display: block;
     margin: 0 auto;
     height: auto;
     width: auto;
