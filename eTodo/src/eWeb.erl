@@ -325,11 +325,13 @@ handle_call({checkCredentials, _SessionId, Env, Input}, _From,
 
     case catch mod_auth:get_user(UserName, [{dir, ?directory}, {port, Port}]) of
         {ok, #httpd_user{password = Password}} ->
-            Cookie   = createCookie(Env, UserName, Key),
-            HtmlPage = setCookie("eSessionId", Cookie, redirect("index", Env)),
-            {reply, HtmlPage, State};
+            Cookie    = createCookie(Env, UserName, Key),
+            Referer   = default(getCookie("eReferer", Env), "index"),
+            HtmlPage1 = setCookie("eSession", Cookie, redirect(Referer, Env)),
+            HtmlPage2 = removeCookieIfPresent("eReferer", Env, HtmlPage1),
+            {reply, HtmlPage2, State};
         _ ->
-            HtmlPage = removeCookie("eSessionId", redirect("login", Env)),
+            HtmlPage = removeCookie("eSession", redirect("login", Env)),
             {reply, HtmlPage, State}
     end;
 
@@ -343,7 +345,7 @@ handle_call({call, Message = {_Message, SessionId, Env, _Input}, Timeout}, From,
                 true ->
                     handle_call(Message, From, State3);
                 false ->
-                    HtmlPage = removeCookie("eSessionId", redirect("login", Env)),
+                    HtmlPage = removeCookie("eSession", redirect("login", Env)),
                     {reply, HtmlPage, State}
             end;
         {true, Pid, State3} ->
@@ -1228,6 +1230,7 @@ flattenMsg(HtmlIOList) ->
 %% @spec userOK(User, Message) -> true | false.
 %% @end
 %%--------------------------------------------------------------------
+userOK(_User, _Message, "")                                       -> false;
 userOK(_User, {show, _SessionId, _Env, _Input}, _WUser)           -> true;
 userOK(_User, {showTimeReport, _SessionId, _Env, _Input}, _WUser) -> true;
 userOK(_User, {link, _SessionId, _Env, _Input}, _WUser)           -> true;
@@ -1550,10 +1553,20 @@ unAuthorized(UserName) ->
                       "supplied the wrong credentials (e.g., bad password), "
                       "or your browser doesn't understand how to supply the "
                       "credentials required."])]).
-
+redirect("login", Env) ->
+    case proplists:get_value(script_name, Env, "/eTodo/eWeb:index") of
+        "/eTodo/eWeb:" ++ Referer ->
+            Redirect = getHost(Env) ++ "/eTodo/eWeb:login",
+            HtmlPage = "location: " ++ Redirect ++ "\r\n\r\n",
+            setCookie("eReferer", Referer, HtmlPage);
+        _ ->
+            Redirect = getHost(Env) ++ "/eTodo/eWeb:login",
+            "location: " ++ Redirect ++ "\r\n\r\n"
+    end;
 redirect(Page, Env) ->
     Redirect = getHost(Env) ++ "/eTodo/eWeb:" ++ Page,
-    ["location: " ++ Redirect ++ "\r\n\r\n"].
+    "location: " ++ Redirect ++ "\r\n\r\n".
+
 
 getHost(Env) ->
     HttpHost = "https://" ++ proplists:get_value(http_host, Env, ""),
@@ -1566,7 +1579,7 @@ createCookie(Env, UserName, Key) ->
 
 getUser(Env, Key) ->
     try
-        Cookie      = default(getCookie("eSessionId", Env),
+        Cookie      = default(getCookie("eSession", Env),
                               createCookie(Env, "", Key)),
         Binary1     = base64:decode(Cookie),
         Binary2     = decrypt(Key, Binary1),
