@@ -336,19 +336,18 @@ table.msgSent {
 }
 
 .centeredLogin {
-    display: table;
-    width: 300px;
+    width: 250px;
     height: 300px;
     position: absolute;
     top: 50%;
     left: 50%;
-    margin-left: -150px;
-    margin-top: -100px;
+    margin-left: -125px;
+    margin-top: -153px;
     border: 1px solid DarkRed;
     -moz-border-radius: 6px;
     -webkit-border-radius: 6px;
     border-radius: 6px;
-    padding: 12px;
+    padding: 10px 10px 0px 10px;
 }
 
 #eTodoHeading {
@@ -356,25 +355,30 @@ table.msgSent {
     margin: 0 auto;
     height: auto;
     width: auto;
-    max-width: 200px;
-    max-height: 200px;
+    max-width: 150px;
+    max-height: 150px;
     align-self: center;
 }
 
+#eTodoImg {
+    border: 2px solid Black;
+    -moz-border-radius: 12px;
+    -webkit-border-radius: 12px;
+    border-radius: 12px;
+}
+
 .loginHdr {
-    display: table-row;
-    color: white;
-    padding-left: 0px;
-    padding-top: 12px;
-    padding-bottom: 12px;
+    color: White;
+    padding-left: 6px;
+    padding-top: 6px;
+    height: 28px;
 }
 
 .loginInput {
-    display: table-row;
-    color: black;
+    color: DarkRed;
     width: 99%;
     float: right;
-    padding: 12px 6px;
+    padding: 10px 10px;
     box-sizing: border-box;
     border: 2px solid #ccc;
     border-radius: 4px;
@@ -386,7 +390,6 @@ table.msgSent {
 }
 
 #login {
-    margin-top: 16px;
 }
 
 #doneBtn {
