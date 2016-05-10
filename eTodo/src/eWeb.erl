@@ -1324,14 +1324,13 @@ splitOnEqual([Char|Rest], SoFar) ->
 setCookie(Cookie, Value) ->
     EDTime   = addDateTime(dateTime(), {{0,0,7}, {0,0,0}}),
     ExpDTime = httpd_util:rfc1123_date(EDTime),
-    "Set-Cookie: " ++ Cookie ++ "=" ++ Value ++
-        "; Expires=" ++ ExpDTime ++ "; httpOnly\r\n\r\n".
+    ["Set-Cookie: ", Cookie, "=", Value, "; Expires=", ExpDTime,
+     "; httpOnly\r\n\r\n"].
 setCookie(Cookie, Value, Header) ->
     EDTime   = addDateTime(dateTime(), {{0,0,7}, {0,0,0}}),
     ExpDTime = httpd_util:rfc1123_date(EDTime),
-    "Set-Cookie: " ++ Cookie ++ "=" ++ Value ++
-        "; Expires=" ++ ExpDTime ++ "; httpOnly\r\n"
-        ++ Header.
+    ["Set-Cookie: ",  Cookie, "=", Value, "; Expires=", ExpDTime,
+     "; httpOnly\r\n"] ++ Header.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -1344,15 +1343,14 @@ setCookie(Cookie, Value, Header) ->
 removeCookie(Cookie) ->
     %% The cookie should be removed, set expire to now.
     ExpDTime = httpd_util:rfc1123_date(dateTime()),
-    "Set-Cookie: " ++ Cookie ++ "=\"\";"
-        "Expires=" ++ ExpDTime ++ "; httpOnly\r\n\r\n".
+    ["Set-Cookie: ", Cookie,  "=\"\";",
+        "Expires=", ExpDTime, "; httpOnly\r\n\r\n"].
 
 removeCookie(Cookie, Header) ->
     %% The cookie should be removed, set expire to now.
     ExpDTime = httpd_util:rfc1123_date(dateTime()),
-    "Set-Cookie: " ++ Cookie ++ "=\"\";"
-        "Expires=" ++ ExpDTime ++ "; httpOnly\r\n"
-        ++ Header.
+    ["Set-Cookie: ", Cookie, "=\"\";",
+        "Expires=", ExpDTime, "; httpOnly\r\n"] ++ Header.
 
 removeCookieIfPresent(Cookie, Env) ->
     case getCookie(Cookie, Env) of
@@ -1567,11 +1565,11 @@ redirect("login", Env) ->
             setCookie("eReferer", Referer, HtmlPage);
         _ ->
             Redirect = getHost(Env) ++ "/eTodo/eWeb:login",
-            "location: " ++ Redirect ++ "\r\n\r\n"
+            ["location: ", Redirect, "\r\n\r\n"]
     end;
 redirect(Page, Env) ->
     Redirect = getHost(Env) ++ "/eTodo/eWeb:" ++ Page,
-    "location: " ++ Redirect ++ "\r\n\r\n".
+    ["location: ", Redirect, "\r\n\r\n"].
 
 
 getHost(Env) ->
