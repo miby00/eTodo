@@ -308,7 +308,7 @@ table.msgSent {
     background-color: #f8f8f8;
 }
 
-#createTable, #createTaskList {
+#createTable, #createTaskList, #deleteTaskList {
     background: url("/priv/Icons/bg.png") repeat-x top left;
     background-size: 10px 100%;
 }
@@ -337,7 +337,11 @@ table.msgSent {
 
 .formHeader {
     font-weight: bold;
-    padding: 20px;
+    padding: 8px;
+    background-color: #f8f8f8;
+    color: DarkBlue;
+    border-radius: 6px;
+    margin-bottom: 40px;
 }
 
 .centeredLogin {
