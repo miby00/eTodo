@@ -785,7 +785,8 @@ sortETodos(User, ETodos) ->
     UserCfg  = eTodoDB:readUserCfg(User),
     Settings = default(UserCfg#userCfg.webSettings, []),
     Sorting  = proplists:get_value("sortOrder", Settings, ?descDef),
-    doSortETodos(Sorting, ETodos).
+    ETodos2  = doSortETodos(?comment, ETodos), %% Secondary sort order
+    doSortETodos(Sorting, ETodos2).
 
 %% Sorting alternatives
 %% ?descDef, ?status, ?prio, ?description, ?createTime
