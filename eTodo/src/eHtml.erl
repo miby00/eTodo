@@ -709,7 +709,7 @@ createTaskForm(User, TaskList) ->
                       [trTag([thTag([{colspan, 4},
                                      {class,   "formHeader"}],
                                     ["Create task"])]),
-                       trTag(tdTag([{colspan, 4}], "")),
+                       trTag(tdTag([{colspan, 4}, {class, "formDiv"}], "")),
                        trTag(
                          [tdTag([{class, "header"}], "Set task list:"),
                           tdTag([{class, "value"}],
@@ -781,7 +781,7 @@ deleteTaskListForm(User, TaskList) ->
                [trTag([thTag([{colspan, 4},
                               {class,   "formHeader"}],
                              ["Delete task list"])]),
-                trTag(tdTag([{colspan, 4}], "")),
+                trTag(tdTag([{colspan, 4}, {class, "formDiv"}], "")),
                 trTag(
                   [tdTag([{class, "header"}], "List name:"),
                    tdTag([{class, "longValue"}, {colspan, 3}],
@@ -815,7 +815,7 @@ createTaskListForm() ->
                       [trTag([thTag([{colspan, 4},
                                      {class,   "formHeader"}],
                                     ["Create task list"])]),
-                          trTag(tdTag([{colspan, 4}], "")),
+                          trTag(tdTag([{colspan, 4}, {class, "formDiv"}], "")),
                           trTag(
                          [tdTag([{class, "header"}], "List name:"),
                           tdTag([{class, "longvalue"},

@@ -344,6 +344,10 @@ table.msgSent {
     margin-bottom: 40px;
 }
 
+.formDiv {
+    height: 5px;
+}
+
 .centeredLogin {
     width: 250px;
     height: 300px;
