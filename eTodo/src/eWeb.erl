@@ -34,6 +34,8 @@
          createTodo/3,
          createTask/3,
          createTaskList/3,
+         deleteTask/3,
+         deleteTaskList/3,
          showTodo/3,
          show/3,
          index/3,
@@ -85,23 +87,23 @@
                      getRootDir/0, apply/4, default/2, addDateTime/2,
                      tryInt/1]).
 
--import(eHtml, [htmlTag/0, htmlTag/1, htmlTag/2,
-                headTag/0, headTag/1, headTag/2,
-                bodyTag/0, bodyTag/1, bodyTag/2,
-                titleTag/1, titleTag/2,
-                styleTag/1, styleTag/2,
-                tableTag/0, tableTag/1, tableTag/2,
-                divTag/0, divTag/1, divTag/2,
-                fontTag/0, fontTag/1, fontTag/2,
-                pTag/0, pTag/1, pTag/2,
-                bTag/0, bTag/1, bTag/2,
-                tdTag/0, tdTag/1, tdTag/2,
-                trTag/0, trTag/1, trTag/2,
+-import(eHtml, [htmlTag/0,   htmlTag/1,   htmlTag/2,
+                headTag/0,   headTag/1,   headTag/2,
+                bodyTag/0,   bodyTag/1,   bodyTag/2,
+                titleTag/1,  titleTag/2,
+                styleTag/1,  styleTag/2,
+                tableTag/0,  tableTag/1,  tableTag/2,
+                divTag/0,    divTag/1,    divTag/2,
+                fontTag/0,   fontTag/1,   fontTag/2,
+                pTag/0,      pTag/1,      pTag/2,
+                bTag/0,      bTag/1,      bTag/2,
+                tdTag/0,     tdTag/1,     tdTag/2,
+                trTag/0,     trTag/1,     trTag/2,
                 brTag/0,
-                formTag/0, formTag/1, formTag/2,
-                aTag/0, aTag/1, aTag/2,
+                formTag/0,   formTag/1,   formTag/2,
+                aTag/0,      aTag/1,      aTag/2,
                 selectTag/1, selectTag/2, inputTag/1,
-                metaTag/1, imgTag/1]).
+                metaTag/1,   imgTag/1]).
 
 %%%===================================================================
 %%% API
@@ -192,6 +194,14 @@ createTask(SessionId, Env, Input) ->
 
 createTaskList(SessionId, Env, Input) ->
     HtmlPage = call({createTaskList, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, HtmlPage).
+
+deleteTask(SessionId, Env, Input) ->
+    HtmlPage = call({deleteTask, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, HtmlPage).
+
+deleteTaskList(SessionId, Env, Input) ->
+    HtmlPage = call({deleteTaskList, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, HtmlPage).
 
 showTodo(SessionId, Env, Input) ->
@@ -452,8 +462,9 @@ handle_call({createTodo, _SessionId, _Env, Input}, _From,
 
     HtmlPage   = [eHtml:pageHeader(User),
                   eHtml:makeForm(User, TaskList),
-                  eHtml:createTaskListForm(),
                   eHtml:createTaskForm(User, TaskList),
+                  eHtml:createTaskListForm(),
+                  eHtml:deleteTaskListForm(User, TaskList),
                   eHtml:pageFooter()],
     {reply, HtmlPage, State};
 handle_call({createTaskList, _SessionId, Env, Input}, _From,
@@ -475,6 +486,21 @@ handle_call({createTaskList, _SessionId, Env, Input}, _From,
     end,
 
     HtmlPage = redirect("listTodos?list=" ++ TaskList ++ "&search=", Env),
+    {reply, HtmlPage, State};
+handle_call({deleteTask, _SessionId, _Env, Input}, _From,
+            State = #state{user = User}) ->
+    Dict = makeDict(Input),
+    {ok, Uid} = find("uid", Dict),
+
+    io:format("delete task: ~s~n", [Uid]),
+
+    {reply, "ok", State};
+handle_call({deleteTaskList, _SessionId, Env, Input}, _From,
+            State = #state{user = User}) ->
+    Dict = makeDict(Input),
+    {ok, TaskList} = find("dlist", Dict),
+    io:format("delete list: ~s~n", [TaskList]),
+    HtmlPage = redirect("index", Env),
     {reply, HtmlPage, State};
 handle_call({createTask, _SessionId, Env, Input}, _From,
             State = #state{user = User}) ->
@@ -1344,13 +1370,13 @@ removeCookie(Cookie) ->
     %% The cookie should be removed, set expire to now.
     ExpDTime = httpd_util:rfc1123_date(dateTime()),
     ["Set-Cookie: ", Cookie,  "=\"\";",
-        "Expires=", ExpDTime, "; httpOnly\r\n\r\n"].
+     "Expires=", ExpDTime, "; httpOnly\r\n\r\n"].
 
 removeCookie(Cookie, Header) ->
     %% The cookie should be removed, set expire to now.
     ExpDTime = httpd_util:rfc1123_date(dateTime()),
     ["Set-Cookie: ", Cookie, "=\"\";",
-        "Expires=", ExpDTime, "; httpOnly\r\n"] ++ Header.
+     "Expires=", ExpDTime, "; httpOnly\r\n"] ++ Header.
 
 removeCookieIfPresent(Cookie, Env) ->
     case getCookie(Cookie, Env) of

@@ -29,6 +29,7 @@
          loginForm/1,
          createTaskForm/2,
          createTaskListForm/0,
+         deleteTaskListForm/2,
          settingsPage/2,
          showStatus/3,
          showLoggedWork/2,
@@ -43,6 +44,7 @@
          styleTag/1, styleTag/2,
          tableTag/0, tableTag/1, tableTag/2,
          divTag/0, divTag/1, divTag/2,
+         spanTag/0, spanTag/1, spanTag/2,
          fontTag/0, fontTag/1, fontTag/2,
          pTag/0, pTag/1, pTag/2,
          bTag/0, bTag/1, bTag/2,
@@ -97,6 +99,10 @@ tableTag(Attr, Content) -> tag(table, Attr, Content).
 divTag() -> tag('div', [], []).
 divTag(Content) -> tag('div', [], Content).
 divTag(Attr, Content) -> tag('div', Attr, Content).
+
+spanTag() -> tag(span, [], []).
+spanTag(Content) -> tag(span, [], Content).
+spanTag(Attr, Content) -> tag(span, Attr, Content).
 
 fontTag() -> tag(font, [], []).
 fontTag(Content) -> tag(font, [], Content).
@@ -700,7 +706,10 @@ createTaskForm(User, TaskList) ->
              {method, "post"},
              {id, "createTableForm"}],
             [tableTag([{id, "createTable"}],
-                      [trTag(
+                      [trTag([thTag([{colspan, 4},
+                                     {class,   "formHeader"}],
+                                    ["Create task"])]),
+                       trTag(
                          [tdTag([{class, "header"}], "Set task list:"),
                           tdTag([{class, "value"}],
                                 [selectTag([{class, "selects"},
@@ -757,19 +766,62 @@ createTaskForm(User, TaskList) ->
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
+deleteTaskListForm(User, TaskList) ->
+    UserCfg    = eTodoDB:readUserCfg(User),
+    TaskList1  = default(UserCfg#userCfg.lists, []),
+    TaskLists  = lists:sort([TaskList | lists:delete(TaskList, TaskList1)]),
+    TaskLists2 = lists:delete(?defTaskList, TaskLists),
+    formTag([{action, "/eTodo/eWeb:deleteTaskList"},
+             {'accept-charset', "UTF-8"},
+             {method, "post"},
+             {id, "deleteTaskListForm"}],
+            [tableTag(
+               [{id, deleteTaskList}],
+               [trTag([thTag([{colspan, 4},
+                              {class,   "formHeader"}],
+                             ["Delete task list"])]),
+                trTag(
+                  [tdTag([{class, "header"}], "List name:"),
+                   tdTag([{class, "longValue"}, {colspan, 3}],
+                         [selectTag([{class,  "selects"},
+                                     {name,   "dlist"},
+                                     {onchange, "document.getElementById"
+                                      "('deleteTaskListBtn')."
+                                      "disabled = false;"}],
+                                    createForm2(TaskLists2,
+                                                TaskList))]),
+                   trTag(
+                     [tdTag([{colspan, 4}],
+                            inputTag([{type,     "submit"},
+                                      {disabled, "true"},
+                                      {id,       "deleteTaskListBtn"},
+                                      {value,    "Delete list"}]))])])])]).
+
+%%======================================================================
+%% Function :
+%% Purpose  :
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
 createTaskListForm() ->
     formTag([{action, "/eTodo/eWeb:createTaskList"},
              {'accept-charset', "UTF-8"},
-             {method, "post"}],
+             {method, "post"},
+             {id, "createTaskListForm"}],
             [tableTag([{id, createTaskList}],
-                      [trTag(
+                      [trTag([thTag([{colspan, 4},
+                                     {class,   "formHeader"}],
+                                    ["Create task list"])]),
+                       trTag(
                          [tdTag([{class, "header"}], "List name:"),
                           tdTag([{class, "longvalue"},
                                  {colspan, 3}],
                                 inputTag([{class,  "textField"},
                                           {type,   "text"},
                                           {id,     "listName"},
-                                          {onblur, "enableButton('listName', 'createTaskListBtn');"},
+                                          {onblur, "enableButton('listName', "
+                                           "createTaskListBtn');"},
                                           {name,   "listName"}]))]),
                        trTag(
                          [tdTag([{colspan, 4}],
@@ -858,6 +910,9 @@ makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
     ProgStr = toStr(Progress),
     StStr   = atom_to_list(StatusDB),
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
+
+    {InputTags, YesNoQuestion} = makeButtons(Uid),
+
     [makeTableHeader(User, Uid, true),
      trTag(
        [headerCellCSS(?status), createStatusDataCell(Status, Uid),
@@ -883,6 +938,8 @@ makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
      trTag(
        [headerCellCSS(?comment),
         dataCellCSS4(?comment, Comment, [{colspan, 3}], StStr, Uid)]),
+     trTag([{class, "btnRow"}],  [tdTag([{colspan, 4}], InputTags)]),
+     trTag([{class, "hideRow"}], [tdTag([{colspan, 4}], YesNoQuestion)]),
      "</table>"];
 makeHtmlTaskCSS(#etodo{uid         = Uid,
                        status      = Status,
@@ -912,6 +969,9 @@ makeHtmlTaskCSS(#etodo{uid         = Uid,
                         true ->
                             []
                     end,
+
+    {InputTags, YesNoQuestion} = makeButtons(Uid),
+
     [makeTableHeader(User, Uid, HasSubTodo),
      trTag(
        CompactTable2,
@@ -947,6 +1007,8 @@ makeHtmlTaskCSS(#etodo{uid         = Uid,
        [{class, "hideRow"}],
        [headerCellCSS(?comment),
         dataCellCSS4(?comment, Comment, [{colspan, 3}], StStr, Uid)]),
+     trTag([{class, "hideRow"}], [tdTag([{colspan, 4}], InputTags)]),
+     trTag([{class, "hideRow"}], [tdTag([{colspan, 4}], YesNoQuestion)]),
      "</table>"].
 
 makeHtmlTaskCSS2(#etodo{uid = Uid,
@@ -1007,6 +1069,33 @@ makeTableHeader(_User, Uid, true) ->
      "OnClick=\"openLink('/eTodo/eWeb:listTodos",
      "?list=", Uid, "&search=&submit=Search');\">"].
 
+makeButtons(Uid) ->
+    InputTags = [inputTag([{type,    "button"},
+                           {id,      "applyBtn"},
+                           {value,   "Apply"},
+                           {onclick, "saveTaskChanges('" ++ Uid ++ "');"}]),
+                 inputTag([{type,    "button"},
+                           {id,      "cancelBtn"},
+                           {value,   "Cancel"},
+                           {onclick, "cancelBtn();"}]),
+                 inputTag([{type,    "button"},
+                           {id,      "deleteBtn"},
+                           {value,   "Delete"},
+                           {onclick, "deleteTask('" ++ Uid ++ "');"}])],
+
+    YesNoQuestion = [spanTag([{class, "yesno"}],
+                             ["Are you sure?"]),
+                     inputTag([{type,    "button"},
+                               {id,      "yesBtn"},
+                               {value,   "Yes"},
+                               {onclick, "deleteYes('" ++ Uid ++ "');"}]),
+                     inputTag([{type,    "button"},
+                               {id,      "noBtn"},
+                               {value,   "No"},
+                               {onclick, "deleteNo('" ++ Uid ++ "');"}])],
+
+    {InputTags, YesNoQuestion}.
+
 headerCellCSS(Text) ->
     tdTag([{class, "header"}], [Text, ":"]).
 
@@ -1031,8 +1120,7 @@ dataCellCSS4(Type, Text, Extra, "done", Uid) ->
       [{class, "data done"},
        {id,    Id},
        "contenteditable",
-       {onclick, "event.cancelBubble = true;"},
-       {onblur,  "saveChanges('" ++ Type ++ "', '"++ toStr(Uid) ++  "');\""}]
+       {onclick, "event.cancelBubble = true;"}]
       ++ Extra, [makeHtml(Text, "/priv")]);
 dataCellCSS4(Type, Text, Extra, _StStr, Uid) ->
     Id = Type ++ toStr(Uid),
@@ -1040,8 +1128,7 @@ dataCellCSS4(Type, Text, Extra, _StStr, Uid) ->
       [{class, "data"},
        {id,    Id},
        "contenteditable",
-       {onclick, "event.cancelBubble = true;"},
-       {onblur,  "saveChanges('" ++ Type ++ "', '"++ toStr(Uid) ++  "');\""}]
+       {onclick, "event.cancelBubble = true;"}]
       ++ Extra, [makeHtml(Text, "/priv")]).
 
 createStatusDataCell(Status, Uid) ->

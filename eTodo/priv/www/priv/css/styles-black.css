@@ -270,7 +270,7 @@ table.msgSent {
     padding: 1em;
 }
 
-#createTableForm {
+#createTaskListForm, #deleteTaskListForm {
     margin-top: 1em;
 }
 #searchField {
@@ -327,7 +327,12 @@ table.msgSent {
     background-size: 10px 100%;
 }
 
-#createTask, #doneBtn, #createTaskListBtn, #login{
+.yesno {
+    line-height: 40px;
+}
+
+#createTask, #doneBtn, #createTaskListBtn, #login, #deleteTaskListBtn,
+#deleteBtn, #applyBtn, #cancelBtn, #noBtn, #yesBtn{
     float: right;
     background-color: DarkRed;
     border: none;
@@ -337,6 +342,16 @@ table.msgSent {
     margin: 4px 2px;
     cursor: pointer;
     border-radius: 5px;
+    width: 8em;
+}
+
+#deleteTaskList {
+    width: 100%;
+}
+
+.formHeader {
+    font-weight: bold;
+    padding: 20px;
 }
 
 .centeredLogin {

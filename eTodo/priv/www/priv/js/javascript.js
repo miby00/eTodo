@@ -1,8 +1,69 @@
+function cancelBtn() {
+    event.cancelBubble = true;
+    location.reload(true);
+}
+
+function saveTaskChanges(uid) {
+    event.cancelBubble = true;
+    saveChanges('Comment',      uid);
+    saveChanges('Description',  uid);
+    saveChanges('Estimate(h)',  uid);
+    saveChanges('Progress(%)',  uid);
+    saveChanges('Remaining(h)', uid);
+}
+
+function deleteTask(uid)
+{
+    event.cancelBubble = true;
+    var Element = document.getElementById('table' + uid);
+    addClass(Element.childNodes[0].childNodes[8], 'hideRow');
+    if (Element.childNodes[0].childNodes[9].classList != undefined) {
+        Element.childNodes[0].childNodes[9].classList.remove('hideRow');
+    }
+}
+
+function deleteYes(uid)
+{
+    var taskList = document.getElementById('taskSelect').value;
+    event.cancelBubble = true;
+    var Element = document.getElementById('table' + uid);
+    addClass(Element.childNodes[0].childNodes[9], 'hideRow');
+    Element.childNodes[0].childNodes[8].classList.remove('hideRow');
+    var AJAX = newAJAX();
+    sendCall(AJAX, '/eTodo/eWeb:deleteTask?uid=' + uid,
+             function () {
+                 if (AJAX.readyState == 4 || AJAX.readyState == "complete") {
+                     location.reload(true);
+                 }
+             });
+}
+
+function deleteNo(uid)
+{
+    event.cancelBubble = true;
+    var Element = document.getElementById('table' + uid);
+    addClass(Element.childNodes[0].childNodes[9], 'hideRow');
+    Element.childNodes[0].childNodes[8].classList.remove('hideRow');
+}
+
 function openLink(url)
 {
     window.open(url, '_self');
     /* window.open(url, '_blank') */
     /* window.focus(); */
+}
+
+function sendCall(AJAX, url, callback)
+{
+    if (AJAX == null) {
+        alert("Initialisation of AJAX failed.");
+        return false;
+    }
+
+    AJAX.onreadystatechange = callback;
+
+    AJAX.open("GET", url, true);
+    AJAX.send(null);
 }
 
 function saveChanges(type, uid) {
@@ -64,6 +125,7 @@ function showDetails(uid) {
         Element.childNodes[0].childNodes[5].classList.remove('hideRow');
         Element.childNodes[0].childNodes[6].classList.remove('hideRow');
         Element.childNodes[0].childNodes[7].classList.remove('hideRow');
+        Element.childNodes[0].childNodes[8].classList.remove('hideRow');
         if (Element.classList.contains('ttCompact')) {
             addClass(Element.childNodes[0].childNodes[0], 'hideRow');
         }
@@ -75,6 +137,7 @@ function showDetails(uid) {
         addClass(Element.childNodes[0].childNodes[4], 'hideRow');
         addClass(Element.childNodes[0].childNodes[5], 'hideRow');
         addClass(Element.childNodes[0].childNodes[7], 'hideRow');
+        addClass(Element.childNodes[0].childNodes[8], 'hideRow');
         if (Element.classList.contains('ttCompact')) {
             Element.childNodes[0].childNodes[0].classList.remove('hideRow');
             addClass(Element.childNodes[0].childNodes[1], 'hideRow');
