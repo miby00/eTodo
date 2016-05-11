@@ -579,12 +579,13 @@ createForm([Value | Rest], SoFar, Default) ->
 %%======================================================================
 settingsPage(User, List) ->
     %% Get web settings.
-    UserCfg      = eTodoDB:readUserCfg(User),
-    WebSettings  = default(UserCfg#userCfg.webSettings, []),
-    DefStatus    = proplists:get_value("filterStatus", WebSettings, ?descDef),
-    DefPrio      = proplists:get_value("filterPrio",   WebSettings, ?descDef),
-    DefListType  = proplists:get_value("listType",     WebSettings, ?descDef),
-    DefSortOrder = proplists:get_value("sortOrder",     WebSettings, ?descDef),
+    UserCfg       = eTodoDB:readUserCfg(User),
+    WebSettings   = default(UserCfg#userCfg.webSettings, []),
+    DefStatus     = proplists:get_value("filterStatus", WebSettings, ?descDef),
+    DefPrio       = proplists:get_value("filterPrio",   WebSettings, ?descDef),
+    DefListType   = proplists:get_value("listType",     WebSettings, ?descDef),
+    DefSortOrder  = proplists:get_value("sortOrder",    WebSettings, ?descDef),
+    DefSortOrder2 = proplists:get_value("sortOrderSec", WebSettings, ?descDef),
 
     StatusList = [?descDef, ?descPlanning, ?descInProgress,
                   ?descDone, ?descNA, ?descAll],
@@ -625,13 +626,21 @@ settingsPage(User, List) ->
                                      "sendSetting('listType')"}],
                                    createForm2(ListTypes, DefListType))])]),
                trTag(
-                 [tdTag("Task sort order"),
+                 [tdTag("Sort order(Primary)"),
                   tdTag([selectTag([{id,      "sortOrder"},
                                     {name,    "sortOrder"},
                                     {class,   "selects"},
                                     {onchange,
                                      "sendSetting('sortOrder')"}],
-                                   createForm2(SortOrders, DefSortOrder))])])
+                                   createForm2(SortOrders, DefSortOrder))])]),
+               trTag(
+                 [tdTag("Sort order(Secondary)"),
+                  tdTag([selectTag([{id,      "sortOrderSec"},
+                                    {name,    "sortOrderSec"},
+                                    {class,   "selects"},
+                                    {onchange,
+                                     "sendSetting('sortOrderSec')"}],
+                                   createForm2(SortOrders, DefSortOrder2))])])
               ]),
      inputTag([{type,  "button"},
                {id,    "doneBtn"},
@@ -784,9 +793,10 @@ makeTaskList(User, List, Filter, SearchText, Cfg) ->
 sortETodos(User, ETodos) ->
     UserCfg  = eTodoDB:readUserCfg(User),
     Settings = default(UserCfg#userCfg.webSettings, []),
-    Sorting  = proplists:get_value("sortOrder", Settings, ?descDef),
-    ETodos2  = doSortETodos(?comment, ETodos), %% Secondary sort order
-    doSortETodos(Sorting, ETodos2).
+    Sorting1 = proplists:get_value("sortOrder",    Settings, ?descDef),
+    Sorting2 = proplists:get_value("sortOrderSec", Settings, ?descDef),
+    ETodos2  = doSortETodos(Sorting2, ETodos), %% Secondary sort order
+    doSortETodos(Sorting1, ETodos2).
 
 %% Sorting alternatives
 %% ?descDef, ?status, ?prio, ?description, ?createTime
@@ -1009,7 +1019,7 @@ dataCellCSS2(Text, Extra) ->
 dataCellCSS3(Text, Extra, "done", Uid) ->
     CompactId = "compactDesc" ++ toStr(Uid),
     tdTag([{class, "data3 done"},
-        {id, CompactId}] ++ Extra, [makeHtml(Text, "/priv")]);
+           {id, CompactId}] ++ Extra, [makeHtml(Text, "/priv")]);
 dataCellCSS3(Text, Extra, _StStr, Uid) ->
     CompactId = "compactDesc" ++ toStr(Uid),
     tdTag([{class, "data3"},
@@ -1018,12 +1028,12 @@ dataCellCSS3(Text, Extra, _StStr, Uid) ->
 dataCellCSS4(Type, Text, Extra, "done", Uid) ->
     Id = Type ++ toStr(Uid),
     tdTag(
-        [{class, "data done"},
-            {id,    Id},
-            "contenteditable",
-            {onclick, "event.cancelBubble = true;"},
-            {onblur,  "saveChanges('" ++ Type ++ "', '"++ toStr(Uid) ++  "');\""}]
-        ++ Extra, [makeHtml(Text, "/priv")]);
+      [{class, "data done"},
+       {id,    Id},
+       "contenteditable",
+       {onclick, "event.cancelBubble = true;"},
+       {onblur,  "saveChanges('" ++ Type ++ "', '"++ toStr(Uid) ++  "');\""}]
+      ++ Extra, [makeHtml(Text, "/priv")]);
 dataCellCSS4(Type, Text, Extra, _StStr, Uid) ->
     Id = Type ++ toStr(Uid),
     tdTag(
