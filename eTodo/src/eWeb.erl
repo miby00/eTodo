@@ -492,7 +492,7 @@ handle_call({deleteTask, _SessionId, _Env, Input}, _From,
     Dict = makeDict(Input),
     {ok, Uid} = find("uid", Dict),
 
-    io:format("delete task: ~s~n", [Uid]),
+    eTodo:todoDeleted(list_to_integer(Uid)),
 
     {reply, "ok", State};
 handle_call({deleteTaskList, _SessionId, Env, Input}, _From,

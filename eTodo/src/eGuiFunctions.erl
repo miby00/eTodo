@@ -21,6 +21,7 @@
          checkUndoStatus/1,
          clearAndInitiate/2,
          clearStatusBar/1,
+         deleteAndUpdate/3,
          doLogout/2,
          findSelected/1,
          focusAndSelect/1,
@@ -1671,3 +1672,18 @@ resendUnreadMsgs(UserName) ->
     Unread    = UserCfg#userCfg.unreadMsgs,
     RevUnread = lists:reverse(Unread),
     [eTodo:msgEntry(User, Users, Text) || {User, Users, Text} <- RevUnread].
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+deleteAndUpdate(Index, TodoList, State) ->
+    Size = wxListCtrl:getItemCount(TodoList),
+    deleteAndUpdate(Size, Index, TodoList, State).
+
+deleteAndUpdate(Size, Index, _TodoList, State) when Size =< Index ->
+    State;
+deleteAndUpdate(Size, Index, TodoList, State) ->
+    setColor(TodoList, Index),
+    deleteAndUpdate(Size, Index + 1, TodoList, State).

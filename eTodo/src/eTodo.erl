@@ -33,6 +33,7 @@
          systemEntry/2,
          todoCreated/3,
          todoUpdated/2,
+         todoDeleted/1,
          writing/1,
          statusUpdate/2,
 
@@ -62,6 +63,7 @@
                         checkStatus/1,
                         checkUndoStatus/1,
                         clearStatusBar/1,
+                        deleteAndUpdate/3,
                         doLogout/2,
                         focusAndSelect/2,
                         getPortrait/1,
@@ -89,7 +91,7 @@
                         updateTodoWindow/1,
                         updateValue/4,
                         useFilter/3,
-						userStatusUpdate/1,
+                        userStatusUpdate/1,
                         date2wxDate/1,
                         wxDate2Date/1,
                         xrcId/1
@@ -160,6 +162,9 @@ todoUpdated(Sender, Todo) ->
 
 todoCreated(TaskList, Row, Todo) ->
     wx_object:cast(?MODULE, {todoCreated, TaskList, Row, Todo}), ok.
+
+todoDeleted(Uid) ->
+    wx_object:cast(?MODULE, {todoDeleted, Uid}), ok.
 
 checkConflict(User, PeerUser, OldLocalConTime, OldRemoteConTime, Diff) ->
     wx_object:cast(?MODULE, {checkConflict, User, PeerUser,
@@ -624,11 +629,11 @@ handle_cast({loggedIn, Peer}, State = #guiState{mode = noGui,
                                                 user = User}) ->
     case {os:getenv("eTodoStatus"), os:getenv("eTodoStatusMsg")} of
         {Status, StatusMsg} when
-            (Status =/= false) and (StatusMsg =/= false) ->
+              (Status =/= false) and (StatusMsg =/= false) ->
             StatusUpdate = #userStatus{userName  = User,
                                        status    = Status,
                                        statusMsg = StatusMsg},
-	    eWeb:setStatusUpdate(User, Status, StatusMsg),
+            eWeb:setStatusUpdate(User, Status, StatusMsg),
             ePeerEM:sendMsg(User, [Peer], statusEntry,
                             {statusUpdate, StatusUpdate, getPortrait(User)});
         _ ->
@@ -683,8 +688,8 @@ handle_cast({loggedIn, User}, State = #guiState{userStatus = Users}) ->
     wxCheckListBox:append(UserObj, User),
     Users2     = lists:keydelete(User, #userStatus.userName, Users),
     UserStatus = #userStatus{userName = User},
-	State2 = userStatusUpdate(State#guiState{userStatus = [UserStatus|Users2]}),
-	{noreply, State2};
+    State2 = userStatusUpdate(State#guiState{userStatus = [UserStatus|Users2]}),
+    {noreply, State2};
 handle_cast({loggedOut, User}, State = #guiState{userStatus= Users}) ->
     UserObj = obj("userCheckBox",  State),
     Count   = wxCheckListBox:getCount(UserObj),
@@ -716,6 +721,32 @@ handle_cast({todoCreated, TaskList, _DBRow, Todo},
                      State
              end,
     {noreply, State2};
+handle_cast({todoDeleted, Uid},
+            State = #guiState{user = User, rows = Rows}) ->
+    TaskList = getTaskList(State),
+    TodoList = getTodoList(TaskList, State),
+    State4 =
+        case findIndex(Uid, Rows) of
+            {Index, _} ->
+                wxListCtrl:deleteItem(TodoList, Index),
+
+                %% Remove from internal data structure.
+                Rows2  = eRows:deleteRow(Uid, State#guiState.rows),
+                State2 = State#guiState{rows = Rows2},
+
+                %% Remove task from database.
+                eTodoDB:delTodo(Uid, User),
+
+                %% Select correct task
+                State3 = deleteAndUpdate(Index, TodoList, State2),
+
+                focusAndSelect(Index, State3#guiState{activeTodo = {undefined, -1}});
+            _ ->
+                %% Remove task from database.
+                eTodoDB:delTodo(Uid, User),
+                State
+        end,
+    {noreply, State4};
 handle_cast({writing, Sender}, State) ->
     StatusBarObj = obj("mainStatusBar", State),
     Opt = [{number, 2}],
@@ -1013,7 +1044,7 @@ handle_cmd(Name, Type, Id, Frame, State) ->
         State2 ->
             State3 = saveGuiSettings(Type, State2),
             {noreply, State3}
-     end.
+    end.
 
 handle_cmd(Name, Type, Index, Id, Frame, State) ->
     Function = list_to_atom(Name ++ "Event"),
@@ -1080,7 +1111,7 @@ connectMainFrame(Frame, Dict) ->
                "configureSearch", "shareButton", "addListButton",
                "bookmarkBtn", "logWorkButton"],
 
-	TextFields = ["searchText", "userStatusMsg"],
+    TextFields = ["searchText", "userStatusMsg"],
 
     Dict2  = connectItems(ToolList, command_menu_selected,      Frame, Dict),
     Dict3  = connectItems(["mainTaskList"], ListEvents,         Frame, Dict2),
@@ -1095,8 +1126,8 @@ connectMainFrame(Frame, Dict) ->
                           command_checkbox_clicked,             Frame, Dict9),
     Dict11 = connectItems(["mainNotebook"],
                           command_notebook_page_changed,        Frame, Dict10),
-	Dict12 = connectItems(["userCheckBox"],
-		                  command_listbox_selected,             Frame, Dict11),
+    Dict12 = connectItems(["userCheckBox"],
+                          command_listbox_selected,             Frame, Dict11),
     Dict13 = connectItems(["progressInfo"],
                           command_spinctrl_updated,             Frame, Dict12),
     Dict14 = connectItems(["bookmarkBtn"], context_menu,        Frame, Dict13),
@@ -1115,7 +1146,7 @@ connectItems([Item | Rest], Event, Frame, Dict) ->
     connectItems(Rest, Event, Frame, Dict2).
 
 connectItem(Frame, Name, Event, Dict)
-    when (Name == "mainTaskList") and (Event == command_list_key_down) ->
+  when (Name == "mainTaskList") and (Event == command_list_key_down) ->
     Id = xrcId(Name),
     wxFrame:connect(Frame, Event, [{id, Id}, {skip, true}]),
     dict:store(Id, Name, Dict);

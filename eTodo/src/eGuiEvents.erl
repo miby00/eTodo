@@ -142,6 +142,7 @@
                         checkUndoStatus/1,
                         clearAndInitiate/2,
                         clearStatusBar/1,
+                        deleteAndUpdate/3,
                         doLogout/2,
                         focusAndSelect/1,
                         focusAndSelect/2,
@@ -864,16 +865,6 @@ doDelete(State = #guiState{user = User}) ->
 
 findSelected(TodoList) ->
     wxListCtrl:getNextItem(TodoList, -1, [{state, ?wxLIST_STATE_SELECTED}]).
-
-deleteAndUpdate(Index, TodoList, State) ->
-    Size = wxListCtrl:getItemCount(TodoList),
-    deleteAndUpdate(Size, Index, TodoList, State).
-
-deleteAndUpdate(Size, Index, _TodoList, State) when Size =< Index ->
-    State;
-deleteAndUpdate(Size, Index, TodoList, State) ->
-    setColor(TodoList, Index),
-    deleteAndUpdate(Size, Index + 1, TodoList, State).
 
 %%====================================================================
 %% Event to trigger gui save
