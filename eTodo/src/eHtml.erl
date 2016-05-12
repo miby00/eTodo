@@ -815,8 +815,8 @@ createTaskListForm() ->
                       [trTag([thTag([{colspan, 4},
                                      {class,   "formHeader"}],
                                     ["Create task list"])]),
-                          trTag(tdTag([{colspan, 4}, {class, "formDiv"}], "")),
-                          trTag(
+                       trTag(tdTag([{colspan, 4}, {class, "formDiv"}], "")),
+                       trTag(
                          [tdTag([{class, "header"}], "List name:"),
                           tdTag([{class, "longvalue"},
                                  {colspan, 3}],
@@ -914,7 +914,7 @@ makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
     StStr   = atom_to_list(StatusDB),
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
 
-    {InputTags, YesNoQuestion} = makeButtons(Uid),
+    {InputTags, YesNoQuestion} = makeButtons(noDelete, Uid),
 
     [makeTableHeader(User, Uid, true),
      trTag(
@@ -1073,6 +1073,9 @@ makeTableHeader(_User, Uid, true) ->
      "?list=", Uid, "&search=&submit=Search');\">"].
 
 makeButtons(Uid) ->
+    makeButtons(withDelete, Uid).
+
+makeButtons(Type, Uid) ->
     InputTags = [inputTag([{type,    "button"},
                            {id,      "applyBtn"},
                            {value,   "Apply"},
@@ -1080,8 +1083,9 @@ makeButtons(Uid) ->
                  inputTag([{type,    "button"},
                            {id,      "cancelBtn"},
                            {value,   "Cancel"},
-                           {onclick, "cancelBtn();"}]),
-                 inputTag([{type,    "button"},
+                           {onclick, "cancelBtn();"}])],
+
+    DeleteTag = [inputTag([{type,    "button"},
                            {id,      "deleteBtn"},
                            {value,   "Delete"},
                            {onclick, "deleteTask('" ++ Uid ++ "');"}])],
@@ -1096,8 +1100,12 @@ makeButtons(Uid) ->
                                {id,      "noBtn"},
                                {value,   "No"},
                                {onclick, "deleteNo('" ++ Uid ++ "');"}])],
-
-    {InputTags, YesNoQuestion}.
+    case Type of
+        noDelete ->
+            {InputTags, []};
+        withDelete ->
+            {InputTags ++ DeleteTag, YesNoQuestion}
+    end.
 
 headerCellCSS(Text) ->
     tdTag([{class, "header"}], [Text, ":"]).

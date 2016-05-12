@@ -68,7 +68,8 @@ function sendCall(AJAX, url, callback)
 
 function saveChanges(type, uid) {
     var Element = document.getElementById(type + uid);
-    if (type == 'Description') {
+    if ((type == 'Description') &&
+        document.getElementById('compactDesc' + uid)) {
         var CompactDesc = document.getElementById('compactDesc' + uid);
         if (CompactDesc.innerHTML != Element.innerHTML) {
             CompactDesc.innerHTML = Element.innerHTML;
