@@ -14,8 +14,8 @@ function saveTaskChanges(uid) {
 
 function deleteTaskList(id)
 {
-    var list = document.getElementById(id).value;
     event.cancelBubble = true;
+    var list = document.getElementById(id).value;
     var AJAX = newAJAX();
     sendCall(AJAX, '/eTodo/eWeb:deleteTaskList?dlist=' + encodeURIComponent(list),
         function () {
@@ -37,9 +37,9 @@ function deleteTask(uid)
 
 function deleteYes(uid)
 {
-    var taskList = document.getElementById('taskSelect').value;
     event.cancelBubble = true;
-    var Element = document.getElementById('table' + uid);
+    var taskList = document.getElementById('taskSelect').value;
+    var Element  = document.getElementById('table' + uid);
     addClass(Element.childNodes[0].childNodes[9], 'hideRow');
     Element.childNodes[0].childNodes[8].classList.remove('hideRow');
     var AJAX = newAJAX();
