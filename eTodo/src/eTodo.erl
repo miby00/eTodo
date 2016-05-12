@@ -31,6 +31,8 @@
          start/1,
          stop/0,
          systemEntry/2,
+         taskListDeleted/1,
+         taskListsUpdated/0,
          todoCreated/3,
          todoUpdated/2,
          todoDeleted/1,
@@ -156,6 +158,12 @@ writing(Sender) ->
 
 statusUpdate(UserStatus, Avatar) ->
     wx_object:cast(?MODULE, {statusUpdate, UserStatus, Avatar}), ok.
+
+taskListsUpdated() ->
+    wx_object:cast(?MODULE, taskListsUpdated), ok.
+
+taskListDeleted(List) ->
+    wx_object:cast(?MODULE, {taskListDeleted, List}), ok.
 
 todoUpdated(Sender, Todo) ->
     wx_object:cast(?MODULE, {todoUpdated, Sender, Todo}), ok.
@@ -708,6 +716,15 @@ handle_cast({loggedOut, User}, State = #guiState{userStatus= Users}) ->
                 State
         end,
     {noreply, State2};
+handle_cast(taskListsUpdated, State = #guiState{user = User}) ->
+    TodoLists = getTodoLists(User),
+    setTaskLists(TodoLists, State),
+    {noreply, State};
+handle_cast({taskListDeleted, List}, State = #guiState{user = User}) ->
+    TodoLists1 = getTodoLists(User),
+    TodoLists2 = lists:delete(List, TodoLists1),
+    setTaskLists(TodoLists2, State),
+    {noreply, State};
 handle_cast({todoCreated, TaskList, _DBRow, Todo},
             State = #guiState{user       = User,
                               columns    = Columns}) ->

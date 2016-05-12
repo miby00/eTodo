@@ -783,16 +783,12 @@ deleteTaskListForm(User, TaskList) ->
            tdTag([{class, "longValue"}, {colspan, 3}],
                  [selectTag([{class,  "selects"},
                              {name,   "dlist"},
-                             {id,     "dlist"},
-                             {onchange, "document.getElementById"
-                              "('deleteTaskListBtn')."
-                              "disabled = false;"}],
+                             {id,     "dlist"}],
                             createForm2(TaskLists2,
                                         TaskList))]),
            trTag(
              [tdTag([{colspan, 4}],
                     inputTag([{type,     "button"},
-                              {disabled, "true"},
                               {onclick,  "deleteTaskList('dlist');"},
                               {id,       "deleteTaskListBtn"},
                               {value,    "Delete list"}]))])])])].
@@ -821,13 +817,10 @@ createTaskListForm() ->
                                 inputTag([{class,  "textField"},
                                           {type,   "text"},
                                           {id,     "listName"},
-                                          {onblur, "enableButton('listName', "
-                                           "createTaskListBtn');"},
                                           {name,   "listName"}]))]),
                        trTag(
                          [tdTag([{colspan, 4}],
                                 inputTag([{type,     "submit"},
-                                          {disabled, "true"},
                                           {id,       "createTaskListBtn"},
                                           {value,    "Create list"}]))])])]).
 

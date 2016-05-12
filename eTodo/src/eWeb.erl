@@ -479,7 +479,8 @@ handle_call({createTaskList, _SessionId, Env, Input}, _From,
             TaskLists2 = [TaskList|lists:delete(TaskList, TaskLists1)],
             TaskLists3 = TaskLists2 -- [?defInbox, ?defLoggedWork,
                                         ?defShowStatus, ?defTimeReport],
-            eTodoDB:saveUserCfg(UserCfg#userCfg{lists = TaskLists3});
+            eTodoDB:saveUserCfg(UserCfg#userCfg{lists = TaskLists3}),
+            eTodo:taskListsUpdated();
         _ ->
             %% Do not allow integer lists.
             ok
@@ -495,11 +496,11 @@ handle_call({deleteTask, _SessionId, _Env, Input}, _From,
     eTodo:todoDeleted(list_to_integer(Uid)),
 
     {reply, "ok", State};
-handle_call({deleteTaskList, _SessionId, Env, Input}, _From,
-            State = #state{user = User}) ->
+handle_call({deleteTaskList, _SessionId, Env, Input}, _From, State) ->
     Dict = makeDict(Input),
     {ok, TaskList} = find("dlist", Dict),
-    io:format("delete list: ~s~n", [TaskList]),
+
+    eTodo:taskListDeleted(TaskList),
     {reply, "ok", State};
 handle_call({createTask, _SessionId, Env, Input}, _From,
             State = #state{user = User}) ->

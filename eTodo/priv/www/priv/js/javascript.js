@@ -20,7 +20,7 @@ function deleteTaskList(id)
     sendCall(AJAX, '/eTodo/eWeb:deleteTaskList?dlist=' + encodeURIComponent(list),
         function () {
             if (AJAX.readyState == 4 || AJAX.readyState == "complete") {
-                location.reload(true);
+                openLink('/eTodo/eWeb:index');
             }
         });
 }
