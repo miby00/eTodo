@@ -325,6 +325,7 @@ table.msgSent {
 
 #createTable, #createTaskList {
     background-size: 10px 100%;
+    padding: 1em 1em 0.2em 1em;
 }
 
 .yesno {

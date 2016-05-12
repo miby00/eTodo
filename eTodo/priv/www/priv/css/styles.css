@@ -311,6 +311,7 @@ table.msgSent {
 #createTable, #createTaskList, #deleteTaskList {
     background: url("/priv/Icons/bg.png") repeat-x top left;
     background-size: 10px 100%;
+    padding: 1em 1em 0.2em 1em;
 }
 
 .yesno {

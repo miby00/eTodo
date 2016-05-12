@@ -600,9 +600,10 @@ settingsPage(User, List) ->
     SortOrders = [?descDef, ?status, ?prio, ?description, ?comment,
                   ?createTime, ?dueTime, ?doneTimestamp],
     [tableTag([{id, "filterSettings"}],
-              [trTag(
-                 [thTag([{colspan, 2}, {class, "tableHeader"}],
-                        "Filter settings")]),
+              [trTag([thTag([{colspan, 2},
+                             {class,   "formHeader"}],
+                            ["Filter settings"])]),
+               trTag(tdTag([{colspan, 2}, {class, "formDiv"}], "")),
                trTag(
                  [tdTag("Keep tasks with status"),
                   tdTag([selectTag([{id,      "filterStatus"},
@@ -620,9 +621,10 @@ settingsPage(User, List) ->
                                    createForm2(PrioList, DefPrio))])])
               ]),
      tableTag([{id, "presentationSettings"}],
-              [trTag(
-                 [thTag([{colspan, 2}, {class, "tableHeader"}],
-                        "Presentation")]),
+              [trTag([thTag([{colspan, 2},
+                             {class,   "formHeader"}],
+                            ["Presentation"])]),
+               trTag(tdTag([{colspan, 2}, {class, "formDiv"}], "")),
                trTag(
                  [tdTag("Task list type"),
                   tdTag([selectTag([{id,      "listType"},
@@ -711,16 +713,14 @@ createTaskForm(User, TaskList) ->
                                     ["Create task"])]),
                        trTag(tdTag([{colspan, 4}, {class, "formDiv"}], "")),
                        trTag(
-                         [tdTag([{class, "header"}], "Set task list:"),
-                          tdTag([{class, "value"}],
-                                [selectTag([{class, "selects"},
-                                            {name,  "list"}],
+                         [tdTag([{class, "header"}], "Set task list"),
+                          tdTag([{class, "value"}, {colspan, 3}],
+                                [selectTag([{class,  "selects"},
+                                            {name,   "list"}],
                                            createForm2(TaskLists,
-                                                       TaskList))]),
-                          tdTag(),
-                          tdTag()]),
+                                                       TaskList))])]),
                        trTag(
-                         [tdTag([{class, "header"}], "Set status:"),
+                         [tdTag([{class, "header"}], "Set status"),
                           tdTag([{class, "value"}],
                                 [selectTag([{class, "selects"},
                                             {name, "status"}],
@@ -730,7 +730,7 @@ createTaskForm(User, TaskList) ->
                                                         ?descNA],
                                                        ?descNA)
                                           )]),
-                          tdTag([{class, "header"}], "Set prio:"),
+                          tdTag([{class, "header"}], "Set prio"),
                           tdTag([{class, "value"}],
                                 selectTag([{class, "selects"},
                                            {name, "prio"}],
@@ -740,14 +740,14 @@ createTaskForm(User, TaskList) ->
                                                        ?descNA],
                                                       ?descNA)))]),
                        trTag(
-                         [tdTag([{class, "header"}], "Description:"),
+                         [tdTag([{class, "header"}], "Description"),
                           tdTag([{class, "longvalue"},
                                  {colspan, 3}],
                                 inputTag([{class, "textField"},
                                           {type,  "text"},
                                           {name,  "desc"}]))]),
                        trTag(
-                         [tdTag([{class, "header"}], "Comment:"),
+                         [tdTag([{class, "header"}], "Comment"),
                           tdTag([{class, "longvalue"},
                                  {colspan, 3}],
                                 inputTag([{class, "textField"},
@@ -783,7 +783,7 @@ deleteTaskListForm(User, TaskList) ->
                              ["Delete task list"])]),
                 trTag(tdTag([{colspan, 4}, {class, "formDiv"}], "")),
                 trTag(
-                  [tdTag([{class, "header"}], "List name:"),
+                  [tdTag([{class, "header"}], "List name"),
                    tdTag([{class, "longValue"}, {colspan, 3}],
                          [selectTag([{class,  "selects"},
                                      {name,   "dlist"},
@@ -817,7 +817,7 @@ createTaskListForm() ->
                                     ["Create task list"])]),
                        trTag(tdTag([{colspan, 4}, {class, "formDiv"}], "")),
                        trTag(
-                         [tdTag([{class, "header"}], "List name:"),
+                         [tdTag([{class, "header"}], "List name"),
                           tdTag([{class, "longvalue"},
                                  {colspan, 3}],
                                 inputTag([{class,  "textField"},
