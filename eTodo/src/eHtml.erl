@@ -772,32 +772,30 @@ deleteTaskListForm(User, TaskList) ->
     TaskList1  = default(UserCfg#userCfg.lists, []),
     TaskLists  = lists:sort([TaskList | lists:delete(TaskList, TaskList1)]),
     TaskLists2 = lists:delete(?defTaskList, TaskLists),
-    formTag([{action, "/eTodo/eWeb:deleteTaskList"},
-             {'accept-charset', "UTF-8"},
-             {method, "post"},
-             {id, "deleteTaskListForm"}],
-            [tableTag(
-               [{id, deleteTaskList}],
-               [trTag([thTag([{colspan, 4},
-                              {class,   "formHeader"}],
-                             ["Delete task list"])]),
-                trTag(tdTag([{colspan, 4}, {class, "formDiv"}], "")),
-                trTag(
-                  [tdTag([{class, "header"}], "List name"),
-                   tdTag([{class, "longValue"}, {colspan, 3}],
-                         [selectTag([{class,  "selects"},
-                                     {name,   "dlist"},
-                                     {onchange, "document.getElementById"
-                                      "('deleteTaskListBtn')."
-                                      "disabled = false;"}],
-                                    createForm2(TaskLists2,
-                                                TaskList))]),
-                   trTag(
-                     [tdTag([{colspan, 4}],
-                            inputTag([{type,     "submit"},
-                                      {disabled, "true"},
-                                      {id,       "deleteTaskListBtn"},
-                                      {value,    "Delete list"}]))])])])]).
+    [tableTag(
+       [{id, deleteTaskList}],
+       [trTag([thTag([{colspan, 4},
+                      {class,   "formHeader"}],
+                     ["Delete task list"])]),
+        trTag(tdTag([{colspan, 4}, {class, "formDiv"}], "")),
+        trTag(
+          [tdTag([{class, "header"}], "List name"),
+           tdTag([{class, "longValue"}, {colspan, 3}],
+                 [selectTag([{class,  "selects"},
+                             {name,   "dlist"},
+                             {id,     "dlist"},
+                             {onchange, "document.getElementById"
+                              "('deleteTaskListBtn')."
+                              "disabled = false;"}],
+                            createForm2(TaskLists2,
+                                        TaskList))]),
+           trTag(
+             [tdTag([{colspan, 4}],
+                    inputTag([{type,     "button"},
+                              {disabled, "true"},
+                              {onclick,  "deleteTaskList('dlist');"},
+                              {id,       "deleteTaskListBtn"},
+                              {value,    "Delete list"}]))])])])].
 
 %%======================================================================
 %% Function :

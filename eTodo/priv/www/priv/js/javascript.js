@@ -12,6 +12,19 @@ function saveTaskChanges(uid) {
     saveChanges('Remaining(h)', uid);
 }
 
+function deleteTaskList(id)
+{
+    var list = document.getElementById(id).value;
+    event.cancelBubble = true;
+    var AJAX = newAJAX();
+    sendCall(AJAX, '/eTodo/eWeb:deleteTaskList?dlist=' + encodeURIComponent(list),
+        function () {
+            if (AJAX.readyState == 4 || AJAX.readyState == "complete") {
+                location.reload(true);
+            }
+        });
+}
+
 function deleteTask(uid)
 {
     event.cancelBubble = true;

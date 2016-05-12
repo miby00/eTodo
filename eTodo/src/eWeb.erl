@@ -500,8 +500,7 @@ handle_call({deleteTaskList, _SessionId, Env, Input}, _From,
     Dict = makeDict(Input),
     {ok, TaskList} = find("dlist", Dict),
     io:format("delete list: ~s~n", [TaskList]),
-    HtmlPage = redirect("index", Env),
-    {reply, HtmlPage, State};
+    {reply, "ok", State};
 handle_call({createTask, _SessionId, Env, Input}, _From,
             State = #state{user = User}) ->
     Dict = makeDict(Input),
