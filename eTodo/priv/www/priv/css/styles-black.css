@@ -261,13 +261,12 @@ table.msgSent {
     border-radius: 3px;
 }
 
-#filterSettings{
+#filterSettings, #presentationSettings {
     padding: 1em;
 }
 
 #presentationSettings{
     margin-top: 1em;
-    padding: 1em;
 }
 
 #createTaskListForm, #deleteTaskListForm, #deleteTaskList {
@@ -324,7 +323,6 @@ table.msgSent {
 }
 
 #createTable, #createTaskList, #deleteTaskList {
-    background-size: 10px 100%;
     padding: 1em 1em 0.2em 1em;
 }
 

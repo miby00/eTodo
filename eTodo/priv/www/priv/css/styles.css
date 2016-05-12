@@ -110,9 +110,6 @@ table {
     background: -ms-linear-gradient(top, rgba(193, 206, 255, 1) 0%, rgba(152, 174, 254, 1) 100%); /* IE10+ */
     background: linear-gradient(to bottom, rgba(193, 206, 255, 1) 0%, rgba(152, 174, 254, 1) 100%); /* W3C */
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#c1ceff', endColorstr='#98aefe', GradientType=0); /* IE6-8 */
-
-    border-color: DarkBlue;
-    border-width: 1px;
 }
 
 table.msgReceived {
@@ -246,13 +243,12 @@ table.msgSent {
     border-radius: 3px;
 }
 
-#filterSettings{
+#filterSettings, #presentationSettings {
     padding: 1em;
 }
 
 #presentationSettings{
     margin-top: 1em;
-    padding: 1em;
 }
 
 #createTaskListForm, #deleteTaskListForm {
@@ -309,8 +305,6 @@ table.msgSent {
 }
 
 #createTable, #createTaskList, #deleteTaskList {
-    background: url("/priv/Icons/bg.png") repeat-x top left;
-    background-size: 10px 100%;
     padding: 1em 1em 0.2em 1em;
 }
 
