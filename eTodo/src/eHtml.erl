@@ -1108,7 +1108,7 @@ makeButtons(Type, Uid) ->
     end.
 
 headerCellCSS(Text) ->
-    tdTag([{class, "header"}], [Text, ":"]).
+    tdTag([{class, "header"}], [Text]).
 
 dataCellCSS(Text, Extra) ->
     tdTag([{class, "data"}] ++ Extra, [makeHtml(Text, "/priv")]).
