@@ -1130,7 +1130,7 @@ dataCellCSS4(Type, Text, Extra, _StStr, Uid) ->
       [{class, "data"},
        {id,    Id},
        "contenteditable",
-       {onclick, "event.Bubble = true;"}]
+       {onclick, "stopPropagation(event);"}]
       ++ Extra, [makeHtml(Text, "/priv")]).
 
 createStatusDataCell(Status, Uid) ->
