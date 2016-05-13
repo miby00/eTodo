@@ -789,7 +789,7 @@ deleteTaskListForm(User, TaskList) ->
            trTag(
              [tdTag([{colspan, 4}],
                     inputTag([{type,     "button"},
-                              {onclick,  "deleteTaskList('dlist');"},
+                              {onclick,  "deleteTaskList(event, 'dlist');"},
                               {id,       "deleteTaskListBtn"},
                               {value,    "Delete list"}]))])])])].
 
@@ -1070,27 +1070,27 @@ makeButtons(Type, Uid) ->
     InputTags = [inputTag([{type,    "button"},
                            {id,      "applyBtn"},
                            {value,   "Apply"},
-                           {onclick, "saveTaskChanges('" ++ Uid ++ "');"}]),
+                           {onclick, "saveTaskChanges(event, '" ++ Uid ++ "');"}]),
                  inputTag([{type,    "button"},
                            {id,      "cancelBtn"},
                            {value,   "Cancel"},
-                           {onclick, "cancelBtn();"}])],
+                           {onclick, "cancelBtn(event);"}])],
 
     DeleteTag = [inputTag([{type,    "button"},
                            {id,      "deleteBtn"},
                            {value,   "Delete"},
-                           {onclick, "deleteTask('" ++ Uid ++ "');"}])],
+                           {onclick, "deleteTask(event, '" ++ Uid ++ "');"}])],
 
     YesNoQuestion = [spanTag([{class, "yesno"}],
                              ["Are you sure?"]),
                      inputTag([{type,    "button"},
                                {id,      "yesBtn"},
                                {value,   "Yes"},
-                               {onclick, "deleteYes('" ++ Uid ++ "');"}]),
+                               {onclick, "deleteYes(event, '" ++ Uid ++ "');"}]),
                      inputTag([{type,    "button"},
                                {id,      "noBtn"},
                                {value,   "No"},
-                               {onclick, "deleteNo('" ++ Uid ++ "');"}])],
+                               {onclick, "deleteNo(event, '" ++ Uid ++ "');"}])],
     case Type of
         noDelete ->
             {InputTags, []};
@@ -1122,7 +1122,7 @@ dataCellCSS4(Type, Text, Extra, "done", Uid) ->
       [{class, "data done"},
        {id,    Id},
        "contenteditable",
-       {onclick, "event.cancelBubble = true;"}]
+       {onclick, "stopPropagation(event);"}]
       ++ Extra, [makeHtml(Text, "/priv")]);
 dataCellCSS4(Type, Text, Extra, _StStr, Uid) ->
     Id = Type ++ toStr(Uid),
@@ -1130,7 +1130,7 @@ dataCellCSS4(Type, Text, Extra, _StStr, Uid) ->
       [{class, "data"},
        {id,    Id},
        "contenteditable",
-       {onclick, "event.cancelBubble = true;"}]
+       {onclick, "event.Bubble = true;"}]
       ++ Extra, [makeHtml(Text, "/priv")]).
 
 createStatusDataCell(Status, Uid) ->
@@ -1141,7 +1141,7 @@ createStatusDataCell(Status, Uid) ->
         [{class,    "status"},
          {id,       SelectId},
          {onchange, "sendStatus(" ++ SendStatus ++ ");"},
-         {onclick,  "event.cancelBubble = true;"}],
+         {onclick,  "stopPropagation(event);"}],
         createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
                     default(Status, ?descNA)))).
 createStatusDataCell2(Status, Uid) ->
@@ -1152,7 +1152,7 @@ createStatusDataCell2(Status, Uid) ->
             [{class,    "status cstatus"},
              {id,       SelectId},
              {onchange, "sendStatus(" ++ SendStatus ++ ");"},
-             {onclick,  "event.cancelBubble = true;"}],
+             {onclick,  "stopPropagation(event);"}],
             createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
                         default(Status, ?descNA)))).
 
@@ -1164,7 +1164,7 @@ createPriorityDataCell(Prio, Uid) ->
         [{class,    "priority"},
          {id,       SelectId},
          {onchange, "sendStatus(" ++ SendStatus ++ ");"},
-         {onclick,  "event.cancelBubble = true;"}],
+         {onclick,  "stopPropagation(event);"}],
         createForm2([?descLow, ?descMedium, ?descHigh, ?descNA],
                     default(Prio, ?descNA)))).
 

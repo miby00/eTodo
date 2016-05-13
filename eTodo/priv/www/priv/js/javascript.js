@@ -1,10 +1,10 @@
-function cancelBtn() {
-    event.cancelBubble = true;
+function cancelBtn(event) {
+    stopPropagation(event);
     location.reload(true);
 }
 
-function saveTaskChanges(uid) {
-    event.cancelBubble = true;
+function saveTaskChanges(event, uid) {
+    stopPropagation(event)
     saveChanges('Comment',      uid);
     saveChanges('Description',  uid);
     saveChanges('Estimate(h)',  uid);
@@ -12,9 +12,9 @@ function saveTaskChanges(uid) {
     saveChanges('Remaining(h)', uid);
 }
 
-function deleteTaskList(id)
+function deleteTaskList(event, id)
 {
-    event.cancelBubble = true;
+    stopPropagation(event);
     var list = document.getElementById(id).value;
     var AJAX = newAJAX();
     sendCall(AJAX, '/eTodo/eWeb:deleteTaskList?dlist=' + encodeURIComponent(list),
@@ -25,9 +25,9 @@ function deleteTaskList(id)
         });
 }
 
-function deleteTask(uid)
+function deleteTask(event, uid)
 {
-    event.cancelBubble = true;
+    stopPropagation(event);
     var Element = document.getElementById('table' + uid);
     addClass(Element.childNodes[0].childNodes[8], 'hideRow');
     if (Element.childNodes[0].childNodes[9].classList != undefined) {
@@ -35,9 +35,9 @@ function deleteTask(uid)
     }
 }
 
-function deleteYes(uid)
+function deleteYes(event, uid)
 {
-    event.cancelBubble = true;
+    stopPropagation(event);
     var taskList = document.getElementById('taskSelect').value;
     var Element  = document.getElementById('table' + uid);
     addClass(Element.childNodes[0].childNodes[9], 'hideRow');
@@ -51,9 +51,9 @@ function deleteYes(uid)
              });
 }
 
-function deleteNo(uid)
+function deleteNo(event, uid)
 {
-    event.cancelBubble = true;
+    stopPropagation(event);
     var Element = document.getElementById('table' + uid);
     addClass(Element.childNodes[0].childNodes[9], 'hideRow');
     Element.childNodes[0].childNodes[8].classList.remove('hideRow');
@@ -452,4 +452,14 @@ function osType() {
     if (navigator.appVersion.indexOf("Linux")!=-1) OSName="Linux";
 
     return OSName;
+}
+
+function stopPropagation(evt) {
+    evt = evt || window.event; // For IE
+
+    if (typeof evt.stopPropagation == "function") {
+        evt.stopPropagation();
+    } else {
+        evt.cancelBubble = true;
+    }
 }
