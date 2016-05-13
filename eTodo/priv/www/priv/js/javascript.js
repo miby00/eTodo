@@ -1,126 +1,7 @@
-function cancelBtn(event) {
-    stopPropagation(event);
-    location.reload(true);
-}
-
-function saveTaskChanges(event, uid) {
-    stopPropagation(event)
-    saveChanges('Comment',      uid);
-    saveChanges('Description',  uid);
-    saveChanges('Estimate(h)',  uid);
-    saveChanges('Progress(%)',  uid);
-    saveChanges('Remaining(h)', uid);
-}
-
-function deleteTaskList(event, id)
-{
-    stopPropagation(event);
-    var list = document.getElementById(id).value;
-    var AJAX = newAJAX();
-    sendCall(AJAX, '/eTodo/eWeb:deleteTaskList?dlist=' + encodeURIComponent(list),
-        function () {
-            if (AJAX.readyState == 4 || AJAX.readyState == "complete") {
-                openLink('/eTodo/eWeb:index');
-            }
-        });
-}
-
-function deleteTask(event, uid)
-{
-    stopPropagation(event);
-    var Element = document.getElementById('table' + uid);
-    addClass(Element.childNodes[0].childNodes[8], 'hideRow');
-    if (Element.childNodes[0].childNodes[9].classList != undefined) {
-        Element.childNodes[0].childNodes[9].classList.remove('hideRow');
-    }
-}
-
-function deleteYes(event, uid)
-{
-    stopPropagation(event);
-    var taskList = document.getElementById('taskSelect').value;
-    var Element  = document.getElementById('table' + uid);
-    addClass(Element.childNodes[0].childNodes[9], 'hideRow');
-    Element.childNodes[0].childNodes[8].classList.remove('hideRow');
-    var AJAX = newAJAX();
-    sendCall(AJAX, '/eTodo/eWeb:deleteTask?uid=' + uid,
-             function () {
-                 if (AJAX.readyState == 4 || AJAX.readyState == "complete") {
-                     location.reload(true);
-                 }
-             });
-}
-
-function deleteNo(event, uid)
-{
-    stopPropagation(event);
-    var Element = document.getElementById('table' + uid);
-    addClass(Element.childNodes[0].childNodes[9], 'hideRow');
-    Element.childNodes[0].childNodes[8].classList.remove('hideRow');
-}
-
-function openLink(url)
-{
-    window.open(url, '_self');
-    /* window.open(url, '_blank') */
-    /* window.focus(); */
-}
-
-function sendCall(AJAX, url, callback)
-{
-    if (AJAX == null) {
-        alert("Initialisation of AJAX failed.");
-        return false;
-    }
-
-    AJAX.onreadystatechange = callback;
-
-    AJAX.open("GET", url, true);
-    AJAX.send(null);
-}
-
-function saveChanges(type, uid) {
-    var Element = document.getElementById(type + uid);
-    if ((type == 'Description') &&
-        document.getElementById('compactDesc' + uid)) {
-        var CompactDesc = document.getElementById('compactDesc' + uid);
-        if (CompactDesc.innerHTML != Element.innerHTML) {
-            CompactDesc.innerHTML = Element.innerHTML;
-        }
-        else {
-            return
-        }
-    }
-
-    if (type == 'Progress(%)') {
-        var Progress = Element.innerHTML;
-        if (!(Progress >= 0 && Progress <= 100) || !(isInt(Progress))) {
-            return
-        }
-    }
-
-    if (type == 'Estimate(%)' || type == 'Remaining(h)') {
-        var FieldValue = Element.innerHTML;
-        if (!isInt(FieldValue)) {
-            return
-        }
-    }
-
-    var AJAX = newAJAX();
-    if (AJAX == null)
-    {
-        alert("Initialisation of AJAX failed.");
-        return false;
-    }
-    var Data = Element.innerHTML;
-    var url  = '/eTodo/eWeb:sendFieldChange?field=' + type +
-        '&value=' + encodeURIComponent(Data) + '&uid=' + uid;
-    AJAX.open("GET", url, true);
-    AJAX.send(null);
-}
-
 function isInt(value) {
+    "use strict";
     var x;
+
     if (isNaN(value)) {
         return false;
     }
@@ -128,236 +9,405 @@ function isInt(value) {
     return (x | 0) === x;
 }
 
-function showDetails(uid) {
-    var Element = document.getElementById('table' + uid);
-    if (Element.classList.contains('tCompact')) {
-        Element.classList.remove('tCompact');
-        Element.childNodes[0].childNodes[1].classList.remove('hideRow');
-        Element.childNodes[0].childNodes[2].classList.remove('hideRow');
-        Element.childNodes[0].childNodes[3].classList.remove('hideRow');
-        Element.childNodes[0].childNodes[4].classList.remove('hideRow');
-        Element.childNodes[0].childNodes[5].classList.remove('hideRow');
-        Element.childNodes[0].childNodes[6].classList.remove('hideRow');
-        Element.childNodes[0].childNodes[7].classList.remove('hideRow');
-        Element.childNodes[0].childNodes[8].classList.remove('hideRow');
-        if (Element.classList.contains('ttCompact')) {
-            addClass(Element.childNodes[0].childNodes[0], 'hideRow');
+function newAJAX() {
+    "use strict";
+    var AJAX = null;
+
+    if (window.XMLHttpRequest) {
+        AJAX = new XMLHttpRequest();
+    } else {
+        AJAX = new ActiveXObject("Microsoft.XMLHTTP");
+    }
+    return AJAX;
+}
+
+function sendCall(AJAX, url, callback) {
+    "use strict";
+    if (AJAX === null) {
+        alert("Initialisation of AJAX failed.");
+        return false;
+    }
+
+    if (typeof callback === "function") {
+        AJAX.onreadystatechange = callback;
+    }
+
+    AJAX.open("GET", url, true);
+    AJAX.send(null);
+}
+
+function stopPropagation(evt) {
+    "use strict";
+    evt = evt || window.event; // For IE
+
+    if (typeof evt.stopPropagation === "function") {
+        evt.stopPropagation();
+    } else {
+        evt.cancelBubble = true;
+    }
+}
+
+function openLink(url) {
+    "use strict";
+    window.open(url, '_self');
+    /* window.open(url, '_blank') */
+    /* window.focus(); */
+}
+
+function addClass(element, elementClass) {
+    "use strict";
+    if (element.classList.contains(elementClass) === false) {
+        element.classList.add(elementClass);
+    }
+}
+
+function saveChanges(type, uid) {
+    "use strict";
+    var element     = document.getElementById(type + uid),
+        compactDesc = document.getElementById('compactDesc' + uid),
+        progress    = element.innerHTML,
+        fieldValue  = element.innerHTML,
+        AJAX,
+        data,
+        url;
+
+    if ((type === 'Description') &&
+            document.getElementById('compactDesc' + uid)) {
+        if (compactDesc.innerHTML !== element.innerHTML) {
+            compactDesc.innerHTML = element.innerHTML;
+        } else {
+            return;
         }
     }
-    else {
-        Element.classList.add('tCompact');
-        addClass(Element.childNodes[0].childNodes[2], 'hideRow');
-        addClass(Element.childNodes[0].childNodes[3], 'hideRow');
-        addClass(Element.childNodes[0].childNodes[4], 'hideRow');
-        addClass(Element.childNodes[0].childNodes[5], 'hideRow');
-        addClass(Element.childNodes[0].childNodes[7], 'hideRow');
-        addClass(Element.childNodes[0].childNodes[8], 'hideRow');
-        if (Element.classList.contains('ttCompact')) {
-            Element.childNodes[0].childNodes[0].classList.remove('hideRow');
-            addClass(Element.childNodes[0].childNodes[1], 'hideRow');
-            addClass(Element.childNodes[0].childNodes[6], 'hideRow');
+
+    if (type === 'Progress(%)') {
+        if (!(progress >= 0 && progress <= 100) || !(isInt(progress))) {
+            return;
+        }
+    }
+
+    if (type === 'Estimate(%)' || type === 'Remaining(h)') {
+        if (!isInt(fieldValue)) {
+            return;
+        }
+    }
+    AJAX = newAJAX();
+    data = element.innerHTML;
+    url  = '/eTodo/eWeb:sendFieldChange?field=' + type +
+        '&value=' + encodeURIComponent(data) + '&uid=' + uid;
+
+    sendCall(AJAX, url);
+}
+
+function cancelBtn(event) {
+    "use strict";
+    stopPropagation(event);
+
+    location.reload(true);
+}
+
+function saveTaskChanges(event, uid) {
+    "use strict";
+    stopPropagation(event);
+
+    saveChanges('Comment',      uid);
+    saveChanges('Description',  uid);
+    saveChanges('Estimate(h)',  uid);
+    saveChanges('Progress(%)',  uid);
+    saveChanges('Remaining(h)', uid);
+}
+
+function deleteTaskList(event, id) {
+    "use strict";
+    stopPropagation(event);
+    var list = document.getElementById(id).value,
+        AJAX = newAJAX();
+
+    sendCall(AJAX, '/eTodo/eWeb:deleteTaskList?dlist=' + encodeURIComponent(list),
+        function () {
+            if (AJAX.readyState === 4 || AJAX.readyState === "complete") {
+                openLink('/eTodo/eWeb:index');
+            }
+        });
+}
+
+function deleteTask(event, uid) {
+    "use strict";
+    stopPropagation(event);
+    var element = document.getElementById('table' + uid);
+
+    addClass(element.childNodes[0].childNodes[8], 'hideRow');
+    if (element.childNodes[0].childNodes[9].classList !== undefined) {
+        element.childNodes[0].childNodes[9].classList.remove('hideRow');
+    }
+}
+
+function deleteYes(event, uid) {
+    "use strict";
+    stopPropagation(event);
+    var element  = document.getElementById('table' + uid),
+        AJAX = newAJAX();
+
+    addClass(element.childNodes[0].childNodes[9], 'hideRow');
+    element.childNodes[0].childNodes[8].classList.remove('hideRow');
+    sendCall(AJAX, '/eTodo/eWeb:deleteTask?uid=' + uid,
+        function () {
+            if (AJAX.readyState === 4 || AJAX.readyState === "complete") {
+                location.reload(true);
+            }
+        });
+}
+
+function deleteNo(event, uid) {
+    "use strict";
+    stopPropagation(event);
+    var element = document.getElementById('table' + uid);
+
+    addClass(element.childNodes[0].childNodes[9], 'hideRow');
+    element.childNodes[0].childNodes[8].classList.remove('hideRow');
+}
+
+function showDetails(uid) {
+    "use strict";
+    var element = document.getElementById('table' + uid);
+    if (element.classList.contains('tCompact')) {
+        element.classList.remove('tCompact');
+        element.childNodes[0].childNodes[1].classList.remove('hideRow');
+        element.childNodes[0].childNodes[2].classList.remove('hideRow');
+        element.childNodes[0].childNodes[3].classList.remove('hideRow');
+        element.childNodes[0].childNodes[4].classList.remove('hideRow');
+        element.childNodes[0].childNodes[5].classList.remove('hideRow');
+        element.childNodes[0].childNodes[6].classList.remove('hideRow');
+        element.childNodes[0].childNodes[7].classList.remove('hideRow');
+        element.childNodes[0].childNodes[8].classList.remove('hideRow');
+        if (element.classList.contains('ttCompact')) {
+            addClass(element.childNodes[0].childNodes[0], 'hideRow');
+        }
+    } else {
+        element.classList.add('tCompact');
+        addClass(element.childNodes[0].childNodes[2], 'hideRow');
+        addClass(element.childNodes[0].childNodes[3], 'hideRow');
+        addClass(element.childNodes[0].childNodes[4], 'hideRow');
+        addClass(element.childNodes[0].childNodes[5], 'hideRow');
+        addClass(element.childNodes[0].childNodes[7], 'hideRow');
+        addClass(element.childNodes[0].childNodes[8], 'hideRow');
+        if (element.classList.contains('ttCompact')) {
+            element.childNodes[0].childNodes[0].classList.remove('hideRow');
+            addClass(element.childNodes[0].childNodes[1], 'hideRow');
+            addClass(element.childNodes[0].childNodes[6], 'hideRow');
         }
     }
 }
 
 function submitForm(value) {
+    "use strict";
+    var formElement = document.getElementById(value);
+
     console.log(value);
-    var FormElement = document.getElementById(value);
-    FormElement.submit();
+    formElement.submit();
 }
 
-function sendSetting(Id)
-{
-    var AJAX = newAJAX();
-    if (AJAX == null)
-    {
-        alert("Initialisation of AJAX failed.");
-        return false;
+function sendSetting(Id) {
+    "use strict";
+    var AJAX = newAJAX(),
+        data = document.getElementById(Id).value,
+        url = '/eTodo/eWeb:sendSetting?key=' + Id + '&value=' + data;
+
+    sendCall(AJAX, url);
+}
+
+function sendMsg(ToId, MsgId) {
+    "use strict";
+    var msg  = encodeURIComponent(document.getElementById(MsgId).value),
+        AJAX = newAJAX(),
+        to,
+        url;
+
+    if (msg !== '') {
+        document.getElementById(MsgId).value = '';
+        to  = encodeURIComponent(document.getElementById(ToId).value);
+        url = '/eTodo/eWeb:sendMsg?to=' + to + '&msg=' + msg;
+        sendCall(AJAX, url);
     }
-    var Data = document.getElementById(Id).value;
-    var url  = '/eTodo/eWeb:sendSetting?key=' + Id + '&value=' + Data;
-    AJAX.open("GET", url, true);
-    AJAX.send(null);
 }
 
-function checkForEnter (event) {
-    var keyCode = ('which' in event) ? event.which : event.keyCode;
+function checkForEnter(event) {
+    "use strict";
 
-    if (keyCode == '13') {
-        sendMsg('userSelect', 'sendMessage')
+    var keyCode = (event.hasOwnProperty('which')) ? event.which : event.keyCode;
+
+    if (keyCode === '13') {
+        sendMsg('userSelect', 'sendMessage');
     }
     return true;
 }
 
-function newAJAX()
-{
-    var AJAX = null;
-    if (window.XMLHttpRequest)
-    {
-        AJAX=new XMLHttpRequest();
-    } else {
-        AJAX=new ActiveXObject("Microsoft.XMLHTTP");
-    }
-    return AJAX;
-}
+function setTextDecoration(Data, Uid) {
+    "use strict";
 
-
-function sendStatus(Id, Uid)
-{
-    var Data = document.getElementById(Id).value;
-
-    if (Id == 'idStatus' + Uid) {
-        document.getElementById('idStatusc' + Uid).value = Data;
-    } else {
-        document.getElementById('idStatus' + Uid).value = Data;
-    }
-
-    setTextDecoration(Data, Uid);
-
-    var AJAX = newAJAX();
-    if (AJAX == null)
-    {
-        alert("Initialisation of AJAX failed.");
-        return false;
-    }
-    var url= '/eTodo/eWeb:sendStatus?status=' + Data + '&uid=' + Uid;
-    AJAX.open("GET", url, true);
-    AJAX.send(null);
-}
-
-function setTextDecoration(Data, Uid)
-{
-    if (Data == 'Done') {
+    if (Data === 'Done') {
         addClass(document.getElementById('compactDesc' + Uid), 'done');
         addClass(document.getElementById('Comment' + Uid),     'done');
         addClass(document.getElementById('Description' + Uid), 'done');
-    } else  {
+    } else {
         document.getElementById('compactDesc' + Uid).classList.remove('done');
         document.getElementById('Comment' + Uid).classList.remove('done');
         document.getElementById('Description' + Uid).classList.remove('done');
     }
 }
-function sendPriority(Id, Uid)
-{
-    var AJAX = newAJAX();
-    if (AJAX == null)
-    {
-        alert("Initialisation of AJAX failed.");
-        return false;
+
+function sendStatus(Id, Uid) {
+    "use strict";
+    var data = document.getElementById(Id).value,
+        AJAX,
+        url;
+
+    if (Id === 'idStatus' + Uid) {
+        document.getElementById('idStatusc' + Uid).value = data;
+    } else {
+        document.getElementById('idStatus' + Uid).value = data;
     }
-    var Data = document.getElementById(Id).value;
-    var url= '/eTodo/eWeb:sendPriority?priority=' + Data + '&uid=' + Uid;
-    AJAX.open("GET", url, true);
-    AJAX.send(null);
+
+    setTextDecoration(data, Uid);
+    AJAX = newAJAX();
+    url = '/eTodo/eWeb:sendStatus?status=' + data + '&uid=' + Uid;
+    sendCall(AJAX, url);
 }
 
-function sendMsg(ToId, MsgId)
-{
-    var Msg = encodeURIComponent(document.getElementById(MsgId).value);
-    if (Msg != '') {
-        var AJAX = newAJAX();
-        if (AJAX == null) {
-            alert("Initialisation of AJAX failed.");
-            return false;
+function sendPriority(Id, Uid) {
+    "use strict";
+    var AJAX = newAJAX(),
+        data = document.getElementById(Id).value,
+        url  = '/eTodo/eWeb:sendPriority?priority=' + data + '&uid=' + Uid;
+    sendCall(AJAX, url);
+}
+
+function notifyUser() {
+    "use strict";
+    var element = document.getElementById('messageField'),
+        msgType = element.childNodes[0].getAttribute('class'),
+        msgRec,
+        msgText,
+        title,
+        icon,
+        options;
+
+    if ((msgType === 'msgReceived') || (msgType === 'msgAlarm')) {
+        if (window.Notification !== undefined) {
+            msgRec =
+                element.
+                    childNodes[0].
+                    childNodes[0].
+                    childNodes[0].
+                    childNodes[2].textContent;
+
+            msgText =
+                element.
+                    childNodes[0].
+                    childNodes[0].
+                    childNodes[1].
+                    childNodes[2].textContent;
+
+            title = (msgType === 'msgReceived') ?
+                    'eTodo: ' + msgRec.split(' to ')[0] : 'eTodo: alarm';
+
+            icon = '/priv/Icons/etodoBig.png';
+
+            options = {
+                body: msgText,
+                tag: 'preset',
+                icon: icon
+            };
+        }
+        if (Notification.permission === "default") {
+            Notification.requestPermission(function () {
+                Notification(title, options);
+            });
+        } else {
+            if (Notification.permission === "granted") {
+                Notification(title, options);
+            }
         }
 
-        document.getElementById(MsgId).value = '';
-        var To  = encodeURIComponent(document.getElementById(ToId).value);
-        var url = '/eTodo/eWeb:sendMsg?to=' + To + '&msg=' + Msg;
-        AJAX.open("GET", url, true);
-        AJAX.send(null);
-    }
-}
-
-function checkForMessage()
-{
-    var AJAX = newAJAX();
-    if (AJAX == null)
-    {
-        alert("Initialisation of AJAX failed.");
-        return false;
-    }
-
-    AJAX.onreadystatechange = function() {
-        if (AJAX.readyState == 4 || AJAX.readyState == "complete") {
-            handleResult(AJAX.responseText, AJAX.status);
+        window.navigator = window.navigator || {};
+        if (navigator.vibrate !== undefined) {
+            // Vibrate mobile device
+            navigator.vibrate(1000);
         }
-    };
-
-    if (Notification.permission == "default") {
-        Notification.requestPermission(function() {});
-    };
-
-    var url= '/eTodo/eWeb:checkForMessage';
-    AJAX.open("GET", url, true);
-    AJAX.send(null);
+    }
 }
 
-function handleResult(responseText, status)
-{
-    if (status == 200 && responseText != "noMessages") {
+function handleResult(responseText, status) {
+    "use strict";
+
+    if (status === 200 && responseText !== "noMessages") {
         document.getElementById('messageField').innerHTML = responseText;
         notifyUser();
     }
-    setTimeout('checkForMessage()', 0);
+    setTimeout(checkForMessage(), 0);
 }
 
-function checkStatus() {
-    var AJAX = newAJAX();
-    if (AJAX == null) {
-        alert("Initialisation of AJAX failed.");
-        return false;
-    }
+function checkForMessage() {
+    "use strict";
+    var AJAX = newAJAX(),
+        url  = '/eTodo/eWeb:checkForMessage';
 
-    AJAX.onreadystatechange = function () {
-        if (AJAX.readyState == 4 || AJAX.readyState == "complete") {
-            handleStatusResult(AJAX.responseText, AJAX.status);
+    sendCall(AJAX, url, function () {
+        if (AJAX.readyState === 4 || AJAX.readyState === "complete") {
+            handleResult(AJAX.responseText, AJAX.status);
         }
-    };
-    var url = '/eTodo/eWeb:checkStatus';
-    AJAX.open("GET", url, true);
-    AJAX.send(null);
-    setTimeout('checkStatus()', 1000);
+    });
+
+    if (Notification.permission === "default") {
+        Notification.requestPermission(function () {});
+    }
 }
 
-function enableButton(id1, id2) {
-    var val = document.getElementById(id1).value;
-    document.getElementById(id2).disabled = (val == '');
+function toHoursMinSec(seconds) {
+    "use strict";
+    var hour = parseInt(seconds / 3600, 10),
+        min  = parseInt(seconds / 60 - hour * 60, 10),
+        sec  = seconds % 60;
+
+    sec = sec < 10 ? ("0" + sec) : sec;
+
+    if (hour === 0) {
+        return min + ":" + sec;
+    }
+    min = min < 10 ? ("0" + min) : min;
+    return hour + ":" + min + ":" + sec;
 }
 
-function handleStatusResult(responseText, status)
-{
-    if (status == 200) {
-        var obj = JSON.parse(responseText);
-        var seconds = parseInt(obj.timer);
+function handleStatusResult(responseText, status) {
+    "use strict";
+    var obj     = JSON.parse(responseText),
+        seconds = parseInt(obj.timer, 10),
+        element;
 
+    if (status === 200) {
         document.getElementById('timerField').innerHTML = toHoursMinSec(seconds);
         document.getElementById('timerStatus').innerHTML = obj.status;
         document.getElementById('timerStatusMsg').innerHTML = obj.statusMsg;
 
-        var element = document.getElementById('theBody');
+        element = document.getElementById('theBody');
 
-        if (seconds == 0) {
+        if (seconds === 0) {
             element.classList.remove('timerBusy');
             addClass(element, 'timerAvailable');
-        }
-        else {
+        } else {
             element.classList.remove('timerAvailable');
             addClass(element, 'timerBusy');
         }
 
-        if (obj.status == 'Available') {
+        if (obj.status === 'Available') {
             element.classList.remove('statusAway');
             element.classList.remove('statusBusy');
             addClass(element, 'statusAvailable');
-        }
-        else if (obj.status == 'Away') {
+        } else if (obj.status === 'Away') {
             element.classList.remove('statusAvailable');
             element.classList.remove('statusBusy');
             addClass(element, 'statusAway');
-        }
-        else
-        {
+        } else {
             element.classList.remove('statusAvailable');
             element.classList.remove('statusAway');
             addClass(element, 'statusBusy');
@@ -365,101 +415,50 @@ function handleStatusResult(responseText, status)
     }
 }
 
-function addClass(element, elementClass) {
-    if (element.classList.contains(elementClass) == false) {
-        element.classList.add(elementClass);
-    }
+function checkStatus() {
+    "use strict";
+    var AJAX = newAJAX(),
+        url  = '/eTodo/eWeb:checkStatus';
+
+    sendCall(AJAX, url, function () {
+        if (AJAX.readyState === 4 || AJAX.readyState === "complete") {
+            handleStatusResult(AJAX.responseText, AJAX.status);
+        }
+    });
+    setTimeout(checkStatus(), 1000);
 }
 
-function toHoursMinSec(seconds) {
-    var hour = parseInt(seconds / 3600);
-    var min  = parseInt(seconds / 60 - hour * 60);
-    var sec  = seconds % 60;
+function enableButton(id1, id2) {
+    "use strict";
+    var val = document.getElementById(id1).value;
 
-    sec = sec < 10 ? ("0" + sec) : sec;
-
-    if (hour == 0) {
-        return min + ":" + sec;
-    }
-    else {
-        min = min < 10 ? ("0" + min) : min;
-        return hour + ":" + min + ":" + sec;
-    }
+    document.getElementById(id2).disabled = (val === '');
 }
 
-function notifyUser() {
-    var Element = document.getElementById('messageField');
-    var msgType = Element.childNodes[0].getAttribute('class');
-    if ((msgType == 'msgReceived') || (msgType == 'msgAlarm')) {
-        if ('Notification' in window) {
-            var msgRec =
-                Element.
-                    childNodes[0].
-                    childNodes[0].
-                    childNodes[0].
-                    childNodes[2].textContent;
-
-            var msgText =
-                Element.
-                    childNodes[0].
-                    childNodes[0].
-                    childNodes[1].
-                    childNodes[2].textContent;
-
-            var title = (msgType == 'msgReceived') ?
-            'eTodo: ' + msgRec.split(' to ')[0]:'eTodo: alarm';
-
-            var icon = (osType() == "Windows") ?
-                '/priv/Icons/etodoBig.png':'/priv/Icons/etodoBig.png';
-
-            var options = {
-                body: msgText,
-                tag: 'preset',
-                icon: icon
-            }
-        }
-        if (Notification.permission == "default") {
-            Notification.requestPermission(function() {
-		        var notification = new Notification(title, options);
-	        });
-        }
-        else {
-            if (Notification.permission == "granted") {
-                var notification = new Notification(title, options);
-            }
-        }
-
-        window.navigator = window.navigator || {};
-        if (navigator.vibrate != undefined) {
-            // Vibrate mobile device
-            navigator.vibrate(1000);
-        }
-    }
-}
 
 function osType() {
-    // This script sets OSName variable as follows:
+    "use strict";
     // "Windows"    for all versions of Windows
     // "MacOS"      for all versions of Macintosh OS
     // "Linux"      for all versions of Linux
     // "UNIX"       for all other UNIX flavors
     // "Unknown OS" indicates failure to detect the OS
 
-    var OSName="Unknown OS";
-    if (navigator.appVersion.indexOf("Win")!=-1) OSName="Windows";
-    if (navigator.appVersion.indexOf("Mac")!=-1) OSName="MacOS";
-    if (navigator.appVersion.indexOf("X11")!=-1) OSName="UNIX";
-    if (navigator.appVersion.indexOf("Linux")!=-1) OSName="Linux";
-
-    return OSName;
-}
-
-function stopPropagation(evt) {
-    evt = evt || window.event; // For IE
-
-    if (typeof evt.stopPropagation == "function") {
-        evt.stopPropagation();
-    } else {
-        evt.cancelBubble = true;
+    if (navigator.appVersion.indexOf("Win") !== -1) {
+        return "Windows";
     }
+    if (navigator.appVersion.indexOf("Mac") !== -1) {
+        return "MacOS";
+    }
+    if (navigator.appVersion.indexOf("X11") !== -1) {
+        return "UNIX";
+    }
+    if (navigator.appVersion.indexOf("Linux") !== -1) {
+        return "Linux";
+    }
+
+    return "Unknown OS";
 }
+
+
+
