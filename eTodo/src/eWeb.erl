@@ -1586,6 +1586,9 @@ unAuthorized(UserName) ->
                       "credentials required."])]).
 redirect("login", Env) ->
     case proplists:get_value(script_name, Env, "/eTodo/eWeb:index") of
+        "/eTodo/eWeb:checkCredentials" ->
+            Redirect = getHost(Env) ++ "/eTodo/eWeb:login",
+            ["location: ", Redirect, "\r\n\r\n"];
         "/eTodo/eWeb:" ++ Referer ->
             Redirect = getHost(Env) ++ "/eTodo/eWeb:login",
             HtmlPage = "location: " ++ Redirect ++ "\r\n\r\n",
