@@ -489,15 +489,14 @@ handle_call({createTaskList, _SessionId, Env, Input}, _From,
 
     HtmlPage = redirect("listTodos?list=" ++ TaskList ++ "&search=", Env),
     {reply, HtmlPage, State};
-handle_call({deleteTask, _SessionId, _Env, Input}, _From,
-            State = #state{user = User}) ->
+handle_call({deleteTask, _SessionId, _Env, Input}, _From, State) ->
     Dict = makeDict(Input),
     {ok, Uid} = find("uid", Dict),
 
     eTodo:todoDeleted(list_to_integer(Uid)),
 
     {reply, "ok", State};
-handle_call({deleteTaskList, _SessionId, Env, Input}, _From, State) ->
+handle_call({deleteTaskList, _SessionId, _Env, Input}, _From, State) ->
     Dict = makeDict(Input),
     {ok, TaskList} = find("dlist", Dict),
 
