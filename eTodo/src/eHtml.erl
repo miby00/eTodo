@@ -768,10 +768,21 @@ createTaskForm(User, TaskList) ->
 %% Notes    :
 %%======================================================================
 deleteTaskListForm(User, TaskList) ->
-    UserCfg    = eTodoDB:readUserCfg(User),
-    TaskList1  = default(UserCfg#userCfg.lists, []),
-    TaskLists  = lists:sort([TaskList | lists:delete(TaskList, TaskList1)]),
-    TaskLists2 = lists:delete(?defTaskList, TaskLists),
+    UserCfg       = eTodoDB:readUserCfg(User),
+    TaskList1     = default(UserCfg#userCfg.lists, []),
+    TaskLists     = lists:sort([TaskList | lists:delete(TaskList, TaskList1)]),
+    TaskLists2    = lists:delete(?defTaskList, TaskLists),
+    YesNoQuestion =
+        [spanTag([{class, "yesno"}],
+                 ["Are you sure?"]),
+         inputTag([{type,    "button"},
+                   {id,      "yesBtn"},
+                   {value,   "Yes"},
+                   {onclick, "deleteListYes(event, 'dlist');"}]),
+         inputTag([{type,    "button"},
+                   {id,      "noBtn"},
+                   {value,   "No"},
+                   {onclick, "deleteListNo(event, '" ++ TaskList ++ "');"}])],
     [tableTag(
        [{id, deleteTaskList}],
        [trTag([thTag([{colspan, 4},
@@ -786,12 +797,15 @@ deleteTaskListForm(User, TaskList) ->
                              {id,     "dlist"}],
                             createForm2(TaskLists2,
                                         TaskList))]),
-           trTag(
-             [tdTag([{colspan, 4}],
-                    inputTag([{type,     "button"},
-                              {onclick,  "deleteTaskList(event, 'dlist');"},
-                              {id,       "deleteTaskListBtn"},
-                              {value,    "Delete list"}]))])])])].
+           trTag([{id, "dListRow"}],
+                 [tdTag([{colspan, 4}],
+                        inputTag([{type,     "button"},
+                                  {onclick,  "deleteList(event);"},
+                                  {id,       "deleteTaskListBtn"},
+                                  {value,    "Delete list"}]))]),
+           trTag([{id, "yesNoDList"}, {class,   "hideRow"}],
+                 [tdTag([{colspan, 4}],
+                        YesNoQuestion)])])])].
 
 %%======================================================================
 %% Function :
