@@ -1678,6 +1678,12 @@ doMoveTodosToTaskList(User, ToList, [List|Rest]) ->
     [moveTodoToTaskList(Object, ToList) || Object <- MoveList],
     doMoveTodosToTaskList(User, ToList, Rest).
 
+moveTodoToTaskList(Object, ?defTaskList) ->
+    %% TASK already present in ?defTaskList, just remove it.
+    mnesia:transaction(
+        fun() ->
+            delete_object(Object)
+        end);
 moveTodoToTaskList(Object, ToList) ->
     mnesia:transaction(
       fun() ->
