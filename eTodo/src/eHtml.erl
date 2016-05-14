@@ -1157,13 +1157,13 @@ createStatusDataCell2(Status, Uid) ->
                         default(Status, ?descNA)))).
 
 createPriorityDataCell(Prio, Uid) ->
-    SelectId   = "idPriority" ++ toStr(Uid),
-    SendStatus = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
+    SelectId = "idPriority" ++ toStr(Uid),
+    SendPrio = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
     tdTag(
       selectTag(
         [{class,    "priority"},
          {id,       SelectId},
-         {onchange, "sendStatus(" ++ SendStatus ++ ");"},
+         {onchange, "sendPriority(" ++ SendPrio ++ ");"},
          {onclick,  "stopPropagation(event);"}],
         createForm2([?descLow, ?descMedium, ?descHigh, ?descNA],
                     default(Prio, ?descNA)))).
