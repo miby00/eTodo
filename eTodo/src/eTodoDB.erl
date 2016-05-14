@@ -1294,10 +1294,21 @@ filter(_ETodo, []) -> true;
 filter(undefined, _Filter) ->
     %% Corrupt database.
     false;
-filter(#etodo{status = Status, priority = Prio}, Filter) ->
+filter(ETodo = #etodo{status = Status, priority = Prio}, Filter) ->
     case filterStatus(Status, Filter) of
+        error ->
+            eLog:log(debug, ?MODULE, filter, [ETodo, Status],
+                "Unknown status, do not show", ?LINE),
+            false;
         true ->
-            filterPrio(Prio, Filter);
+            case filterPrio(Prio, Filter) of
+                error ->
+                    eLog:log(debug, ?MODULE, filter, [ETodo, Prio],
+                        "Unknown priority, do not show", ?LINE),
+                    false;
+                Else ->
+                    Else
+            end;
         false ->
             false
     end.
@@ -1307,7 +1318,8 @@ filterStatus(Status, Filter) ->
         ?descPlanning   -> not lists:member(?statusPlanning,   Filter);
         ?descInProgress -> not lists:member(?statusInProgress, Filter);
         ?descDone       -> not lists:member(?statusDone,       Filter);
-        ?descNone       -> not lists:member(?statusNone,       Filter)
+        ?descNone       -> not lists:member(?statusNone,       Filter);
+        _               -> error
     end.
 
 filterPrio(Prio, Filter) ->
@@ -1315,7 +1327,8 @@ filterPrio(Prio, Filter) ->
         ?descLow     -> not lists:member(?prioLow,    Filter);
         ?descMedium  -> not lists:member(?prioMedium, Filter);
         ?descHigh    -> not lists:member(?prioHigh,   Filter);
-        ?descNone    -> not lists:member(?prioNone,   Filter)
+        ?descNone    -> not lists:member(?prioNone,   Filter);
+        _            -> error
     end.
 
 %%--------------------------------------------------------------------
