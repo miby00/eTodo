@@ -279,6 +279,7 @@ checkForMessage(SessionId, Env, Input) ->
 %% @end
 %%--------------------------------------------------------------------
 init([User]) ->
+    process_flag(trap_exit, true),
     FileName = filename:join([getRootDir(), "www", "printout"]),
     filelib:ensure_dir(FileName),
     GuestUsers = getGuestUsers(User),
@@ -885,6 +886,10 @@ handle_info({removeSession, Pid}, State = #state{lastMsg  = LastMsg,
                           headers  = Headers2,
                           timers   = Timers2,
                           webState = WebState2}};
+handle_info({'DOWN',_Reference, process, _Object, _Info}, State) ->
+    GuestUsers = getGuestUsers(State#state.user),
+    Port = startWebServer(State#state.user, GuestUsers),
+    {noreply, State#state{port = Port}};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -1015,7 +1020,8 @@ doStartWebServer(Port, MaxPort) ->
                                               {"js","application/x-javascript"}
                                              ]}]),
     case Result of
-        {ok, _Pid} ->
+        {ok, Pid} ->
+            monitor(process, Pid),
             Port;
         _ ->
             eLog:log(error, ?MODULE, doStartWebServer, [Port, Result],
