@@ -110,7 +110,7 @@ function editTodo()
     launchForm();
 }
 
-function createSieblingTodo(){
+function createSiblingTodo(){
     eTodoDB.setAction("createSiebling");
     launchForm();
 }

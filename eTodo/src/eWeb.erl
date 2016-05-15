@@ -51,7 +51,8 @@
          sendFieldChange/3,
          sendMsg/3,
          checkForMessage/3,
-         message/3]).
+         message/3,
+         mobile/3]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -214,6 +215,10 @@ show(SessionId, Env, Input) ->
 
 message(SessionId, Env, Input) ->
     HtmlPage = call({message, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, HtmlPage).
+
+mobile(SessionId, Env, Input) ->
+    HtmlPage = call({mobile, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, HtmlPage).
 
 index(SessionId, Env, Input) ->
@@ -615,6 +620,14 @@ handle_call({message, _SessionId, _Env, Input}, _From,
                    eHtml:createSendMsg("All", lists:delete(User, Users)),
                    eHtml:pageFooter()],
     {reply, HtmlPage, State#state{messages = TopMessages, subscribers = []}};
+handle_call({mobile, SessionId, _Env, _Input}, _From,
+            State = #state{headers = SessionHdrList}) ->
+    Root            = getRootDir(),
+    Mobile          = filename:join([Root, "www", "mobile.html"]),
+    Headers         = getHeaders(SessionId, State),
+    {ok, MobHtml}   = file:read_file(Mobile),
+    SessionHdrList2 = keepAliveSessions(SessionHdrList),
+    {reply, [Headers, MobHtml], State#state{headers = SessionHdrList2}};
 handle_call({index, SessionId, _Env, _Input}, _From,
             State = #state{user    = User,
                            headers = SessionHdrList}) ->
@@ -968,8 +981,9 @@ startWebServer(User, GuestUsers) ->
                             "https://"++ Host ++ ":" ++ PortStr ++ "/eTodo"
                             "/eWeb:index shows your todos in a browser."),
             ePeerEM:sendMsg(system,  [User], systemEntry,
-                            "https://"++ Host ++ ":" ++ PortStr ++ "/mobile.html"
-                            " for an alternative web gui for the phone."),
+                            "https://"++ Host ++ ":" ++ PortStr ++ "/eTodo"
+                            "/eWeb:mobile for an alternative web gui for "
+                            "the phone."),
             Port;
         _ ->
             -1
@@ -1008,6 +1022,8 @@ doStartWebServer(Port, MaxPort) ->
                                                            {require_group, ["users"]}
                                                           ]}},
                                  {socket_type, {essl, [{certfile, CertFile}]}},
+                                 {alias, {"/eTodo/mobile/",
+                                          filename:join([DocRoot, "/mobile/"])}},
                                  {ipfamily, inet},
                                  {erl_script_alias, {"/eTodo", [eWeb]}},
                                  {error_log,    "error.log"},
@@ -1077,6 +1093,7 @@ call(Message, Timeout) ->
 proxyCall({Message, SessionId, Env, Input},
           State = #state{headers = SessionHdrList})
   when (Message == index)      or
+       (Message == mobile)     or
        (Message == show)       or
        (Message == showStatus) or
        (Message == showLoggedWork) ->
