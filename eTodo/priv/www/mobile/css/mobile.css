@@ -9,3 +9,6 @@ Released for free under a Creative Commons Attribution 2.5 License
     text-decoration:line-through;
 }
 
+.ui-btn-inner {
+    padding: .6em 13px;
+}
