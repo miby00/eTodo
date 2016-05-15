@@ -66,9 +66,12 @@ var view = {
 
         if (todo.HasSubTodo) {
             img = "/images/expand.png";
-        }
-        else{
-            img = "";
+        } else {
+            if (todo.Status == "Done") {
+                img = "/images/checkbox_checked.png";
+            } else {
+                img = "/images/checkbox_unchecked.png";
+            }
         }
         //expanded +2
         state = state + 0;

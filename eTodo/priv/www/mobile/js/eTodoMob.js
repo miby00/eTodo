@@ -111,7 +111,7 @@ function editTodo()
 }
 
 function createSiblingTodo(){
-    eTodoDB.setAction("createSiebling");
+    eTodoDB.setAction("createSibling");
     launchForm();
 }
 function createChildTodo(){
@@ -219,7 +219,7 @@ $(function() {
             $("#comment").val(eTodoDB.removeBr(todo.Comment));
         }
         else{
-            if(eTodoDB.getAction() === "createSiebling"){
+            if(eTodoDB.getAction() === "createSibling"){
                 list = todo.List;
                 console.log("Current list == "+list);
             }
