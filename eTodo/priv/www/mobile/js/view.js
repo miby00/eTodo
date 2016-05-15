@@ -57,9 +57,9 @@ var view = {
             str = str + "<img src=\"/images/expand.png\" class=\"ui-li-icon\" id=\"" + todo.Uid + "_exp\">";
         } else {
             if (todo.Status == "Done") {
-                img = "/images/checkbox_checked.png";
+                str = str + "<img src=\"/images/checkbox_checked.png\" class=\"ui-li-icon\" id=\"" + todo.Uid + "_exp\">";
             } else {
-                img = "/images/checkbox_unchecked.png";
+                str = str + "<img src=\"/images/checkbox_unchecked.png\" class=\"ui-li-icon\" id=\"" + todo.Uid + "_exp\">";
             }
         }
         str = str + todo.Description + "<span class=\"ui-li-count\">4</span></a><a href=\"#popupMenu\" data-rel=\"popup\" data-position-to=\"origin\" onClick=\"saveSelect(" + todo.Uid + ")\" data-transition=\"pop\">Expand</a></li>";
