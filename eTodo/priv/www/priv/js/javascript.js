@@ -117,7 +117,17 @@ function saveTaskChanges(event, uid) {
     saveChanges('Remaining(h)', uid);
 }
 
-function deleteTaskList(event, id) {
+function deleteList(event) {
+    "use strict";
+    stopPropagation(event);
+    var element1 = document.getElementById('dListRow'),
+        element2 = document.getElementById('yesNoDList');
+
+    addClass(element1, 'hideRow');
+    element2.classList.remove('hideRow');
+}
+
+function deleteListYes(event, id) {
     "use strict";
     stopPropagation(event);
     var list = document.getElementById(id).value,
@@ -130,6 +140,17 @@ function deleteTaskList(event, id) {
             }
         });
 }
+
+function deleteListNo(event, uid) {
+    "use strict";
+    stopPropagation(event);
+    var element1 = document.getElementById('dListRow'),
+        element2 = document.getElementById('yesNoDList');
+
+    element1.classList.remove('hideRow');
+    addClass(element2, 'hideRow');
+}
+
 
 function deleteTask(event, uid) {
     "use strict";
