@@ -151,6 +151,13 @@ function submitSearchForm() {
                 todo.Comment = comment_val;
                 eTodoDB.setTodo(uid_val,list_val,todo);
                 $("#"+uid_val+"_descr").text(todo.Description);
+                if (!(todo.HasSubTodo)) {
+                    if (todo.Status == "Done") {
+                        $("#"+uid_val+"_exp").attr("src","/images/checkbox_checked.png");
+                    } else {
+                        $("#"+uid_val+"_exp").attr("src","/images/checkbox_unchecked.png");
+                    }
+                }
             });
     }
     else{
