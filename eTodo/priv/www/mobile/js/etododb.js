@@ -172,7 +172,7 @@ function submitSearchForm() {
                 //list[list.length] = todo;
                 //eTodoDB.setTodoList(list_val,list);
                 //eTodoDB.updateTodoList(list_val);
-                if(eTodoDB.getAction() == "createSiebling"){
+                if(eTodoDB.getAction() == "createSibling"){
                     current = list_val;
                 }
                 eTodoDB.fetchTodos(list_val,false);

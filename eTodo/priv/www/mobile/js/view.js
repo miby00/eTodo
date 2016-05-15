@@ -55,6 +55,12 @@ var view = {
         var str = "<li data-theme=\""+theme+"\" id=\"" + todo.Uid + "\"><a href=\"#\"  onClick=\"expList('"+todo.Uid+"')\">";
         if (todo.HasSubTodo) {
             str = str + "<img src=\"/images/expand.png\" class=\"ui-li-icon\" id=\"" + todo.Uid + "_exp\">";
+        } else {
+            if (todo.Status == "Done") {
+                img = "/images/checkbox_checked.png";
+            } else {
+                img = "/images/checkbox_unchecked.png";
+            }
         }
         str = str + todo.Description + "<span class=\"ui-li-count\">4</span></a><a href=\"#popupMenu\" data-rel=\"popup\" data-position-to=\"origin\" onClick=\"saveSelect(" + todo.Uid + ")\" data-transition=\"pop\">Expand</a></li>";
         return str;
