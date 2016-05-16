@@ -31,6 +31,7 @@
          createTaskListForm/0,
          deleteTaskListForm/2,
          settingsPage/2,
+         sortETodos/2,
          showStatus/3,
          showLoggedWork/2,
          showTimeReport/1,

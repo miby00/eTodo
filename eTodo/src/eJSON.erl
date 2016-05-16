@@ -17,6 +17,8 @@
 
 -import(eTodoUtils, [toStr/1, toStr/2, makeStr/1]).
 
+-import(eHtml, [sortETodos/2]).
+
 %%%=====================================================================
 %%% API
 %%%=====================================================================
@@ -31,8 +33,8 @@
 %%======================================================================
 makeTodoList(User, List, Filter, SearchText, Cfg) ->
     ETodos = eTodoDB:getETodos(User, List, Filter, SearchText, Cfg),
-    %%["[",[makeHtmlTodoJSON(ETodo) || ETodo <- ETodos],"]"].
-    ["[",[makeJSONTodoList(ETodos)],"]"].
+    SortedETodos = sortETodos(User, ETodos),
+    ["[",[makeJSONTodoList(SortedETodos)],"]"].
 
 %%======================================================================
 %% Function : makeJSONTodoList
