@@ -1244,6 +1244,9 @@ webProxyCall(Pid, Headers, Message, Timeout, From) ->
         "status:" ++ Rest ->
             {Hdr, Bdy} = splitHdr("status:" ++ Rest),
             gen_server:reply(From, Hdr ++ Headers ++ Bdy);
+        "Content-Type:" ++ Rest ->
+            {Hdr, Bdy} = splitHdr("Content-Type:" ++ Rest),
+            gen_server:reply(From, Hdr ++ Headers ++ Bdy);
         Html ->
             io:format("~s~n", [Html]),
             gen_server:reply(From, Headers ++ Html)
