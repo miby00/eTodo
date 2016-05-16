@@ -251,7 +251,7 @@ table.msgSent {
     margin-top: 1em;
 }
 
-#createTaskListForm, #deleteTaskListForm {
+#createTaskListForm, #deleteTaskListForm, #deleteTaskList {
     margin-top: 1em;
 }
 
