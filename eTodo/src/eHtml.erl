@@ -550,7 +550,7 @@ createForm(User, Default) ->
              {method, "get"}],
             [selectTag([{id, "taskSelect"},
                         {name, "list"},
-                        {onfocus, "this.selectedIndex = 0;"},
+                        {onfocus, "this.selectedIndex = -1;"},
                         {onchange, "submitForm('searchForm')"}],
                        createForm2(TodoLists, guiName(Default))),
              inputTag([{type, "submit"},

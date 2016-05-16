@@ -574,7 +574,7 @@ handle_call({show, SessionId, Env, Input}, _From,
                   eHtml:pageFooter()],
 
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
-    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
+    {reply, [Headers, HtmlPage], State#state{headers = SessionHdrList2}};
 handle_call({showTimeReport, SessionId, Env, Input}, _From,
             State = #state{user    = User,
                            headers = SessionHdrList,
@@ -603,7 +603,7 @@ handle_call({showTimeReport, SessionId, Env, Input}, _From,
                   eHtml:pageFooter()],
 
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
-    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
+    {reply, [Headers, HtmlPage], State#state{headers = SessionHdrList2}};
 handle_call({message, _SessionId, _Env, Input}, _From,
             State = #state{user        = User,
                            users       = Users,
@@ -617,7 +617,7 @@ handle_call({message, _SessionId, _Env, Input}, _From,
     HtmlPage    = [eHtml:pageHeader(
                      "OnLoad=\"setTimeout('checkForMessage()', 10000);\"", User),
                    eHtml:makeForm(User, List),
-                   "<div id=\"messageField\">" ++ TopMessages ++ "</div>",
+                   "<div id=\"messageField\">", TopMessages, "</div>",
                    eHtml:createSendMsg("All", lists:delete(User, Users)),
                    eHtml:pageFooter()],
     {reply, HtmlPage, State#state{messages = TopMessages, subscribers = []}};
@@ -640,7 +640,7 @@ handle_call({index, SessionId, _Env, _Input}, _From,
                 eHtml:pageFooter()],
 
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
-    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
+    {reply, [Headers, HtmlPage], State#state{headers = SessionHdrList2}};
 handle_call({showStatus, SessionId, _Env, _Input}, _From,
             State = #state{user    = User,
                            headers = SessionHdrList,
@@ -650,7 +650,7 @@ handle_call({showStatus, SessionId, _Env, _Input}, _From,
 
     HtmlPage = eHtml:showStatus(User, Status, StatusMsg),
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
-    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
+    {reply, [Headers, HtmlPage], State#state{headers = SessionHdrList2}};
 handle_call({checkStatus, SessionId, _Env, _Input}, _From,
             State = #state{user    = User,
                            headers = SessionHdrList,
@@ -660,11 +660,11 @@ handle_call({checkStatus, SessionId, _Env, _Input}, _From,
     Timer    = lists:keyfind(User, 1, Timers),
     {Status, StatusMsg} = getStatus(User, StatusList),
     Seconds  = getSeconds(Timer),
-    HtmlPage = "{\"timer\":" ++ integer_to_list(Seconds) ++ ","
-        "\"status\":\"" ++ Status ++ "\",\"statusMsg\":\"" ++
-        makeHtml(StatusMsg) ++ "\"}",
+    HtmlPage = ["{\"timer\":", integer_to_list(Seconds), ","
+        "\"status\":\"", Status, "\",\"statusMsg\":\"",
+        makeHtml(StatusMsg), "\"}"],
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
-    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
+    {reply, [Headers, HtmlPage], State#state{headers = SessionHdrList2}};
 handle_call({showLoggedWork, SessionId, _Env, Input}, _From,
             State = #state{user = User, headers = SessionHdrList}) ->
     Headers = getHeaders(SessionId, State),
@@ -672,7 +672,7 @@ handle_call({showLoggedWork, SessionId, _Env, Input}, _From,
     {ok, Text} = find("search", Dict),
     HtmlPage = doShowLoggedWork(User, default(Text, "")),
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
-    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
+    {reply, [Headers, HtmlPage], State#state{headers = SessionHdrList2}};
 handle_call({indexJSON, _SessionId, _Env, _Input}, _From,
             State = #state{user = User}) ->
     Flt = getFilterCfg(?defTaskList, User),
@@ -1237,30 +1237,33 @@ find(Key, Dict) ->
 %%--------------------------------------------------------------------
 webProxyCall(Pid, Headers, Message, Timeout, From) ->
     HtmlPage = apply(ePeer, webProxyCall, [Pid, Message, Timeout], ""),
-    case lists:concat(HtmlPage) of
-        "location:" ++ Rest ->
-            {Hdr, Bdy} = splitHdr("location:" ++ Rest),
-            gen_server:reply(From, Hdr ++ Headers ++ Bdy);
-        "status:" ++ Rest ->
-            {Hdr, Bdy} = splitHdr("status:" ++ Rest),
-            gen_server:reply(From, Hdr ++ Headers ++ Bdy);
-        "Content-Type:" ++ Rest ->
-            {Hdr, Bdy} = splitHdr("Content-Type:" ++ Rest),
-            gen_server:reply(From, Hdr ++ Headers ++ Bdy);
+    Headers2 = toBinary(Headers),
+    case iolist_to_binary(HtmlPage) of
+        <<"location:", Rest/binary>> ->
+            {Hdr, Bdy} = splitHdr(<<"location:", Rest/binary>>),
+            gen_server:reply(From, <<Hdr/binary, Headers2/binary, Bdy/binary>>);
+        <<"status:", Rest/binary>> ->
+            {Hdr, Bdy} = splitHdr(<<"status:", Rest/binary>>),
+            gen_server:reply(From, <<Hdr/binary, Headers2/binary, Bdy/binary>>);
+        <<"Content-Type:", Rest/binary>> ->
+            {Hdr, Bdy} = splitHdr(<<"Content-Type:", Rest/binary>>),
+            gen_server:reply(From, <<Hdr/binary, Headers2/binary, Bdy/binary>>);
         Html ->
-            io:format("~s~n", [Html]),
-            gen_server:reply(From, Headers ++ Html)
+            gen_server:reply(From, <<Headers2/binary, Html/binary>>)
     end.
 
 splitHdr(Html) ->
     splitHdr(Html, []).
 
-splitHdr([], SoFar) ->
-    {[], lists:flatten(SoFar)};
-splitHdr("\r\n\r\n" ++ Rest, SoFar) ->
-    {lists:flatten([SoFar, "\r\n"]), "\r\n" ++ Rest};
-splitHdr([Char|Rest], SoFar) ->
-    splitHdr(Rest, [SoFar, Char]).
+splitHdr(<<>>, SoFar) ->
+    {<<>>, SoFar};
+splitHdr(<<"\r\n\r\n", Rest/binary>>, SoFar) ->
+    {<<SoFar/binary, "\r\n">>, <<"\r\n", Rest/binary>>};
+splitHdr(<<Char:8, Rest/binary>>, SoFar) ->
+    splitHdr(Rest, <<SoFar/binary, Char>>).
+
+toBinary(Value) when is_list(Value)   -> list_to_binary(Value);
+toBinary(Value) when is_binary(Value) -> Value.
 
 %%--------------------------------------------------------------------
 %% @private
