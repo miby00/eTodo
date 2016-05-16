@@ -899,7 +899,7 @@ handle_info({removeSession, Pid}, State = #state{lastMsg  = LastMsg,
                           headers  = Headers2,
                           timers   = Timers2,
                           webState = WebState2}};
-handle_info(DownMsg = {'DOWN', Reference, process, Object, Info}, State) ->
+handle_info(DownMsg = {'DOWN', _Reference, process, _Object, _Info}, State) ->
     eLog:log(error, ?MODULE, handle_info, [DownMsg],
              "Recieved down message, web server crash?", ?LINE),
     GuestUsers = getGuestUsers(State#state.user),
@@ -986,7 +986,7 @@ startWebServer(User, GuestUsers) ->
             ePeerEM:sendMsg(system,  [User], systemEntry,
                             "https://"++ Host ++ ":" ++ PortStr ++ "/eTodo"
                             "/eWeb:mobile for an alternative web gui for "
-                            "the phone."]),
+                            "the phone."),
             Port;
         _ ->
             -1
@@ -1264,7 +1264,7 @@ splitHdr(<<"\r\n\r\n", Rest/binary>>, SoFar) ->
 splitHdr(<<Char:8, Rest/binary>>, SoFar) ->
     splitHdr(Rest, <<SoFar/binary, Char>>).
 
-toBinary(Value) when is_list(Value)   -> list_to_binary(Value);
+toBinary(Value) when is_list(Value)   -> iolist_to_binary(Value);
 toBinary(Value) when is_binary(Value) -> Value.
 
 %%--------------------------------------------------------------------
