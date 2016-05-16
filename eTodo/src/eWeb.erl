@@ -574,7 +574,7 @@ handle_call({show, SessionId, Env, Input}, _From,
                   eHtml:pageFooter()],
 
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
-    {reply, [Headers, HtmlPage], State#state{headers = SessionHdrList2}};
+    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
 handle_call({showTimeReport, SessionId, Env, Input}, _From,
             State = #state{user    = User,
                            headers = SessionHdrList,
@@ -603,7 +603,7 @@ handle_call({showTimeReport, SessionId, Env, Input}, _From,
                   eHtml:pageFooter()],
 
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
-    {reply, [Headers, HtmlPage], State#state{headers = SessionHdrList2}};
+    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
 handle_call({message, _SessionId, _Env, Input}, _From,
             State = #state{user        = User,
                            users       = Users,
@@ -640,7 +640,7 @@ handle_call({index, SessionId, _Env, _Input}, _From,
                 eHtml:pageFooter()],
 
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
-    {reply, [Headers, HtmlPage], State#state{headers = SessionHdrList2}};
+    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
 handle_call({showStatus, SessionId, _Env, _Input}, _From,
             State = #state{user    = User,
                            headers = SessionHdrList,
@@ -650,7 +650,7 @@ handle_call({showStatus, SessionId, _Env, _Input}, _From,
 
     HtmlPage = eHtml:showStatus(User, Status, StatusMsg),
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
-    {reply, [Headers, HtmlPage], State#state{headers = SessionHdrList2}};
+    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
 handle_call({checkStatus, SessionId, _Env, _Input}, _From,
             State = #state{user    = User,
                            headers = SessionHdrList,
@@ -664,7 +664,7 @@ handle_call({checkStatus, SessionId, _Env, _Input}, _From,
         "\"status\":\"", Status, "\",\"statusMsg\":\"",
         makeHtml(StatusMsg), "\"}"],
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
-    {reply, [Headers, HtmlPage], State#state{headers = SessionHdrList2}};
+    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
 handle_call({showLoggedWork, SessionId, _Env, Input}, _From,
             State = #state{user = User, headers = SessionHdrList}) ->
     Headers = getHeaders(SessionId, State),
@@ -672,7 +672,7 @@ handle_call({showLoggedWork, SessionId, _Env, Input}, _From,
     {ok, Text} = find("search", Dict),
     HtmlPage = doShowLoggedWork(User, default(Text, "")),
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
-    {reply, [Headers, HtmlPage], State#state{headers = SessionHdrList2}};
+    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
 handle_call({indexJSON, _SessionId, _Env, _Input}, _From,
             State = #state{user = User}) ->
     Flt = getFilterCfg(?defTaskList, User),
