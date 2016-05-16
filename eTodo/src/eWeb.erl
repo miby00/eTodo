@@ -899,7 +899,9 @@ handle_info({removeSession, Pid}, State = #state{lastMsg  = LastMsg,
                           headers  = Headers2,
                           timers   = Timers2,
                           webState = WebState2}};
-handle_info({'DOWN',_Reference, process, _Object, _Info}, State) ->
+handle_info(DownMsg = {'DOWN', Reference, process, Object, Info}, State) ->
+    eLog:log(error, ?MODULE, handle_info, [DownMsg],
+             "Recieved down message, web server crash?", ?LINE),
     GuestUsers = getGuestUsers(State#state.user),
     Port = startWebServer(State#state.user, GuestUsers),
     {noreply, State#state{port = Port}};
@@ -984,7 +986,7 @@ startWebServer(User, GuestUsers) ->
             ePeerEM:sendMsg(system,  [User], systemEntry,
                             "https://"++ Host ++ ":" ++ PortStr ++ "/eTodo"
                             "/eWeb:mobile for an alternative web gui for "
-                            "the phone."),
+                            "the phone."]),
             Port;
         _ ->
             -1
