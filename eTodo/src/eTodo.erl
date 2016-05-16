@@ -973,9 +973,15 @@ handle_info({timerEnded, MsgTxt, Command}, State = #guiState{user = User}) ->
     %% Run command for Pomodoro timer.
     os:cmd(Command),
     {noreply, State#guiState{timerRef = undefined}};
+handle_info(DownMsg = {'DOWN', _Reference, process, _Object, _Info},
+            State = #guiState{user = User}) ->
+    eLog:log(error, ?MODULE, handle_info, [DownMsg],
+             "Recieved down message from eWeb.", ?LINE),
+    {ok, Pid} = eWeb:start_link(User),
+    monitor(process, Pid),
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
-
 
 
 %%--------------------------------------------------------------------

@@ -2168,11 +2168,15 @@ executeChanges(#userCfg{webEnabled  = WEnabled,
     ok;
 executeChanges(#userCfg{webEnabled = false},
                UserCfg = #userCfg{webEnabled = true}) ->
-    eWeb:start_link(UserCfg#userCfg.userName);
+    {ok, Pid} = eWeb:start_link(UserCfg#userCfg.userName),
+    monitor(process, Pid),
+    {ok, Pid};
 executeChanges(_, UserCfg) ->
     eWeb:stop(),
     timer:sleep(1000),
-    eWeb:start_link(UserCfg#userCfg.userName).
+    {ok, Pid} = eWeb:start_link(UserCfg#userCfg.userName),
+    monitor(process, Pid),
+    {ok, Pid}.
 
 settingsCancelEvent(_Type, _Id, _Frame,
                     State = #guiState{settingsDlg = Settings}) ->

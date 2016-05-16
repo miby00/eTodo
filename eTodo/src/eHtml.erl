@@ -505,7 +505,8 @@ pageFooter() ->
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
-makeForm(User, Default) ->
+makeForm(User, Def) ->
+    Default = default(Def, ?defTaskList),
     [tableTag([{id, "tableHeader"}],
               [trTag([tdTag([{id, "toolbar"}],
                             [aTag([{id, "createTodo"},
@@ -584,7 +585,8 @@ createForm([Value | Rest], SoFar, Default) ->
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
-settingsPage(User, List) ->
+settingsPage(User, TaskList) ->
+    List = default(TaskList, ?defTaskList),
     %% Get web settings.
     UserCfg       = eTodoDB:readUserCfg(User),
     WebSettings   = default(UserCfg#userCfg.webSettings, []),

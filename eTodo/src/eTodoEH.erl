@@ -39,7 +39,8 @@
 %% @end
 %%--------------------------------------------------------------------
 init([{User, noGui}]) ->
-    eWeb:start_link(User),
+    {ok, Pid} = eWeb:start_link(User),
+    monitor(process, Pid),
     {ok, #state{user = User, mode = noGui}};
 init([User]) ->
     {ok, #state{user = User}}.
@@ -152,6 +153,13 @@ handle_call(_Request, State) ->
 %%                         remove_handler
 %% @end
 %%--------------------------------------------------------------------
+handle_info(DownMsg = {'DOWN', _Reference, process, _Object, _Info},
+            State = #state{user = User}) ->
+    eLog:log(error, ?MODULE, handle_info, [DownMsg],
+             "Recieved down message from eWeb.", ?LINE),
+    {ok, Pid} = eWeb:start_link(User),
+    monitor(process, Pid),
+    {noreply, State};
 handle_info(_Info, State) ->
     {ok, State}.
 
