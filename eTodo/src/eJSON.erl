@@ -33,7 +33,7 @@
 %%======================================================================
 makeTodoList(User, List, Filter, SearchText, Cfg) ->
     ETodos = eTodoDB:getETodos(User, List, Filter, SearchText, Cfg),
-    SortedETodos = sortETodos(User, ETodos),
+    SortedETodos = lists:reverse(sortETodos(User, ETodos)),
     ["[",[makeJSONTodoList(SortedETodos)],"]"].
 
 %%======================================================================
