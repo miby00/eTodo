@@ -1255,7 +1255,7 @@ webProxyCall(Pid, Headers, Message, Timeout, From) ->
     end.
 
 splitHdr(Html) ->
-    splitHdr(Html, []).
+    splitHdr(Html, <<>>).
 
 splitHdr(<<>>, SoFar) ->
     {<<>>, SoFar};
