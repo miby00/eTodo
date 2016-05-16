@@ -75,6 +75,8 @@ toStr(Value) when is_integer(Value) ->
     integer_to_list(Value);
 toStr(Value) when is_atom(Value) ->
     atom_to_list(Value);
+toStr(Value) when is_binary(Value) ->
+    binary_to_list(Value);
 toStr(Value) when is_list(Value) ->
     Value;
 toStr({Year, Month, Day}) ->

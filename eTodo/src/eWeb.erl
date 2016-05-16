@@ -1243,15 +1243,19 @@ webProxyCall(Pid, Headers, Message, Timeout, From) ->
     case iolist_to_binary(HtmlPage) of
         <<"location:", Rest/binary>> ->
             {Hdr, Bdy} = splitHdr(<<"location:", Rest/binary>>),
-            gen_server:reply(From, <<Hdr/binary, Headers2/binary, Bdy/binary>>);
+            Reply = toStr(<<Hdr/binary, Headers2/binary, Bdy/binary>>),
+            gen_server:reply(From, Reply);
         <<"status:", Rest/binary>> ->
             {Hdr, Bdy} = splitHdr(<<"status:", Rest/binary>>),
-            gen_server:reply(From, <<Hdr/binary, Headers2/binary, Bdy/binary>>);
+            Reply = toStr(<<Hdr/binary, Headers2/binary, Bdy/binary>>),
+            gen_server:reply(From, Reply);
         <<"Content-Type:", Rest/binary>> ->
             {Hdr, Bdy} = splitHdr(<<"Content-Type:", Rest/binary>>),
-            gen_server:reply(From, <<Hdr/binary, Headers2/binary, Bdy/binary>>);
+            Reply = toStr(<<Hdr/binary, Headers2/binary, Bdy/binary>>),
+            gen_server:reply(From, Reply);
         Html ->
-            gen_server:reply(From, <<Headers2/binary, Html/binary>>)
+            Reply = toStr(<<Headers2/binary, Html/binary>>),
+            gen_server:reply(From, Reply)
     end.
 
 splitHdr(Html) ->
@@ -1266,6 +1270,7 @@ splitHdr(<<Char:8, Rest/binary>>, SoFar) ->
 
 toBinary(Value) when is_list(Value)   -> iolist_to_binary(Value);
 toBinary(Value) when is_binary(Value) -> Value.
+
 
 %%--------------------------------------------------------------------
 %% @private
