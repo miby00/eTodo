@@ -169,6 +169,11 @@ table.msgSent {
     text-align: left;
 }
 
+.date {
+    width: 31%;
+    padding: 0px;
+}
+
 .data {
     color: DarkRed;
     background-color: white;

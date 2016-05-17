@@ -1119,7 +1119,7 @@ headerCellCSS(Text) ->
     tdTag([{class, "header"}], [Text]).
 
 dateCellCSS(Text, Uid, Extra) ->
-    tdTag([{class,   "data"}] ++ Extra,
+    tdTag([{class,   "date"}] ++ Extra,
           [inputTag([{class, "dateInput"},
                      {type,  date},
                      {id,    "date_" ++ Uid},
