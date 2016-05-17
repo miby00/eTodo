@@ -293,6 +293,11 @@ table.msgSent {
     width: 100%;
 }
 
+.dateInput {
+    width: 98%;
+    height: 100%;
+}
+
 .textField {
     margin-left: 3px;
     width: 100%;
@@ -311,6 +316,7 @@ table.msgSent {
 .yesno {
     line-height: 40px;
 }
+
 
 #createTask, #doneBtn, #createTaskListBtn, #login, #deleteTaskListBtn,
 #deleteBtn, #applyBtn, #cancelBtn, #noBtn, #yesBtn{

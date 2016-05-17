@@ -63,16 +63,17 @@ function addClass(element, elementClass) {
 
 function saveChanges(type, uid) {
     "use strict";
-    var element     = document.getElementById(type + uid),
-        compactDesc = document.getElementById('compactDesc' + uid),
-        progress    = element.innerHTML,
-        fieldValue  = element.innerHTML,
+    var element = document.getElementById(type + uid),
+        compactDesc,
+        progress,
+        fieldValue,
         AJAX,
         data,
         url;
 
     if ((type === 'Description') &&
             document.getElementById('compactDesc' + uid)) {
+        compactDesc = document.getElementById('compactDesc' + uid);
         if (compactDesc.innerHTML !== element.innerHTML) {
             compactDesc.innerHTML = element.innerHTML;
         } else {
@@ -81,18 +82,25 @@ function saveChanges(type, uid) {
     }
 
     if (type === 'Progress(%)') {
+        progress = element.innerHTML;
         if (!(progress >= 0 && progress <= 100) || !(isInt(progress))) {
             return;
         }
     }
 
     if (type === 'Estimate(%)' || type === 'Remaining(h)') {
+        fieldValue = element.innerHTML;
         if (!isInt(fieldValue)) {
             return;
         }
     }
+
     AJAX = newAJAX();
-    data = element.innerHTML;
+    if (type === 'Due date') {
+        data = document.getElementById('date_' + uid).value;
+    } else {
+        data = element.innerHTML;
+    }
     url  = '/eTodo/eWeb:sendFieldChange?field=' + type +
         '&value=' + encodeURIComponent(data) + '&uid=' + uid;
 
@@ -115,6 +123,7 @@ function saveTaskChanges(event, uid) {
     saveChanges('Estimate(h)',  uid);
     saveChanges('Progress(%)',  uid);
     saveChanges('Remaining(h)', uid);
+    saveChanges('Due date',     uid);
 }
 
 function deleteList(event) {
@@ -480,6 +489,3 @@ function osType() {
 
     return "Unknown OS";
 }
-
-
-

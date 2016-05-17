@@ -999,7 +999,7 @@ makeHtmlTaskCSS(#etodo{uid         = Uid,
      trTag(
        [{class, "hideRow"}],
        [headerCellCSS(?createTime), dataCellCSS2(CreateTime, []),
-        headerCellCSS(?dueTime), dataCellCSS2(DueTime, [])]),
+        headerCellCSS(?dueTime), dateCellCSS(DueTime, Uid, [])]),
      trTag(
        [{class, "hideRow"}],
        [headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, []),
@@ -1117,6 +1117,14 @@ makeButtons(Type, Uid) ->
 
 headerCellCSS(Text) ->
     tdTag([{class, "header"}], [Text]).
+
+dateCellCSS(Text, Uid, Extra) ->
+    tdTag([{class,   "data"}] ++ Extra,
+          [inputTag([{class, "dateInput"},
+                     {type,  date},
+                     {id,    "date_" ++ Uid},
+                     {onclick, "stopPropagation(event);"},
+                     {value, Text}])]).
 
 dataCellCSS(Text, Extra) ->
     tdTag([{class, "data"}] ++ Extra, [makeHtml(Text, "/priv")]).

@@ -311,6 +311,11 @@ table.msgSent {
     width: 100%;
 }
 
+.dateInput {
+    width: 98%;
+    height: 100%;
+}
+
 .textField {
     margin-left: 3px;
     width: 100%;
