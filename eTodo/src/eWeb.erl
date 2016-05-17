@@ -1674,6 +1674,8 @@ encrypt({Key, IV}, Binary) ->
 decrypt({Key, IV}, Binary) ->
     crypto:block_decrypt(aes_cfb128, Key, IV, Binary).
 
+convertDueTime("") ->
+    undefined;
 convertDueTime(Time) ->
     convertDueTime(Time, "", {0, 0, 0}).
 
