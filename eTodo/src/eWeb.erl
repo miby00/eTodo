@@ -773,7 +773,7 @@ handle_call({sendFieldChange, _SessionId, _Env, Input}, _From,
             {Estimate, _Remaining} = eTodoDB:getTime(Uid),
             eTodoDB:saveTime(Uid, Estimate, list_to_integer(Value));
         ?dueTime ->
-            Todo2 = Todo#todo{dueTime = convertDueTime(HtmlValue)},
+            Todo2 = Todo#todo{dueTime = toDB(HtmlValue, time)},
             eTodoDB:updateTodo(User, Todo2),
             eTodo:todoUpdated(User, Todo2)
     end,
@@ -1673,22 +1673,3 @@ encrypt({Key, IV}, Binary) ->
 
 decrypt({Key, IV}, Binary) ->
     crypto:block_decrypt(aes_cfb128, Key, IV, Binary).
-
-convertDueTime("") ->
-    undefined;
-convertDueTime(Time) ->
-    convertDueTime(Time, "", {0, 0, 0}).
-
-convertDueTime([], SoFar, {Year, Month, 0}) ->
-    Day = list_to_integer(lists:reverse(SoFar)),
-    {Year, Month, Day};
-convertDueTime([$-|Rest], SoFar, {0, 0, 0}) ->
-    Year = list_to_integer(lists:reverse(SoFar)),
-    convertDueTime(Rest, "", {Year, 0, 0});
-convertDueTime([$-|Rest], SoFar, {Year, 0, 0}) ->
-    Month = list_to_integer(lists:reverse(SoFar)),
-    convertDueTime(Rest, "", {Year, Month, 0});
-convertDueTime([Char|Rest], SoFar, Date) ->
-    convertDueTime(Rest, [Char|SoFar], Date);
-convertDueTime(_, _, _) ->
-    undefined.
