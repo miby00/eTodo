@@ -1,3 +1,27 @@
+var eTodoData = {
+    users: [],
+    setUsers: function (_users) {
+        this.users = _users;
+    },
+    getUsers: function () {
+        return this.users;
+    },
+    fetchFromSrv: function () {
+        "use strict";
+        var url  = '/eTodo/eWeb:getUsersJSON',
+            AJAX = newAJAX();
+
+        sendCall(AJAX, url, function () {
+            if (AJAX.readyState === 4 || AJAX.readyState === "complete") {
+                var obj = JSON.parse(AJAX.responseText);
+
+                eTodoData.setUsers(obj.Users);
+            }
+        });
+    }
+};
+
+
 function isInt(value) {
     "use strict";
     var x;
@@ -132,8 +156,8 @@ function deleteList(event) {
     var element1 = document.getElementById('dListRow'),
         element2 = document.getElementById('yesNoDList');
 
-    addClass(element1, 'hideRow');
-    element2.classList.remove('hideRow');
+    addClass(element1, 'hide');
+    element2.classList.remove('hide');
 }
 
 function deleteListYes(event, id) {
@@ -156,8 +180,8 @@ function deleteListNo(event, uid) {
     var element1 = document.getElementById('dListRow'),
         element2 = document.getElementById('yesNoDList');
 
-    element1.classList.remove('hideRow');
-    addClass(element2, 'hideRow');
+    element1.classList.remove('hide');
+    addClass(element2, 'hide');
 }
 
 
@@ -166,9 +190,9 @@ function deleteTask(event, uid) {
     stopPropagation(event);
     var element = document.getElementById('table' + uid);
 
-    addClass(element.childNodes[0].childNodes[8], 'hideRow');
+    addClass(element.childNodes[0].childNodes[8], 'hide');
     if (element.childNodes[0].childNodes[9].classList !== undefined) {
-        element.childNodes[0].childNodes[9].classList.remove('hideRow');
+        element.childNodes[0].childNodes[9].classList.remove('hide');
     }
 }
 
@@ -178,8 +202,8 @@ function deleteYes(event, uid) {
     var element  = document.getElementById('table' + uid),
         AJAX = newAJAX();
 
-    addClass(element.childNodes[0].childNodes[9], 'hideRow');
-    element.childNodes[0].childNodes[8].classList.remove('hideRow');
+    addClass(element.childNodes[0].childNodes[9], 'hide');
+    element.childNodes[0].childNodes[8].classList.remove('hide');
     sendCall(AJAX, '/eTodo/eWeb:deleteTask?uid=' + uid,
         function () {
             if (AJAX.readyState === 4 || AJAX.readyState === "complete") {
@@ -193,8 +217,8 @@ function deleteNo(event, uid) {
     stopPropagation(event);
     var element = document.getElementById('table' + uid);
 
-    addClass(element.childNodes[0].childNodes[9], 'hideRow');
-    element.childNodes[0].childNodes[8].classList.remove('hideRow');
+    addClass(element.childNodes[0].childNodes[9], 'hide');
+    element.childNodes[0].childNodes[8].classList.remove('hide');
 }
 
 function showDetails(uid) {
@@ -202,31 +226,38 @@ function showDetails(uid) {
     var element = document.getElementById('table' + uid);
     if (element.classList.contains('tCompact')) {
         element.classList.remove('tCompact');
-        element.childNodes[0].childNodes[1].classList.remove('hideRow');
-        element.childNodes[0].childNodes[2].classList.remove('hideRow');
-        element.childNodes[0].childNodes[3].classList.remove('hideRow');
-        element.childNodes[0].childNodes[4].classList.remove('hideRow');
-        element.childNodes[0].childNodes[5].classList.remove('hideRow');
-        element.childNodes[0].childNodes[6].classList.remove('hideRow');
-        element.childNodes[0].childNodes[7].classList.remove('hideRow');
-        element.childNodes[0].childNodes[8].classList.remove('hideRow');
+        element.childNodes[0].childNodes[1].classList.remove('hide');
+        element.childNodes[0].childNodes[2].classList.remove('hide');
+        element.childNodes[0].childNodes[3].classList.remove('hide');
+        element.childNodes[0].childNodes[4].classList.remove('hide');
+        element.childNodes[0].childNodes[5].classList.remove('hide');
+        element.childNodes[0].childNodes[6].classList.remove('hide');
+        element.childNodes[0].childNodes[7].classList.remove('hide');
+        element.childNodes[0].childNodes[8].classList.remove('hide');
+        fillOwnerSelectBox();
         if (element.classList.contains('ttCompact')) {
-            addClass(element.childNodes[0].childNodes[0], 'hideRow');
+            addClass(element.childNodes[0].childNodes[0], 'hide');
         }
     } else {
         element.classList.add('tCompact');
-        addClass(element.childNodes[0].childNodes[2], 'hideRow');
-        addClass(element.childNodes[0].childNodes[3], 'hideRow');
-        addClass(element.childNodes[0].childNodes[4], 'hideRow');
-        addClass(element.childNodes[0].childNodes[5], 'hideRow');
-        addClass(element.childNodes[0].childNodes[7], 'hideRow');
-        addClass(element.childNodes[0].childNodes[8], 'hideRow');
+        addClass(element.childNodes[0].childNodes[2], 'hide');
+        addClass(element.childNodes[0].childNodes[3], 'hide');
+        addClass(element.childNodes[0].childNodes[4], 'hide');
+        addClass(element.childNodes[0].childNodes[5], 'hide');
+        addClass(element.childNodes[0].childNodes[7], 'hide');
+        addClass(element.childNodes[0].childNodes[8], 'hide');
         if (element.classList.contains('ttCompact')) {
-            element.childNodes[0].childNodes[0].classList.remove('hideRow');
-            addClass(element.childNodes[0].childNodes[1], 'hideRow');
-            addClass(element.childNodes[0].childNodes[6], 'hideRow');
+            element.childNodes[0].childNodes[0].classList.remove('hide');
+            addClass(element.childNodes[0].childNodes[1], 'hide');
+            addClass(element.childNodes[0].childNodes[6], 'hide');
         }
     }
+}
+
+function fillOwnerSelectBox() {
+    "use strict";
+
+    console.log(eTodoData.getUsers());
 }
 
 function submitForm(value) {

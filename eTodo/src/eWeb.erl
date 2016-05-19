@@ -412,7 +412,7 @@ handle_call({listsTodos, SessionId, _Env, Input}, _From,
     {ok, List} = find("list",   Dict),
     {ok, Text} = find("search", Dict),
     Flt        = getFilterCfg(List, User),
-
+    OnLoad     = "OnLoad=\"eTodoData.fetchFromSrv();\"",
     HtmlPage   =
         case List of
             ?defLoggedWork ->
@@ -428,7 +428,7 @@ handle_call({listsTodos, SessionId, _Env, Input}, _From,
                 {Status, StatusMsg} = getStatus(User, SList),
                 eHtml:showStatus(User, Status, StatusMsg);
             _ ->
-                [eHtml:pageHeader(User),
+                [eHtml:pageHeader(OnLoad, User),
                  eHtml:makeForm(User, List),
                  eHtml:makeTaskList(User, conv(List), Flt, Text, Cfg),
                  eHtml:pageFooter()]
@@ -642,9 +642,10 @@ handle_call({mobile, SessionId, _Env, _Input}, _From,
 handle_call({index, SessionId, _Env, _Input}, _From,
             State = #state{user    = User,
                            headers = SessionHdrList}) ->
-    Headers = getHeaders(SessionId, State),
-    Flt = getFilterCfg(?defTaskList, User),
-    HtmlPage = [eHtml:pageHeader(User),
+    Headers  = getHeaders(SessionId, State),
+    Flt      = getFilterCfg(?defTaskList, User),
+    OnLoad   = "OnLoad=\"eTodoData.fetchFromSrv();\"",
+    HtmlPage = [eHtml:pageHeader(OnLoad, User),
                 eHtml:makeForm(User, ?defTaskList),
                 eHtml:makeTaskList(User, ?defTaskList, Flt, [], undefined),
                 eHtml:pageFooter()],

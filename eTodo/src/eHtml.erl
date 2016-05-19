@@ -806,7 +806,7 @@ deleteTaskListForm(User, TaskList) ->
                                   {onclick,  "deleteList(event);"},
                                   {id,       "deleteTaskListBtn"},
                                   {value,    "Delete list"}]))]),
-           trTag([{id, "yesNoDList"}, {class,   "hideRow"}],
+           trTag([{id, "yesNoDList"}, {class,   "hide"}],
                  [tdTag([{colspan, 4}],
                         YesNoQuestion)])])])].
 
@@ -949,8 +949,8 @@ makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
      trTag(
        [headerCellCSS(?comment),
         dataCellCSS4(?comment, Comment, [{colspan, 3}], StStr, Uid)]),
-     trTag([{class, "btnRow"}],  [tdTag([{colspan, 4}], InputTags)]),
-     trTag([{class, "hideRow"}], [tdTag([{colspan, 4}], YesNoQuestion)]),
+     trTag([{class, "btnRow"}], [tdTag([{colspan, 4}], InputTags)]),
+     trTag([{class, "hide"}],   [tdTag([{colspan, 4}], YesNoQuestion)]),
      "</table>"];
 makeHtmlTaskCSS(#etodo{uid         = Uid,
                        status      = Status,
@@ -970,13 +970,13 @@ makeHtmlTaskCSS(#etodo{uid         = Uid,
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     CompactTable = case compactTable(User) of
                        true ->
-                           [{class, "hideRow"}];
+                           [{class, "hide"}];
                        false ->
                            []
                    end,
     CompactTable2 = case compactTable(User) of
                         false ->
-                            [{class, "hideRow"}];
+                            [{class, "hide"}];
                         true ->
                             []
                     end,
@@ -993,19 +993,19 @@ makeHtmlTaskCSS(#etodo{uid         = Uid,
        [headerCellCSS(?status), createStatusDataCell(Status, Uid),
         headerCellCSS(?prio), createPriorityDataCell(Priority, Uid)]),
      trTag(
-       [{class, "hideRow"}],
+       [{class, "hide"}],
        [headerCellCSS(?sharedWith), dataCellCSS(SharedWith, []),
         headerCellCSS(?owner), dataCellCSS(Owner, [])]),
      trTag(
-       [{class, "hideRow"}],
+       [{class, "hide"}],
        [headerCellCSS(?createTime), dataCellCSS2(CreateTime, []),
         headerCellCSS(?dueTime), dateCellCSS(DueTime, Uid, [])]),
      trTag(
-       [{class, "hideRow"}],
+       [{class, "hide"}],
        [headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, []),
         headerCellCSS(?progress), dataCellCSS4(?progress, ProgStr, [], StStr, Uid)]),
      trTag(
-       [{class, "hideRow"}],
+       [{class, "hide"}],
        [headerCellCSS(?estimate),
         dataCellCSS4(?estimate, toStr(Estimate), [], StStr, Uid),
         headerCellCSS(?remaining),
@@ -1015,11 +1015,11 @@ makeHtmlTaskCSS(#etodo{uid         = Uid,
        [headerCellCSS(?description),
         dataCellCSS4(?description, Description, [{colspan, 3}], StStr, Uid)]),
      trTag(
-       [{class, "hideRow"}],
+       [{class, "hide"}],
        [headerCellCSS(?comment),
         dataCellCSS4(?comment, Comment, [{colspan, 3}], StStr, Uid)]),
-     trTag([{class, "hideRow"}], [tdTag([{colspan, 4}], InputTags)]),
-     trTag([{class, "hideRow"}], [tdTag([{colspan, 4}], YesNoQuestion)]),
+     trTag([{class, "hide"}], [tdTag([{colspan, 4}], InputTags)]),
+     trTag([{class, "hide"}], [tdTag([{colspan, 4}], YesNoQuestion)]),
      "</table>"].
 
 makeHtmlTaskCSS2(#etodo{uid = Uid,

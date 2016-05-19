@@ -154,7 +154,7 @@ table.msgSent {
     border-width: 1px;
 }
 
-.hideRow {
+.hide {
     display: none;
 }
 
