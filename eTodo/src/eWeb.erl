@@ -1039,7 +1039,7 @@ doStartWebServer(Port, MaxPort) ->
                                                            {require_group, ["users"]}
                                                           ]}},
                                  {socket_type, {essl, [{certfile, CertFile},
-                                                       {depth, 2}]}},
+                                                       {depth, 1}]}},
                                  {ipfamily, inet},
                                  {erl_script_alias, {"/eTodo", [eWeb]}},
                                  {error_log,    "error.log"},
