@@ -13,46 +13,48 @@
 %% API
 -export([start_link/1,
          stop/0,
-         evalRemove/1,
-         setTimerRef/2,
-         setStatusUpdate/3,
-         clearPage/0,
+
          appendToPage/1,
-         loggedIn/1,
-         loggedOut/1,
-         webProxyCall/2,
-         webProxyCall/5,
-         removeSubscriber/1,
-         getPort/0,
-         login/3,
          checkCredentials/3,
+         checkForMessage/3,
+         checkStatus/3,
+         clearPage/0,
+         createTask/3,
+         createTaskList/3,
+         createTodo/3,
+         deleteTask/3,
+         deleteTaskList/3,
+         evalRemove/1,
+         getPort/0,
+         getUsersJSON/3,
+         index/3,
+         indexJSON/3,
          link/3,
          listListsJSON/3,
          listTodos/3,
          listTodosJSON/3,
-         settings/3,
-         createTodo/3,
-         createTask/3,
-         createTaskList/3,
-         deleteTask/3,
-         deleteTaskList/3,
-         showTodo/3,
-         show/3,
-         index/3,
-         showStatus/3,
-         showLoggedWork/3,
-         showTimeReport/3,
-         checkStatus/3,
-         indexJSON/3,
-         sendStatus/3,
-         sendPriority/3,
+         loggedIn/1,
+         loggedOut/1,
+         login/3,
+         message/3,
+         mobile/3,
+         removeSubscriber/1,
          saveTodo/3,
-         sendSetting/3,
          sendFieldChange/3,
          sendMsg/3,
-         checkForMessage/3,
-         message/3,
-         mobile/3]).
+         sendPriority/3,
+         sendSetting/3,
+         sendStatus/3,
+         setStatusUpdate/3,
+         setTimerRef/2,
+         settings/3,
+         show/3,
+         showLoggedWork/3,
+         showStatus/3,
+         showTimeReport/3,
+         showTodo/3,
+         webProxyCall/2,
+         webProxyCall/5]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -157,6 +159,10 @@ webProxyCall({checkForMessage, _SessionId, _Env, _Input} = Message, Timeout) ->
     apply(gen_server, call, [?MODULE, Message, Timeout], "noMessages");
 webProxyCall(Message, Timeout) ->
     apply(gen_server, call, [?MODULE, Message, Timeout], "").
+
+getUsersJSON(SessionId, Env, Input) ->
+    HtmlPage = call({getUsersJSON, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, HtmlPage).
 
 link(SessionId, Env, Input) ->
     FileData = call({link, SessionId, Env, Input}),
@@ -432,6 +438,10 @@ handle_call({listsTodos, SessionId, _Env, Input}, _From,
 %%--------------------------------------------------------------------
 %% JSON Stuff
 %%--------------------------------------------------------------------
+handle_call({getUsersJSON, _SessionId, _Env, _Input}, _From, State) ->
+    JSONData = eJSON:makeUsersObj(),
+    {reply, ["Content-Type: application/x-javascript\r\n\r\n",JSONData], State};
+
 
 handle_call({listTodosJSON, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
@@ -1028,7 +1038,8 @@ doStartWebServer(Port, MaxPort) ->
                                                            {auth_type, mnesia},
                                                            {require_group, ["users"]}
                                                           ]}},
-                                 {socket_type, {essl, [{certfile, CertFile}]}},
+                                 {socket_type, {essl, [{certfile, CertFile},
+                                                       {depth, 2}]}},
                                  {ipfamily, inet},
                                  {erl_script_alias, {"/eTodo", [eWeb]}},
                                  {error_log,    "error.log"},
