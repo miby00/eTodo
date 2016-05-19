@@ -1017,7 +1017,9 @@ doStartWebServer(Port, MaxPort) ->
                        filename:dirname(LogFileName)
                end,
     DocRoot  = filename:join([Root, "www"]),
-    CertFile = filename:join([Root, "localhost.pem"]),
+    CertFile = filename:join([Root, "server_cert.pem"]),
+    KeyFile  = filename:join([Root, "server_key.pem"]),
+    CACert   = filename:join([Root, "chain_cert.pem"]),
     filelib:ensure_dir(SrvRoot),
     filelib:ensure_dir(DocRoot),
     Result = inets:start(httpd, [{modules, [mod_alias,
@@ -1038,8 +1040,9 @@ doStartWebServer(Port, MaxPort) ->
                                                            {auth_type, mnesia},
                                                            {require_group, ["users"]}
                                                           ]}},
-                                 {socket_type, {essl, [{certfile, CertFile},
-                                                       {depth, 1}]}},
+                                 {socket_type, {essl, [{certfile,   CertFile},
+                                                       {keyfile,    KeyFile},
+                                                       {cacertfile, CACert}]}},
                                  {ipfamily, inet},
                                  {erl_script_alias, {"/eTodo", [eWeb]}},
                                  {error_log,    "error.log"},
