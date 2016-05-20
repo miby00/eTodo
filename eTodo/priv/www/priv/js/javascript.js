@@ -405,7 +405,7 @@ function handleResult(responseText, status) {
         document.getElementById('messageField').innerHTML = responseText;
         notifyUser();
     }
-    setTimeout('checkForMessage()', 0);
+    setTimeout(function () { checkForMessage() }, 0);
 }
 
 function checkForMessage() {
@@ -486,7 +486,7 @@ function checkStatus() {
             handleStatusResult(AJAX.responseText, AJAX.status);
         }
     });
-    setTimeout('checkStatus()', 1000);
+    setTimeout(function () { checkStatus() }, 1000);
 }
 
 function enableButton(id1, id2) {
