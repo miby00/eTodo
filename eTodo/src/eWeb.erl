@@ -272,7 +272,7 @@ sendMsg(SessionId, Env, Input) ->
     mod_esi:deliver(SessionId, Status).
 
 checkForMessage(SessionId, Env, Input) ->
-    Result = call({checkForMessage, SessionId, Env, Input}, 5000),
+    Result = call({checkForMessage, SessionId, Env, Input}, 10000),
     mod_esi:deliver(SessionId, Result).
 
 %%%===================================================================
@@ -809,7 +809,7 @@ handle_call({sendMsg, _SessionId, _Env, Input}, _From,
 %% No messages to send to web client
 handle_call({checkForMessage, _SessionId, _Env, _Input}, From,
             State = #state{subscribers = Subscribers, messages = []}) ->
-    %% Remove subscriber after 10 secs.
+    %% Remove subscriber after 5 secs.
     timer:apply_after(5000, ?MODULE, removeSubscriber, [From]),
     {noreply, State#state{subscribers = [From|Subscribers]}};
 %% New messages to be sent to web client.
@@ -820,7 +820,7 @@ handle_call({checkForMessage, SessionId, _Env, _Input}, From,
     LastMsg2 = keepAliveSessions(LastMsg),
     case lists:keytake(SessionId, 1, LastMsg2) of
         {value, {SessionId, Html}, _LastMsg} ->
-            %% Remove subscriber after 10 secs.
+            %% Remove subscriber after 5 secs.
             timer:apply_after(5000, ?MODULE, removeSubscriber, [From]),
             {noreply, State#state{subscribers = [From|Subscribers],
                                   lastMsg     = LastMsg2}};
@@ -867,6 +867,7 @@ handle_cast({loggedOut, User}, State = #state{users = Users}) ->
     {noreply, State#state{users = lists:delete(User, Users)}};
 handle_cast({removeSubscriber, Subscriber},
             State = #state{subscribers = Subs}) ->
+    gen_server:reply(Subscriber, "noMessages"),
     {noreply, State#state{subscribers = lists:delete(Subscriber, Subs)}};
 handle_cast({setStatusUpdate, User, Status, StatusMsg},
             State = #state{status = StatusList}) ->

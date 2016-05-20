@@ -390,21 +390,20 @@ function notifyUser() {
             }
         }
 
-        /* if (window.navigator && window.navigator.vibrate) {
+        if (window.navigator && window.navigator.vibrate) {
             // Vibrate mobile device
             navigator.vibrate(1000);
-        } */
+        }
     }
 }
 
 function handleResult(responseText, status) {
     "use strict";
-
     if (status === 200 && responseText !== "noMessages") {
         document.getElementById('messageField').innerHTML = responseText;
         notifyUser();
     }
-    setTimeout(checkForMessage, 250);
+    setTimeout(checkForMessage, 1000);
 }
 
 function checkForMessage() {
@@ -485,7 +484,6 @@ function checkStatus() {
             handleStatusResult(AJAX.responseText, AJAX.status);
         }
     });
-    setTimeout(checkStatus, 1000);
 }
 
 function enableButton(id1, id2) {
