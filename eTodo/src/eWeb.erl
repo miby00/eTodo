@@ -272,7 +272,7 @@ sendMsg(SessionId, Env, Input) ->
     mod_esi:deliver(SessionId, Status).
 
 checkForMessage(SessionId, Env, Input) ->
-    Result = call({checkForMessage, SessionId, Env, Input}, 10000),
+    Result = call({checkForMessage, SessionId, Env, Input}, 5000),
     mod_esi:deliver(SessionId, Result).
 
 %%%===================================================================
@@ -625,7 +625,7 @@ handle_call({message, _SessionId, _Env, Input}, _From,
     [gen_server:reply(From, "noMessages") || From <- Subs],
     TopMessages = top(Messages, 100),
     HtmlPage    = [eHtml:pageHeader(
-                     "OnLoad=\"setTimeout(function () { checkForMessage(); }, 10000);\"", User),
+                     "OnLoad=\"setTimeout(checkForMessage, 5000);\"", User),
                    eHtml:makeForm(User, List),
                    "<div id=\"messageField\">", TopMessages, "</div>",
                    eHtml:createSendMsg("All", lists:delete(User, Users)),
@@ -810,7 +810,7 @@ handle_call({sendMsg, _SessionId, _Env, Input}, _From,
 handle_call({checkForMessage, _SessionId, _Env, _Input}, From,
             State = #state{subscribers = Subscribers, messages = []}) ->
     %% Remove subscriber after 10 secs.
-    timer:apply_after(10000, ?MODULE, removeSubscriber, [From]),
+    timer:apply_after(5000, ?MODULE, removeSubscriber, [From]),
     {noreply, State#state{subscribers = [From|Subscribers]}};
 %% New messages to be sent to web client.
 handle_call({checkForMessage, SessionId, _Env, _Input}, From,
@@ -821,7 +821,7 @@ handle_call({checkForMessage, SessionId, _Env, _Input}, From,
     case lists:keytake(SessionId, 1, LastMsg2) of
         {value, {SessionId, Html}, _LastMsg} ->
             %% Remove subscriber after 10 secs.
-            timer:apply_after(10000, ?MODULE, removeSubscriber, [From]),
+            timer:apply_after(5000, ?MODULE, removeSubscriber, [From]),
             {noreply, State#state{subscribers = [From|Subscribers],
                                   lastMsg     = LastMsg2}};
         {value, {SessionId, _Html}, LastMsg3} ->

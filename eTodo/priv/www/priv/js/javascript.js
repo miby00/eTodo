@@ -382,16 +382,15 @@ function notifyUser() {
         }
         if (Notification.permission === "default") {
             Notification.requestPermission(function () {
-                Notification(title, options);
+                new Notification(title, options);
             });
         } else {
             if (Notification.permission === "granted") {
-                Notification(title, options);
+                new Notification(title, options);
             }
         }
 
-        window.navigator = window.navigator || {};
-        if (navigator.vibrate !== undefined) {
+        if (window.navigator && window.navigator.vibrate) {
             // Vibrate mobile device
             navigator.vibrate(1000);
         }
@@ -405,7 +404,7 @@ function handleResult(responseText, status) {
         document.getElementById('messageField').innerHTML = responseText;
         notifyUser();
     }
-    setTimeout(function () { checkForMessage(); }, 250);
+    setTimeout(checkForMessage, 250);
 }
 
 function checkForMessage() {
@@ -486,7 +485,7 @@ function checkStatus() {
             handleStatusResult(AJAX.responseText, AJAX.status);
         }
     });
-    setTimeout(function () { checkStatus(); }, 1000);
+    setTimeout(checkStatus, 1000);
 }
 
 function enableButton(id1, id2) {

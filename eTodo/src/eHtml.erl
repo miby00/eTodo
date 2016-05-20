@@ -1609,7 +1609,7 @@ makeText([Char|Rest], alt, Alt, SoFar) ->
 %% Notes    :
 %%======================================================================
 showStatus(User, Status, StatusMsg) ->
-    OnLoad = "OnLoad=\"setTimeout('checkStatus()', 100);\" id='theBody'",
+    OnLoad = "OnLoad=\"setTimeout(checkStatus, 250);\" id='theBody'",
     [pageHeader(OnLoad, User),
      divTag([{id, "timerContainer"}],
             [divTag([{id, "timerUser"}], [User]),
