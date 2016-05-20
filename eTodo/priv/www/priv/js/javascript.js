@@ -392,8 +392,8 @@ function notifyUser() {
 
         /* if (window.navigator && window.navigator.vibrate) {
             // Vibrate mobile device
-            navigator.vibrate(1000); */
-        }
+            navigator.vibrate(1000);
+        } */
     }
 }
 
