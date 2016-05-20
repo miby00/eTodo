@@ -625,7 +625,7 @@ handle_call({message, _SessionId, _Env, Input}, _From,
     [gen_server:reply(From, "noMessages") || From <- Subs],
     TopMessages = top(Messages, 100),
     HtmlPage    = [eHtml:pageHeader(
-                     "OnLoad=\"setTimeout('checkForMessage()', 10000);\"", User),
+                     "OnLoad=\"setTimeout(function () { checkForMessage(); }, 10000);\"", User),
                    eHtml:makeForm(User, List),
                    "<div id=\"messageField\">", TopMessages, "</div>",
                    eHtml:createSendMsg("All", lists:delete(User, Users)),
