@@ -405,7 +405,7 @@ function handleResult(responseText, status) {
         document.getElementById('messageField').innerHTML = responseText;
         notifyUser();
     }
-    setTimeout(function () { checkForMessage() }, 0);
+    setTimeout(function () { checkForMessage() }, 250);
 }
 
 function checkForMessage() {
