@@ -889,8 +889,8 @@ doSortETodos(?dueTime, ETodos) ->
 doSortETodos(?doneTimestamp, ETodos) ->
     lists:keysort(#etodo.doneTime, ETodos).
 
-makeSortValue(?status, ?descPlanning)   -> 1;
-makeSortValue(?status, ?descInProgress) -> 2;
+makeSortValue(?status, ?descInProgress) -> 1;
+makeSortValue(?status, ?descPlanning)   -> 2;
 makeSortValue(?status, ?descDone)       -> 4;
 makeSortValue(?status, _)               -> 3;
 makeSortValue(?prio,   ?descHigh)       -> 1;
