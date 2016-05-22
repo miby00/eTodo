@@ -200,11 +200,12 @@ default(Value    , _Default) -> Value.
 %% @end
 %%--------------------------------------------------------------------
 apply(Module, Function, Args, Default) ->
-    case catch apply(Module, Function, Args)  of
-        {'EXIT', _} ->
-            Default;
+    try apply(Module, Function, Args)  of
         Value ->
             default(Value, Default)
+    catch
+        _:_ ->
+            Default
     end.
 
 %%--------------------------------------------------------------------

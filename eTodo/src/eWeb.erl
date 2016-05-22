@@ -38,7 +38,6 @@
          login/3,
          message/3,
          mobile/3,
-         removeSubscriber/1,
          saveTodo/3,
          sendFieldChange/3,
          sendMsg/3,
@@ -143,9 +142,6 @@ loggedIn(User) ->
 
 loggedOut(User) ->
     gen_server:cast(?MODULE, {loggedOut, User}).
-
-removeSubscriber(Subscriber) ->
-    gen_server:cast(?MODULE, {removeSubscriber, Subscriber}).
 
 setTimerRef(User, TimerRef) ->
     gen_server:cast(?MODULE, {setTimerRef, User, TimerRef}).
@@ -272,7 +268,7 @@ sendMsg(SessionId, Env, Input) ->
     mod_esi:deliver(SessionId, Status).
 
 checkForMessage(SessionId, Env, Input) ->
-    Result = call({checkForMessage, SessionId, Env, Input}, 10000),
+    Result = call({checkForMessage, SessionId, Env, Input}, 6000),
     mod_esi:deliver(SessionId, Result).
 
 %%%===================================================================
@@ -810,7 +806,7 @@ handle_call({sendMsg, _SessionId, _Env, Input}, _From,
 handle_call({checkForMessage, _SessionId, _Env, _Input}, From,
             State = #state{subscribers = Subscribers, messages = []}) ->
     %% Remove subscriber after 5 secs.
-    timer:apply_after(5000, ?MODULE, removeSubscriber, [From]),
+    erlang:send_after(5000, self(), {removeSubscriber, [From]}),
     {noreply, State#state{subscribers = [From|Subscribers]}};
 %% New messages to be sent to web client.
 handle_call({checkForMessage, SessionId, _Env, _Input}, From,
@@ -820,14 +816,17 @@ handle_call({checkForMessage, SessionId, _Env, _Input}, From,
     LastMsg2 = keepAliveSessions(LastMsg),
     case lists:keytake(SessionId, 1, LastMsg2) of
         {value, {SessionId, Html}, _LastMsg} ->
+            %% Already sent Html
             %% Remove subscriber after 5 secs.
-            timer:apply_after(5000, ?MODULE, removeSubscriber, [From]),
+            erlang:send_after(5000, self(), {removeSubscriber, [From]}),
             {noreply, State#state{subscribers = [From|Subscribers],
                                   lastMsg     = LastMsg2}};
         {value, {SessionId, _Html}, LastMsg3} ->
+            %% Really new message
             LastMsg4 = [{SessionId, Html} | LastMsg3],
             {reply, [Html|Messages], State#state{lastMsg = LastMsg4}};
         false ->
+            %% Really new message, no message sent to client.
             LastMsg5 = [{SessionId, Html} | LastMsg2],
             {reply, [Html|Messages], State#state{lastMsg = LastMsg5}}
     end;
@@ -865,10 +864,6 @@ handle_cast({loggedIn, User}, State = #state{users = Users}) ->
     {noreply, State#state{users = [User|Users]}};
 handle_cast({loggedOut, User}, State = #state{users = Users}) ->
     {noreply, State#state{users = lists:delete(User, Users)}};
-handle_cast({removeSubscriber, Subscriber},
-            State = #state{subscribers = Subs}) ->
-    gen_server:reply(Subscriber, "noMessages"),
-    {noreply, State#state{subscribers = lists:delete(Subscriber, Subs)}};
 handle_cast({setStatusUpdate, User, Status, StatusMsg},
             State = #state{status = StatusList}) ->
     StatusList2 = lists:keystore(User, 1, StatusList, {User, Status, StatusMsg}),
@@ -921,6 +916,16 @@ handle_info(DownMsg = {'DOWN', _Reference, process, _Object, _Info}, State) ->
     GuestUsers = getGuestUsers(State#state.user),
     Port = startWebServer(State#state.user, GuestUsers),
     {noreply, State#state{port = Port}};
+handle_info({removeSubscriber, Subscriber},
+    State = #state{subscribers = Subs}) ->
+    Subs2 = case lists:member(Subscriber, Subs) of
+                true ->
+                    gen_server:reply(Subscriber, "noMessages"),
+                    lists:delete(Subscriber, Subs);
+                false ->
+                    Subs
+            end,
+    {noreply, State#state{subscribers = Subs2}};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -1301,7 +1306,7 @@ toBinary(Value) when is_binary(Value) -> Value.
 %% @end
 %%--------------------------------------------------------------------
 flattenMsg(HtmlIOList) ->
-    lists:flatten(io_lib:format("~s", [HtmlIOList])).
+    binary_to_list(iolist_to_binary(HtmlIOList)).
 
 %%--------------------------------------------------------------------
 %% @private
