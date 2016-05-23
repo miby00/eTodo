@@ -591,6 +591,31 @@ table.msgSent {
     background-color: #c2d8ed;
 }
 
+.scheduleReportTable {
+    border-color: black;
+    border-width: 6px;
+}
+
+.scheduleDesc {
+    text-align: left;
+    font-weight: bold;
+    width: 35%;
+}
+
+.scheduleDescTask {
+    text-align: left;
+    width: 35%;
+}
+
+.scheduleColumn {
+    text-align: center;
+}
+
+.scheduleHeading {
+    background-color: black;
+    color: white;
+}
+
 input.rounded {
 
     border: none;
