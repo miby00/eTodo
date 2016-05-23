@@ -1628,7 +1628,7 @@ generateTimeLog(State = #guiState{user = User}) ->
 %%--------------------------------------------------------------------
 generateSchedule(State = #guiState{user = User}) ->
     Obj    = obj("scheduleReport", State),
-    Report = eHtml:makeSceduleReport(User),
+    Report = eHtml:makeScheduleReport(User),
     wxHtmlWindow:setPage(Obj, Report),
     State.
 

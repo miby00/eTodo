@@ -225,5 +225,6 @@
 -define(defLoggedWork,  "-- Logged work --").
 -define(defTimeReport,  "-- Time report --").
 -define(defShowStatus,  "-- Show status --").
+-define(defSchedule,    "---- Schedule ----").
 
 -define(subTaskList,    "--> ").

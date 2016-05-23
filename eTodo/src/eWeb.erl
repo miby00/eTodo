@@ -423,6 +423,8 @@ handle_call({listsTodos, SessionId, _Env, Input}, _From,
             ?defShowStatus ->
                 {Status, StatusMsg} = getStatus(User, SList),
                 eHtml:showStatus(User, Status, StatusMsg);
+            ?defSchedule ->
+                doShowSchedule(User);
             _ ->
                 [eHtml:pageHeader(OnLoad, User),
                  eHtml:makeForm(User, List),
@@ -491,7 +493,8 @@ handle_call({createTaskList, _SessionId, Env, Input}, _From,
             TaskLists1 = default(UserCfg#userCfg.lists, []),
             TaskLists2 = [TaskList|lists:delete(TaskList, TaskLists1)],
             TaskLists3 = TaskLists2 -- [?defInbox, ?defLoggedWork,
-                                        ?defShowStatus, ?defTimeReport],
+                                        ?defShowStatus, ?defTimeReport,
+                                        ?defSchedule],
             eTodoDB:saveUserCfg(UserCfg#userCfg{lists = TaskLists3}),
             eTodo:taskListsUpdated();
         _ ->
@@ -668,8 +671,8 @@ handle_call({checkStatus, SessionId, _Env, _Input}, _From,
     {Status, StatusMsg} = getStatus(User, StatusList),
     Seconds  = getSeconds(Timer),
     HtmlPage = ["{\"timer\":", integer_to_list(Seconds), ","
-        "\"status\":\"", Status, "\",\"statusMsg\":\"",
-        makeHtml(StatusMsg), "\"}"],
+                "\"status\":\"", Status, "\",\"statusMsg\":\"",
+                makeHtml(StatusMsg), "\"}"],
     SessionHdrList2 = keepAliveSessions(SessionHdrList),
     {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
 handle_call({showLoggedWork, SessionId, _Env, Input}, _From,
@@ -917,7 +920,7 @@ handle_info(DownMsg = {'DOWN', _Reference, process, _Object, _Info}, State) ->
     Port = startWebServer(State#state.user, GuestUsers),
     {noreply, State#state{port = Port}};
 handle_info({removeSubscriber, Subscriber},
-    State = #state{subscribers = Subs}) ->
+            State = #state{subscribers = Subs}) ->
     Subs2 = case lists:member(Subscriber, Subs) of
                 true ->
                     gen_server:reply(Subscriber, "noMessages"),
@@ -1694,3 +1697,17 @@ encrypt({Key, IV}, Binary) ->
 
 decrypt({Key, IV}, Binary) ->
     crypto:block_decrypt(aes_cfb128, Key, IV, Binary).
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Construct logged work html page.
+%% @spec doShowSchedule(User) -> Html
+%% @end
+%%--------------------------------------------------------------------
+doShowSchedule(User) ->
+    [eHtml:pageHeader(User),
+     eHtml:makeForm(User, ?defTaskList),
+     eHtml:showScheduleReport(User),
+     eHtml:pageFooter()].
+

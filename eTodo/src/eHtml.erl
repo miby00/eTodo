@@ -25,7 +25,7 @@
          makeText/1,
          makeWorkLogReport/2,
          makeTimeLogReport/3,
-         makeSceduleReport/1,
+         makeScheduleReport/1,
          loginForm/1,
          createTaskForm/2,
          createTaskListForm/0,
@@ -36,7 +36,8 @@
          showLoggedWork/2,
          showTimeReport/1,
          showTimeReport/3,
-         showTimeReport/4]).
+         showTimeReport/4,
+         showScheduleReport/1]).
 
 -export([htmlTag/0, htmlTag/1, htmlTag/2,
          headTag/0, headTag/1, headTag/2,
@@ -534,6 +535,7 @@ createForm(User, Default) ->
                                                             [?defLoggedWork,
                                                              ?defTimeReport,
                                                              ?defShowStatus,
+                                                             ?defSchedule,
                                                              ?defInbox,
                                                              ?defTaskList])]);
             #userCfg{lists = Lists} ->
@@ -541,6 +543,7 @@ createForm(User, Default) ->
                                                            [?defLoggedWork,
                                                             ?defTimeReport,
                                                             ?defShowStatus,
+                                                            ?defSchedule,
                                                             ?defInbox |
                                                             Lists])])
 
@@ -1821,13 +1824,65 @@ addToAccNoDuplicate([Uid | Rest], Acc) ->
     addToAccNoDuplicate(Rest, [toStr(Uid) | lists:delete(Uid, Acc)]).
 
 %%======================================================================
+%% Function : showScheduleReport(User) -> Html
+%% Purpose  : Show schedule report in web gui.
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+showScheduleReport(User) ->
+    Alarms = getAlarmList(User),
+    ETodos = getTodoInfo(User),
+    TimeMarkers = getTimeMarkers(),
+    Events = lists:reverse(lists:keysort(1, TimeMarkers ++ Alarms ++ ETodos)),
+    tableTag([trTag([{class, "scheduleReportTable"}],
+                    [tdTag([{class, "scheduleDesc scheduleHeading"}],
+                           "Description"),
+                     tdTag([{class, "scheduleColumn scheduleHeading"}],
+                           "Next alarm"),
+                     tdTag([{class, "scheduleColumn scheduleHeading"}],
+                           "Due date"),
+                     tdTag([{class, "scheduleColumn scheduleHeading"}],
+                           "Time left(h)")]) |
+              showScheduleReport2(Events, [])]).
+
+showScheduleReport2([], Acc) ->
+    Acc;
+showScheduleReport2([{_Key, Desc} | Rest], Acc) ->
+    Odd  = ((length(Rest) rem 2) =/= 0),
+    Opts = if Odd ->  [{class, "trOdd"}];
+              true -> [{class, "trEven"}]
+           end,
+    showScheduleReport2(Rest, [trTag(Opts,
+                                     [tdTag([{class, "scheduleDesc"}],   Desc),
+                                      tdTag([{class, "scheduleColumn"}], ""),
+                                      tdTag([{class, "scheduleColumn"}], ""),
+                                      tdTag([{class, "scheduleColumn"}], "")]) | Acc]);
+showScheduleReport2([{_Key, DateTime, DueDate,
+                      UidStr, Desc, RemTime} | Rest], Acc) ->
+    Odd  = ((length(Rest) rem 2) =/= 0),
+    Opts = if Odd ->  [{class, "trOdd"}];
+              true -> [{class, "trEven"}]
+           end,
+    Href = "/eTodo/eWeb:showTodo?uid=" ++ http_uri:encode(UidStr),
+    showScheduleReport2(Rest, [trTag(Opts,
+                                     [tdTag([{class, "scheduleDescTask"}],
+                                            [aTag([{href, Href}], Desc)]),
+                                      tdTag([{class, "scheduleColumn"}],
+                                            toStr(DateTime)),
+                                      tdTag([{class, "scheduleColumn"}],
+                                            toStr(DueDate)),
+                                      tdTag([{class, "scheduleColumn"}],
+                                            toStr(RemTime))]) | Acc]).
+
+%%======================================================================
 %% Function : makeSceduleReport(User) -> Html
 %% Purpose  : Make scedule html report.
 %% Types    :
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
-makeSceduleReport(User) ->
+makeScheduleReport(User) ->
     Opts = [{width, "25%"}, {align, center}],
     Opts2 = [{width, "20%"}, {align, center}],
     Alarms = getAlarmList(User),
@@ -1839,7 +1894,7 @@ makeSceduleReport(User) ->
                      tdTag(Opts, heading("Next alarm")),
                      tdTag(Opts2, heading("Due date")),
                      tdTag(Opts2, heading("Time left(h)"))]) |
-              makeSceduleReport2(Events, [])]).
+              makeScheduleReport2(Events, [])]).
 
 getTodoInfo(User) ->
     TodoList = eTodoDB:getTodos(User, ?defTaskList),
@@ -1896,30 +1951,30 @@ doSaveAlarmInfo(Uid) ->
     {_, RemTime} = eTodoDB:getTime(toStr(Uid)),
     {Desc2, DueDate, UidStr, RemTime}.
 
-makeSceduleReport2([], Acc) ->
+makeScheduleReport2([], Acc) ->
     Acc;
-makeSceduleReport2([{_Key, Desc} | Rest], Acc) ->
+makeScheduleReport2([{_Key, Desc} | Rest], Acc) ->
     Odd = ((length(Rest) rem 2) =/= 0),
-    makeSceduleReport2(Rest, [trTag(bgColor(Odd),
-                                    [tdTag([{width, "35%"}], bTag(Desc)),
-                                     tdTag([{width, "25%"}], ""),
-                                     tdTag([{width, "20%"}], ""),
-                                     tdTag([{width, "20%"}], "")]) | Acc]);
-makeSceduleReport2([{_Key, DateTime, DueDate,
-                     UidStr, Desc, RemTime} | Rest], Acc) ->
+    makeScheduleReport2(Rest, [trTag(bgColor(Odd),
+                                     [tdTag([{width, "35%"}], bTag(Desc)),
+                                      tdTag([{width, "25%"}], ""),
+                                      tdTag([{width, "20%"}], ""),
+                                      tdTag([{width, "20%"}], "")]) | Acc]);
+makeScheduleReport2([{_Key, DateTime, DueDate,
+                      UidStr, Desc, RemTime} | Rest], Acc) ->
     Odd = ((length(Rest) rem 2) =/= 0),
-    makeSceduleReport2(Rest, [trTag(bgColor(Odd),
-                                    [tdTag([{width, "35%"}],
-                                           [aTag([{href, UidStr}], Desc)]),
-                                     tdTag([{width, "25%"},
-                                            {align, "center"}],
-                                           toStr(DateTime)),
-                                     tdTag([{width, "20%"},
-                                            {align, "center"}],
-                                           toStr(DueDate)),
-                                     tdTag([{width, "20%"},
-                                            {align, "center"}],
-                                           toStr(RemTime))]) | Acc]).
+    makeScheduleReport2(Rest, [trTag(bgColor(Odd),
+                                     [tdTag([{width, "35%"}],
+                                            [aTag([{href, UidStr}], Desc)]),
+                                      tdTag([{width, "25%"},
+                                             {align, "center"}],
+                                            toStr(DateTime)),
+                                      tdTag([{width, "20%"},
+                                             {align, "center"}],
+                                            toStr(DueDate)),
+                                      tdTag([{width, "20%"},
+                                             {align, "center"}],
+                                            toStr(RemTime))]) | Acc]).
 
 getTimeMarkers() ->
     Date = date(),
