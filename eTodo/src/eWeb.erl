@@ -624,7 +624,7 @@ handle_call({message, _SessionId, _Env, Input}, _From,
     [gen_server:reply(From, "noMessages") || From <- Subs],
     TopMessages = top(Messages, 100),
     HtmlPage    = [eHtml:pageHeader(
-                     "OnLoad=\"setTimeout(checkForMessage, 5000);\"", User),
+                     "OnLoad=\"setTimeout(eTodo.checkForMessage, 5000);\"", User),
                    eHtml:makeForm(User, List),
                    "<div id=\"messageField\">", TopMessages, "</div>",
                    eHtml:createSendMsg("All", lists:delete(User, Users)),
@@ -773,15 +773,15 @@ handle_call({sendFieldChange, _SessionId, _Env, Input}, _From,
             eTodoDB:updateTodo(User, Todo2),
             eTodo:todoUpdated(User, Todo2);
         ?progress ->
-            Todo2 = Todo#todo{progress = list_to_integer(Value)},
+            Todo2 = Todo#todo{progress = list_to_integer(removeWS(Value))},
             eTodoDB:updateTodo(User, Todo2),
             eTodo:todoUpdated(User, Todo2);
         ?estimate ->
             {_Estimate, Remaining} = eTodoDB:getTime(Uid),
-            eTodoDB:saveTime(Uid, list_to_integer(Value), Remaining);
+            eTodoDB:saveTime(Uid, list_to_integer(removeWS(Value)), Remaining);
         ?remaining ->
             {Estimate, _Remaining} = eTodoDB:getTime(Uid),
-            eTodoDB:saveTime(Uid, Estimate, list_to_integer(Value));
+            eTodoDB:saveTime(Uid, Estimate, list_to_integer(removeWS(Value)));
         ?dueTime ->
             Todo2 = Todo#todo{dueTime = toDB(HtmlValue, time)},
             eTodoDB:updateTodo(User, Todo2),
@@ -1711,3 +1711,9 @@ doShowSchedule(User) ->
      eHtml:showScheduleReport(User),
      eHtml:pageFooter()].
 
+removeWS(Value) ->
+    try hd(string:tokens(Value, "\t\r\n ")) of
+        Value2 -> Value2
+    catch
+        _:_ -> "0"
+    end.

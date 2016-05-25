@@ -555,11 +555,11 @@ createForm(User, Default) ->
             [selectTag([{id, "taskSelect"},
                         {name, "list"},
                         {onfocus, "this.selectedIndex = -1;"},
-                        {onchange, "submitForm('searchForm')"}],
+                        {onchange, "eTodo.submitForm('searchForm')"}],
                        createForm2(TodoLists, guiName(Default))),
              inputTag([{type, "submit"},
                        {id, "searchButton"},
-                       {onclick, "submitForm('searchForm')"},
+                       {onclick, "eTodo.submitForm('searchForm')"},
                        {value, "Search"}]),
              inputTag([{type, "text"},
                        {name, "search"},
@@ -616,14 +616,14 @@ settingsPage(User, TaskList) ->
                                     {name,    "filterStatus"},
                                     {class,   "selects"},
                                     {onchange,
-                                     "sendSetting('filterStatus')"}],
+                                     "eTodo.sendSetting('filterStatus')"}],
                                    createForm2(StatusList, DefStatus))])]),
                trTag(
                  [tdTag("Keep tasks with prio"),
                   tdTag([selectTag([{id, "filterPrio"},
                                     {name, "filterPrio"},
                                     {class, "selects"},
-                                    {onchange, "sendSetting('filterPrio')"}],
+                                    {onchange, "eTodo.sendSetting('filterPrio')"}],
                                    createForm2(PrioList, DefPrio))])])
               ]),
      tableTag([{id, "presentationSettings"}],
@@ -637,7 +637,7 @@ settingsPage(User, TaskList) ->
                                     {name,    "listType"},
                                     {class,   "selects"},
                                     {onchange,
-                                     "sendSetting('listType')"}],
+                                     "eTodo.sendSetting('listType')"}],
                                    createForm2(ListTypes, DefListType))])]),
                trTag(
                  [tdTag("Sort order(Primary)"),
@@ -645,7 +645,7 @@ settingsPage(User, TaskList) ->
                                     {name,    "sortOrder"},
                                     {class,   "selects"},
                                     {onchange,
-                                     "sendSetting('sortOrder')"}],
+                                     "eTodo.sendSetting('sortOrder')"}],
                                    createForm2(SortOrders, DefSortOrder))])]),
                trTag(
                  [tdTag("Sort order(Secondary)"),
@@ -653,13 +653,13 @@ settingsPage(User, TaskList) ->
                                     {name,    "sortOrderSec"},
                                     {class,   "selects"},
                                     {onchange,
-                                     "sendSetting('sortOrderSec')"}],
+                                     "eTodo.sendSetting('sortOrderSec')"}],
                                    createForm2(SortOrders, DefSortOrder2))])])
               ]),
      inputTag([{type,  "button"},
                {id,    "doneBtn"},
                {value, "List tasks"},
-               {onclick, "openLink('/eTodo/eWeb"
+               {onclick, "eTodo.openLink('/eTodo/eWeb"
                 ":listTodos?list=" ++
                     http_uri:encode(List) ++ "');"}])].
 
@@ -784,11 +784,11 @@ deleteTaskListForm(User, TaskList) ->
          inputTag([{type,    "button"},
                    {id,      "yesBtn"},
                    {value,   "Yes"},
-                   {onclick, "deleteListYes(event, 'dlist');"}]),
+                   {onclick, "eTodo.deleteListYes(event, 'dlist');"}]),
          inputTag([{type,    "button"},
                    {id,      "noBtn"},
                    {value,   "No"},
-                   {onclick, "deleteListNo(event, '" ++ TaskList ++ "');"}])],
+                   {onclick, "eTodo.deleteListNo(event, '" ++ TaskList ++ "');"}])],
     [tableTag(
        [{id, deleteTaskList}],
        [trTag([thTag([{colspan, 4},
@@ -806,7 +806,7 @@ deleteTaskListForm(User, TaskList) ->
            trTag([{id, "dListRow"}],
                  [tdTag([{colspan, 4}],
                         inputTag([{type,     "button"},
-                                  {onclick,  "deleteList(event);"},
+                                  {onclick,  "eTodo.deleteList(event);"},
                                   {id,       "deleteTaskListBtn"},
                                   {value,    "Delete list"}]))]),
            trTag([{id, "yesNoDList"}, {class,   "hide"}],
@@ -1073,14 +1073,14 @@ makeTableHeader(User, Uid, false) ->
     case compactTable(User) of
         true ->
             ["<table class='todoTable tCompact ttCompact' id='table", Uid, "' ",
-             "OnClick=\"showDetails(", Uid, ");\">"];
+             "OnClick=\"eTodo.showDetails(", Uid, ");\">"];
         false ->
             ["<table class='todoTable tCompact' id='table", Uid, "' ",
-             "OnClick=\"showDetails(", Uid, ");\">"]
+             "OnClick=\"eTodo.showDetails(", Uid, ");\">"]
     end;
 makeTableHeader(_User, Uid, true) ->
     ["<table class='subTodoTable' id='table", Uid, "' "
-     "OnClick=\"openLink('/eTodo/eWeb:listTodos",
+     "OnClick=\"eTodo.openLink('/eTodo/eWeb:listTodos",
      "?list=", Uid, "&search=&submit=Search');\">"].
 
 makeButtons(Uid) ->
@@ -1090,27 +1090,27 @@ makeButtons(Type, Uid) ->
     InputTags = [inputTag([{type,    "button"},
                            {id,      "applyBtn"},
                            {value,   "Apply"},
-                           {onclick, "saveTaskChanges(event, '" ++ Uid ++ "');"}]),
+                           {onclick, "eTodo.saveTaskChanges(event, '" ++ Uid ++ "');"}]),
                  inputTag([{type,    "button"},
                            {id,      "cancelBtn"},
                            {value,   "Cancel"},
-                           {onclick, "cancelBtn(event);"}])],
+                           {onclick, "eTodo.cancelBtn(event);"}])],
 
     DeleteTag = [inputTag([{type,    "button"},
                            {id,      "deleteBtn"},
                            {value,   "Delete"},
-                           {onclick, "deleteTask(event, '" ++ Uid ++ "');"}])],
+                           {onclick, "eTodo.deleteTask(event, '" ++ Uid ++ "');"}])],
 
     YesNoQuestion = [spanTag([{class, "yesno"}],
                              ["Are you sure?"]),
                      inputTag([{type,    "button"},
                                {id,      "yesBtn"},
                                {value,   "Yes"},
-                               {onclick, "deleteYes(event, '" ++ Uid ++ "');"}]),
+                               {onclick, "eTodo.deleteYes(event, '" ++ Uid ++ "');"}]),
                      inputTag([{type,    "button"},
                                {id,      "noBtn"},
                                {value,   "No"},
-                               {onclick, "deleteNo(event, '" ++ Uid ++ "');"}])],
+                               {onclick, "eTodo.deleteNo(event, '" ++ Uid ++ "');"}])],
     case Type of
         noDelete ->
             {InputTags, []};
@@ -1126,7 +1126,7 @@ dateCellCSS(Text, Uid, Extra) ->
           [inputTag([{class, "dateInput"},
                      {type,  date},
                      {id,    "date_" ++ Uid},
-                     {onclick, "stopPropagation(event);"},
+                     {onclick, "eTodo.stopPropagation(event);"},
                      {value, Text}])]).
 
 dataCellCSS(Text, Extra) ->
@@ -1150,7 +1150,7 @@ dataCellCSS4(Type, Text, Extra, "done", Uid) ->
       [{class, "data done"},
        {id,    Id},
        "contenteditable",
-       {onclick, "stopPropagation(event);"}]
+       {onclick, "eTodo.stopPropagation(event);"}]
       ++ Extra, [makeHtml(Text, "/priv")]);
 dataCellCSS4(Type, Text, Extra, _StStr, Uid) ->
     Id = Type ++ toStr(Uid),
@@ -1158,7 +1158,7 @@ dataCellCSS4(Type, Text, Extra, _StStr, Uid) ->
       [{class, "data"},
        {id,    Id},
        "contenteditable",
-       {onclick, "stopPropagation(event);"}]
+       {onclick, "eTodo.stopPropagation(event);"}]
       ++ Extra, [makeHtml(Text, "/priv")]).
 
 createStatusDataCell(Status, Uid) ->
@@ -1168,8 +1168,8 @@ createStatusDataCell(Status, Uid) ->
       selectTag(
         [{class,    "status"},
          {id,       SelectId},
-         {onchange, "sendStatus(" ++ SendStatus ++ ");"},
-         {onclick,  "stopPropagation(event);"}],
+         {onchange, "eTodo.sendStatus(" ++ SendStatus ++ ");"},
+         {onclick,  "eTodo.stopPropagation(event);"}],
         createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
                     default(Status, ?descNA)))).
 createStatusDataCell2(Status, Uid) ->
@@ -1179,8 +1179,8 @@ createStatusDataCell2(Status, Uid) ->
           selectTag(
             [{class,    "status cstatus"},
              {id,       SelectId},
-             {onchange, "sendStatus(" ++ SendStatus ++ ");"},
-             {onclick,  "stopPropagation(event);"}],
+             {onchange, "eTodo.sendStatus(" ++ SendStatus ++ ");"},
+             {onclick,  "eTodo.stopPropagation(event);"}],
             createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
                         default(Status, ?descNA)))).
 
@@ -1191,8 +1191,8 @@ createPriorityDataCell(Prio, Uid) ->
       selectTag(
         [{class,    "priority"},
          {id,       SelectId},
-         {onchange, "sendPriority(" ++ SendPrio ++ ");"},
-         {onclick,  "stopPropagation(event);"}],
+         {onchange, "eTodo.sendPriority(" ++ SendPrio ++ ");"},
+         {onclick,  "eTodo.stopPropagation(event);"}],
         createForm2([?descLow, ?descMedium, ?descHigh, ?descNA],
                     default(Prio, ?descNA)))).
 
@@ -1403,7 +1403,7 @@ generateAlarmMsg(Uid, Text) ->
 %%======================================================================
 createSendMsg(Default, Users) ->
     UserList = ["All" | Users],
-    Script = "sendMsg(\"userSelect\", \"sendMessage\");",
+    Script = "eTodo.sendMsg(\"userSelect\", \"sendMessage\");",
     tableTag([{id, "footer"}],
              [trTag(
                 [tdTag(
@@ -1414,10 +1414,10 @@ createSendMsg(Default, Users) ->
                               {name, "submit"},
                               {id, "sendButton"},
                               {value, "Send"},
-                              {"OnClick", Script}]),
+                              {onclick, Script}]),
                     inputTag([{type, "text"},
                               {name, "sendMsg"},
-                              {onkeydown, "return checkForEnter(event);"},
+                              {onkeydown, "return eTodo.checkForEnter(event);"},
                               {id, "sendMessage"},
                               {class, "rounded"}])])])]).
 
@@ -1612,7 +1612,7 @@ makeText([Char|Rest], alt, Alt, SoFar) ->
 %% Notes    :
 %%======================================================================
 showStatus(User, Status, StatusMsg) ->
-    OnLoad = "OnLoad=\"setInterval(checkStatus, 1000);\" id='theBody'",
+    OnLoad = "OnLoad=\"setInterval(eTodo.checkStatus, 1000);\" id='theBody'",
     [pageHeader(OnLoad, User),
      divTag([{id, "timerContainer"}],
             [divTag([{id, "timerUser"}], [User]),
