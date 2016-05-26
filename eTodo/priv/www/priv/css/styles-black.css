@@ -53,6 +53,7 @@ td {
     padding: 2px;
     border-radius: 3px;
     border: 1px;
+    word-wrap: break-word;
 }
 
 tr {
