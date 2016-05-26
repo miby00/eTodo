@@ -487,7 +487,7 @@ getStyleSheet(UserName) ->
 %% Notes    :
 %%======================================================================
 javascript() ->
-    "<script type='text/JavaScript' src='/priv/js/javascript.js'></script>".
+    "<script type='text/JavaScript' src='/priv/js/etodo.js'></script>".
 
 %%======================================================================
 %% Function :
