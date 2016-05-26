@@ -809,7 +809,7 @@ handle_call({sendMsg, _SessionId, _Env, Input}, _From,
 handle_call({checkForMessage, _SessionId, _Env, _Input}, From,
             State = #state{subscribers = Subscribers, messages = []}) ->
     %% Remove subscriber after 5 secs.
-    erlang:send_after(5000, self(), {removeSubscriber, [From]}),
+    erlang:send_after(5000, self(), {removeSubscriber, From}),
     {noreply, State#state{subscribers = [From|Subscribers]}};
 %% New messages to be sent to web client.
 handle_call({checkForMessage, SessionId, _Env, _Input}, From,
@@ -821,7 +821,7 @@ handle_call({checkForMessage, SessionId, _Env, _Input}, From,
         {value, {SessionId, Html}, _LastMsg} ->
             %% Already sent Html
             %% Remove subscriber after 5 secs.
-            erlang:send_after(5000, self(), {removeSubscriber, [From]}),
+            erlang:send_after(5000, self(), {removeSubscriber, From}),
             {noreply, State#state{subscribers = [From|Subscribers],
                                   lastMsg     = LastMsg2}};
         {value, {SessionId, _Html}, LastMsg3} ->
