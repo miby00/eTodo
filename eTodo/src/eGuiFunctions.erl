@@ -1268,6 +1268,8 @@ updateColumns(FilterCols, [{ColNr, Column}|Rest], State) ->
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
+useFilter(_TaskList, Filter, #guiState{mode = noGui}) ->
+    Filter;
 useFilter(TaskList, Filter, State) ->
     UseFlt = obj("checkBoxUseFilter", State),
     case wxCheckBox:isChecked(UseFlt) of

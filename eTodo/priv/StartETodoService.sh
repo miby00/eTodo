@@ -13,7 +13,7 @@ cd eTodo/src
 erl -make
 cd ..
 cd ebin
-erl -boot start_sasl -smp -pa ../../eLog/ebin -pa ../../ePort/ebin -pa ../../eTodo/ebin -mnesia dir "\"$HOME/.eTodo\"" -eLog logDir "\"$HOME/.eTodo/logs/eLog\"" -run startETodo noGui $@
+erl -boot start_sasl -smp -pa ../../eLog/ebin -pa ../../ePort/ebin -pa ../../eTodo/ebin -mnesia dir "\"$HOME/.eTodo\"" -eLog logDir "\"$HOME/.eTodo/logs/eLog\"" -noshell -detached -run startETodo noGui $@
 
 
 
