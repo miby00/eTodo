@@ -360,20 +360,33 @@ init([]) ->
     TablesToCreate = [todo, userInfo, conCfg, userCfg, logWork, logTime,
                       workDesc, listCfg, alarmCfg, httpd_user, httpd_group],
 
-    wx:new(),
-    PDlg = wxProgressDialog:new("eTodo", "Creating tables...", [{maximum, 30}]),
+    PDlg = createProgressDialog(),
     createTables(ExistingTables, [schema]),
     waitForTables(TablesToCreate, PDlg, 0),
     createTables(ExistingTables, TablesToCreate),
     mnesia:wait_for_tables(TablesToCreate, 30000),
     checkAndRepair(),
-    wxProgressDialog:update(PDlg, 30),
+    updateProgressDialog(PDlg, 30),
     {ok, #state{}}.
+
+createProgressDialog() ->
+    case os:getenv("eTodoMode") of
+        "noGui" ->
+            undefined;
+        _ ->
+            wx:new(),
+            wxProgressDialog:new("eTodo", "Creating tables...", [{maximum, 30}])
+    end.
+
+updateProgressDialog(undefined, _Progress) ->
+    ok;
+updateProgressDialog(PDlg, Progress) ->
+    wxProgressDialog:update(PDlg, Progress).
 
 waitForTables(_TablesToCreate, _PDlg, 30) ->
     ok;
 waitForTables(TablesToCreate, PDlg, Prog) ->
-    wxProgressDialog:update(PDlg, Prog),
+    updateProgressDialog(PDlg, Prog),
     case mnesia:wait_for_tables(TablesToCreate, 1000) of
         ok ->
             ok;

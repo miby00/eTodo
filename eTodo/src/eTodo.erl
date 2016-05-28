@@ -648,6 +648,19 @@ handle_cast({loggedIn, Peer}, State = #guiState{mode = noGui,
             ok
     end,
     {noreply, State};
+handle_cast({todoDeleted, Uid},
+            State = #guiState{user = User, mode = noGui}) ->
+    %% Remove task from database.
+    eTodoDB:delTodo(Uid, User),
+    {noreply, State};
+handle_cast({taskListDeleted, List},
+    State = #guiState{user = User, mode = noGui}) ->
+    TodoLists1 = getTodoLists(User),
+    TodoLists2 = lists:delete(List, TodoLists1),
+    eTodoDB:moveTodosToTaskList(User, ?defTaskList, List),
+    UserCfg = eTodoDB:readUserCfg(User),
+    eTodoDB:saveUserCfg(UserCfg#userCfg{lists = TodoLists2}),
+    {noreply, State};
 handle_cast(_Msg, State = #guiState{mode = noGui}) ->
     {noreply, State};
 handle_cast({acceptingIncCon, User, Circle, Port}, State) ->
