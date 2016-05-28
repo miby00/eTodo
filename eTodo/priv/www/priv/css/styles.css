@@ -237,6 +237,10 @@ table.msgSent {
     width: 100%;
 }
 
+.owner {
+    width: 100%;
+}
+
 #toolbar {
     width: 110px;
 }
