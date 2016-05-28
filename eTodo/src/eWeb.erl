@@ -42,6 +42,7 @@
          sendFieldChange/3,
          sendMsg/3,
          sendPriority/3,
+         sendOwner/3,
          sendSetting/3,
          sendStatus/3,
          setStatusUpdate/3,
@@ -253,6 +254,9 @@ sendStatus(SessionId, Env, Input) ->
     mod_esi:deliver(SessionId, Status).
 sendPriority(SessionId, Env, Input) ->
     Status = call({sendPriority, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, Status).
+sendOwner(SessionId, Env, Input) ->
+    Status = call({sendOwner, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, Status).
 saveTodo(SessionId, Env, Input) ->
     Status = call({saveTodo, SessionId, Env, Input}),
@@ -710,6 +714,16 @@ handle_call({sendPriority, _SessionId, _Env, Input}, _From,
     Todo1 = eTodoDB:getTodo(list_to_integer(Uid)),
     PrioDB = eTodoUtils:toDB(Prio),
     Todo2 = Todo1#todo{priority = PrioDB},
+    eTodoDB:updateTodo(User, Todo2),
+    eTodo:todoUpdated(User, Todo2),
+    {reply, "ok", State};
+handle_call({sendOwner, _SessionId, _Env, Input}, _From,
+            State = #state{user = User}) ->
+    Dict = makeDict(Input),
+    {ok, Owner} = find("owner", Dict),
+    {ok, Uid}  = find("uid",      Dict),
+    Todo1 = eTodoDB:getTodo(list_to_integer(Uid)),
+    Todo2 = Todo1#todo{owner = Owner},
     eTodoDB:updateTodo(User, Todo2),
     eTodo:todoUpdated(User, Todo2),
     {reply, "ok", State};

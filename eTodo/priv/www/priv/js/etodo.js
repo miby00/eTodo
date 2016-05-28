@@ -248,7 +248,7 @@ var eTodo;
             element.childNodes[0].childNodes[6].classList.remove('hide');
             element.childNodes[0].childNodes[7].classList.remove('hide');
             element.childNodes[0].childNodes[8].classList.remove('hide');
-            fillOwnerSelectBox();
+            fillOwnerSelectBox(uid);
             if (element.classList.contains('ttCompact')) {
                 addClass(element.childNodes[0].childNodes[0], 'hide');
             }
@@ -269,10 +269,24 @@ var eTodo;
     }
     eTodo.showDetails = showDetails;
 
-    function fillOwnerSelectBox() {
+    function fillOwnerSelectBox(uid) {
         "use strict";
 
-        console.log(eTodoData.getUsers());
+        var user, i, len,
+            ownerSelect = document.getElementById('idOwner' + uid),
+            owner = ownerSelect.options[0].value;
+
+        // Remove all options
+        ownerSelect.innerHTML = "";
+
+        // Fill with new users, set owner as default.
+        for (i = 0, len = eTodoData.getUsers().length; i < len; i++) {
+            user = eTodoData.getUsers()[i];
+            ownerSelect.options[ownerSelect.options.length] = new Option(user);
+            if (user === owner) {
+                ownerSelect.options[i].selected = true;
+            }
+        }
     }
 
     function submitForm(value) {
@@ -363,6 +377,15 @@ var eTodo;
         sendCall(AJAX, url);
     }
     eTodo.sendPriority = sendPriority;
+
+    function sendOwner(Id, Uid) {
+        "use strict";
+        var AJAX = newAJAX(),
+            data = document.getElementById(Id).value,
+            url  = '/eTodo/eWeb:sendOwner?owner=' + data + '&uid=' + Uid;
+        sendCall(AJAX, url);
+    }
+    eTodo.sendOwner = sendOwner;
 
     function notifyUser() {
         "use strict";

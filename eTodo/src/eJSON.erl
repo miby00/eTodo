@@ -32,8 +32,10 @@
 %% Notes    :
 %%======================================================================
 makeUsersObj() ->
-    Users = eTodoDB:getUsers(),
-    "{\"Users\":" ++ io_lib:format("~p", [Users]) ++ "}".
+    Users1 = [{User, string:to_lower(User)} || User <- eTodoDB:getUsers()],
+    Users2 = lists:keysort(2, Users1),
+    Users3 = [User || {User, _} <- Users2],
+    "{\"Users\":" ++ io_lib:format("~p", [Users3]) ++ "}".
 
 %%======================================================================
 %% Function :

@@ -923,6 +923,9 @@ makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
                        owner       = Owner}, User) ->
     ProgStr = toStr(Progress),
     StStr   = atom_to_list(StatusDB),
+    Users1 = [{User, string:to_lower(User)} || User <- eTodoDB:getUsers()],
+    Users2 = lists:keysort(2, Users1),
+    Users3 = [User || {User, _} <- Users2],
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
 
     {InputTags, YesNoQuestion} = makeButtons(noDelete, Uid),
@@ -933,7 +936,7 @@ makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
         headerCellCSS(?prio), createPriorityDataCell(Priority, Uid)]),
      trTag(
        [headerCellCSS(?sharedWith), dataCellCSS(SharedWith, []),
-        headerCellCSS(?owner), dataCellCSS(Owner, [])]),
+        headerCellCSS(?owner), createOwnerDataCell(Owner, Users3, Uid)]),
      trTag(
        [headerCellCSS(?createTime), dataCellCSS2(CreateTime, []),
         headerCellCSS(?dueTime), dataCellCSS2(DueTime, [])]),
@@ -998,7 +1001,7 @@ makeHtmlTaskCSS(#etodo{uid         = Uid,
      trTag(
        [{class, "hide"}],
        [headerCellCSS(?sharedWith), dataCellCSS(SharedWith, []),
-        headerCellCSS(?owner), dataCellCSS(Owner, [])]),
+        headerCellCSS(?owner), createOwnerDataCell(Owner, [Owner], Uid)]),
      trTag(
        [{class, "hide"}],
        [headerCellCSS(?createTime), dataCellCSS2(CreateTime, []),
@@ -1195,6 +1198,17 @@ createPriorityDataCell(Prio, Uid) ->
          {onclick,  "eTodo.stopPropagation(event);"}],
         createForm2([?descLow, ?descMedium, ?descHigh, ?descNA],
                     default(Prio, ?descNA)))).
+
+createOwnerDataCell(Owner, Users, Uid) ->
+    SelectId  = "idOwner" ++ toStr(Uid),
+    SendOwner = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
+    tdTag(
+        selectTag(
+            [{class,    "owner"},
+                {id,       SelectId},
+                {onchange, "eTodo.sendOwner(" ++ SendOwner ++ ");"},
+                {onclick,  "eTodo.stopPropagation(event);"}],
+            createForm2(Users, Owner))).
 
 %%======================================================================
 %% Function :
