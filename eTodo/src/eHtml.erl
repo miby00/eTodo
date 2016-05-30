@@ -598,6 +598,8 @@ settingsPage(User, TaskList) ->
     DefListType   = proplists:get_value("listType",     WebSettings, ?descDef),
     DefSortOrder  = proplists:get_value("sortOrder",    WebSettings, ?descDef),
     DefSortOrder2 = proplists:get_value("sortOrderSec", WebSettings, ?descDef),
+    DefUseNotif   = proplists:get_value("useNotif",     WebSettings, true),
+    DefUseVibrate = proplists:get_value("useVibrate",   WebSettings, true),
 
     StatusList = [?descDef, ?descPlanning, ?descInProgress,
                   ?descDone, ?descNA, ?descAll],
@@ -629,7 +631,7 @@ settingsPage(User, TaskList) ->
      tableTag([{id, "presentationSettings"}],
               [trTag([thTag([{colspan, 2},
                              {class,   "formHeader"}],
-                            ["Presentation"])]),
+                            ["Presentation settings"])]),
                trTag(tdTag([{colspan, 2}, {class, "formDiv"}], "")),
                trTag(
                  [tdTag("Task list type"),
@@ -655,6 +657,45 @@ settingsPage(User, TaskList) ->
                                     {onchange,
                                      "eTodo.sendSetting('sortOrderSec')"}],
                                    createForm2(SortOrders, DefSortOrder2))])])
+              ]),
+     tableTag([{id, "notificationSettings"}],
+              [trTag([thTag([{colspan, 2},
+                             {class,   "formHeader"}],
+                            ["Notification settings"])]),
+               trTag(tdTag([{colspan, 2}, {class, "formDiv"}], "")),
+               trTag(
+                 [tdTag("Use notification"),
+                  tdTag([inputTag([checked(DefUseNotif)|
+                                   [{id,       "useNotifYes"},
+                                    {name,     "useNotif"},
+                                    {type,     "radio"},
+                                    {class,    "radioButton"},
+                                    {onchange, "eTodo.sendSetting('useNotifYes')"},
+                                    {value,    "Yes"}]]), " Yes",
+                         inputTag([checked(not DefUseNotif)|
+                                   [{id,       "useNotifNo"},
+                                    {name,     "useNotif"},
+                                    {type,     "radio"},
+                                    {class,    "radioButton"},
+                                    {onchange, "eTodo.sendSetting('useNotifNo')"},
+                                    {value,    "No"}]]), " No"
+                        ])]),
+               trTag(
+                 [tdTag("Use vibrate"),
+                  tdTag([inputTag([checked(DefUseVibrate)|
+                                   [{id,       "useVibrateYes"},
+                                    {name,     "useVibrate"},
+                                    {type,     "radio"},
+                                    {class,    "radioButton"},
+                                    {onchange, "eTodo.sendSetting('useVibrateYes')"},
+                                    {value,    "Yes"}]]), " Yes",
+                         inputTag([checked(not DefUseVibrate)|
+                                   [{id,       "useVibrateNo"},
+                                    {name,     "useVibrate"},
+                                    {type,     "radio"},
+                                    {class,    "radioButton"},
+                                    {onchange, "eTodo.sendSetting('useVibrateNo')"},
+                                    {value,    "No"}]]), " No"])])
               ]),
      inputTag([{type,  "button"},
                {id,    "doneBtn"},
@@ -923,9 +964,9 @@ makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
                        owner       = Owner}, User) ->
     ProgStr = toStr(Progress),
     StStr   = atom_to_list(StatusDB),
-    Users1 = [{User, string:to_lower(User)} || User <- eTodoDB:getUsers()],
+    Users1 = [{_User, string:to_lower(_User)} || _User <- eTodoDB:getUsers()],
     Users2 = lists:keysort(2, Users1),
-    Users3 = [User || {User, _} <- Users2],
+    Users3 = [_User || {_User, _} <- Users2],
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
 
     {InputTags, YesNoQuestion} = makeButtons(noDelete, Uid),
@@ -1203,12 +1244,12 @@ createOwnerDataCell(Owner, Users, Uid) ->
     SelectId  = "idOwner" ++ toStr(Uid),
     SendOwner = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
     tdTag(
-        selectTag(
-            [{class,    "owner"},
-                {id,       SelectId},
-                {onchange, "eTodo.sendOwner(" ++ SendOwner ++ ");"},
-                {onclick,  "eTodo.stopPropagation(event);"}],
-            createForm2(Users, Owner))).
+      selectTag(
+        [{class,    "owner"},
+         {id,       SelectId},
+         {onchange, "eTodo.sendOwner(" ++ SendOwner ++ ");"},
+         {onclick,  "eTodo.stopPropagation(event);"}],
+        createForm2(Users, Owner))).
 
 %%======================================================================
 %% Function :
@@ -2026,3 +2067,7 @@ compactTable(User) ->
             true
     end.
 
+checked(true) ->
+    {checked, true};
+checked(false) ->
+    [].

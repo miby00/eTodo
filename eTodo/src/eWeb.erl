@@ -760,9 +760,27 @@ handle_call({sendSetting, _SessionId, _Env, Input}, _From,
     {ok, Key}   = find("key",   Dict),
     {ok, Value} = find("value", Dict),
 
+    Key2 = case Key of
+               "useNotif" ++ _ ->
+                   "useNotif";
+               "useVibrate" ++ _ ->
+                   "useVibrate";
+               Key ->
+                   Key
+           end,
+
+    Value2 = case Value of
+                 "Yes" ->
+                     true;
+                 "No" ->
+                     false;
+                 Value ->
+                     Value
+             end,
+
     UserCfg     = eTodoDB:readUserCfg(User),
     WebSettings = default(UserCfg#userCfg.webSettings, []),
-    NewSettings = lists:keystore(Key, 1, WebSettings, {Key, Value}),
+    NewSettings = lists:keystore(Key2, 1, WebSettings, {Key2, Value2}),
     eTodoDB:saveUserCfg(UserCfg#userCfg{webSettings = NewSettings}),
 
     {reply, "ok", State};

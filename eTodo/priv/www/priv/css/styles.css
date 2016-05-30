@@ -241,6 +241,10 @@ table.msgSent {
     width: 100%;
 }
 
+.radioButton {
+    margin-left: 23%;
+}
+
 #toolbar {
     width: 110px;
 }
@@ -253,11 +257,11 @@ table.msgSent {
     border-radius: 3px;
 }
 
-#filterSettings, #presentationSettings {
+#filterSettings, #presentationSettings, #notificationSettings {
     padding: 1em;
 }
 
-#presentationSettings{
+#presentationSettings, #notificationSettings {
     margin-top: 1em;
 }
 
