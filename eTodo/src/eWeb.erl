@@ -27,6 +27,7 @@
          evalRemove/1,
          getPort/0,
          getUsersJSON/3,
+         getWebSettingsJSON/3,
          index/3,
          indexJSON/3,
          link/3,
@@ -159,6 +160,10 @@ webProxyCall(Message, Timeout) ->
 
 getUsersJSON(SessionId, Env, Input) ->
     HtmlPage = call({getUsersJSON, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, HtmlPage).
+
+getWebSettingsJSON(SessionId, Env, Input) ->
+    HtmlPage = call({getWebSettingsJSON, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, HtmlPage).
 
 link(SessionId, Env, Input) ->
@@ -444,6 +449,10 @@ handle_call({getUsersJSON, _SessionId, _Env, _Input}, _From, State) ->
     JSONData = eJSON:makeUsersObj(),
     {reply, ["Content-Type: application/x-javascript\r\n\r\n",JSONData], State};
 
+handle_call({getWebSettingsJSON, _SessionId, _Env, _Input}, _From,
+            State = #state{user = User}) ->
+    JSONData = eJSON:makeWebSettingsObj(User),
+    {reply, ["Content-Type: application/x-javascript\r\n\r\n",JSONData], State};
 
 handle_call({listTodosJSON, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->

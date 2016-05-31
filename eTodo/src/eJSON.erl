@@ -10,6 +10,7 @@
 
 %% API
 -export([makeUsersObj/0,
+         makeWebSettingsObj/1,
          makeTodoList/5,
          makeForm/2]).
 
@@ -36,6 +37,29 @@ makeUsersObj() ->
     Users2 = lists:keysort(2, Users1),
     Users3 = [User || {User, _} <- Users2],
     "{\"Users\":" ++ io_lib:format("~p", [Users3]) ++ "}".
+
+%%======================================================================
+%% Function :
+%% Purpose  :
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+makeWebSettingsObj(User) ->
+    UserCfg  = eTodoDB:readUserCfg(User),
+    Settings = UserCfg#userCfg.webSettings,
+    ["{", makeJSONKVList(Settings)].
+
+makeJSONKVList([]) ->
+    "}";
+makeJSONKVList([{Key, Value}]) when is_atom(Value) or is_integer(Value) ->
+    ["\"", Key, "\":", toStr(Value), "}"];
+makeJSONKVList([{Key, Value}|Rest]) when is_atom(Value) or is_integer(Value) ->
+    ["\"", Key, "\":", toStr(Value), ",", makeJSONKVList(Rest)];
+makeJSONKVList([{Key, Value}]) ->
+    ["\"", Key, "\":\"", Value, "\"}"];
+makeJSONKVList([{Key, Value}|Rest]) ->
+    ["\"", Key, "\":\"", Value, "\",", makeJSONKVList(Rest)].
 
 %%======================================================================
 %% Function :

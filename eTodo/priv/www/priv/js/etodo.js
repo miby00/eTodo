@@ -1,11 +1,23 @@
 var eTodoData = {
     users: [],
+    settings: {},
+
     setUsers: function (_users) {
         this.users = _users;
     },
+
     getUsers: function () {
         return this.users;
     },
+
+    getSettings: function () {
+        return this.settings;
+    },
+
+    setSettings: function (_settings) {
+        this.settings = _settings;
+    },
+
     fetchFromSrv: function () {
         "use strict";
         var url  = '/eTodo/eWeb:getUsersJSON',
@@ -16,6 +28,17 @@ var eTodoData = {
                 var obj = JSON.parse(AJAX.responseText);
 
                 eTodoData.setUsers(obj.Users);
+            }})},
+
+    fetchSettingsFromSrv: function () {
+        "use strict";
+        var url  = '/eTodo/eWeb:getWebSettingsJSON',
+            AJAX = eTodo.newAJAX();
+
+        eTodo.sendCall(AJAX, url, function () {
+            if (AJAX.readyState === 4 || AJAX.readyState === "complete") {
+                var obj = JSON.parse(AJAX.responseText);
+                    eTodoData.setSettings(obj);
             }
         });
     }
@@ -304,7 +327,9 @@ var eTodo;
             data = document.getElementById(Id).value,
             url = '/eTodo/eWeb:sendSetting?key=' + Id + '&value=' + data;
 
-        sendCall(AJAX, url);
+        sendCall(AJAX, url, function () {
+            eTodoData.fetchSettingsFromSrv();
+        });
     }
     eTodo.sendSetting = sendSetting;
 
