@@ -607,7 +607,46 @@ settingsPage(User, TaskList) ->
     ListTypes  = [?descDef, ?descCompact],
     SortOrders = [?descDef, ?status, ?prio, ?description, ?comment,
                   ?createTime, ?dueTime, ?doneTimestamp],
-    [tableTag([{id, "filterSettings"}],
+    [tableTag([{id, "notificationSettings"}],
+              [trTag([thTag([{colspan, 2},
+                             {class,   "formHeader"}],
+                            ["Notification settings"])]),
+               trTag(tdTag([{colspan, 2}, {class, "formDiv"}], "")),
+               trTag(
+                 [tdTag("Use notification"),
+                  tdTag([inputTag([checked(DefUseNotif)|
+                                   [{id,       "useNotifYes"},
+                                    {name,     "useNotif"},
+                                    {type,     "radio"},
+                                    {class,    "radioButton"},
+                                    {onchange, "eTodo.sendSetting('useNotifYes')"},
+                                    {value,    "Yes"}]]), " Yes",
+                         inputTag([checked(not DefUseNotif)|
+                                   [{id,       "useNotifNo"},
+                                    {name,     "useNotif"},
+                                    {type,     "radio"},
+                                    {class,    "radioButton"},
+                                    {onchange, "eTodo.sendSetting('useNotifNo')"},
+                                    {value,    "No"}]]), " No"
+                        ])]),
+               trTag(
+                 [tdTag("Use vibrate"),
+                  tdTag([inputTag([checked(DefUseVibrate)|
+                                   [{id,       "useVibrateYes"},
+                                    {name,     "useVibrate"},
+                                    {type,     "radio"},
+                                    {class,    "radioButton"},
+                                    {onchange, "eTodo.sendSetting('useVibrateYes')"},
+                                    {value,    "Yes"}]]), " Yes",
+                         inputTag([checked(not DefUseVibrate)|
+                                   [{id,       "useVibrateNo"},
+                                    {name,     "useVibrate"},
+                                    {type,     "radio"},
+                                    {class,    "radioButton"},
+                                    {onchange, "eTodo.sendSetting('useVibrateNo')"},
+                                    {value,    "No"}]]), " No"])])
+              ]),
+     tableTag([{id, "filterSettings"}],
               [trTag([thTag([{colspan, 2},
                              {class,   "formHeader"}],
                             ["Filter settings"])]),
@@ -657,45 +696,6 @@ settingsPage(User, TaskList) ->
                                     {onchange,
                                      "eTodo.sendSetting('sortOrderSec')"}],
                                    createForm2(SortOrders, DefSortOrder2))])])
-              ]),
-     tableTag([{id, "notificationSettings"}],
-              [trTag([thTag([{colspan, 2},
-                             {class,   "formHeader"}],
-                            ["Notification settings"])]),
-               trTag(tdTag([{colspan, 2}, {class, "formDiv"}], "")),
-               trTag(
-                 [tdTag("Use notification"),
-                  tdTag([inputTag([checked(DefUseNotif)|
-                                   [{id,       "useNotifYes"},
-                                    {name,     "useNotif"},
-                                    {type,     "radio"},
-                                    {class,    "radioButton"},
-                                    {onchange, "eTodo.sendSetting('useNotifYes')"},
-                                    {value,    "Yes"}]]), " Yes",
-                         inputTag([checked(not DefUseNotif)|
-                                   [{id,       "useNotifNo"},
-                                    {name,     "useNotif"},
-                                    {type,     "radio"},
-                                    {class,    "radioButton"},
-                                    {onchange, "eTodo.sendSetting('useNotifNo')"},
-                                    {value,    "No"}]]), " No"
-                        ])]),
-               trTag(
-                 [tdTag("Use vibrate"),
-                  tdTag([inputTag([checked(DefUseVibrate)|
-                                   [{id,       "useVibrateYes"},
-                                    {name,     "useVibrate"},
-                                    {type,     "radio"},
-                                    {class,    "radioButton"},
-                                    {onchange, "eTodo.sendSetting('useVibrateYes')"},
-                                    {value,    "Yes"}]]), " Yes",
-                         inputTag([checked(not DefUseVibrate)|
-                                   [{id,       "useVibrateNo"},
-                                    {name,     "useVibrate"},
-                                    {type,     "radio"},
-                                    {class,    "radioButton"},
-                                    {onchange, "eTodo.sendSetting('useVibrateNo')"},
-                                    {value,    "No"}]]), " No"])])
               ]),
      inputTag([{type,  "button"},
                {id,    "doneBtn"},
