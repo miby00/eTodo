@@ -417,7 +417,9 @@ handle_call({listsTodos, SessionId, _Env, Input}, _From,
     {ok, List} = find("list",   Dict),
     {ok, Text} = find("search", Dict),
     Flt        = getFilterCfg(List, User),
-    OnLoad     = "OnLoad=\"eTodoData.fetchFromSrv();\"",
+    OnLoad     =
+        "OnLoad=\"eTodoData.fetchFromSrv(); "
+        "eTodoData.fetchSettingsFromSrv();\"",
     HtmlPage   =
         case List of
             ?defLoggedWork ->
@@ -656,7 +658,10 @@ handle_call({index, SessionId, _Env, _Input}, _From,
                            headers = SessionHdrList}) ->
     Headers  = getHeaders(SessionId, State),
     Flt      = getFilterCfg(?defTaskList, User),
-    OnLoad   = "OnLoad=\"eTodoData.fetchFromSrv();\"",
+    OnLoad   =
+        "OnLoad=\"eTodoData.fetchFromSrv(); "
+        "eTodoData.fetchSettingsFromSrv();\"",
+
     HtmlPage = [eHtml:pageHeader(OnLoad, User),
                 eHtml:makeForm(User, ?defTaskList),
                 eHtml:makeTaskList(User, ?defTaskList, Flt, [], undefined),

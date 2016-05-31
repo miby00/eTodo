@@ -423,7 +423,7 @@ var eTodo;
             options;
 
         if ((msgType === 'msgReceived') || (msgType === 'msgAlarm')) {
-            if (window.Notification !== undefined) {
+            if (window.Notification && eTodoData.getSettings().useNotif) {
                 msgRec =
                     element.
                         childNodes[0].
@@ -449,17 +449,21 @@ var eTodo;
                     icon: icon
                 };
             }
-            if (Notification.permission === "default") {
-                Notification.requestPermission(function () {
-                    new Notification(title, options);
-                });
-            } else {
-                if (Notification.permission === "granted") {
-                    new Notification(title, options);
+            if (eTodoData.getSettings().useNotif) {
+                if (Notification.permission === "default") {
+                    Notification.requestPermission(function () {
+                        new Notification(title, options);
+                    });
+                } else {
+                    if (Notification.permission === "granted") {
+                        new Notification(title, options);
+                    }
                 }
             }
 
-            if (window.navigator && window.navigator.vibrate) {
+            if (window.navigator &&
+                window.navigator.vibrate &&
+                eTodoData.getSettings().useVibrate) {
                 // Vibrate mobile device
                 navigator.vibrate(1000);
             }
