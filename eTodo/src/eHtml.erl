@@ -1667,7 +1667,9 @@ makeText([Char|Rest], alt, Alt, SoFar) ->
 %% Notes    :
 %%======================================================================
 showStatus(User, Status, StatusMsg) ->
-    OnLoad = "OnLoad=\"setInterval(eTodo.checkStatus, 1000);\" id='theBody'",
+    OnLoad =
+        "OnLoad=\"setInterval(eTodo.checkStatus, 1000); "
+        "eTodoData.fetchSettingsFromSrv();\" id='theBody'",
     [pageHeader(OnLoad, User),
      divTag([{id, "timerContainer"}],
             [divTag([{id, "timerUser"}], [User]),
