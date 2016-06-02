@@ -8,7 +8,7 @@
 %%%-------------------------------------------------------------------
 {application, 'ePort',
  [{description, "EPort an RPC over socket server."},
-  {vsn, "0.9.0"},
+  {vsn, "1.0.0"},
   {modules, [
 	     ePort,
 	     ePortListener

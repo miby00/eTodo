@@ -1,6 +1,6 @@
 {application, eTodo,
  [{description, "ETodo a task manager written in Erlang"},
-  {vsn, "0.9.0"},
+  {vsn, "1.0.0"},
   {modules, [
 	     eGuiEvents,
 	     eGuiFunctions,

@@ -1,7 +1,7 @@
 {application, eLog,
  [
   {description, "Simple logging application"},
-  {vsn, "0.9.0"},
+  {vsn, "1.0.0"},
   {registered, [eLog, eLogWriter]},
   {modules, [
       eLog_app,
