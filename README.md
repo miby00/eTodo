@@ -18,7 +18,7 @@ I have made prebuilt binary releases of eTodo for a few OS I run at home:
 
 * [Mac 64-bit](https://cdn.rawgit.com/miby00/eTodo-releases/v1.0.0-beta/Mac/eTodo.dmg)
 * [Windows 32-bit](https://cdn.rawgit.com/miby00/eTodo-releases/v1.0.0-beta/Windows 7/eTodo.exe)
-* [Ubuntu 64-bit](https://cdn.rawgit.com/miby00/eTodo-releases/v1.0.0-beta/Ubuntu/etodo_0.9.0_amd64.deb)
+* [Ubuntu 64-bit](https://cdn.rawgit.com/miby00/eTodo-releases/v1.0.0-beta/Ubuntu/etodo_1.0.0_amd64.deb)
 
 If no prebuilt package is available for your platform you can download and run eTodo according to 
 the instructions below.
