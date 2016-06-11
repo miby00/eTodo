@@ -1284,7 +1284,7 @@ conv(List) ->
 %%--------------------------------------------------------------------
 makeDict(Input) ->
     KeyValueList = httpd:parse_query(Input),
-    dict:from_list(KeyValueList).
+    maps:from_list(KeyValueList).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -1295,13 +1295,13 @@ makeDict(Input) ->
 %% @end
 %%--------------------------------------------------------------------
 find(Key, Dict) ->
-    case dict:find(Key, Dict) of
-        {ok, Value} ->
+    case maps:get(Key, Dict, undefined) of
+        undefined ->
+            {ok, undefined};
+        Value ->
             BinValue = list_to_binary(Value),
             Bin = unicode:characters_to_binary(BinValue, utf8, latin1),
-            {ok, binary_to_list(Bin)};
-        _ ->
-            {ok, undefined}
+            {ok, binary_to_list(Bin)}
     end.
 
 %%--------------------------------------------------------------------

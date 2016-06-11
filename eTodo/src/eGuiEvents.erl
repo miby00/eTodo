@@ -2474,14 +2474,14 @@ mainNotebookEvent(_Type, _Id, _Frame, State) ->
 
 clearMsgCounter(State = #guiState{user = User}) ->
     Notebook = obj("mainNotebook",  State),
-    wxNotebook:setPageText(Notebook, 1, "Messages"),
+    wxNotebook:setPageText(Notebook, 1, ?tr("messagePanel")),
     UserCfg = eTodoDB:readUserCfg(User),
     eTodoDB:saveUserCfg(UserCfg#userCfg{unreadMsgs = []}),
     State#guiState{unreadMsgs = 0}.
 
 clearSysMsgCounter(State) ->
     Notebook = obj("mainNotebook",  State),
-    wxNotebook:setPageText(Notebook, 2, "Reminders"),
+    wxNotebook:setPageText(Notebook, 2, ?tr("reminderPanel")),
     State#guiState{unreadSysMsgs = 0}.
 
 %%======================================================================

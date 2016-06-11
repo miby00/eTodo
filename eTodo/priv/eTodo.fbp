@@ -1360,7 +1360,7 @@
                                                             <property name="minimize_button">0</property>
                                                             <property name="minimum_size"></property>
                                                             <property name="moveable">1</property>
-                                                            <property name="name">m_staticText9</property>
+                                                            <property name="name">chooseListLang</property>
                                                             <property name="pane_border">1</property>
                                                             <property name="pane_position"></property>
                                                             <property name="pane_size"></property>
@@ -2616,7 +2616,7 @@
                                                                                             <property name="minimize_button">0</property>
                                                                                             <property name="minimum_size"></property>
                                                                                             <property name="moveable">1</property>
-                                                                                            <property name="name">m_staticText1</property>
+                                                                                            <property name="name">statusLang</property>
                                                                                             <property name="pane_border">1</property>
                                                                                             <property name="pane_position"></property>
                                                                                             <property name="pane_size"></property>
@@ -2879,7 +2879,7 @@
                                                                                             <property name="minimize_button">0</property>
                                                                                             <property name="minimum_size"></property>
                                                                                             <property name="moveable">1</property>
-                                                                                            <property name="name">m_staticText2</property>
+                                                                                            <property name="name">priorityLang</property>
                                                                                             <property name="pane_border">1</property>
                                                                                             <property name="pane_position"></property>
                                                                                             <property name="pane_size"></property>
@@ -3154,7 +3154,7 @@
                                                                                             <property name="minimize_button">0</property>
                                                                                             <property name="minimum_size"></property>
                                                                                             <property name="moveable">1</property>
-                                                                                            <property name="name">m_staticText4</property>
+                                                                                            <property name="name">dueDateLang</property>
                                                                                             <property name="pane_border">1</property>
                                                                                             <property name="pane_position"></property>
                                                                                             <property name="pane_size"></property>
@@ -3945,7 +3945,7 @@
                                                                                                         <property name="minimize_button">0</property>
                                                                                                         <property name="minimum_size"></property>
                                                                                                         <property name="moveable">1</property>
-                                                                                                        <property name="name">m_staticText13</property>
+                                                                                                        <property name="name">completeLang</property>
                                                                                                         <property name="pane_border">1</property>
                                                                                                         <property name="pane_position"></property>
                                                                                                         <property name="pane_size"></property>
@@ -4435,7 +4435,7 @@
                                                                                             <property name="minimize_button">0</property>
                                                                                             <property name="minimum_size"></property>
                                                                                             <property name="moveable">1</property>
-                                                                                            <property name="name">m_staticText28</property>
+                                                                                            <property name="name">ownerLang</property>
                                                                                             <property name="pane_border">1</property>
                                                                                             <property name="pane_position"></property>
                                                                                             <property name="pane_size"></property>
@@ -4719,7 +4719,7 @@
                                                                                                     <property name="minimize_button">0</property>
                                                                                                     <property name="minimum_size"></property>
                                                                                                     <property name="moveable">1</property>
-                                                                                                    <property name="name">m_staticText3</property>
+                                                                                                    <property name="name">listsLang</property>
                                                                                                     <property name="pane_border">1</property>
                                                                                                     <property name="pane_position"></property>
                                                                                                     <property name="pane_size"></property>
@@ -5000,7 +5000,7 @@
                                                                                                     <property name="minimize_button">0</property>
                                                                                                     <property name="minimum_size"></property>
                                                                                                     <property name="moveable">1</property>
-                                                                                                    <property name="name">m_staticText31</property>
+                                                                                                    <property name="name">sharedLang</property>
                                                                                                     <property name="pane_border">1</property>
                                                                                                     <property name="pane_position"></property>
                                                                                                     <property name="pane_size"></property>
@@ -5182,7 +5182,7 @@
                                 <property name="minimize_button">0</property>
                                 <property name="minimum_size"></property>
                                 <property name="moveable">1</property>
-                                <property name="name"> messagePanel</property>
+                                <property name="name">messagePanel</property>
                                 <property name="pane_border">1</property>
                                 <property name="pane_position"></property>
                                 <property name="pane_size"></property>

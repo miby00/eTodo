@@ -251,14 +251,14 @@ obj(Name, Frame) ->
     case get({wxObj, Name}) of
         undefined ->
             case wxXmlResource:xrcctrl(Frame, Name, type(Name)) of
-                {wx_ref, 0, _Type, _Args} ->
+                {wx_ref, 0, Type, _Args} ->
                     eLog:log(error, ?MODULE, obj,
-                             [Frame, Name, type(Name)],
+                             [Frame, Name, Type],
                              "Object not found.", ?LINE),
                     undefined;
                 Obj ->
                     eLog:log(debug, ?MODULE, obj,
-                             [Frame, Name, type(Name)],
+                             [Frame, Name, Obj],
                               "Object not found in cache, cache object", ?LINE),
                     put({wxObj, Name}, Obj),
                     Obj
@@ -267,82 +267,9 @@ obj(Name, Frame) ->
             Obj
     end.
 
-type("splitter" ++ _)     -> wxSplitterWindow;
-type("messagePanel")      -> wxPanel;
-type("userStatusPanel")   -> wxPanel;
-type("mainNotebook")      -> wxNotebook;
-type("mainTaskList")      -> wxListCtrl;
-type("msgTextWin")        -> wxHtmlWindow;
-type("remTextWin")        -> wxHtmlWindow;
-type("workLogReport")     -> wxHtmlWindow;
-type("timeLogReport")     -> wxHtmlWindow;
-type("scheduleReport")    -> wxHtmlWindow;
-type("userStatusMsg")     -> wxTextCtrl;
-type("msgTextCtrl")       -> wxTextCtrl;
-type("descriptionArea")   -> wxTextCtrl;
-type("commentArea")       -> wxTextCtrl;
-type("descriptionArea1")  -> wxTextCtrl;
-type("commentArea1")      -> wxTextCtrl;
-type("sharedWithText1")   -> wxTextCtrl;
-type("descriptionArea2")  -> wxTextCtrl;
-type("commentArea2")      -> wxTextCtrl;
-type("sharedWithText2")   -> wxTextCtrl;
-type("dueDatePicker")     -> wxDatePickerCtrl;
-type("dueDatePicker1")    -> wxDatePickerCtrl;
-type("dueDatePicker2")    -> wxDatePickerCtrl;
-type("startDate")         -> wxDatePickerCtrl;
-type("endDate")           -> wxDatePickerCtrl;
-type("workLogStartDate")  -> wxDatePickerCtrl;
-type("userStatusChoice")  -> wxChoice;
-type("taskListChoice")    -> wxChoice;
-type("statusChoice")      -> wxChoice;
-type("priorityChoice")    -> wxChoice;
-type("statusChoice1")     -> wxChoice;
-type("priorityChoice1")   -> wxChoice;
-type("statusChoice2")     -> wxChoice;
-type("priorityChoice2")   -> wxChoice;
-type("ownerChoice1")      -> wxChoice;
-type("ownerChoice2")      -> wxChoice;
-type("ownerChoice")       -> wxChoice;
-type("useStartDate")      -> wxCheckBox;
-type("useEndDate")        -> wxCheckBox;
-type("checkBoxUseFilter") -> wxCheckBox;
-type("dueDateUsed")       -> wxCheckBox;
-type("progressInfo")      -> wxSpinCtrl;
-type("progressInfo1")     -> wxSpinCtrl;
-type("progressInfo2")     -> wxSpinCtrl;
-type("mainStatusBar")     -> wxStatusBar;
-type("eTodoToolbar")      -> wxToolBar;
-type("userCheckBox")      -> wxCheckListBox;
-type("listCheckBox")      -> wxCheckListBox;
-type("setReminderButton") -> wxBitmapButton;
-type("shareButton")       -> wxBitmapButton;
-type("shareButton2")      -> wxBitmapButton;
-type("manageListsButton") -> wxBitmapButton;
-type("configureSearch")   -> wxBitmapButton;
-type("bookmarkBtn")       -> wxBitmapButton;
-type("addOwnerButton")    -> wxBitmapButton;
-type("addListButton")     -> wxBitmapButton;
-type("logWorkButton")     -> wxBitmapButton;
-type("sendTaskButton")    -> wxBitmapButton;
-type("commentButton")     -> wxBitmapButton;
-type("taskEditPanel")     -> wxPanel;
-type("mainPanel")         -> wxPanel;
-type("infoIcon")          -> wxStaticBitmap;
-type("userAvailableIcon") -> wxStaticBitmap;
-type("userBusyIcon")      -> wxStaticBitmap;
-type("userAwayIcon")      -> wxStaticBitmap;
-type("userOfflineIcon")   -> wxStaticBitmap;
-type("peerAvailableIcon") -> wxStaticBitmap;
-type("peerBusyIcon")      -> wxStaticBitmap;
-type("peerAwayIcon")      -> wxStaticBitmap;
-type("portraitPeerIcon")  -> wxStaticBitmap;
-type("portraitUserIcon")  -> wxStaticBitmap;
-type("addedToLists")      -> wxStaticText;
-type("sharedWithText")    -> wxStaticText;
-type("peerStatusMsg")     -> wxStaticText;
-type("searchText")        -> wxComboBox;
-type(_)                   -> wxRadioBox.
+type(Component) ->
+    maps:get(Component, ?wxTypes, {error, {missing, Component}}).
+
 
 %%======================================================================
 %% Function :

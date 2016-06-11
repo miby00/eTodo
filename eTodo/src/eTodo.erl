@@ -202,9 +202,10 @@ init([Arg]) ->
         false ->
             %% Change dir while building GUI to allow wx to find icons.
             file:set_cwd(code:priv_dir(?MODULE)),
-            Result = initGUI(Arg),
+            {WXFrame, State} = initGUI(Arg),
+            eLang:initiateGUI(State),
             file:set_cwd(WorkDir),
-            Result;
+            {WXFrame, State};
         _ ->
             User      = os:getenv("eTodoUser"),
             Pwd       = os:getenv("eTodoPwd"),
@@ -220,8 +221,9 @@ init([Arg]) ->
     end.
 
 initGUI(Arg) ->
-    Dict = dict:new(),
+    Dict = #{},
     WX   = wx:new(),
+    eLang:start_link(wx:get_env()),
 
     %% Do not use mac native list ctrl, auto sort is bad for eTodo.
     (catch wxSystemOptions:setOption("mac.listctrl.always_use_generic", 1)),
@@ -310,54 +312,54 @@ initGUI(Arg) ->
 
     %% Listen to events from GUI
     Dict2  = connectMainFrame(Frame, Dict),
-    Dict3  = connectMsgFrame(Frame, Dict2),
-    Dict4  = connectDialog(Login,    "loginOk",              Dict3),
-    Dict5  = connectDialog(Login,    "loginCancel",          Dict4),
-    Dict6  = connectDialog(Time,     "reminderOk",           Dict5),
-    Dict7  = connectDialog(Time,     "reminderCancel",       Dict6),
-    Dict8  = connectDialog(Time,     "useReminder",          Event1, Dict7),
-    Dict9  = connectDialog(Time,     "startDate",            Event2, Dict8),
-    Dict10 = connectDialog(Search,   "searchOk",             Dict9),
-    Dict11 = connectDialog(Search,   "searchCancel",         Dict10),
-    Dict12 = connectDialog(Users,    "userOk",               Dict11),
-    Dict13 = connectDialog(Users,    "userCancel",           Dict12),
-    Dict14 = connectDialog(AddList,  "listOk",               Dict13),
-    Dict15 = connectDialog(AddList,  "listCancel",           Dict14),
-    Dict16 = connectDialog(AddList,  "listCheckListBox",     Event3, Dict15),
-    Dict17 = connectDialog(Settings, "settingsOk",           Dict16),
-    Dict18 = connectDialog(Settings, "settingsCancel",       Dict17),
-    Dict19 = connectDialog(Settings, "webUIEnabled",         Event1, Dict18),
-    Dict20 = connectDialog(ManLists, "manageListOk",         Dict19),
-    Dict21 = connectDialog(ManLists, "manageListCancel",     Dict20),
-    Dict22 = connectDialog(ManLists, "createListButton",     Dict21),
-    Dict23 = connectDialog(ManLists, "removeListButton",     Dict22),
-    Dict24 = connectDialog(ManLists, "updateListButton",     Dict23),
-    Dict25 = connectDialog(ManLists, "manageListBox",        Event4, Dict24),
-    Dict26 = connectDialog(ManOwner, "manageOwnerOk",        Dict25),
-    Dict27 = connectDialog(ManOwner, "manageOwnerCancel",    Dict26),
-    Dict28 = connectDialog(ManOwner, "createOwnerButton",    Dict27),
-    Dict29 = connectDialog(ManOwner, "removeOwnerButton",    Dict28),
-    Dict30 = connectDialog(ManOwner, "updateOwnerButton",    Dict29),
-    Dict31 = connectDialog(ManOwner, "manageOwnerBox",       Event4, Dict30),
-    Dict32 = connectDialog(ManBookm, "manageBookmarkOk",     Dict31),
-    Dict33 = connectDialog(ManBookm, "manageBookmarkCancel", Dict32),
-    Dict34 = connectDialog(ManBookm, "createBookmarkButton", Dict33),
-    Dict35 = connectDialog(ManBookm, "removeBookmarkButton", Dict34),
-    Dict36 = connectDialog(ManBookm, "updateBookmarkButton", Dict35),
-    Dict37 = connectDialog(ManBookm, "manageBookmarkBox",    Event4, Dict36),
-    Dict38 = connectDialog(SortCols, "sortColumnsOk",        Dict37),
-    Dict39 = connectDialog(SortCols, "sortColumnsCancel",    Dict38),
-    Dict40 = connectDialog(SortCols, "moveColUpButton",      Dict39),
-    Dict41 = connectDialog(SortCols, "moveColDownButton",    Dict40),
-    Dict42 = connectDialog(SortCols, "sortColumnsBox",       Event4, Dict41),
-    Dict43 = connectDialog(Timer,    "timerOk",              Dict42),
-    Dict44 = connectDialog(Timer,    "timerCancel",          Dict43),
-    Dict45 = connectDialog(Plugins,  "pluginOk",             Dict44),
-    Dict46 = connectDialog(Plugins,  "pluginCancel",         Dict45),
-    Dict47 = connectDialog(Plugins,  "usePlugins",           Event4, Dict46),
-    Dict48 = connectDialog(LogWork,  "logWorkOk",            Dict47),
-    Dict49 = connectDialog(LogWork,  "logWorkCancel",        Dict48),
-    Dict50 = connectDialog(LogWork,  "workDate",             Event2, Dict49),
+    Dict3  = connectMsgFrame(Frame,  Dict2),
+    Dict4  = connectDlg(Login,    "loginOk",              Dict3),
+    Dict5  = connectDlg(Login,    "loginCancel",          Dict4),
+    Dict6  = connectDlg(Time,     "reminderOk",           Dict5),
+    Dict7  = connectDlg(Time,     "reminderCancel",       Dict6),
+    Dict8  = connectDlg(Time,     "useReminder",          Event1, Dict7),
+    Dict9  = connectDlg(Time,     "startDate",            Event2, Dict8),
+    Dict10 = connectDlg(Search,   "searchOk",             Dict9),
+    Dict11 = connectDlg(Search,   "searchCancel",         Dict10),
+    Dict12 = connectDlg(Users,    "userOk",               Dict11),
+    Dict13 = connectDlg(Users,    "userCancel",           Dict12),
+    Dict14 = connectDlg(AddList,  "listOk",               Dict13),
+    Dict15 = connectDlg(AddList,  "listCancel",           Dict14),
+    Dict16 = connectDlg(AddList,  "listCheckListBox",     Event3, Dict15),
+    Dict17 = connectDlg(Settings, "settingsOk",           Dict16),
+    Dict18 = connectDlg(Settings, "settingsCancel",       Dict17),
+    Dict19 = connectDlg(Settings, "webUIEnabled",         Event1, Dict18),
+    Dict20 = connectDlg(ManLists, "manageListOk",         Dict19),
+    Dict21 = connectDlg(ManLists, "manageListCancel",     Dict20),
+    Dict22 = connectDlg(ManLists, "createListButton",     Dict21),
+    Dict23 = connectDlg(ManLists, "removeListButton",     Dict22),
+    Dict24 = connectDlg(ManLists, "updateListButton",     Dict23),
+    Dict25 = connectDlg(ManLists, "manageListBox",        Event4, Dict24),
+    Dict26 = connectDlg(ManOwner, "manageOwnerOk",        Dict25),
+    Dict27 = connectDlg(ManOwner, "manageOwnerCancel",    Dict26),
+    Dict28 = connectDlg(ManOwner, "createOwnerButton",    Dict27),
+    Dict29 = connectDlg(ManOwner, "removeOwnerButton",    Dict28),
+    Dict30 = connectDlg(ManOwner, "updateOwnerButton",    Dict29),
+    Dict31 = connectDlg(ManOwner, "manageOwnerBox",       Event4, Dict30),
+    Dict32 = connectDlg(ManBookm, "manageBookmarkOk",     Dict31),
+    Dict33 = connectDlg(ManBookm, "manageBookmarkCancel", Dict32),
+    Dict34 = connectDlg(ManBookm, "createBookmarkButton", Dict33),
+    Dict35 = connectDlg(ManBookm, "removeBookmarkButton", Dict34),
+    Dict36 = connectDlg(ManBookm, "updateBookmarkButton", Dict35),
+    Dict37 = connectDlg(ManBookm, "manageBookmarkBox",    Event4, Dict36),
+    Dict38 = connectDlg(SortCols, "sortColumnsOk",        Dict37),
+    Dict39 = connectDlg(SortCols, "sortColumnsCancel",    Dict38),
+    Dict40 = connectDlg(SortCols, "moveColUpButton",      Dict39),
+    Dict41 = connectDlg(SortCols, "moveColDownButton",    Dict40),
+    Dict42 = connectDlg(SortCols, "sortColumnsBox",       Event4, Dict41),
+    Dict43 = connectDlg(Timer,    "timerOk",              Dict42),
+    Dict44 = connectDlg(Timer,    "timerCancel",          Dict43),
+    Dict45 = connectDlg(Plugins,  "pluginOk",             Dict44),
+    Dict46 = connectDlg(Plugins,  "pluginCancel",         Dict45),
+    Dict47 = connectDlg(Plugins,  "usePlugins",           Event4, Dict46),
+    Dict48 = connectDlg(LogWork,  "logWorkOk",            Dict47),
+    Dict49 = connectDlg(LogWork,  "logWorkCancel",        Dict48),
+    Dict50 = connectDlg(LogWork,  "workDate",             Event2, Dict49),
 
 
     connectModalDialog(Conflict, "useLocalButton",  ?useLocal),
@@ -1185,20 +1187,20 @@ connectItem(Frame, Name, Event, Dict)
   when (Name == "mainTaskList") and (Event == command_list_key_down) ->
     Id = xrcId(Name),
     wxFrame:connect(Frame, Event, [{id, Id}, {skip, true}]),
-    dict:store(Id, Name, Dict);
+    Dict#{Id => Name};
 connectItem(Frame, Name, Event, Dict) ->
     Id = xrcId(Name),
     wxFrame:connect(Frame, Event, [{id, Id}]),
-    dict:store(Id, Name, Dict).
+    Dict#{Id => Name}.
 
-connectDialog(Dialog, Name, Dict) ->
-    Dict2 = connectDialog(Dialog, Name, command_button_clicked, Dict),
-    connectDialog(Dialog, Name, command_enter, Dict2).
+connectDlg(Dialog, Name, Dict) ->
+    Dict2 = connectDlg(Dialog, Name, command_button_clicked, Dict),
+    connectDlg(Dialog, Name, command_enter, Dict2).
 
-connectDialog(Dialog, Name, Event, Dict) ->
+connectDlg(Dialog, Name, Event, Dict) ->
     Id = xrcId(Name),
     wxDialog:connect(Dialog, Event, [{id, Id}]),
-    dict:store(Id, Name, Dict).
+    Dict#{Id => Name}.
 
 %%======================================================================
 %% Function :
@@ -1222,11 +1224,7 @@ connectModalDialog(Dialog, ButtonName, ButtonId) ->
 %% Notes    :
 %%======================================================================
 getFromDict(Key, Dict) ->
-    case dict:find(Key, Dict) of
-        {ok, Value} -> Value;
-        _Else       -> "gui"
-    end.
-
+    maps:get(Key, Dict, "gui").
 
 %%======================================================================
 %% Function :
