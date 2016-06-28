@@ -17,7 +17,7 @@
 -include("eTodo.hrl").
 -include_lib("inets/include/httpd.hrl").
 
--import(eTodoUtils, [toStr/1, toStr/2, makeStr/1]).
+-import(eTodoUtils, [toStr/1, toStr/2, makeStr/1, default/2]).
 
 -import(eHtml, [sortETodos/2]).
 
@@ -47,7 +47,7 @@ makeUsersObj() ->
 %%======================================================================
 makeWebSettingsObj(User) ->
     UserCfg  = eTodoDB:readUserCfg(User),
-    Settings = UserCfg#userCfg.webSettings,
+    Settings = default(UserCfg#userCfg.webSettings, []),
     ["{", makeJSONKVList(Settings)].
 
 makeJSONKVList([]) ->
