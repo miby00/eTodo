@@ -30,6 +30,7 @@
         "addOwnerButton"     => wxBitmapButton,
         "addTaskInboxMenu"   => wxMenuItem,
         "addTaskMenu"        => wxMenuItem,
+        "allMsgPanel"        => wxPanel,
         "backupMenuItem"     => wxMenuItem,
         "bookmarkBtn"        => wxBitmapButton,
         "checkBoxUseFilter"  => wxCheckBox,
