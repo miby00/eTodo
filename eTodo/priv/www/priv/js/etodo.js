@@ -178,6 +178,8 @@ var eTodo;
         saveChanges('Progress(%)',  uid);
         saveChanges('Remaining(h)', uid);
         saveChanges('Due date',     uid);
+
+        showDetails(uid);
     }
     eTodo.saveTaskChanges = saveTaskChanges;
 
