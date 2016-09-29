@@ -714,7 +714,10 @@ timerOkEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
     TimerRef = erlang:send_after(MSeconds, self(), Message),
 
     if OldTimerRef =/= undefined -> ePluginServer:eTimerStopped(User);
-       true -> ok
+       true ->
+           UserCfg1 = eTodoDB:readUserCfg(User),
+           UserCfg2 = UserCfg1#userCfg{lastTimer = {Hours, Minutes, Seconds}},
+           eTodoDB:saveUserCfg(UserCfg2)
     end,
 
     ePluginServer:eTimerStarted(User, MsgTxt, Hours, Minutes, Seconds),
@@ -736,22 +739,26 @@ timerCancelEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
     State#guiState{timerRef = undefined}.
 
 timerToolEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
-                                                     timerRef = undefined}) ->
+                                                     timerRef = undefined,
+                                                     user     = User}) ->
     Obj1 = wxXmlResource:xrcctrl(TimerDlg, "hourTimer",      wxSpinCtrl),
     Obj2 = wxXmlResource:xrcctrl(TimerDlg, "minTimer",       wxSpinCtrl),
     Obj3 = wxXmlResource:xrcctrl(TimerDlg, "secTimer",       wxSpinCtrl),
 
-    wxSpinCtrl:setValue(Obj1, 0),
-    wxSpinCtrl:setValue(Obj2, 25),
-    wxSpinCtrl:setValue(Obj3, 0),
+    UserCfg = eTodoDB:readUserCfg(User),
+    {Hours, Minutes, Seconds} = default(UserCfg#userCfg.lastTimer, {0, 25, 0}),
+
+    wxSpinCtrl:setValue(Obj1, Hours),
+    wxSpinCtrl:setValue(Obj2, Minutes),
+    wxSpinCtrl:setValue(Obj3, Seconds),
 
     wxDialog:show(TimerDlg),
     State;
 timerToolEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
                                                      timerRef = TimerRef}) ->
-    Obj1 = wxXmlResource:xrcctrl(TimerDlg, "hourTimer",      wxSpinCtrl),
-    Obj2 = wxXmlResource:xrcctrl(TimerDlg, "minTimer",       wxSpinCtrl),
-    Obj3 = wxXmlResource:xrcctrl(TimerDlg, "secTimer",       wxSpinCtrl),
+    Obj1 = wxXmlResource:xrcctrl(TimerDlg, "hourTimer", wxSpinCtrl),
+    Obj2 = wxXmlResource:xrcctrl(TimerDlg, "minTimer",  wxSpinCtrl),
+    Obj3 = wxXmlResource:xrcctrl(TimerDlg, "secTimer",  wxSpinCtrl),
 
     MSeconds = erlang:read_timer(TimerRef),
 

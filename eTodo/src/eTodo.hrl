@@ -195,7 +195,8 @@
                    theme           = 0,
                    lastTaskList,
                    webSettings     = [],
-                   unreadMsgs      = []}).
+                   unreadMsgs      = [],
+                   lastTimer       = {0,25,0}}).
 
 -record(listCfg,  {key,
                    userName,
