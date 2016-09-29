@@ -911,19 +911,23 @@ sortETodos(User, ETodos) ->
 doSortETodos(?descDef, ETodos) ->
     ETodos;
 doSortETodos(?status, ETodos) ->
-    L1 = [{ETodo, makeSortValue(?status, ETodo#etodo.status)} || ETodo <- ETodos],
+    L1 = [{ETodo, makeSortValue(?status, ETodo#etodo.status)} || 
+        ETodo <- ETodos, is_record(ETodo, etodo)],
     L2 = lists:keysort(2, L1),
     [ETodo || {ETodo, _} <- L2];
 doSortETodos(?prio, ETodos) ->
-    L1 = [{ETodo, makeSortValue(?prio, ETodo#etodo.priority)} || ETodo <- ETodos],
+    L1 = [{ETodo, makeSortValue(?prio, ETodo#etodo.priority)} || 
+        ETodo <- ETodos, is_record(ETodo, etodo)],
     L2 = lists:keysort(2, L1),
     [ETodo || {ETodo, _} <- L2];
 doSortETodos(?description, ETodos) ->
-    L1 = [{ETodo, string:to_lower(ETodo#etodo.description)} || ETodo <- ETodos],
+    L1 = [{ETodo, string:to_lower(ETodo#etodo.description)} ||
+        ETodo <- ETodos, is_record(ETodo, etodo)],
     L2 = lists:keysort(2, L1),
     [ETodo || {ETodo, _} <- L2];
 doSortETodos(?comment, ETodos) ->
-    L1 = [{ETodo, string:to_lower(ETodo#etodo.comment)} || ETodo <- ETodos],
+    L1 = [{ETodo, string:to_lower(ETodo#etodo.comment)} ||
+        ETodo <- ETodos, is_record(ETodo, etodo)],
     L2 = lists:keysort(2, L1),
     [ETodo || {ETodo, _} <- L2];
 doSortETodos(?createTime, ETodos) ->
