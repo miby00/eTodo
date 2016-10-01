@@ -214,7 +214,9 @@ apply(Module, Function, Args, Default) ->
 %% @end
 %%--------------------------------------------------------------------
 makeRef() ->
-    erlang:phash2({erlang:unique_integer(), net_adm:localhost()}).
+    erlang:phash2({erlang:unique_integer(),
+                   erlang:timestamp(),
+                   net_adm:localhost()}).
 
 
 %%--------------------------------------------------------------------

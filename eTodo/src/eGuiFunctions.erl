@@ -1566,10 +1566,23 @@ generateSchedule(State = #guiState{user = User}) ->
 %% @spec
 %% @end
 %%--------------------------------------------------------------------
-getWorkDesc("", Description) when length(Description) > 25 ->
-    string:sub_string(Description, 1, 25);
+getWorkDesc("", Description) when length(Description) > 35 ->
+    Rest = string:substr(Description, 36),
+    string:sub_string(Description, 1, 35) ++ smartSplit(Rest);
 getWorkDesc("",    Description)-> Description;
 getWorkDesc(Desc, _Description) -> Desc.
+
+smartSplit(Text) ->
+    smartSplit(Text, []).
+
+smartSplit([], SoFar) ->
+    lists:reverse(SoFar);
+smartSplit([Char|_], SoFar) when (Char == 32) or (Char == 10) or (Char == 13) ->
+    lists:reverse(SoFar);
+smartSplit(_Text, SoFar) when length(SoFar) > 10 ->
+    string:sub_string(lists:reverse(SoFar), 1, 7) ++ "...";
+smartSplit([Char|Rest], SoFar) ->
+    smartSplit(Rest, [Char|SoFar]).
 
 %%--------------------------------------------------------------------
 %% @doc

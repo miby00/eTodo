@@ -1982,18 +1982,27 @@ getAlarmInfo([_Alarm | Rest], Now, Acc) ->
     getAlarmInfo(Rest, Now, Acc).
 
 saveAlarmInfo(Uid, Rest, Now, NextAlarm, Acc) ->
-    {Desc, DueDate, UidStr, RemTime} = doSaveAlarmInfo(Uid),
-    getAlarmInfo(Rest, Now, [{NextAlarm, NextAlarm, DueDate,
-                              UidStr, Desc, RemTime} | Acc]).
+    case doSaveAlarmInfo(Uid) of
+        {Desc, DueDate, UidStr, RemTime} ->
+            getAlarmInfo(Rest, Now, [{NextAlarm, NextAlarm, DueDate,
+                                      UidStr, Desc, RemTime} | Acc]);
+        _ ->
+            %% Inconsistent data, throw it away.
+            getAlarmInfo(Rest, Now, Acc)
+    end.
 
 doSaveAlarmInfo(Uid) ->
-    Todo = eTodoDB:getTodo(tryInt(Uid)),
-    Desc1 = eTodoDB:getWorkDesc(toStr(Uid)),
-    Desc2 = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
-    DueDate = Todo#todo.dueTime,
-    UidStr = eTodoUtils:convertUid(tryInt(Uid)),
-    {_, RemTime} = eTodoDB:getTime(toStr(Uid)),
-    {Desc2, DueDate, UidStr, RemTime}.
+    case eTodoDB:getTodo(tryInt(Uid)) of
+        Todo when is_record(Todo, todo) ->
+            Desc1 = eTodoDB:getWorkDesc(toStr(Uid)),
+            Desc2 = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
+            DueDate = Todo#todo.dueTime,
+            UidStr = eTodoUtils:convertUid(tryInt(Uid)),
+            {_, RemTime} = eTodoDB:getTime(toStr(Uid)),
+            {Desc2, DueDate, UidStr, RemTime};
+        _ ->
+            {error, inconsitentDatabase}
+    end.
 
 makeScheduleReport2([], Acc) ->
     Acc;
