@@ -270,34 +270,30 @@ dataCell(Text, Extra) ->
 %% Notes    :
 %%======================================================================
 makeWorkLogReport(User, Date) ->
-    {D1, D2, D3, D4, D5, D6, D7, Act4} = calcReport(User, Date),
-    Opts = [{width, "11%"}, {align, center}],
+    {D1, D2, D3, D4, D5, Act4} = calcReport(User, Date),
+    Opts = [{width, "14%"}, {align, center}],
     tableTag([
-              makeWorkLogReport(Date, Act4, {D1, D2, D3, D4, D5, D6, D7}, []),
+              makeWorkLogReport(Date, Act4, {D1, D2, D3, D4, D5}, []),
               trTag([{bgcolor, "black"}],
-                    [tdTag([{width, "23%"}], heading("Total")),
+                    [tdTag([{width, "30%"}], heading("Total")),
                      tdTag(Opts, heading(tot(D1))),
                      tdTag(Opts, heading(tot(D2))),
                      tdTag(Opts, heading(tot(D3))),
                      tdTag(Opts, heading(tot(D4))),
-                     tdTag(Opts, heading(tot(D5))),
-                     tdTag(Opts, heading(tot(D6))),
-                     tdTag(Opts, heading(tot(D7)))
+                     tdTag(Opts, heading(tot(D5)))
                     ])]).
 
 showLoggedWork(User, Date) ->
-    {D1, D2, D3, D4, D5, D6, D7, Act4} = calcReport(User, Date),
+    {D1, D2, D3, D4, D5, Act4} = calcReport(User, Date),
     tableTag([{class, "workLogTable"}],
-             [showLoggedWork(Date, Act4, {D1, D2, D3, D4, D5, D6, D7}, []),
+             [showLoggedWork(Date, Act4, {D1, D2, D3, D4, D5}, []),
               trTag([{class, "workLogSum"}],
                     [tdTag([{class, "workLogDesc workLogSum"}], "Total"),
                      [tdTag([{class, "workLogSum workLogColBig"}], tot(D1)),
                       tdTag([{class, "workLogSum workLogColBig"}], tot(D2)),
-                      tdTag([{class, "workLogSum workLogColBig"}], tot(D3)),
+                      tdTag([{class, "workLogSum"}], tot(D3)),
                       tdTag([{class, "workLogSum"}], tot(D4)),
-                      tdTag([{class, "workLogSum"}], tot(D5)),
-                      tdTag([{class, "workLogSum"}], tot(D6)),
-                      tdTag([{class, "workLogSum"}], tot(D7))
+                      tdTag([{class, "workLogSum"}], tot(D5))
                      ]])]).
 
 calcReport(User, Date) ->
@@ -306,14 +302,12 @@ calcReport(User, Date) ->
     D3 = eTodoDB:getLoggedWork(User, incDate(Date, 2)),
     D4 = eTodoDB:getLoggedWork(User, incDate(Date, 3)),
     D5 = eTodoDB:getLoggedWork(User, incDate(Date, 4)),
-    D6 = eTodoDB:getLoggedWork(User, incDate(Date, 5)),
-    D7 = eTodoDB:getLoggedWork(User, incDate(Date, 6)),
-    All = lists:flatten([D1, D2, D3, D4, D5, D6, D7]),
+    All = lists:flatten([D1, D2, D3, D4, D5]),
     Act1 = [Task || {Task, _H, _M} <- All],
     Act2 = lists:usort(Act1),
     Act3 = [{Task, eTodoDB:getWorkDesc(Task)} || Task <- Act2],
     Act4 = lists:keysort(2, Act3),
-    {D1, D2, D3, D4, D5, D6, D7, Act4}.
+    {D1, D2, D3, D4, D5, Act4}.
 
 tot(Days) ->
     tot(Days, {0, 0}).
@@ -338,14 +332,12 @@ showLoggedWork(Date, [], _Days, Result) ->
            [tdTag([{class, "workLogDesc"}], "Task description"),
             tdTag(Opts2, getWeekDay(Date)),
             tdTag(Opts2, getWeekDay(incDate(Date, 1))),
-            tdTag(Opts2, getWeekDay(incDate(Date, 2))),
-            tdTag(Opts, getWeekDay(incDate(Date, 3))),
-            tdTag(Opts, getWeekDay(incDate(Date, 4))),
-            tdTag(Opts, getWeekDay(incDate(Date, 5))),
-            tdTag(Opts, getWeekDay(incDate(Date, 6)))
+            tdTag(Opts, getWeekDay(incDate(Date, 2))),
+            tdTag(Opts,  getWeekDay(incDate(Date, 3))),
+            tdTag(Opts,  getWeekDay(incDate(Date, 4)))
            ]) | lists:reverse(Result)];
 showLoggedWork(Date, [{Act, Desc} | Rest],
-               Days = {D1, D2, D3, D4, D5, D6, D7}, SoFar) ->
+               Days = {D1, D2, D3, D4, D5}, SoFar) ->
     Odd = ((length(Rest) rem 2) == 0),
     UidStr = eTodoUtils:convertUid(list_to_integer(Act)),
     Opts = if Odd -> [{class, "lwOdd"}];
@@ -358,27 +350,23 @@ showLoggedWork(Date, [{Act, Desc} | Rest],
                                   http_uri:encode(UidStr)}], empty(Desc, Act))),
                  tdTag(Opts3, hours(Act, D1) ++ ":" ++ minutes(Act, D1)),
                  tdTag(Opts3, hours(Act, D2) ++ ":" ++ minutes(Act, D2)),
-                 tdTag(Opts3, hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
+                 tdTag(Opts2, hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
                  tdTag(Opts2, hours(Act, D4) ++ ":" ++ minutes(Act, D4)),
-                 tdTag(Opts2, hours(Act, D5) ++ ":" ++ minutes(Act, D5)),
-                 tdTag(Opts2, hours(Act, D6) ++ ":" ++ minutes(Act, D6)),
-                 tdTag(Opts2, hours(Act, D7) ++ ":" ++ minutes(Act, D7))]),
+                 tdTag(Opts2, hours(Act, D5) ++ ":" ++ minutes(Act, D5))]),
     showLoggedWork(Date, Rest, Days, [Row | SoFar]).
 
 makeWorkLogReport(Date, [], _Days, Result) ->
-    Opts = [{width, "11%"}, {align, center}],
+    Opts = [{width, "14%"}, {align, center}],
     [trTag([{bgcolor, "black"}],
-           [tdTag([{width, "23%"}], heading("Task description")),
+           [tdTag([{width, "30%"}], heading("Task description")),
             tdTag(Opts, heading(getWeekDay(Date))),
             tdTag(Opts, heading(getWeekDay(incDate(Date, 1)))),
             tdTag(Opts, heading(getWeekDay(incDate(Date, 2)))),
             tdTag(Opts, heading(getWeekDay(incDate(Date, 3)))),
-            tdTag(Opts, heading(getWeekDay(incDate(Date, 4)))),
-            tdTag(Opts, heading(getWeekDay(incDate(Date, 5)))),
-            tdTag(Opts, heading(getWeekDay(incDate(Date, 6))))
+            tdTag(Opts, heading(getWeekDay(incDate(Date, 4))))
            ]) | lists:reverse(Result)];
 makeWorkLogReport(Date, [{Act, Desc} | Rest],
-                  Days = {D1, D2, D3, D4, D5, D6, D7}, SoFar) ->
+                  Days = {D1, D2, D3, D4, D5}, SoFar) ->
     Odd = ((length(Rest) rem 2) == 0),
     Opts = [{align, center}],
     Uid = list_to_integer(Act),
@@ -389,18 +377,13 @@ makeWorkLogReport(Date, [{Act, Desc} | Rest],
     Link3 = aTag([{href, convertUid(Uid, incDate(Date, 2))}], hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
     Link4 = aTag([{href, convertUid(Uid, incDate(Date, 3))}], hours(Act, D4) ++ ":" ++ minutes(Act, D4)),
     Link5 = aTag([{href, convertUid(Uid, incDate(Date, 4))}], hours(Act, D5) ++ ":" ++ minutes(Act, D5)),
-    Link6 = aTag([{href, convertUid(Uid, incDate(Date, 5))}], hours(Act, D6) ++ ":" ++ minutes(Act, D6)),
-    Link7 = aTag([{href, convertUid(Uid, incDate(Date, 6))}], hours(Act, D7) ++ ":" ++ minutes(Act, D7)),
-
     Row = trTag(bgColor(Odd),
                 [tdTag(aTag([{href, UidStr}], empty(Desc, Act))),
                  tdTag(Opts, Link1),
                  tdTag(Opts, Link2),
                  tdTag(Opts, Link3),
                  tdTag(Opts, Link4),
-                 tdTag(Opts, Link5),
-                 tdTag(Opts, Link6),
-                 tdTag(Opts, Link7)]),
+                 tdTag(Opts, Link5)]),
     makeWorkLogReport(Date, Rest, Days, [Row | SoFar]).
 
 empty("", Value) -> Value;

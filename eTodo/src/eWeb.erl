@@ -1580,7 +1580,7 @@ checkInputForDate(Text) ->
     case catch makeDate(Numbers) of
         {'EXIT', _} -> %% Default to 6 days ago.
             calendar:gregorian_days_to_date(
-              calendar:date_to_gregorian_days(date()) - 6);
+              calendar:date_to_gregorian_days(date()) - 4);
         Date ->
             Date
     end.

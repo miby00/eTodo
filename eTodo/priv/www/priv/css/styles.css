@@ -547,10 +547,12 @@ table.msgSent {
 
 .workLogDesc {
     text-align: left;
+    width: 20%;
 }
 
 .workLogColumn {
     text-align: center;
+    width: 16%;
 }
 
 .workLogHeading {

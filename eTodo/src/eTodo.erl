@@ -449,7 +449,7 @@ initGUI(Arg) ->
 
     %% Set initial date for work log report.
     WorkLoadObj  = obj("workLogStartDate", State),
-    LastWeekDays = calendar:date_to_gregorian_days(date()) - 6,
+    LastWeekDays = calendar:date_to_gregorian_days(date()) - 4,
     LastWeek     = calendar:gregorian_days_to_date(LastWeekDays),
     wxDatePickerCtrl:setValue(WorkLoadObj, {LastWeek, {0,0,0}}),
 
