@@ -193,6 +193,7 @@ table.msgSent {
     width: 70px;
     font-weight: bold;
     color: DarkBlue;
+    padding: 0px 3px 0px 3px;
 }
 
 .cstatus {

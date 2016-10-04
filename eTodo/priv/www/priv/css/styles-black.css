@@ -208,6 +208,7 @@ table.msgSent {
     width: 70px;
     font-weight: bold;
     color: white;
+    padding: 0px 3px 0px 3px;
 }
 
 .cstatus {
