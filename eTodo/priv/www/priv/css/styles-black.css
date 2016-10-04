@@ -206,7 +206,6 @@ table.msgSent {
 
 .header {
     width: 70px;
-    font-weight: bold;
     color: white;
     padding: 0px 3px 0px 3px;
 }
@@ -311,7 +310,6 @@ table.msgSent {
 }
 
 .description {
-    font-weight: bold;
     width: 23%;
 }
 
@@ -718,6 +716,10 @@ input.rounded:focus {
 
     input, select, textarea {
         font-size: 0.9em;
+    }
+
+    .header {
+        font-size: 0.8em;
     }
 
     .textField {
