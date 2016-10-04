@@ -33,7 +33,6 @@ textarea {
     border: none;
     border-radius: 3px;
     resize: none;
-    padding: 2px;
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
     box-sizing: border-box;
@@ -50,7 +49,7 @@ input, select, textarea {
 td {
     height: 26px;
     page-break-inside: avoid;
-    padding: 2px;
+    padding: 0px;
     border-radius: 3px;
     border: 1px;
     word-wrap: break-word;
@@ -179,18 +178,21 @@ table.msgSent {
     color: DarkRed;
     background-color: white;
     width: 31%;
+    padding: 0px 3px 0px 3px;
 }
 
 .data2 {
     color: DarkRed;
     background-color: white;
     width: 31%;
+    padding: 0px 3px 0px 3px;
 }
 
 .data3 {
     color: DarkRed;
     background-color: white;
     width: 100%;
+    padding: 0px 3px 0px 3px;
 }
 
 .data4 {
