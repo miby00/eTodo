@@ -13,7 +13,7 @@
 }
 
 body {
-    font-size: 1.0em;
+    font-size: 0.9em;
     color: DarkBlue;
     font-family: Ubuntu, sans-serif;
 }
@@ -39,7 +39,7 @@ textarea {
 }
 
 input, select, textarea {
-    font-size: 1.0em;
+    font-size: 0.9em;
     color: DarkBlue;
     background-color: white;
     font-family: Ubuntu, sans-serif;
@@ -694,7 +694,7 @@ input.rounded {
     }
 
     input, select, textarea {
-        font-size: 1.0em;
+        font-size: 0.9em;
     }
 
     .textField {
