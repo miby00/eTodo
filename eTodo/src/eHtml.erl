@@ -1273,7 +1273,7 @@ generateMsg(Sender, Sender, Users, Text) ->
      tableTag([{class, "msgSent"}],
               [trTag(
                  [tdTag([{class, "msgText"}], [Sender, UserList]),
-                  tdTag([{class, "msgTime"}], toStr(time(), time)),
+                  tdTag([{class, "msgTime textCenter"}], toStr(time(), time)),
                   tdTag([{class, "msgImg"}],
                         imgTag([{src, "/priv/Icons/" ++ Icon}]))
                  ]),
@@ -1310,7 +1310,7 @@ generateMsg(_User, Sender, Users, Text) ->
               [trTag(
                  [tdTag([{class, "msgImg"}],
                         imgTag([{src, "/priv/Icons/" ++ Icon}])),
-                  tdTag([{class, "msgTime"}],
+                  tdTag([{class, "msgTime textCenter"}],
                         toStr(time(), time)),
                   tdTag([{class, "msgText"}], [Sender, UserList])]),
                trTag(
@@ -1364,7 +1364,7 @@ generateSystemMsg(system, Text) ->
                  imgTag([{src, "/priv/Icons/etodoChat.png"}])),
            tdTag([{class, "msgTime"}], toStr(time(), time)),
            tdTag([{class, "msgText"}], "eTodo")]),
-        trTag([tdTag(), tdTag(), tdTag(makeHtml(Text, "/priv"))])])};
+        trTag([tdTag(), tdTag([{colspan, 2}], makeHtml(Text, "/priv"))])])};
 generateSystemMsg(Uid, Text) ->
     UidStr = eTodoUtils:convertUid(Uid),
     {tableTag(
@@ -1386,7 +1386,7 @@ generateSystemMsg(Uid, Text) ->
            tdTag([{class, "msgText"}],
                  aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
                             http_uri:encode(UidStr)}], "eTodo"))]),
-        trTag([tdTag(), tdTag(), tdTag(makeHtml(Text, "/priv"))])])}.
+        trTag([tdTag(), tdTag([{colspan, 2}], makeHtml(Text, "/priv"))])])}.
 
 %%======================================================================
 %% Function :
@@ -1412,7 +1412,7 @@ generateAlarmMsg(timer, Text) ->
                  imgTag([{src, "/priv/Icons/clockChat.png"}])),
            tdTag([{class, "msgTime"}], toStr(time(), time)),
            tdTag([{class, "msgText"}], "Timer expired")]),
-        trTag([tdTag(), tdTag(), tdTag(makeHtml(Text, "/priv"))])])};
+        trTag([tdTag(), tdTag([{colspan, 2}], makeHtml(Text, "/priv"))])])};
 generateAlarmMsg(Uid, Text) ->
     UidStr = eTodoUtils:convertUid(Uid),
     {tableTag(
@@ -1434,7 +1434,7 @@ generateAlarmMsg(Uid, Text) ->
                   tdTag([{class, "msgText"}],
                         aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
                                    http_uri:encode(UidStr)}], "eTodo"))]),
-               trTag([tdTag(), tdTag(), tdTag(makeHtml(Text, "/priv"))])])}.
+               trTag([tdTag(), tdTag([{colspan, 2}], makeHtml(Text, "/priv"))])])}.
 
 %%======================================================================
 %% Function :

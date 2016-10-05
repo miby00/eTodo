@@ -227,8 +227,13 @@ table.msgSent {
 
 .msgTime {
     width: 100px;
-    text-align: center;
+    text-align: left;
     color: white;
+    font-size: 11px;
+}
+
+.textCenter {
+    text-align: center;
 }
 
 .portrait {
@@ -247,6 +252,7 @@ table.msgSent {
 
 .msgText {
     color: white;
+    font-size: 11px;
 }
 
 .status {
@@ -730,7 +736,6 @@ input.rounded:focus {
 
     .msgTime {
         width: 60px;
-        text-align: center;
     }
 
     .portrait {
@@ -803,7 +808,6 @@ input.rounded:focus {
 
     .msgTime {
         width: 80px;
-        text-align: center;
     }
 
     .msgImg {
@@ -921,4 +925,10 @@ input.rounded:focus {
     }
 }
 
+a:link {
+    color: blue;
+}
 
+a:visited {
+    color: lightgray;
+}

@@ -212,6 +212,11 @@ table.msgSent {
 
 .msgTime {
     width: 100px;
+    text-align: left;
+    font-size: 11px;
+}
+
+.textCenter {
     text-align: center;
 }
 
@@ -229,6 +234,7 @@ table.msgSent {
 }
 
 .msgText {
+    font-size: 11px;
 }
 
 .status {
@@ -707,7 +713,6 @@ input.rounded {
 
     .msgTime {
         width: 60px;
-        text-align: center;
     }
 
     .portrait {
@@ -780,7 +785,6 @@ input.rounded {
 
     .msgTime {
         width: 80px;
-        text-align: center;
     }
 
     .msgImg {
