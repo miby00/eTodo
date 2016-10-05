@@ -92,7 +92,10 @@ tr {
 table {
     table-layout: fixed;
     padding: 0.5% 0.5%;
-    margin: 0.5%;
+    margin-left: 0.5%;
+    margin-right: 0.5%;
+    margin-top: 9px;
+    margin-bottom: 9px;
     border: 1px solid #e8edff;
     -moz-border-radius: 6px;
     -webkit-border-radius: 6px;
@@ -114,7 +117,7 @@ table {
 
 table.msgReceived {
     width: 90%;
-    margin-right: 9%;
+    margin-right: 9.5%;
 }
 
 table.msgSent {
@@ -130,7 +133,7 @@ table.msgSent {
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#c1ceff', endColorstr='#98aefe', GradientType=0); /* IE6-8 */
 
     width: 90%;
-    margin-left: 9%;
+    margin-left: 9.5%;
 }
 
 .divider {
