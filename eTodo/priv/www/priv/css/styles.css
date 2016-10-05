@@ -213,7 +213,7 @@ table.msgSent {
 .msgTime {
     width: 100px;
     text-align: left;
-    font-size: 11px;
+    font-size: 0.8em;
 }
 
 .textCenter {
@@ -234,7 +234,7 @@ table.msgSent {
 }
 
 .msgText {
-    font-size: 11px;
+    font-size: 0.8em;
 }
 
 .status {
@@ -713,7 +713,13 @@ input.rounded {
 
     .msgTime {
         width: 60px;
+        font-size: 0.7em;
     }
+
+    .msgText {
+        font-size: 0.7em;
+    }
+
 
     .portrait {
         width:  25px;
