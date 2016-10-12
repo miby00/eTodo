@@ -517,7 +517,8 @@ handle_call({createTaskList, _SessionId, Env, Input}, _From,
             ok
     end,
 
-    HtmlPage = redirect("listTodos?list=" ++ TaskList ++ "&search=", Env),
+    HtmlPage = redirect("listTodos?list=" ++ http_uri:encode(TaskList) ++
+                        "&search=", Env),
     {reply, HtmlPage, State};
 handle_call({deleteTask, _SessionId, _Env, Input}, _From, State) ->
     Dict = makeDict(Input),
@@ -560,7 +561,8 @@ handle_call({createTask, _SessionId, Env, Input}, _From,
                               parent   = tryInt(TaskList)}, Todo),
 
     eTodo:todoCreated(TaskList, Row, Todo),
-    HtmlPage = redirect("listTodos?list=" ++ TaskList ++ "&search=", Env),
+    HtmlPage = redirect("listTodos?list=" ++ http_uri:encode(TaskList) ++
+                        "&search=", Env),
     {reply, HtmlPage, State};
 handle_call({showTodo, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
