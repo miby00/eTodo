@@ -27,8 +27,6 @@
         <property name="use_enum">0</property>
         <property name="use_microsoft_bom">0</property>
         <object class="Frame" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -8198,8 +8196,6 @@
             </object>
         </object>
         <object class="Frame" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -8351,8 +8347,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -9384,8 +9378,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -10720,8 +10712,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -12499,8 +12489,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -12946,8 +12934,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -13152,7 +13138,7 @@
                                 <property name="resize">Resizable</property>
                                 <property name="show">1</property>
                                 <property name="size">180,300</property>
-                                <property name="style">wxLB_SINGLE|wxLB_SORT</property>
+                                <property name="style">wxLB_SINGLE</property>
                                 <property name="subclass"></property>
                                 <property name="toolbar_pane">0</property>
                                 <property name="tooltip"></property>
@@ -13393,8 +13379,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -13599,7 +13583,7 @@
                                 <property name="resize">Resizable</property>
                                 <property name="show">1</property>
                                 <property name="size">180,300</property>
-                                <property name="style">wxLB_EXTENDED|wxLB_SINGLE|wxLB_SORT</property>
+                                <property name="style">wxLB_EXTENDED|wxLB_SINGLE</property>
                                 <property name="subclass"></property>
                                 <property name="toolbar_pane">0</property>
                                 <property name="tooltip"></property>
@@ -13840,8 +13824,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -15830,8 +15812,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -16254,7 +16234,7 @@
                                                 <property name="resize">Resizable</property>
                                                 <property name="show">1</property>
                                                 <property name="size"></property>
-                                                <property name="style">wxLB_SINGLE|wxLB_SORT</property>
+                                                <property name="style">wxLB_SINGLE</property>
                                                 <property name="subclass"></property>
                                                 <property name="toolbar_pane">0</property>
                                                 <property name="tooltip"></property>
@@ -16685,8 +16665,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -21128,8 +21106,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg">232,237,255</property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -22362,8 +22338,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -22786,7 +22760,7 @@
                                                 <property name="resize">Resizable</property>
                                                 <property name="show">1</property>
                                                 <property name="size"></property>
-                                                <property name="style">wxLB_SINGLE|wxLB_SORT</property>
+                                                <property name="style">wxLB_SINGLE</property>
                                                 <property name="subclass"></property>
                                                 <property name="toolbar_pane">0</property>
                                                 <property name="tooltip"></property>
@@ -23217,8 +23191,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -23641,7 +23613,7 @@
                                                 <property name="resize">Resizable</property>
                                                 <property name="show">1</property>
                                                 <property name="size"></property>
-                                                <property name="style">wxLB_SINGLE|wxLB_SORT</property>
+                                                <property name="style">wxLB_SINGLE</property>
                                                 <property name="subclass"></property>
                                                 <property name="toolbar_pane">0</property>
                                                 <property name="tooltip"></property>
@@ -24072,8 +24044,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -24737,8 +24707,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
@@ -25830,8 +25798,6 @@
             </object>
         </object>
         <object class="Dialog" expanded="0">
-            <property name="aui_managed">0</property>
-            <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
             <property name="center"></property>
             <property name="context_help"></property>
