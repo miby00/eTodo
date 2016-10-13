@@ -876,7 +876,7 @@
 																	<flag>wxALL|wxEXPAND</flag>
 																	<border>5</border>
 																	<object class="wxCheckListBox" name="userCheckBox">
-																		<style>wxLB_NEEDED_SB|wxLB_SORT</style>
+																		<style>wxLB_NEEDED_SB</style>
 																		<content />
 																	</object>
 																</object>
