@@ -82,7 +82,7 @@
         "msgTextWin"         => wxHtmlWindow,
         "ownerChoice"        => wxChoice,
         "ownerChoice1"       => wxChoice,
-        "ownerChoice2"       => wxChoi,
+        "ownerChoice2"       => wxChoice,
         "ownerLang"          => wxStaticText,
         "pasteMenu"          => wxMenuItem,
         "peerAvailableIcon"  => wxStaticBitmap,
