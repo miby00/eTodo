@@ -133,10 +133,11 @@ init([Module, Host, Port, false]) ->
     case catch gen_tcp:connect(Host, Port,
                                [{packet, 4}, {active, once}, binary], 10000) of
         {ok, Socket} ->
+            erlang:send_after(?Timeout, self(), timeout),
             {ok, #state{socket = Socket,
                         module = Module,
                         client = true,
-                        ssl    = false},  ?Timeout};
+                        ssl    = false}};
         Reason ->
             log(debug, ?MODULE, init, [Reason, self()],
                 "Shutting down, failed to establish connection.",
@@ -151,10 +152,11 @@ init([Module, Host, Port, {true, SSLOptions}]) ->
     case catch ssl:connect(Host, Port,
                            [{packet, 4}, {active, once}, binary | SSLOptions], 10000) of
         {ok, Socket} ->
+            erlang:send_after(?Timeout, self(), timeout),
             {ok, #state{socket = Socket,
                         module = Module,
                         client = true,
-                        ssl    = {true, SSLOptions}},  ?Timeout};
+                        ssl    = {true, SSLOptions}}};
         Reason ->
             log(debug, ?MODULE, init, [Reason, self()],
                 "Shutting down, failed to establish connection.",
@@ -182,16 +184,16 @@ handle_call({call, Function, Args}, From, State = #state{socket = Socket,
     log(debug, ?MODULE, handle_call, [Function, self()],
         "Send call.", ?LINE, Module),
     doSendPacket(Socket, {rpc, Function, Args, From}),
-    {noreply, State, ?Timeout};
+    {noreply, State};
 handle_call({call, Function, Args}, From, State = #state{socket = Socket,
                                                          module = Module}) ->
     log(debug, ?MODULE, handle_call, [Function, self()],
         "Send call.", ?LINE, Module),
     doSendPacketSSL(Socket, {rpc, Function, Args, From}),
-    {noreply, State, ?Timeout};
+    {noreply, State};
 handle_call(_Request, _From, State) ->
     Reply = ok,
-    {reply, Reply, State, ?Timeout}.
+    {reply, Reply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -209,19 +211,19 @@ handle_cast({cast, Function, Args}, State = #state{socket = Socket,
     log(debug, ?MODULE, handle_cast, [Function, self()],
         "Send cast.", ?LINE, Module),
     doSendPacket(Socket, {rpc, Function, Args}),
-    {noreply, State, ?Timeout};
+    {noreply, State};
 handle_cast({cast, Function, Args}, State = #state{socket = Socket,
                                                    module = Module}) ->
     log(debug, ?MODULE, handle_cast, [Function, self()],
         "Send cast.", ?LINE, Module),
     doSendPacketSSL(Socket, {rpc, Function, Args}),
-    {noreply, State, ?Timeout};
+    {noreply, State};
 handle_cast({stop, Offender}, State = #state{module = Module}) ->
     log(debug, ?MODULE, stop, [State, self(), Offender],
         "Shutting down, stop received.", ?LINE, Module),
     {stop, normal, State};
 handle_cast(_Msg, State) ->
-    {noreply, State, ?Timeout}.
+    {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -237,45 +239,53 @@ handle_info({tcp, Socket, ?Ping}, State = #state{socket = Socket,
                                                  ssl    = false}) ->
     doSendPacket(Socket, pong),
     inet:setopts(Socket,[{active,once}]),
-    {noreply, State, ?Timeout};
+    {noreply, State};
 handle_info({ssl, Socket, ?Ping}, State = #state{socket = Socket}) ->
     doSendPacketSSL(Socket, pong),
     ssl:setopts(Socket,[{active,once}]),
-    {noreply, State, ?Timeout};
+    {noreply, State};
 handle_info({tcp, Socket, ?Ping}, State = #state{socket = Socket,
                                                  ssl    = false}) ->
     doSendPacket(Socket, pong),
     inet:setopts(Socket,[{active,once}]),
-    {noreply, State, ?Timeout};
+    {noreply, State};
 handle_info({ssl, Socket, ?Ping}, State = #state{socket = Socket}) ->
     doSendPacketSSL(Socket, pong),
     ssl:setopts(Socket,[{active,once}]),
-    {noreply, State, ?Timeout};
+    {noreply, State};
 handle_info({tcp, Socket, ?Pong}, State = #state{socket   = Socket,
                                                  timerRef = Ref,
-                                                 ssl      = false}) ->
-    %% Recieved pong, cancel timer.
+                                                 ssl      = false,
+                                                 module   = Module}) ->
+
+    log(debug, ?MODULE, handle_info, [Socket],
+        "Received pong from socket...", ?LINE, Module),
+
     cancelTimer(Ref),
 
     inet:setopts(Socket,[{active,once}]),
-    {noreply, State#state{timerRef = undefined}, ?Timeout};
+    {noreply, State#state{timerRef = undefined}};
 handle_info({ssl, Socket, ?Pong}, State = #state{socket   = Socket,
-                                                 timerRef = Ref}) ->
-    %% Recieved pong, cancel timer.
+                                                 timerRef = Ref,
+                                                 module   = Module}) ->
+
+    log(debug, ?MODULE, handle_info, [Socket],
+        "Received pong from socket...", ?LINE, Module),
+
     cancelTimer(Ref),
 
     ssl:setopts(Socket,[{active,once}]),
-    {noreply, State#state{timerRef = undefined}, ?Timeout};
+    {noreply, State#state{timerRef = undefined}};
 handle_info({tcp, Socket, Data}, State = #state{socket = Socket,
                                                 module = Module}) ->
     handlePacket(self(), Module, Data),
     inet:setopts(Socket,[{active,once}]),
-    {noreply, State, ?Timeout};
+    {noreply, State};
 handle_info({ssl, Socket, Data}, State = #state{socket = Socket,
                                                 module = Module}) ->
     handlePacket(self(), Module, Data),
     ssl:setopts(Socket,[{active,once}]),
-    {noreply, State, ?Timeout};
+    {noreply, State};
 handle_info({tcp_closed, Socket}, State = #state{socket = Socket,
                                                  module = Module}) ->
     log(debug, ?MODULE, handle_info, [State, self()],
@@ -289,33 +299,47 @@ handle_info({ssl_closed, Socket}, State = #state{socket = Socket,
 handle_info({rpc_result, Result, From}, State = #state{socket = Socket,
                                                        ssl    = false}) ->
     doSendPacket(Socket, {rpc_result, Result, From}),
-    {noreply, State, ?Timeout};
+    {noreply, State};
 handle_info({rpc_result, Result, From}, State = #state{socket = Socket}) ->
     doSendPacketSSL(Socket, {rpc_result, Result, From}),
-    {noreply, State, ?Timeout};
+    {noreply, State};
 handle_info(timeout, State = #state{socket = Socket,
                                     client = true,
-                                    ssl    = false}) ->
+                                    ssl    = false,
+                                    module = Module}) ->
     doSendPacket(Socket, ping),
 
     %% If we havent received a pong signal withing 60 sek, close connection.
     Ref = erlang:send_after(60000, self(), lostConnection),
-    {noreply, State#state{timerRef = Ref}, ?Timeout};
+
+    erlang:send_after(?Timeout, self(), timeout),
+
+    log(debug, ?MODULE, handle_info, [Socket],
+        "Sending ping to socket...", ?LINE, Module),
+
+    {noreply, State#state{timerRef = Ref}};
 handle_info(timeout, State = #state{socket = Socket,
-                                    client = true}) ->
+                                    client = true,
+                                    module = Module}) ->
     doSendPacketSSL(Socket, ping),
 
     %% If we havent received a pong signal withing 60 sek, close connection.
     Ref = erlang:send_after(60000, self(), lostConnection),
-    {noreply, State#state{timerRef = Ref}, ?Timeout};
+
+    erlang:send_after(?Timeout, self(), timeout),
+
+    log(debug, ?MODULE, handle_info, [Socket],
+        "Sending ping to socket...", ?LINE, Module),
+
+    {noreply, State#state{timerRef = Ref}};
 handle_info(timeout, State = #state{client = false}) ->
     {noreply, State};
 handle_info(lostConnection, State = #state{module = Module}) ->
-    log(debug, ?MODULE, handle_info, [State, self()],
+    log(error, ?MODULE, handle_info, [State, self()],
         "Lost connection signal received, shutting down...", ?LINE, Module),
     {stop, normal, State};
 handle_info(_Info, State) ->
-    {noreply, State, ?Timeout}.
+    {noreply, State}.
 
 
 
