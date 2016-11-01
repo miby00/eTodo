@@ -716,33 +716,45 @@ handle_call({sendStatus, _SessionId, _Env, Input}, _From,
     Dict = makeDict(Input),
     {ok, Status} = find("status", Dict),
     {ok, Uid}    = find("uid",    Dict),
-    Todo1 = eTodoDB:getTodo(list_to_integer(Uid)),
-    StatusDB = eTodoUtils:toDB(Status),
-    DoneTime = eTodoUtils:doneTime(Todo1#todo.doneTime, StatusDB),
-    Todo2 = Todo1#todo{status = StatusDB, doneTime = DoneTime},
-    eTodoDB:updateTodo(User, Todo2),
-    eTodo:todoUpdated(User, Todo2),
+    case eTodoDB:getTodo(list_to_integer(Uid)) of
+        Todo1 when is_record(Todo1, todo) ->
+            StatusDB = eTodoUtils:toDB(Status),
+            DoneTime = eTodoUtils:doneTime(Todo1#todo.doneTime, StatusDB),
+            Todo2 = Todo1#todo{status = StatusDB, doneTime = DoneTime},
+            eTodoDB:updateTodo(User, Todo2),
+            eTodo:todoUpdated(User, Todo2);
+        _ ->
+            ok
+    end,
     {reply, "ok", State};
 handle_call({sendPriority, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
     Dict = makeDict(Input),
     {ok, Prio} = find("priority", Dict),
     {ok, Uid}  = find("uid",      Dict),
-    Todo1 = eTodoDB:getTodo(list_to_integer(Uid)),
-    PrioDB = eTodoUtils:toDB(Prio),
-    Todo2 = Todo1#todo{priority = PrioDB},
-    eTodoDB:updateTodo(User, Todo2),
-    eTodo:todoUpdated(User, Todo2),
+    case eTodoDB:getTodo(list_to_integer(Uid)) of
+        Todo1 when is_record(Todo1, todo) ->
+            PrioDB = eTodoUtils:toDB(Prio),
+            Todo2 = Todo1#todo{priority = PrioDB},
+            eTodoDB:updateTodo(User, Todo2),
+            eTodo:todoUpdated(User, Todo2);
+        _ ->
+            ok
+    end,
     {reply, "ok", State};
 handle_call({sendOwner, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
     Dict = makeDict(Input),
     {ok, Owner} = find("owner", Dict),
-    {ok, Uid}  = find("uid",      Dict),
-    Todo1 = eTodoDB:getTodo(list_to_integer(Uid)),
-    Todo2 = Todo1#todo{owner = Owner},
-    eTodoDB:updateTodo(User, Todo2),
-    eTodo:todoUpdated(User, Todo2),
+    {ok, Uid}  = find("uid",    Dict),
+    case eTodoDB:getTodo(list_to_integer(Uid)) of
+        Todo1 when is_record(Todo1, todo) ->
+            Todo2 = Todo1#todo{owner = Owner},
+            eTodoDB:updateTodo(User, Todo2),
+            eTodo:todoUpdated(User, Todo2);
+        _ ->
+            ok
+    end,
     {reply, "ok", State};
 handle_call({saveTodo, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
@@ -756,20 +768,24 @@ handle_call({saveTodo, _SessionId, _Env, Input}, _From,
     {ok, Priority}    = find("prio",     Dict),
     {ok, Lists}       = find("list",     Dict),
 
-    Todo1    = eTodoDB:getTodo(list_to_integer(Uid)),
-    StatusDB = eTodoUtils:toDB(Status),
-    PrioDB   = eTodoUtils:toDB(Priority),
-    DoneTime = eTodoUtils:doneTime(Todo1#todo.doneTime, StatusDB),
-    Todo2 = Todo1#todo{status      = StatusDB,
-                       doneTime    = DoneTime,
-                       description = Description,
-                       comment     = Comment,
-                       progress    = tryInt(Progress),
-                       priority    = PrioDB,
-                       dueTime     = toDB(DueTime, time)},
-    eTodoDB:updateTodo(User, Todo2),
-    assignLists(User, Uid, Lists),
-    eTodo:todoUpdated(User, Todo2),
+    case eTodoDB:getTodo(list_to_integer(Uid)) of
+        Todo1 when is_record(Todo1, todo) ->
+            StatusDB = eTodoUtils:toDB(Status),
+            PrioDB   = eTodoUtils:toDB(Priority),
+            DoneTime = eTodoUtils:doneTime(Todo1#todo.doneTime, StatusDB),
+            Todo2 = Todo1#todo{status      = StatusDB,
+                               doneTime    = DoneTime,
+                               description = Description,
+                               comment     = Comment,
+                               progress    = tryInt(Progress),
+                               priority    = PrioDB,
+                               dueTime     = toDB(DueTime, time)},
+            eTodoDB:updateTodo(User, Todo2),
+            assignLists(User, Uid, Lists),
+            eTodo:todoUpdated(User, Todo2);
+        _ ->
+            ok
+    end,
     {reply, "ok", State};
 handle_call({sendSetting, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
