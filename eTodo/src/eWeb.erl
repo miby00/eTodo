@@ -826,31 +826,35 @@ handle_call({sendFieldChange, _SessionId, _Env, Input}, _From,
     IntUid          = list_to_integer(Uid),
 
     Value = eHtml:makeText(HtmlValue),
-    Todo  = eTodoDB:getTodo(IntUid),
 
-    case Field of
-        ?description ->
-            Todo2 = Todo#todo{description = Value},
-            eTodoDB:updateTodo(User, Todo2),
-            eTodo:todoUpdated(User, Todo2);
-        ?comment ->
-            Todo2 = Todo#todo{comment = Value},
-            eTodoDB:updateTodo(User, Todo2),
-            eTodo:todoUpdated(User, Todo2);
-        ?progress ->
-            Todo2 = Todo#todo{progress = list_to_integer(removeWS(Value))},
-            eTodoDB:updateTodo(User, Todo2),
-            eTodo:todoUpdated(User, Todo2);
-        ?estimate ->
-            {_Estimate, Remaining} = eTodoDB:getTime(Uid),
-            eTodoDB:saveTime(Uid, list_to_integer(removeWS(Value)), Remaining);
-        ?remaining ->
-            {Estimate, _Remaining} = eTodoDB:getTime(Uid),
-            eTodoDB:saveTime(Uid, Estimate, list_to_integer(removeWS(Value)));
-        ?dueTime ->
-            Todo2 = Todo#todo{dueTime = toDB(HtmlValue, time)},
-            eTodoDB:updateTodo(User, Todo2),
-            eTodo:todoUpdated(User, Todo2)
+    case eTodoDB:getTodo(IntUid) of
+        Todo when is_record(Todo, todo) ->
+            case Field of
+                ?description ->
+                    Todo2 = Todo#todo{description = Value},
+                    eTodoDB:updateTodo(User, Todo2),
+                    eTodo:todoUpdated(User, Todo2);
+                ?comment ->
+                    Todo2 = Todo#todo{comment = Value},
+                    eTodoDB:updateTodo(User, Todo2),
+                    eTodo:todoUpdated(User, Todo2);
+                ?progress ->
+                    Todo2 = Todo#todo{progress = list_to_integer(removeWS(Value))},
+                    eTodoDB:updateTodo(User, Todo2),
+                    eTodo:todoUpdated(User, Todo2);
+                ?estimate ->
+                    {_Estimate, Remaining} = eTodoDB:getTime(Uid),
+                    eTodoDB:saveTime(Uid, list_to_integer(removeWS(Value)), Remaining);
+                ?remaining ->
+                    {Estimate, _Remaining} = eTodoDB:getTime(Uid),
+                    eTodoDB:saveTime(Uid, Estimate, list_to_integer(removeWS(Value)));
+                ?dueTime ->
+                    Todo2 = Todo#todo{dueTime = toDB(HtmlValue, time)},
+                    eTodoDB:updateTodo(User, Todo2),
+                    eTodo:todoUpdated(User, Todo2)
+            end;
+        _ ->
+            ok;
     end,
     {reply, "ok", State};
 
