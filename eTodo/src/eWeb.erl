@@ -854,7 +854,7 @@ handle_call({sendFieldChange, _SessionId, _Env, Input}, _From,
                     eTodo:todoUpdated(User, Todo2)
             end;
         _ ->
-            ok;
+            ok
     end,
     {reply, "ok", State};
 
