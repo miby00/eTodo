@@ -725,7 +725,7 @@ timerOkEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
 
     wxDialog:hide(TimerDlg),
     cancelTimer(OldTimerRef),
-    State#guiState{timerRef = TimerRef}.
+    State#guiState{timerRef = TimerRef, timerDlgOpen = false}.
 
 timerCancelEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
                                                        timerRef = TimerRef,
@@ -736,14 +736,15 @@ timerCancelEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
     ePluginServer:eTimerStopped(User),
     eWeb:setTimerRef(User, undefined),
 
-    State#guiState{timerRef = undefined}.
+    State#guiState{timerRef = undefined, timerDlgOpen = false}.
 
 timerToolEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
                                                      timerRef = undefined,
                                                      user     = User}) ->
-    Obj1 = wxXmlResource:xrcctrl(TimerDlg, "hourTimer",      wxSpinCtrl),
-    Obj2 = wxXmlResource:xrcctrl(TimerDlg, "minTimer",       wxSpinCtrl),
-    Obj3 = wxXmlResource:xrcctrl(TimerDlg, "secTimer",       wxSpinCtrl),
+    Obj1 = wxXmlResource:xrcctrl(TimerDlg, "hourTimer", wxSpinCtrl),
+    Obj2 = wxXmlResource:xrcctrl(TimerDlg, "minTimer",  wxSpinCtrl),
+    Obj3 = wxXmlResource:xrcctrl(TimerDlg, "secTimer",  wxSpinCtrl),
+    Obj4 = wxXmlResource:xrcctrl(TimerDlg, "teamPom",   wxCheckBox),
 
     UserCfg = eTodoDB:readUserCfg(User),
     {Hours, Minutes, Seconds} = default(UserCfg#userCfg.lastTimer, {0, 25, 0}),
@@ -753,12 +754,15 @@ timerToolEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
     wxSpinCtrl:setValue(Obj3, Seconds),
 
     wxDialog:show(TimerDlg),
-    State;
+
+    self()!{setPomodoroClock, Obj1, Obj2, Obj3, Obj4},
+    State#guiState{timerDlgOpen = true};
 timerToolEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
                                                      timerRef = TimerRef}) ->
     Obj1 = wxXmlResource:xrcctrl(TimerDlg, "hourTimer", wxSpinCtrl),
     Obj2 = wxXmlResource:xrcctrl(TimerDlg, "minTimer",  wxSpinCtrl),
     Obj3 = wxXmlResource:xrcctrl(TimerDlg, "secTimer",  wxSpinCtrl),
+    Obj4 = wxXmlResource:xrcctrl(TimerDlg, "teamPom",   wxCheckBox),
 
     MSeconds = erlang:read_timer(TimerRef),
 
@@ -771,7 +775,9 @@ timerToolEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
     wxSpinCtrl:setValue(Obj3, Seconds),
 
     wxDialog:show(TimerDlg),
-    State.
+
+    self()!{setPomodoroClock, Obj1, Obj2, Obj3, Obj4},
+    State#guiState{timerDlgOpen = true}.
 
 %%====================================================================
 %% Toolbar Create new task at top of task list

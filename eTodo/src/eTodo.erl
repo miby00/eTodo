@@ -995,9 +995,20 @@ handle_info(DownMsg = {'DOWN', _Reference, process, _Object, _Info},
     {ok, Pid} = eWeb:start_link(User),
     monitor(process, Pid),
     {noreply, State};
+handle_info({setPomodoroClock, _Obj1, _Obj2, _Obj3, _Obj4},
+            State = #guiState{timerDlgOpen = false}) ->
+    {noreply, State};
+handle_info(Msg = {setPomodoroClock, Obj1, Obj2, Obj3, Obj4}, State) ->
+    case wxCheckBox:isChecked(Obj4) of
+        false ->
+            ok;
+        true ->
+            setTeamPomodoroClock(Obj1, Obj2, Obj3)
+    end,
+    erlang:send_after(1000, self(), Msg),
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
-
 
 %%--------------------------------------------------------------------
 %% Function: terminate(Reason, State) -> void()
@@ -1572,3 +1583,27 @@ showLogWork(Uid, Date, State) ->
     eGuiEvents:logWorkButtonEvent(undefined, undefined,
                                   undefined, State3),
     State3.
+
+
+%%====================================================================
+%% Set team pomodoro clock
+%%====================================================================
+setTeamPomodoroClock(Obj1, Obj2, Obj3) ->
+    {Minutes, Seconds} = getTeamPomodoroClock(),
+    wxSpinCtrl:setValue(Obj1, 0),
+    wxSpinCtrl:setValue(Obj2, Minutes),
+    wxSpinCtrl:setValue(Obj3, Seconds).
+
+getTeamPomodoroClock() ->
+    {_Hours, Min, Seconds} = time(),
+    case Min of
+        Min when (Min >= 25) and (Min < 30) ->
+            {0, 0};
+        Min when Min >= 55 ->
+            {0, 0};
+        Min when Min < 25 ->
+            {24 - Min, 59 - Seconds};
+        _ ->
+            {54 - Min, 59 - Seconds}
+    end.
+

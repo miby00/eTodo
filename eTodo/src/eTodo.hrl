@@ -21,7 +21,8 @@
                    unreadMsgs = 0, unreadSysMsgs = 0, delayedUpdate,
                    reply = [], replyAll = [], toolBar, menuBar,
                    manBookmDlg, popupBookmMenu, bookmCfg = [],
-                   sortColsDlg, timerDlg, timerRef, pluginDlg, logWorkDlg}).
+                   sortColsDlg, timerDlg, timerRef, pluginDlg, logWorkDlg,
+                   timerDlgOpen = false}).
 
 -define(wxTypes, #{
         "aboutMenu"          => wxMenuItem,
