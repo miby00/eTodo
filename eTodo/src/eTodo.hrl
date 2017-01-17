@@ -144,7 +144,7 @@
         "userCheckBox"       => wxCheckListBox,
         "userOfflineIcon"    => wxStaticBitmap,
         "userStatusChoice"   => wxChoice,
-        "userStatusMsg"      => wxTextCtrl,
+        "userStatusMsg"      => wxComboBox,
         "userStatusPanel"    => wxPanel,
         "useStartDate"       => wxCheckBox,
         "workLogPanel"       => wxPanel,

@@ -525,35 +525,35 @@ table.msgSent {
     background-color: green;
     background-image: url('/priv/Icons/tomato.png');
     background-repeat: no-repeat;
-    background-position: left top;
+    background-position: 10px 10px;
 }
 
 .statusAvailable {
     background-color: green;
     background-image: url('/priv/Icons/tomato.png');
     background-repeat: no-repeat;
-    background-position: left top;
+    background-position: 10px 10px;
 }
 
 .timerBusy {
     background-color: red;
     background-image: url('/priv/Icons/tomato.png');
     background-repeat: no-repeat;
-    background-position: left top;
+    background-position:  10px 10px;
 }
 
 .statusAway {
     background-color: #ffc810;
     background-image: url('/priv/Icons/tomato.png');
     background-repeat: no-repeat;
-    background-position: left top;
+    background-position:  10px 10px;
 }
 
 .statusBusy {
     background-color: red;
     background-image: url('/priv/Icons/tomato.png');
     background-repeat: no-repeat;
-    background-position: left top;
+    background-position:  10px 10px;
 }
 
 .workLogTable {
