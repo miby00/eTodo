@@ -26,6 +26,7 @@
          checkBoxUseFilterEvent/4,
          commentAreaEvent/4,
          commentButtonEvent/4,
+         commentNotebookEvent/4,
          configureSearchEvent/4,
          copyMenuEvent/4,
          copyToolEvent/4,
@@ -36,6 +37,7 @@
          cutToolEvent/4,
          deleteMenuEvent/4,
          deleteToolEvent/4,
+         descNotebookEvent/4,
          descriptionAreaEvent/4,
          dueDatePickerEvent/4,
          dueDateUsedEvent/4,
@@ -2458,6 +2460,38 @@ updateFilter(Key, [], SoFar)             -> [Key|SoFar];
 updateFilter(Key, [Key | Filter], SoFar) -> Filter ++ SoFar;
 updateFilter(Key, [Key2 | Rest],  SoFar) ->
     updateFilter(Key, Rest, [Key2 | SoFar]).
+
+descNotebookEvent(_Type, _Id, _Frame, State) ->
+    Notebook     = obj("descNotebook", State),
+    CurrPage     = wxNotebook:getCurrentPage(Notebook),
+    PreviewPage  = wxNotebook:getPage(Notebook, 1),
+    case CurrPage of
+        PreviewPage ->
+            Obj      = obj("descAreaPreview", State),
+            DescObj  = obj("descriptionArea", State),
+            Descript = wxTextCtrl:getValue(DescObj),
+            Page     = eMd2Html:convert(Descript),
+            wxHtmlWindow:setPage(Obj, unicode:characters_to_list(Page, utf8));
+        _ ->
+            ok
+    end,
+    State.
+
+commentNotebookEvent(_Type, _Id, _Frame, State) ->
+    Notebook     = obj("commentNotebook", State),
+    CurrPage     = wxNotebook:getCurrentPage(Notebook),
+    PreviewPage  = wxNotebook:getPage(Notebook, 1),
+    case CurrPage of
+        PreviewPage ->
+            Obj        = obj("commentAreaPreview", State),
+            CommentObj = obj("commentArea",     State),
+            Comment    = wxTextCtrl:getValue(CommentObj),
+            Page       = eMd2Html:convert(Comment),
+            wxHtmlWindow:setPage(Obj, unicode:characters_to_list(Page, utf8));
+        _ ->
+            ok
+    end,
+    State.
 
 mainNotebookEvent(_Type, _Id, _Frame, State) ->
     Notebook     = obj("mainNotebook",  State),
