@@ -154,7 +154,7 @@ convert(<<Char:8, Rest/binary>>, State = #{state     := ptext,
                                            currLine  := <<>>,
                                            currToken := CT,
                                            soFar     := Html}) ->
-    case checkForList(<<Char:8, Rest/binary>>) of
+    case checkIfList(<<Char:8, Rest/binary>>) of
         {true, Tag} ->
             BinTag = makeTag(p, CT),
             Html2  = <<Html/binary, BinTag/binary>>,
@@ -164,7 +164,7 @@ convert(<<Char:8, Rest/binary>>, State = #{state     := ptext,
                                                     soFar     := Html2});
         false ->
             convert(Rest, State#{currLine  := <<Char:8>>,
-                                 currToken := <<Char:8>>})
+                                 currToken := <<CT/binary, Char:8>>})
     end;
 
 %% Parse ptext
@@ -227,7 +227,7 @@ convert(<<Char:8, Rest/binary>>, State = #{state     := ol_litem,
     convert(Rest, State#{currToken := <<CT/binary, Char:8>>});
 convert(Content, State = #{state := ul_start,
                            soFar := Html}) ->
-    {true, Rest} = unorderdList(Content),
+    {true, Rest} = parseULBullet(Content),
     Html2 = <<Html/binary, "<ul>">>,
     convert(Rest, State#{state := ul_litem, soFar := Html2});
 convert(<<>>, #{state     := ul_litem,
@@ -239,7 +239,7 @@ convert(<<13, 10, Rest/binary>>, State = #{state     := ul_litem,
                                            currToken := CT,
                                            soFar     := Html}) ->
     BinTag = makeTag(li, CT),
-    case unorderdList(Rest) of
+    case parseULBullet(Rest) of
         {true, Rest2} ->
             convert(Rest2, State#{currToken := <<>>,
                                   soFar     := <<Html/binary, BinTag/binary>>});
@@ -290,7 +290,7 @@ headerEnd(_, space) ->
     false.
 
 header(CT, LL) ->
-    case underline(CT) of
+    case setext(CT) of
         {true, Tag} ->
             checkHeader(Tag, LL);
         false ->
@@ -303,23 +303,23 @@ checkHeader(Tag, <<"  ",   Rest/binary>>) -> {true, Tag, Rest};
 checkHeader(Tag, <<" ",    Rest/binary>>) -> {true, Tag, Rest};
 checkHeader(Tag, Rest)                    -> {true, Tag, Rest}.
 
-underline(Underline) ->
-    underline(Underline, start).
+setext(Setext) ->
+    checkSetext(Setext, start).
 
-underline(<<$=, Rest/binary>>, start) ->
-    underline(Rest, h1, underline);
-underline(<<$-, Rest/binary>>, start) ->
-    underline(Rest, h2, underline);
-underline(_CT, _) ->
+checkSetext(<<$=, Rest/binary>>, start) ->
+    checkSetext(Rest, h1, underline);
+checkSetext(<<$-, Rest/binary>>, start) ->
+    checkSetext(Rest, h2, underline);
+checkSetext(_CT, _) ->
     false.
 
-underline(<<$=, Rest/binary>>, h1, underline) ->
-    underline(Rest, h1, underline);
-underline(<<$-, Rest/binary>>, h2, underline) ->
-    underline(Rest, h2, underline);
-underline(<<>>, Tag, underline) ->
+checkSetext(<<$=, Rest/binary>>, h1, underline) ->
+    checkSetext(Rest, h1, underline);
+checkSetext(<<$-, Rest/binary>>, h2, underline) ->
+    checkSetext(Rest, h2, underline);
+checkSetext(<<>>, Tag, underline) ->
     {true, Tag};
-underline(_, _, _) ->
+checkSetext(_, _, _) ->
     false.
 
 insertBR(Content) ->
@@ -341,12 +341,12 @@ remBegWS(<<32, Rest/binary>>) -> remBegWS(Rest);
 remBegWS(<<9,  Rest/binary>>) -> remBegWS(Rest);
 remBegWS(Content)             -> Content.
 
-checkForList(Content) ->
-    case orderedList(Content) of
-        {true, State} ->
-            {true, State};
+checkIfList(Content) ->
+    case parseOLNum(Content) of
+        {true, _, _} ->
+            {true, ol_start};
         false ->
-            case unorderdList(Content) of
+            case parseULBullet(Content) of
                 {true, _} ->
                     {true, ul_start};
                 false ->
@@ -354,21 +354,26 @@ checkForList(Content) ->
             end
     end.
 
-orderedList(Content) ->
-    case parseOLNum(Content) of
-        {true, _, _} ->
-            {true, ol_start};
-        _ ->
-            false
+parseULBullet(Content) ->
+    case remBegWS(Content) of
+        Content2 when (byte_size(Content) - byte_size(Content2)) > 3 ->
+            false;
+        Content2 ->
+            doParseULBullet(Content2)
     end.
 
-unorderdList(<<"* ", Rest/binary>>) -> {true, remBegWS(Rest)};
-unorderdList(<<"- ", Rest/binary>>) -> {true, remBegWS(Rest)};
-unorderdList(<<"+ ", Rest/binary>>) -> {true, remBegWS(Rest)};
-unorderdList(_Content)           -> false.
+doParseULBullet(<<"* ", Rest/binary>>) -> {true, remBegWS(Rest)};
+doParseULBullet(<<"- ", Rest/binary>>) -> {true, remBegWS(Rest)};
+doParseULBullet(<<"+ ", Rest/binary>>) -> {true, remBegWS(Rest)};
+doParseULBullet(_Content)              -> false.
 
 parseOLNum(Content) ->
-    parseOLNum(Content, <<>>).
+    case remBegWS(Content) of
+        Content2 when (byte_size(Content) - byte_size(Content2)) > 3 ->
+            false;
+        Content2 ->
+            parseOLNum(Content2, <<>>)
+    end.
 
 parseOLNum(<<Num:8, Rest/binary>>, SoFar)
   when ((Num >= $0) and (Num =< $9)) and (byte_size(SoFar) < 10) ->
