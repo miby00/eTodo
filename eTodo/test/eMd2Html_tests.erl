@@ -61,11 +61,15 @@ header_12_test() ->
 
 ullist_1_test() ->
     Result = eMd2Html:convert(<<"Header 2\r\n- Test">>),
-    ?assert(Result == <<"<p>Header 2\r\n</p><ul><li>Test</li></ul>">>).
+    ?assert(Result == <<"<p>Header 2</p><ul><li>Test</li></ul>">>).
+
+ullist_2_test() ->
+    Result = eMd2Html:convert(<<"- Test1\r\n  - Test2">>),
+    ?assert(Result == <<"<ul><li>Test1</li><ul><li>Test2</li></ul></ul>">>).
 
 ollist_1_test() ->
     Result = eMd2Html:convert(<<"Header 2\r\n1. Test">>),
-    ?assert(Result == <<"<p>Header 2\r\n</p><ol start='1'><li>Test</li></ol>">>).
+    ?assert(Result == <<"<p>Header 2</p><ol start='1'><li>Test</li></ol>">>).
 
 paragraph_1_test() ->
     Result = eMd2Html:convert(<<"Hej här kommer lite text">>),
@@ -74,3 +78,11 @@ paragraph_1_test() ->
 paragraph_2_test() ->
     Result = eMd2Html:convert(<<"Hej här kommer lite text\r\nMed två rader">>),
     ?assert(Result == <<"<p>Hej här kommer lite text\r\nMed två rader</p>">>).
+
+paragraph_3_test() ->
+    Result = eMd2Html:convert(<<"Hej här kommer lite text  \r\nMed två rader">>),
+    ?assert(Result == <<"<p>Hej här kommer lite text<br />\r\nMed två rader</p>">>).
+
+paragraph_4_test() ->
+    Result = eMd2Html:convert(<<"Hej\r\nSvejs  \r\n">>),
+    ?assert(Result == <<"<p>Hej\r\nSvejs</p>">>).

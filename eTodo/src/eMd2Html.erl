@@ -14,10 +14,12 @@
 
 -define(brTag, "<br />").
 
+%% State needs to be a list.
+
 convert(MDText) when is_list(MDText) ->
     convert(unicode:characters_to_binary(MDText));
 convert(MDText) when is_binary(MDText) ->
-    convert(MDText, #{state     => ptext,
+    convert(MDText, #{state     => [],
                       currToken => <<>>,
                       prevLine  => <<>>,
                       currLine  => <<>>,
@@ -30,7 +32,7 @@ convert(<<10, Rest/binary>>, State) ->
     convert(<<13, 10, Rest/binary>>, State);
 
 %% Headers
-convert(<<"#", Rest/binary>>, State = #{state     := ptext,
+convert(<<"#", Rest/binary>>, State = #{state     := [],
                                         currLine  := CL,
                                         currToken := CT,
                                         soFar     := Html})
@@ -42,7 +44,7 @@ convert(<<"#", Rest/binary>>, State = #{state     := ptext,
         {true, Tag, Rest2} ->
             BinTag = makeTag(p, CT),
             Html2  = <<Html/binary, BinTag/binary>>,
-            convert(Rest2, State#{state     := Tag,
+            convert(Rest2, State#{state     := [Tag],
                                   currToken := <<>>,
                                   soFar     := Html2});
         false ->
@@ -50,7 +52,7 @@ convert(<<"#", Rest/binary>>, State = #{state     := ptext,
     end;
 
 %% Header end by end of data
-convert(<<>>, #{state     := Tag,
+convert(<<>>, #{state     := [Tag|_],
                 currToken := CT,
                 prevLine  := <<>>,
                 soFar     := Html})
@@ -58,7 +60,7 @@ convert(<<>>, #{state     := Tag,
        (Tag == h3) or (Tag == h2) or (Tag == h1) ->
     BinTag = makeTag(Tag, CT),
     <<Html/binary, BinTag/binary>>;
-convert(<<>>, #{state     := Tag,
+convert(<<>>, #{state     := [Tag|_],
                 currToken := CT,
                 prevLine  := LL,
                 soFar     := Html})
@@ -68,67 +70,71 @@ convert(<<>>, #{state     := Tag,
     <<Html/binary, LL/binary, ?brTag, BinTag/binary>>;
 
 %% Header end by #...
-convert(<<" #", Rest/binary>>, State = #{state       := Tag,
+convert(<<" #", Rest/binary>>, State = #{state       := [Tag|_],
                                          currToken   := CT,
                                          soFar := Html})
   when (Tag == h6) or (Tag == h5) or (Tag == h4) or
        (Tag == h3) or (Tag == h2) or (Tag == h1) ->
     case headerEnd(Rest) of
         {true, Rest2} ->
-            convert(<<Rest2/binary>>, State#{state     := Tag,
-                                             currToken := CT,
+            convert(<<Rest2/binary>>, State#{currToken := CT,
                                              soFar     := Html});
         false ->
             convert(Rest, State#{currToken := <<CT/binary, " #">>})
     end;
 
 %% Header end by line end.
-convert(<<13, 10, Rest/binary>>, State = #{state     := Tag,
+convert(<<13, 10, Rest/binary>>, State = #{state     := [Tag|St],
                                            currToken := CT,
                                            soFar     := Html})
   when (Tag == h6) or (Tag == h5) or (Tag == h4) or
        (Tag == h3) or (Tag == h2) or (Tag == h1) ->
     BinTag = makeTag(Tag, CT),
     Html2  = <<Html/binary, BinTag/binary>>,
-    convert(Rest, State#{state     := ptext,
+    convert(Rest, State#{state     := St,
                          currToken := <<>>,
                          soFar     := Html2});
 
 %% Parse header paragraf text
-convert(<<Char:8, Rest/binary>>, State = #{state     := Tag,
+convert(<<Char:8, Rest/binary>>, State = #{state     := [Tag|_],
                                            currToken := CT})
   when (Tag == h6) or (Tag == h5) or (Tag == h4) or
        (Tag == h3) or (Tag == h2) or (Tag == h1) ->
     convert(Rest, State#{currToken := <<CT/binary, Char:8>>});
 
 %% Paragraf text ending
-convert(<<13, 10, 13, 10, Rest/binary>>, State = #{state     := ptext,
+convert(<<13, 10, 13, 10, Rest/binary>>, State = #{state     := PState,
                                                    currToken := CT,
                                                    prevLine  := <<>>,
-                                                   soFar     := Html}) ->
+                                                   soFar     := Html})
+  when (PState == []) orelse (hd(PState) == ptext) ->
     BinTag = makeTag(p, CT),
     Html2  = <<Html/binary, BinTag/binary>>,
-    convert(Rest, State#{currLine  := <<>>,
+    convert(Rest, State#{state     := tail(PState),
+                         currLine  := <<>>,
                          currToken := <<>>,
                          soFar     := Html2});
 %% Paragraf line ending, empty previous line
-convert(<<13, 10, Rest/binary>>, State = #{state     := ptext,
+convert(<<13, 10, Rest/binary>>, State = #{state     := PState,
                                            currToken := CT,
                                            currLine  := CL,
-                                           prevLine  := <<>>}) ->
+                                           prevLine  := <<>>})
+  when (PState == []) orelse (hd(PState) == ptext) ->
     convert(Rest, State#{prevLine  := <<CL/binary>>,
                          currLine  := <<>>,
                          currToken := <<CT/binary, 13, 10>>});
-convert(<<13, 10, Rest/binary>>, State = #{state     := ptext,
+convert(<<13, 10, Rest/binary>>, State = #{state     := PState,
                                            prevLine  := PL,
                                            currLine  := CL,
                                            currToken := CT,
-                                           soFar     := Html}) ->
+                                           soFar     := Html})
+  when (PState == []) orelse (hd(PState) == ptext) ->
     case header(CL, PL) of
         {true, Tag, Hdr} ->
             BinTag = makeTag(Tag, Hdr),
             Html2  = <<Html/binary, BinTag/binary, 13, 10>>,
-            convert(Rest, State#{soFar     := Html2,
+            convert(Rest, State#{state     := tail(PState),
+                                 soFar     := Html2,
                                  prevLine  := <<>>,
                                  currLine  := <<>>,
                                  currToken := <<>>});
@@ -137,7 +143,8 @@ convert(<<13, 10, Rest/binary>>, State = #{state     := ptext,
                 <<13, 10, Rest2/binary>> ->
                     BinTag = makeTag(p, CT),
                     Html2  = <<Html/binary, BinTag/binary>>,
-                    convert(Rest2, State#{prevLine  := <<>>,
+                    convert(Rest2, State#{state     := tail(PState),
+                                          prevLine  := <<>>,
                                           currLine  := <<>>,
                                           currToken := <<>>,
                                           soFar     := Html2});
@@ -150,46 +157,55 @@ convert(<<13, 10, Rest/binary>>, State = #{state     := ptext,
     end;
 
 %% Check for list
-convert(<<Char:8, Rest/binary>>, State = #{state     := ptext,
+convert(<<Char:8, Rest/binary>>, State = #{state     := PState,
                                            currLine  := <<>>,
                                            currToken := CT,
-                                           soFar     := Html}) ->
+                                           soFar     := Html})
+  when (PState == []) orelse (hd(PState) == ptext) ->
+
     case checkIfList(<<Char:8, Rest/binary>>) of
         {true, Tag} ->
             BinTag = makeTag(p, CT),
             Html2  = <<Html/binary, BinTag/binary>>,
-            convert(<<Char:8, Rest/binary>>, State#{state     := Tag,
-                                                    prevLine  := <<>>,
-                                                    currToken := <<>>,
-                                                    soFar     := Html2});
+            convert(<<Char:8, Rest/binary>>,
+                    State#{state     := [Tag| tail(PState)],
+                           prevLine  := <<>>,
+                           currToken := <<>>,
+                           soFar     := Html2});
         false ->
             convert(Rest, State#{currLine  := <<Char:8>>,
                                  currToken := <<CT/binary, Char:8>>})
     end;
 
 %% Parse ptext
-convert(<<Char:8, Rest/binary>>, State = #{state     := ptext,
+convert(<<Char:8, Rest/binary>>, State = #{state     := PState,
                                            currLine  := CL,
-                                           currToken := CT}) ->
+                                           currToken := CT})
+    when (PState == []) orelse (hd(PState) == ptext) ->
     convert(Rest, State#{currLine  := <<CL/binary, Char:8>>,
                          currToken := <<CT/binary, Char:8>>});
 
 %% Text end by end of data
-convert(<<>>, #{state     := ptext,
+convert(<<>>, #{state     := PState,
                 currToken := <<>>,
-                soFar     := Html}) ->
+                soFar     := Html})
+    when (PState == []) orelse (hd(PState) == ptext) ->
     Html;
-convert(<<>>, #{state     := ptext,
+convert(<<>>, #{state     := PState,
                 prevLine  := <<>>,
                 currToken := CT,
-                soFar     := Html}) ->
+                soFar     := Html})
+    when (PState == []) orelse (hd(PState) == ptext) ->
+
     BinTag = makeTag(p, <<CT/binary>>),
     <<Html/binary, BinTag/binary>>;
-convert(<<>>, #{state     := ptext,
+convert(<<>>, #{state     := PState,
                 prevLine  := PL,
                 currLine  := CL,
                 currToken := CT,
-                soFar     := Html}) ->
+                soFar     := Html})
+    when (PState == []) orelse (hd(PState) == ptext) ->
+
     case header(CL, PL) of
         {true, Tag, Hdr} ->
             BinTag = makeTag(Tag, Hdr),
@@ -198,17 +214,17 @@ convert(<<>>, #{state     := ptext,
             BinTag = makeTag(p, <<CT/binary>>),
             <<Html/binary, BinTag/binary>>
     end;
-convert(Content, State = #{state := ol_start,
+convert(Content, State = #{state := [ol_start|St],
                            soFar := Html}) ->
     {true, NumBin, Rest} = parseOLNum(Content),
     Html2 = <<Html/binary, "<ol start='", NumBin/binary, "'>">>,
-    convert(Rest, State#{state := ol_litem, soFar := Html2});
-convert(<<>>, #{state     := ol_litem,
+    convert(Rest, State#{state := [ol_litem|St], soFar := Html2});
+convert(<<>>, #{state     := [ol_litem|_],
                 currToken := CT,
                 soFar     := Html}) ->
     BinTag = makeTag(li, CT),
     <<Html/binary, BinTag/binary, "</ol>">>;
-convert(<<13, 10, Rest/binary>>, State = #{state     := ol_litem,
+convert(<<13, 10, Rest/binary>>, State = #{state     := [ol_litem|St],
                                            currToken := CT,
                                            soFar     := Html}) ->
     BinTag = makeTag(li, CT),
@@ -218,24 +234,24 @@ convert(<<13, 10, Rest/binary>>, State = #{state     := ol_litem,
                                   soFar     := <<Html/binary, BinTag/binary>>});
         false ->
             Html2 = <<Html/binary, BinTag/binary, "</ol>">>,
-            convert(Rest, State#{state     := ptext,
+            convert(Rest, State#{state     := St,
                                  currToken := <<>>,
                                  soFar     := Html2})
     end;
-convert(<<Char:8, Rest/binary>>, State = #{state     := ol_litem,
+convert(<<Char:8, Rest/binary>>, State = #{state     := [ol_litem|_],
                                            currToken := CT}) ->
     convert(Rest, State#{currToken := <<CT/binary, Char:8>>});
-convert(Content, State = #{state := ul_start,
+convert(Content, State = #{state := [ul_start|St],
                            soFar := Html}) ->
     {true, Rest} = parseULBullet(Content),
     Html2 = <<Html/binary, "<ul>">>,
-    convert(Rest, State#{state := ul_litem, soFar := Html2});
-convert(<<>>, #{state     := ul_litem,
+    convert(Rest, State#{state := [ul_litem|St], soFar := Html2});
+convert(<<>>, #{state     := [ul_litem|_],
                 currToken := CT,
                 soFar     := Html}) ->
     BinTag = makeTag(li, CT),
     <<Html/binary, BinTag/binary, "</ul>">>;
-convert(<<13, 10, Rest/binary>>, State = #{state     := ul_litem,
+convert(<<13, 10, Rest/binary>>, State = #{state     := [ul_litem|St],
                                            currToken := CT,
                                            soFar     := Html}) ->
     BinTag = makeTag(li, CT),
@@ -245,11 +261,11 @@ convert(<<13, 10, Rest/binary>>, State = #{state     := ul_litem,
                                   soFar     := <<Html/binary, BinTag/binary>>});
         false ->
             Html2 = <<Html/binary, BinTag/binary, "</ul>">>,
-            convert(Rest, State#{state     := ptext,
+            convert(Rest, State#{state     := St,
                                  currToken := <<>>,
                                  soFar     := Html2})
     end;
-convert(<<Char:8, Rest/binary>>, State = #{state     := ul_litem,
+convert(<<Char:8, Rest/binary>>, State = #{state     := [ul_litem|_],
                                            currToken := CT}) ->
     convert(Rest, State#{currToken := <<CT/binary, Char:8>>}).
 
@@ -326,11 +342,23 @@ insertBR(Content) ->
     insertBR(Content, <<>>).
 
 insertBR(<<32, 32, 13, 10, Rest/binary>>, SoFar) ->
-    insertBR(Rest, <<SoFar/binary, ?brTag>>);
+    case (remBegWS(Rest) == <<>>) of
+        true ->
+            SoFar;
+        false ->
+            insertBR(Rest, <<SoFar/binary, ?brTag, 13, 10>>)
+    end;
+insertBR(Bin = <<Char:8, Rest/binary>>, SoFar) ->
+    case (remBegWS(Bin) == <<>>) of
+        true ->
+            SoFar;
+        false ->
+            insertBR(Rest, <<SoFar/binary, Char:8>>)
+    end;
 insertBR(<<32, Rest/binary>>, <<>>) ->
     insertBR(Rest, <<>>);
-insertBR(<<Char:8, Rest/binary>>, SoFar) ->
-    insertBR(Rest, <<SoFar/binary, Char:8>>);
+insertBR(<<9, Rest/binary>>, <<>>) ->
+    insertBR(Rest, <<>>);
 insertBR(<<>>, SoFar) ->
     SoFar.
 
@@ -383,6 +411,7 @@ parseOLNum(<<". ", Rest/binary>>, SoFar) ->
 parseOLNum(_Content, _SoFar) ->
     false.
 
-
+tail([])     -> [];
+tail(PState) -> tl(PState).
 
 
