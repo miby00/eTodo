@@ -67,6 +67,16 @@ ullist_2_test() ->
     Result = eMd2Html:convert(<<"- Test1\r\n  - Test2">>),
     ?assert(Result == <<"<ul><li>Test1</li><ul><li>Test2</li></ul></ul>">>).
 
+ullist_3_test() ->
+    Result = eMd2Html:convert(<<"* Test1\r\n"
+                                "  * Test2\r\n"
+                                "    * Test3\r\n"
+                                "* Text 4\r\n">>),
+    ?assert(Result == <<"<ul><li>Test1</li>"
+                        "<ul><li>Test2</li>"
+                        "<ul><li>Test3</li></ul></ul>"
+                        "<li>Test2</li><</ul>">>).
+
 ollist_1_test() ->
     Result = eMd2Html:convert(<<"Header 2\r\n1. Test">>),
     ?assert(Result == <<"<p>Header 2</p><ol start='1'><li>Test</li></ol>">>).
