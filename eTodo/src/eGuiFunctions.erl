@@ -381,6 +381,11 @@ updateGui(ETodo, Index, State) ->
         _ ->
             wxSpinCtrl:setValue(ProgressObj, default(ETodo#etodo.progress, 0))
     end,
+
+    %% Update preview view if shown.
+    eGuiEvents:commentNotebookEvent(undefined, undefined, undefined, State),
+    eGuiEvents:descNotebookEvent(undefined, undefined, undefined, State),
+
     checkStatus(setDoneTimeStamp(ETodo, Index, State)).
 
 updateValue(_Name, _State, Value, Value) ->

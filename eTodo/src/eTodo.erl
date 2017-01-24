@@ -1123,7 +1123,8 @@ connectMsgFrame(Frame, Dict) ->
                           [command_text_enter, command_text_updated],
                           Frame,   Dict),
     connectItems(["msgTextWin", "remTextWin", "workLogReport",
-                  "timeLogReport", "scheduleReport"],
+                  "timeLogReport", "scheduleReport",
+                  "descAreaPreview", "commentAreaPreview"],
                  command_html_link_clicked, Frame, Dict2).
 
 connectMainFrame(Frame, Dict) ->

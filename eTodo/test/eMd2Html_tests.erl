@@ -73,11 +73,13 @@ ollist_1_test() ->
 
 ollist_2_test() ->
     Result = eMd2Html:convert(<<"1. Test1\r\n   2. Test2">>),
-    ?assert(Result == <<"<ol start='1'><li>Test1</li><ol start='2'><li>Test2</li></ol></ol>">>).
+    ?assert(Result == <<"<ol start='1'><li>Test1</li>"
+                        "<ol start='2'><li>Test2</li></ol></ol>">>).
 
 ollist_3_test() ->
     Result = eMd2Html:convert(<<"1. Test1\r\n   * Test2">>),
-    ?assert(Result == <<"<ol start='1'><li>Test1</li><ul><li>Test2</li></ul></ol>">>).
+    ?assert(Result == <<"<ol start='1'><li>Test1</li>"
+                        "<ul><li>Test2</li></ul></ol>">>).
 
 paragraph_1_test() ->
     Result = eMd2Html:convert(<<"Hej här kommer lite text">>),
@@ -88,9 +90,22 @@ paragraph_2_test() ->
     ?assert(Result == <<"<p>Hej här kommer lite text\r\nMed två rader</p>">>).
 
 paragraph_3_test() ->
-    Result = eMd2Html:convert(<<"Hej här kommer lite text  \r\nMed två rader">>),
-    ?assert(Result == <<"<p>Hej här kommer lite text<br />\r\nMed två rader</p>">>).
+    Result = eMd2Html:convert(<<"Hej här kommer lite text  \r\n"
+                                "Med två rader">>),
+    ?assert(Result == <<"<p>Hej här kommer lite text<br />\r\n"
+                        "Med två rader</p>">>).
 
 paragraph_4_test() ->
     Result = eMd2Html:convert(<<"Hej\r\nSvejs  \r\n">>),
     ?assert(Result == <<"<p>Hej\r\nSvejs</p>">>).
+
+url_1_test() ->
+    Result = eMd2Html:convert(<<"<http://google.com>">>),
+    ?assert(Result == <<"<p><a href='http://google.com'>http://google.com</a></p>">>).
+
+url_2_test() ->
+    Result = eMd2Html:convert(<<"x<http://google.com>y<http://google.com>">>),
+    ?assert(Result ==
+            <<"<p>x<a href='http://google.com'>http://google.com</a>"
+              "y<a href='http://google.com'>http://google.com</a></p>">>).
+
