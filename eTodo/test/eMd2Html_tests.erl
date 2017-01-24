@@ -71,11 +71,11 @@ ullist_3_test() ->
     Result = eMd2Html:convert(<<"* Test1\r\n"
                                 "  * Test2\r\n"
                                 "    * Test3\r\n"
-                                "* Text 4\r\n">>),
+                                "* Test4\r\n">>),
     ?assert(Result == <<"<ul><li>Test1</li>"
                         "<ul><li>Test2</li>"
                         "<ul><li>Test3</li></ul></ul>"
-                        "<li>Test2</li><</ul>">>).
+                        "<li>Test4</li></ul>">>).
 
 ollist_1_test() ->
     Result = eMd2Html:convert(<<"Header 2\r\n1. Test">>),

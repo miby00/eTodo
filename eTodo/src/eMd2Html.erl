@@ -214,12 +214,12 @@ convert(Content, State = #{state := [ol_start|St],
 convert(<<>>, #{state     := PState = [{ol_litem, _, CT}|_],
                 soFar     := Html}) ->
     BinTag = makeTag(li, CT),
-    CloseTags = closeTags(PState),
+    {CloseTags, _} = closeTags(0, PState),
     <<Html/binary, BinTag/binary, CloseTags/binary>>;
-convert(<<13, 10, Rest/binary>>, State = #{state := [{ol_litem, _Ind, CT}|St],
+convert(<<13, 10, Rest/binary>>, State = #{state := [{ol_litem, Ind, CT}|St],
                                            soFar := Html}) ->
     BinTag = makeTag(li, CT),
-    case parseOLNum(Rest) of
+    case parseOLNum(Rest, Ind) of
         {true, Num, Rest2} ->
             Indent2 = byte_size(Rest) - byte_size(Rest2),
             checkIndent(Indent2, Num, Rest2, BinTag, State);
@@ -237,13 +237,13 @@ convert(Content, State = #{state := [ul_start|St], soFar := Html}) ->
     convert(Rest, State#{state := [{ul_litem, Indent, <<>>}|St], soFar := Html2});
 convert(<<>>, #{state := PState = [{ul_litem, _, CT}|_],
                 soFar := Html}) ->
-    BinTag    = makeTag(li, CT),
-    CloseTags = closeTags(PState),
+    BinTag         = makeTag(li, CT),
+    {CloseTags, _} = closeTags(0, PState),
     <<Html/binary, BinTag/binary, CloseTags/binary>>;
-convert(<<13, 10, Rest/binary>>, State = #{state := [{ul_litem, _, CT}|St],
+convert(<<13, 10, Rest/binary>>, State = #{state := [{ul_litem, Ind, CT}|St],
                                            soFar := Html}) ->
     BinTag = makeTag(li, CT),
-    case parseULBullet(Rest) of
+    case parseULBullet(Rest, Ind) of
         {true, Rest2} ->
             Indent2 = byte_size(Rest) - byte_size(Rest2),
             checkIndent(Indent2, <<>>, Rest2, BinTag, State);
@@ -265,13 +265,14 @@ checkIndent(Ind1, _, Rest, BinTag, State = #{state := [{ul_litem, Ind2, CT}|St],
     case Ind1 > Ind2 of
         true ->
             BinTag   = makeTag(li, CT),
-            NewState = [{ul_litem, Ind1, <<>>}, {ul_litem, Ind2, CT}|St],
+            NewState = [{ul_litem, Ind1, <<>>}, {ul_litem, Ind2, <<>>}|St],
             Html2    = <<Html/binary, BinTag/binary, "<ul>">>,
             convert(Rest, State#{state := NewState,
                                  soFar := Html2});
         false ->
-            Html2 = <<Html/binary, BinTag/binary, "</ul>">>,
-            convert(Rest, State#{state := St,
+            {CTags, PState} = closeTags(Ind1, [{ul_litem, Ind2, CT}|St]),
+            Html2 = <<Html/binary, BinTag/binary, CTags/binary>>,
+            convert(Rest, State#{state := PState,
                                  soFar := Html2})
     end;
 checkIndent(Ind1, Num, Rest, BinTag, State = #{state := [{ol_litem, Ind2, CT}|St],
@@ -279,7 +280,7 @@ checkIndent(Ind1, Num, Rest, BinTag, State = #{state := [{ol_litem, Ind2, CT}|St
     case Ind1 > Ind2 of
         true ->
             BinTag   = makeTag(li, CT),
-            NewState = [{ol_litem, Ind1, <<>>}, {ol_litem, Ind2, CT}|St],
+            NewState = [{ol_litem, Ind1, <<>>}, {ol_litem, Ind2, <<>>}|St],
             StartTag = <<"<ol start='", Num/binary, "'>">>,
             Html2    = <<Html/binary, BinTag/binary, StartTag/binary>>,
             convert(Rest, State#{state := NewState,
@@ -290,17 +291,21 @@ checkIndent(Ind1, Num, Rest, BinTag, State = #{state := [{ol_litem, Ind2, CT}|St
                                  soFar := Html2})
     end.
 
-closeTags(PState) ->
-    closeTags(PState, <<>>).
+closeTags(Ind, PState) ->
+    closeTags(Ind, PState, <<>>).
 
-closeTags([], SoFar) ->
-    SoFar;
-closeTags([{ul_litem, _, _}|Rest], SoFar) ->
-    closeTags(Rest, <<SoFar/binary, "</ul>">>);
-closeTags([{ol_litem, _, _}|Rest], SoFar) ->
-    closeTags(Rest, <<SoFar/binary, "</ol>">>);
-closeTags(Rest, SoFar) ->
-    closeTags(Rest, SoFar).
+closeTags(_Ind, [], SoFar) ->
+    {SoFar, []};
+closeTags(Ind, [{ul_litem, Ind, CT}|Rest], SoFar) ->
+    {SoFar, [{ul_litem, Ind, CT}|Rest]};
+closeTags(Ind1, [{ul_litem, Ind2, _}|Rest], SoFar) when Ind1 < Ind2 ->
+    closeTags(Ind1, Rest, <<SoFar/binary, "</ul>">>);
+closeTags(Ind, [{ol_litem, Ind, CT}|Rest], SoFar) ->
+    {SoFar, [{ol_litem, Ind, CT}|Rest]};
+closeTags(Ind1, [{ol_litem, Ind2, _}|Rest], SoFar) when Ind1 < Ind2 ->
+    closeTags(Ind1, Rest, <<SoFar/binary, "</ol>">>);
+closeTags(_Ind, PState, SoFar) ->
+    {SoFar, PState}.
 
 makeTag(Tag, Content) ->
     BinTag   = list_to_binary(atom_to_list(Tag)),
@@ -416,8 +421,11 @@ checkIfList(Content) ->
     end.
 
 parseULBullet(Content) ->
+    parseULBullet(Content, 0).
+
+parseULBullet(Content, Ind) ->
     case remBegWS(Content) of
-        Content2 when (byte_size(Content) - byte_size(Content2)) > 3 ->
+        Content2 when (byte_size(Content) - byte_size(Content2)) > (3 + Ind) ->
             false;
         Content2 ->
             doParseULBullet(Content2)
@@ -429,19 +437,22 @@ doParseULBullet(<<"+ ", Rest/binary>>) -> {true, remBegWS(Rest)};
 doParseULBullet(_Content)              -> false.
 
 parseOLNum(Content) ->
+    parseOLNum(Content, 0).
+
+parseOLNum(Content, Ind) ->
     case remBegWS(Content) of
-        Content2 when (byte_size(Content) - byte_size(Content2)) > 3 ->
+        Content2 when (byte_size(Content) - byte_size(Content2)) > (Ind + 3) ->
             false;
         Content2 ->
-            parseOLNum(Content2, <<>>)
+            doParseOLNum(Content2, <<>>)
     end.
 
-parseOLNum(<<Num:8, Rest/binary>>, SoFar)
+doParseOLNum(<<Num:8, Rest/binary>>, SoFar)
   when ((Num >= $0) and (Num =< $9)) and (byte_size(SoFar) < 10) ->
-    parseOLNum(Rest, <<SoFar/binary, Num:8>>);
-parseOLNum(<<". ", Rest/binary>>, SoFar) ->
+    doParseOLNum(Rest, <<SoFar/binary, Num:8>>);
+doParseOLNum(<<". ", Rest/binary>>, SoFar) ->
     {true, SoFar, remBegWS(Rest)};
-parseOLNum(_Content, _SoFar) ->
+doParseOLNum(_Content, _SoFar) ->
     false.
 
 addCT(D, [{Tag, CT}|St]) when is_atom(Tag), is_binary(D), is_binary(CT) ->
