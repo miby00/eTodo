@@ -34,6 +34,29 @@ convert(<<10, Rest/binary>>, State) ->
 convert(Content, State = #{state := []}) ->
     convert(Content, State#{state := [{p, <<>>}]});
 
+%% Block quote
+convert(<<$>, Rest/binary>>, State = #{state    := [{p, CT}|St],
+                                       currLine := CL}) when byte_size(CL) < 4 ->
+    case remBegWS(CL) of
+        <<>> ->
+            convert(Rest, State#{state := [{blockquote, CT}|St]});
+        _ ->
+            convert(Rest, State#{state := [{p, <<CT/binary, "<">>}|St]})
+    end;
+convert(<<13, 10, Rest/binary>>, State = #{state    := [{blockquote, CT}|St],
+                                           currLine := CL,
+                                           soFar    := Html}) ->
+    BinTag = makeTag(blockquote, makeTag(p, CT)),
+    Html2  = <<Html/binary, BinTag/binary>>,
+    convert(Rest, State#{prevLine := <<CL/binary>>,
+                         currLine := <<>>,
+                         state    := St,
+                         soFar    := Html2});
+convert(<<>>, #{state    := [{blockquote, CT}|_],
+                soFar    := Html}) ->
+    BinTag = makeTag(blockquote, makeTag(p, CT)),
+    <<Html/binary, BinTag/binary>>;
+
 %% URL
 convert(<<$<, Rest/binary>>, State = #{state := ST}) ->
     convert(Rest, State#{state := [{url, <<>>}|ST]});
@@ -54,17 +77,19 @@ convert(<<Char:8, Rest/binary>>, State = #{state := PState = [{url, _}|_]}) ->
 convert(<<"#", Rest/binary>>, State = #{state    := [{p, CT}|St],
                                         currLine := CL,
                                         soFar    := Html})
-  when (CL == <<>>)     or
-       (CL == <<" ">>)  or
-       (CL == <<"  ">>) or
-       (CL == <<"   ">>) ->
-    case headerStart(<<"#", Rest/binary>>) of
-        {true, Tag, Rest2} ->
-            BinTag = makeTag(p, CT),
-            Html2  = <<Html/binary, BinTag/binary>>,
-            convert(Rest2, State#{state := [{Tag, <<>>}|St],
-                                  soFar := Html2});
-        false ->
+    when byte_size(CT) < 4 ->
+    case remBegWS(CT) of
+        <<>> ->
+            case headerStart(<<"#", Rest/binary>>) of
+                {true, Tag, Rest2} ->
+                    BinTag = makeTag(p, CT),
+                    Html2  = <<Html/binary, BinTag/binary>>,
+                    convert(Rest2, State#{state := [{Tag, <<>>}|St],
+                                          soFar := Html2});
+                false ->
+                    convert(Rest, State#{state := [{p, <<CT/binary, "#">>}|St]})
+            end;
+        _ ->
             convert(Rest, State#{state := [{p, <<CT/binary, "#">>}|St]})
     end;
 
@@ -160,29 +185,30 @@ convert(<<13, 10, Rest/binary>>, State = #{state    := [{p, CT}|St],
     end;
 
 %% Check for list
-convert(<<Char:8, Rest/binary>>, State = #{state    := [{p, CT}|St],
+convert(<<Char:8, Rest/binary>>, State = #{state    := [{CTag, CT}|St],
                                            currLine := <<>>,
-                                           soFar    := Html}) ->
+                                           soFar    := Html})
+    when (CTag == p) or (CTag == blockquote) ->
 
     case checkIfList(<<Char:8, Rest/binary>>) of
         {true, Tag} ->
-            BinTag = makeTag(p, CT),
+            BinTag = makeTag(CTag, CT),
             Html2  = <<Html/binary, BinTag/binary>>,
             convert(<<Char:8, Rest/binary>>,
                     State#{state    := [Tag|St],
                            prevLine := <<>>,
                            soFar    := Html2});
         false ->
-            ST2 = [{p, <<CT/binary, Char:8>>}|St],
+            ST2 = [{CTag, <<CT/binary, Char:8>>}|St],
             convert(Rest, State#{currLine := <<Char:8>>,
                                  state    := ST2})
     end;
 
 %% Parse paragraph
-convert(<<Char:8, Rest/binary>>, State = #{state    := [{p, CT}|St],
+convert(<<Char:8, Rest/binary>>, State = #{state    := [{CTag, CT}|St],
                                            currLine := CL}) ->
     convert(Rest, State#{currLine := <<CL/binary, Char:8>>,
-                         state    := [{p, <<CT/binary, Char:8>>}|St]});
+                         state    := [{CTag, <<CT/binary, Char:8>>}|St]});
 
 %% Text end by end of data
 convert(<<>>, #{state := [{p, <<>>}|_],
@@ -239,7 +265,10 @@ convert(<<13, 10, Rest/binary>>, State = #{state := [{Tag, Ind, CT}|St],
             convert(Rest, State#{state := St, soFar := Html2});
         {ol, false} ->
             Html2 = <<Html/binary, BinTag/binary, "</ol>">>,
-            convert(Rest, State#{state := St, soFar := Html2})
+            convert(Rest, State#{state := St, soFar := Html2});
+        {Tag, {cont, Rest2}} ->
+            CT2 = <<CT/binary, 13, 10>>,
+            convert(Rest2, State#{state := [{Tag, Ind, CT2}|St]})
     end;
 convert(<<Char:8, Rest/binary>>, State = #{state := [{Tag, Ind, CT}|St]})
     when (Tag == ol) or (Tag == ul) ->
@@ -407,17 +436,27 @@ checkIfList(Content) ->
 parseList(ul, Content, Ind) ->
     case parseULBullet(Content, Ind) of
         false ->
-            parseOLNum(Content, Ind);
+            continueLI(parseOLNum(Content, Ind), Content, Ind);
         Value ->
             Value
     end;
 parseList(ol, Content, Ind) ->
     case parseOLNum(Content, Ind) of
         false ->
-            parseULBullet(Content, Ind);
+            continueLI(parseULBullet(Content, Ind), Content, Ind);
         Value ->
             Value
     end.
+
+continueLI(false, Content, Ind) ->
+    case remBegWS(Content) of
+        Content2 when (byte_size(Content) - byte_size(Content2)) >= Ind ->
+            {cont, Content2};
+        _ ->
+            false
+    end;
+continueLI(Value, _, _) ->
+    Value.
 
 parseULBullet(Content) ->
     parseULBullet(Content, 0).

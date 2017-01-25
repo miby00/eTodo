@@ -77,6 +77,12 @@ ullist_3_test() ->
                         "<ul><li>Test3</li></ul></ul>"
                         "<li>Test4</li></ul>">>).
 
+ullist_4_test() ->
+    Result = eMd2Html:convert(<<"* Test1\r\n"
+                                "  Test2\r\n"
+                                "  Test3\r\n">>),
+    ?assert(Result == <<"<ul><li>Test1\r\nTest2\r\nTest3</li></ul>">>).
+
 ollist_1_test() ->
     Result = eMd2Html:convert(<<"Header 2\r\n1. Test">>),
     ?assert(Result == <<"<p>Header 2</p><ol start='1'><li>Test</li></ol>">>).
@@ -90,6 +96,12 @@ ollist_3_test() ->
     Result = eMd2Html:convert(<<"1. Test1\r\n   * Test2">>),
     ?assert(Result == <<"<ol start='1'><li>Test1</li>"
                         "<ul><li>Test2</li></ul></ol>">>).
+
+ollist_4_test() ->
+    Result = eMd2Html:convert(<<"1. Test1\r\n"
+                                "   Test2\r\n"
+                                "   Test3\r\n">>),
+    ?assert(Result == <<"<ol start='1'><li>Test1\r\nTest2\r\nTest3</li></ol>">>).
 
 paragraph_1_test() ->
     Result = eMd2Html:convert(<<"Hej här kommer lite text">>),
@@ -119,3 +131,10 @@ url_2_test() ->
             <<"<p>x<a href='http://google.com'>http://google.com</a>"
               "y<a href='http://google.com'>http://google.com</a></p>">>).
 
+blockquote_1_test() ->
+    Result = eMd2Html:convert(<<"> Test">>),
+    ?assert(Result == <<"<blockquote><p>Test</p></blockquote>">>).
+
+blockquote_2_test() ->
+    Result = eMd2Html:convert(<<"> Test\r\n">>),
+    ?assert(Result == <<"<blockquote><p>Test</p></blockquote>">>).
