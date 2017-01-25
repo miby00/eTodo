@@ -30,9 +30,9 @@ convert(<<10, 10, Rest/binary>>, State) ->
 convert(<<10, Rest/binary>>, State) ->
     convert(<<13, 10, Rest/binary>>, State);
 
-%% Default state is ptext
+%% Default state is paragraph (p)
 convert(Content, State = #{state := []}) ->
-    convert(Content, State#{state := [{ptext, <<>>}]});
+    convert(Content, State#{state := [{p, <<>>}]});
 
 %% URL
 convert(<<$<, Rest/binary>>, State = #{state := ST}) ->
@@ -51,7 +51,7 @@ convert(<<Char:8, Rest/binary>>, State = #{state := PState = [{url, _}|_]}) ->
     convert(Rest, State#{state := addCT(<<Char:8>>, PState)});
 
 %% Headers
-convert(<<"#", Rest/binary>>, State = #{state    := [{ptext, CT}|St],
+convert(<<"#", Rest/binary>>, State = #{state    := [{p, CT}|St],
                                         currLine := CL,
                                         soFar    := Html})
   when (CL == <<>>)     or
@@ -65,7 +65,7 @@ convert(<<"#", Rest/binary>>, State = #{state    := [{ptext, CT}|St],
             convert(Rest2, State#{state := [{Tag, <<>>}|St],
                                   soFar := Html2});
         false ->
-            convert(Rest, State#{state := [{ptext, <<CT/binary, "#">>}|St]})
+            convert(Rest, State#{state := [{p, <<CT/binary, "#">>}|St]})
     end;
 
 %% Header end by end of data
@@ -107,14 +107,14 @@ convert(<<13, 10, Rest/binary>>, State = #{state := [{Tag, CT}|St],
     convert(Rest, State#{state := St,
                          soFar := Html2});
 
-%% Parse header paragraf text
+%% Parse header paragraph text
 convert(<<Char:8, Rest/binary>>, State = #{state := [{Tag, CT}|St]})
   when (Tag == h6) or (Tag == h5) or (Tag == h4) or
        (Tag == h3) or (Tag == h2) or (Tag == h1) ->
     convert(Rest, State#{state := [{Tag, <<CT/binary, Char:8>>}|St]});
 
-%% Paragraf text ending
-convert(<<13, 10, 13, 10, Rest/binary>>, State = #{state    := [{ptext, CT}|St],
+%% Paragraph text ending
+convert(<<13, 10, 13, 10, Rest/binary>>, State = #{state    := [{p, CT}|St],
                                                    prevLine := <<>>,
                                                    soFar    := Html}) ->
     BinTag = makeTag(p, CT),
@@ -122,14 +122,14 @@ convert(<<13, 10, 13, 10, Rest/binary>>, State = #{state    := [{ptext, CT}|St],
     convert(Rest, State#{state    := St,
                          currLine := <<>>,
                          soFar    := Html2});
-%% Paragraf line ending, empty previous line
-convert(<<13, 10, Rest/binary>>, State = #{state    := [{ptext, CT}|St],
+%% Paragraph line ending, empty previous line
+convert(<<13, 10, Rest/binary>>, State = #{state    := [{p, CT}|St],
                                            currLine := CL,
                                            prevLine := <<>>}) ->
     convert(Rest, State#{prevLine := <<CL/binary>>,
                          currLine := <<>>,
-                         state    := [{ptext, <<CT/binary, 13, 10>>}|St]});
-convert(<<13, 10, Rest/binary>>, State = #{state    := [{ptext, CT}|St],
+                         state    := [{p, <<CT/binary, 13, 10>>}|St]});
+convert(<<13, 10, Rest/binary>>, State = #{state    := [{p, CT}|St],
                                            prevLine := PL,
                                            currLine := CL,
                                            soFar    := Html}) ->
@@ -151,7 +151,7 @@ convert(<<13, 10, Rest/binary>>, State = #{state    := [{ptext, CT}|St],
                                           currLine := <<>>,
                                           soFar    := Html2});
                 Rest ->
-                    State2 = [{ptext, <<CT/binary, 13, 10>>}|St],
+                    State2 = [{p, <<CT/binary, 13, 10>>}|St],
                     convert(Rest, State#{soFar    := Html,
                                          prevLine := CL,
                                          currLine := <<>>,
@@ -160,7 +160,7 @@ convert(<<13, 10, Rest/binary>>, State = #{state    := [{ptext, CT}|St],
     end;
 
 %% Check for list
-convert(<<Char:8, Rest/binary>>, State = #{state    := [{ptext, CT}|St],
+convert(<<Char:8, Rest/binary>>, State = #{state    := [{p, CT}|St],
                                            currLine := <<>>,
                                            soFar    := Html}) ->
 
@@ -173,27 +173,27 @@ convert(<<Char:8, Rest/binary>>, State = #{state    := [{ptext, CT}|St],
                            prevLine := <<>>,
                            soFar    := Html2});
         false ->
-            ST2 = [{ptext, <<CT/binary, Char:8>>}|St],
+            ST2 = [{p, <<CT/binary, Char:8>>}|St],
             convert(Rest, State#{currLine := <<Char:8>>,
                                  state    := ST2})
     end;
 
-%% Parse ptext
-convert(<<Char:8, Rest/binary>>, State = #{state    := [{ptext, CT}|St],
+%% Parse paragraph
+convert(<<Char:8, Rest/binary>>, State = #{state    := [{p, CT}|St],
                                            currLine := CL}) ->
     convert(Rest, State#{currLine := <<CL/binary, Char:8>>,
-                         state    := [{ptext, <<CT/binary, Char:8>>}|St]});
+                         state    := [{p, <<CT/binary, Char:8>>}|St]});
 
 %% Text end by end of data
-convert(<<>>, #{state := [{ptext, <<>>}|_],
+convert(<<>>, #{state := [{p, <<>>}|_],
                 soFar := Html}) ->
     Html;
-convert(<<>>, #{state    := [{ptext, CT}|_],
+convert(<<>>, #{state    := [{p, CT}|_],
                 prevLine := <<>>,
                 soFar    := Html}) ->
     BinTag = makeTag(p, <<CT/binary>>),
     <<Html/binary, BinTag/binary>>;
-convert(<<>>, #{state    := [{ptext, CT}|_],
+convert(<<>>, #{state    := [{p, CT}|_],
                 prevLine := PL,
                 currLine := CL,
                 soFar    := Html}) ->
@@ -205,104 +205,88 @@ convert(<<>>, #{state    := [{ptext, CT}|_],
             BinTag = makeTag(p, <<CT/binary>>),
             <<Html/binary, BinTag/binary>>
     end;
+
+%% Parse Lists
 convert(Content, State = #{state := [ol_start|St],
                            soFar := Html}) ->
     {true, NumBin, Rest} = parseOLNum(Content),
     Indent = byte_size(Content) - byte_size(Rest),
     Html2 = <<Html/binary, "<ol start='", NumBin/binary, "'>">>,
-    convert(Rest, State#{state := [{ol_litem, Indent, <<>>}|St], soFar := Html2});
-convert(<<>>, #{state     := PState = [{ol_litem, _, CT}|_],
-                soFar     := Html}) ->
-    BinTag = makeTag(li, CT),
-    {CloseTags, _} = closeTags(0, PState),
-    <<Html/binary, BinTag/binary, CloseTags/binary>>;
-convert(<<13, 10, Rest/binary>>, State = #{state := [{ol_litem, Ind, CT}|St],
-                                           soFar := Html}) ->
-    BinTag = makeTag(li, CT),
-    case parseOLNum(Rest, Ind) of
-        {true, Num, Rest2} ->
-            Indent2 = byte_size(Rest) - byte_size(Rest2),
-            checkIndent(Indent2, Num, Rest2, BinTag, State);
-        false ->
-            Html2 = <<Html/binary, BinTag/binary, "</ol>">>,
-            convert(Rest, State#{state := St,
-                                 soFar := Html2})
-    end;
-convert(<<Char:8, Rest/binary>>, State = #{state := [{ol_litem, Ind, CT}|St]}) ->
-    convert(Rest, State#{state := [{ol_litem, Ind, <<CT/binary, Char:8>>}|St]});
+    convert(Rest, State#{state := [{ol, Indent, <<>>}|St], soFar := Html2});
 convert(Content, State = #{state := [ul_start|St], soFar := Html}) ->
     {true, Rest} = parseULBullet(Content),
     Indent       = byte_size(Content) - byte_size(Rest),
     Html2        = <<Html/binary, "<ul>">>,
-    convert(Rest, State#{state := [{ul_litem, Indent, <<>>}|St], soFar := Html2});
-convert(<<>>, #{state := PState = [{ul_litem, _, CT}|_],
-                soFar := Html}) ->
+    convert(Rest, State#{state := [{ul, Indent, <<>>}|St], soFar := Html2});
+convert(<<>>, #{state := PState = [{Tag, _, CT}|_],
+                soFar := Html}) when (Tag == ul) or (Tag == ol) ->
     BinTag         = makeTag(li, CT),
     {CloseTags, _} = closeTags(0, PState),
     <<Html/binary, BinTag/binary, CloseTags/binary>>;
-convert(<<13, 10, Rest/binary>>, State = #{state := [{ul_litem, Ind, CT}|St],
-                                           soFar := Html}) ->
+convert(<<13, 10, Rest/binary>>, State = #{state := [{Tag, Ind, CT}|St],
+                                           soFar := Html})
+    when (Tag == ol) or (Tag == ul) ->
     BinTag = makeTag(li, CT),
-    case parseULBullet(Rest, Ind) of
-        {true, Rest2} ->
+    case {Tag, parseList(Tag, Rest, Ind)} of
+        {_, {true, Rest2}} ->
             Indent2 = byte_size(Rest) - byte_size(Rest2),
-            checkIndent(Indent2, <<>>, Rest2, BinTag, State);
-        false ->
+            checkIndent(ul, Indent2, <<>>, Rest2, BinTag, State);
+        {_, {true, Num, Rest2}} ->
+            Indent2 = byte_size(Rest) - byte_size(Rest2),
+            checkIndent(ol, Indent2, Num, Rest2, BinTag, State);
+        {ul, false} ->
             Html2 = <<Html/binary, BinTag/binary, "</ul>">>,
-            convert(Rest, State#{state := St,
-                                 soFar := Html2})
+            convert(Rest, State#{state := St, soFar := Html2});
+        {ol, false} ->
+            Html2 = <<Html/binary, BinTag/binary, "</ol>">>,
+            convert(Rest, State#{state := St, soFar := Html2})
     end;
-convert(<<Char:8, Rest/binary>>, State = #{state := [{ul_litem, Ind, CT}|St]}) ->
-    convert(Rest, State#{state := [{ul_litem, Ind, <<CT/binary, Char:8>>}|St]}).
+convert(<<Char:8, Rest/binary>>, State = #{state := [{Tag, Ind, CT}|St]})
+    when (Tag == ol) or (Tag == ul) ->
+    convert(Rest, State#{state := [{Tag, Ind, <<CT/binary, Char:8>>}|St]}).
 
-checkIndent(Indent, _, Rest, BinTag, State = #{state := [{Tag, Indent, CT}|St],
-                                               soFar := Html}) ->
+
+%% Check indentation of ordered and unorded lists.
+checkIndent(_, Indent, _, Rest, BinTag, State = #{state := [{Tag, Indent, CT}|St],
+                                                  soFar := Html}) ->
     BinTag = makeTag(li, CT),
     convert(Rest, State#{state := [{Tag, Indent, <<>>}|St],
                          soFar := <<Html/binary, BinTag/binary>>});
-checkIndent(Ind1, _, Rest, BinTag, State = #{state := [{ul_litem, Ind2, CT}|St],
-                                             soFar := Html}) ->
+checkIndent(Tag, Ind1, Num, Rest, BinTag, State = #{state := [{PTag, Ind2, CT}|St],
+                                                    soFar := Html}) ->
     case Ind1 > Ind2 of
         true ->
             BinTag   = makeTag(li, CT),
-            NewState = [{ul_litem, Ind1, <<>>}, {ul_litem, Ind2, <<>>}|St],
-            Html2    = <<Html/binary, BinTag/binary, "<ul>">>,
-            convert(Rest, State#{state := NewState,
-                                 soFar := Html2});
-        false ->
-            {CTags, PState} = closeTags(Ind1, [{ul_litem, Ind2, CT}|St]),
-            Html2 = <<Html/binary, BinTag/binary, CTags/binary>>,
-            convert(Rest, State#{state := PState,
-                                 soFar := Html2})
-    end;
-checkIndent(Ind1, Num, Rest, BinTag, State = #{state := [{ol_litem, Ind2, CT}|St],
-                                               soFar := Html}) ->
-    case Ind1 > Ind2 of
-        true ->
-            BinTag   = makeTag(li, CT),
-            NewState = [{ol_litem, Ind1, <<>>}, {ol_litem, Ind2, <<>>}|St],
-            StartTag = <<"<ol start='", Num/binary, "'>">>,
+            NewState = [{Tag, Ind1, <<>>}, {PTag, Ind2, <<>>}|St],
+            StartTag = makeStartTag(Tag, Num),
             Html2    = <<Html/binary, BinTag/binary, StartTag/binary>>,
             convert(Rest, State#{state := NewState,
                                  soFar := Html2});
         false ->
-            Html2 = <<Html/binary, BinTag/binary, "</ol>">>,
-            convert(Rest, State#{state := St,
+            {CTags, PState} = closeTags(Ind1, [{PTag, Ind2, CT}|St]),
+            Html2 = <<Html/binary, BinTag/binary, CTags/binary>>,
+            convert(Rest, State#{state := PState,
                                  soFar := Html2})
     end.
 
+makeStartTag(ol, Num) ->
+    <<"<ol start='", Num/binary, "'>">>;
+makeStartTag(ul, _Num) ->
+    <<"<ul>">>.
+
+% Close tags left open or to a specific indentation(used by lists)
 closeTags(Ind, PState) ->
     closeTags(Ind, PState, <<>>).
 
 closeTags(_Ind, [], SoFar) ->
     {SoFar, []};
-closeTags(Ind, [{ul_litem, Ind, CT}|Rest], SoFar) ->
-    {SoFar, [{ul_litem, Ind, CT}|Rest]};
-closeTags(Ind1, [{ul_litem, Ind2, _}|Rest], SoFar) when Ind1 < Ind2 ->
+closeTags(Ind, [{ul, Ind, CT}|Rest], SoFar) ->
+    {SoFar, [{ul, Ind, CT}|Rest]};
+closeTags(Ind1, [{ul, Ind2, _}|Rest], SoFar) when Ind1 < Ind2 ->
     closeTags(Ind1, Rest, <<SoFar/binary, "</ul>">>);
-closeTags(Ind, [{ol_litem, Ind, CT}|Rest], SoFar) ->
-    {SoFar, [{ol_litem, Ind, CT}|Rest]};
-closeTags(Ind1, [{ol_litem, Ind2, _}|Rest], SoFar) when Ind1 < Ind2 ->
+closeTags(Ind, [{ol, Ind, CT}|Rest], SoFar) ->
+    {SoFar, [{ol, Ind, CT}|Rest]};
+closeTags(Ind1, [{ol, Ind2, _}|Rest], SoFar) when Ind1 < Ind2 ->
     closeTags(Ind1, Rest, <<SoFar/binary, "</ol>">>);
 closeTags(_Ind, PState, SoFar) ->
     {SoFar, PState}.
@@ -418,6 +402,21 @@ checkIfList(Content) ->
                 false ->
                     false
             end
+    end.
+
+parseList(ul, Content, Ind) ->
+    case parseULBullet(Content, Ind) of
+        false ->
+            parseOLNum(Content, Ind);
+        Value ->
+            Value
+    end;
+parseList(ol, Content, Ind) ->
+    case parseOLNum(Content, Ind) of
+        false ->
+            parseULBullet(Content, Ind);
+        Value ->
+            Value
     end.
 
 parseULBullet(Content) ->
