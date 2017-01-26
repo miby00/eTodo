@@ -56,9 +56,9 @@ convert(<<"\\", Char:8, Rest/binary>>, PState, PL, CL, Acc) ->
 
 %% Block quote
 convert(<<$>, Rest/binary>>,
-        PState = [{p, CT}|St], PL, CL, Acc) when byte_size(CL) < 4 ->
+        PState = [{p, CT}|St], PL, CL, Acc) when byte_size(CL) =< 3 ->
     case {remWS(CL), lists:member(blockquote, St)} of
-        {{<<>>, Count}, false} when Count < 4 ->
+        {{<<>>, Count}, false} when Count =< 3 ->
             BTag = makeTag(p, CT),
             Acc2 = <<Acc/binary, BTag/binary, "<blockquote>">>,
             convert(Rest, [{p, <<>>}, blockquote|St], PL, CL, Acc2);
@@ -87,10 +87,9 @@ convert(<<$>, Rest/binary>>, [{url, CT}|St], PL, CL, Acc) ->
             convert(Rest, addCT(Url, St), PL, CL, Acc)
     end;
 
-%% Code block
+%% Indented code block
 convert(<<13, 10, 32, 32, 32, 32, Rest/binary>>, [{code, CT}], <<>>, <<>>, Acc) ->
     convert(Rest, [{code, <<CT/binary, 13, 10>>}], <<>>, <<>>, Acc);
-
 convert(<<13, 10, 9, Rest/binary>>, [{code, CT}], <<>>, <<>>, Acc) ->
     convert(Rest, [{code, <<CT/binary, 13, 10>>}], <<>>, <<>>, Acc);
 
@@ -99,15 +98,10 @@ convert(<<13, 10, Rest/binary>>, [{code, CT}], <<>>, <<>>, Acc) ->
     Acc2 = <<Acc/binary, BTag/binary>>,
     convert(Rest, [{p, <<>>}], <<>>, <<>>, Acc2);
 
-convert(<<>>, [{code, CT}], <<>>, <<>>, Acc) ->
+convert(<<>>, [{Tag, CT}], <<>>, <<>>, Acc)
+    when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
     BTag = makeTag(code, CT),
     <<Acc/binary, BTag/binary>>;
-
-convert(<<Char:8, Rest/binary>>, [{code, CT}], <<>>, <<>>, Acc) ->
-    convert(Rest, [{code, <<CT/binary, Char:8>>}], <<>>, <<>>, Acc);
-
-convert(<<"    ", Rest/binary>>, [{p, <<>>}], <<>>, <<>>, Acc) ->
-    convert(Rest, [{code, <<>>}], <<>>, <<>>, Acc);
 
 convert(<<"    ", Rest/binary>>, [{p, <<>>}], <<>>, <<>>, Acc) ->
     convert(Rest, [{code, <<>>}], <<>>, <<>>, Acc);
@@ -115,9 +109,35 @@ convert(<<"    ", Rest/binary>>, [{p, <<>>}], <<>>, <<>>, Acc) ->
 convert(<<9, Rest/binary>>, [{p, <<>>}], <<>>, <<>>, Acc) ->
     convert(Rest, [{code, <<>>}], <<>>, <<>>, Acc);
 
+%% Fenced code block
+convert(<<"~~~", 13, 10, Rest/binary>>, [{p, <<>>}], <<>>, <<>>, Acc) ->
+    convert(Rest, [{f1_code, <<>>}], <<>>, <<>>, Acc);
+convert(<<"~~~", 10, Rest/binary>>, [{p, <<>>}], <<>>, <<>>, Acc) ->
+    convert(Rest, [{f1_code, <<>>}], <<>>, <<>>, Acc);
+convert(<<"```", 13, 10, Rest/binary>>, [{p, <<>>}], <<>>, <<>>, Acc) ->
+    convert(Rest, [{f2_code, <<>>}], <<>>, <<>>, Acc);
+convert(<<"```", 10, Rest/binary>>, [{p, <<>>}], <<>>, <<>>, Acc) ->
+    convert(Rest, [{f2_code, <<>>}], <<>>, <<>>, Acc);
+
+convert(<<13, 10, Rest/binary>>, [{Tag, CT}], <<>>, <<>>, Acc)
+    when (Tag == f1_code) or (Tag == f2_code) ->
+    End = endFenced(Tag),
+    case remWS(Rest) of
+        {<<End:3/bytes, Rest2/binary>>, Count} when Count =< 3 ->
+            BTag = makeTag(code, CT),
+            Acc2 = <<Acc/binary, BTag/binary>>,
+            convert(Rest2, [{p, <<>>}], <<>>, <<>>, Acc2);
+        _ ->
+            convert(Rest, [{Tag, <<CT/binary, 13, 10>>}], <<>>, <<>>, Acc)
+    end;
+
+convert(<<Char:8, Rest/binary>>, [{Tag, CT}], <<>>, <<>>, Acc)
+    when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
+    convert(Rest, [{Tag, <<CT/binary, Char:8>>}], <<>>, <<>>, Acc);
+
 %% Headers
 convert(<<"#", Rest/binary>>, PState = [{p, CT}|St], PL, CL, Acc)
-  when byte_size(CT) < 4 ->
+  when byte_size(CT) =< 3 ->
     case remWS(CT) of
         {<<>>, _} ->
             case headerStart(<<"#", Rest/binary>>) of
@@ -512,3 +532,5 @@ entity(<<$">>) -> <<"&quot;">>;
 entity(<<$&>>) -> <<"&amp;">>;
 entity(Value)  -> Value.
 
+endFenced(f1_code) -> <<"~~~">>;
+endFenced(f2_code) -> <<"```">>.

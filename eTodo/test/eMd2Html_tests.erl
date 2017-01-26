@@ -193,3 +193,18 @@ code_2_test() ->
     Result = eMd2Html:convert(<<"    Hej\r\n    Svejs\r\n">>),
     Expect = <<"<pre><code>Hej\r\nSvejs</code></pre>">>,
     ?assertEqual(Expect, Result).
+
+fcode_1_test() ->
+    Result = eMd2Html:convert(<<"```\r\nTest">>),
+    Expect = <<"<pre><code>Test</code></pre>">>,
+    ?assertEqual(Expect, Result).
+
+fcode_2_test() ->
+    Result = eMd2Html:convert(<<"```\r\nTest\r\n```">>),
+   Expect = <<"<pre><code>Test</code></pre>">>,
+    ?assertEqual(Expect, Result).
+
+fcode_3_test() ->
+    Result = eMd2Html:convert(<<"~~~\r\nTest\r\n~~~">>),
+    Expect = <<"<pre><code>Test</code></pre>">>,
+    ?assertEqual(Expect, Result).
