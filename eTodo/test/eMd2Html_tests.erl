@@ -13,128 +13,173 @@
 
 header_1_test() ->
     Result = eMd2Html:convert(<<"# Header 1">>),
-    ?assert(Result == <<"<h1>Header 1</h1>">>).
+    Expect = <<"<h1>Header 1</h1>">>,
+    ?assertEqual(Expect, Result).
 
 header_2_test() ->
     Result = eMd2Html:convert(<<"# Header 1 #">>),
-    ?assert(Result == <<"<h1>Header 1</h1>">>).
+    Expect = <<"<h1>Header 1</h1>">>,
+    ?assertEqual(Expect, Result).
 
 header_3_test() ->
     Result = eMd2Html:convert(<<"## Header 2">>),
-    ?assert(Result == <<"<h2>Header 2</h2>">>).
+    Expect = <<"<h2>Header 2</h2>">>,
+    ?assertEqual(Expect, Result).
 
 header_4_test() ->
     Result = eMd2Html:convert(<<"## Header 2 ####">>),
-    ?assert(Result == <<"<h2>Header 2</h2>">>).
+    Expect = <<"<h2>Header 2</h2>">>,
+    ?assertEqual(Expect, Result).
 
 header_5_test() ->
     Result = eMd2Html:convert(<<"Header 1\r\n=">>),
-    ?assert(Result == <<"<h1>Header 1</h1>">>).
+    Expect = <<"<h1>Header 1</h1>">>,
+    ?assertEqual(Expect, Result).
 
 header_6_test() ->
     Result = eMd2Html:convert(<<"Header 2\r\n-">>),
-    ?assert(Result == <<"<h2>Header 2</h2>">>).
+    Expect = <<"<h2>Header 2</h2>">>,
+    ?assertEqual(Expect, Result).
 
 header_7_test() ->
     Result = eMd2Html:convert(<<"### Header 3 #####">>),
-    ?assert(Result == <<"<h3>Header 3</h3>">>).
+    Expect = <<"<h3>Header 3</h3>">>,
+    ?assertEqual(Expect, Result).
 
 header_8_test() ->
     Result = eMd2Html:convert(<<"#### Header 4 #">>),
-    ?assert(Result == <<"<h4>Header 4</h4>">>).
+    Expect = <<"<h4>Header 4</h4>">>,
+    ?assertEqual(Expect, Result).
 
 header_9_test() ->
     Result = eMd2Html:convert(<<"##### Header 5 #####">>),
-    ?assert(Result == <<"<h5>Header 5</h5>">>).
+    Expect = <<"<h5>Header 5</h5>">>,
+    ?assertEqual(Expect, Result).
 
 header_10_test() ->
     Result = eMd2Html:convert(<<"###### Header 6">>),
-    ?assert(Result == <<"<h6>Header 6</h6>">>).
+    Expect = <<"<h6>Header 6</h6>">>,
+    ?assertEqual(Expect, Result).
 
 header_11_test() ->
     Result = eMd2Html:convert(<<"Header 1\r\n========">>),
-    ?assert(Result == <<"<h1>Header 1</h1>">>).
+    Expect = <<"<h1>Header 1</h1>">>,
+    ?assertEqual(Expect, Result).
 
 header_12_test() ->
     Result = eMd2Html:convert(<<"Header 2\r\n--------">>),
-    ?assert(Result == <<"<h2>Header 2</h2>">>).
+    Expect = <<"<h2>Header 2</h2>">>,
+    ?assertEqual(Expect, Result).
 
 ullist_1_test() ->
     Result = eMd2Html:convert(<<"Header 2\r\n- Test">>),
-    ?assert(Result == <<"<p>Header 2</p><ul><li>Test</li></ul>">>).
+    Expect = <<"<p>Header 2</p><ul><li>Test</li></ul>">>,
+    ?assertEqual(Expect, Result).
 
 ullist_2_test() ->
     Result = eMd2Html:convert(<<"- Test1\r\n  - Test2">>),
-    ?assert(Result == <<"<ul><li>Test1</li><ul><li>Test2</li></ul></ul>">>).
+    Expect = <<"<ul><li>Test1</li><ul><li>Test2</li></ul></ul>">>,
+    ?assertEqual(Expect, Result).
 
 ullist_3_test() ->
     Result = eMd2Html:convert(<<"* Test1\r\n"
                                 "  * Test2\r\n"
                                 "    * Test3\r\n"
                                 "* Test4\r\n">>),
-    ?assert(Result == <<"<ul><li>Test1</li>"
-                        "<ul><li>Test2</li>"
-                        "<ul><li>Test3</li></ul></ul>"
-                        "<li>Test4</li></ul>">>).
+    Expect = <<"<ul><li>Test1</li>"
+               "<ul><li>Test2</li>"
+               "<ul><li>Test3</li></ul></ul>"
+               "<li>Test4</li></ul>">>,
+    ?assertEqual(Expect, Result).
 
 ullist_4_test() ->
     Result = eMd2Html:convert(<<"* Test1\r\n"
                                 "  Test2\r\n"
                                 "  Test3\r\n">>),
-    ?assert(Result == <<"<ul><li>Test1\r\nTest2\r\nTest3</li></ul>">>).
+    Expect = <<"<ul><li>Test1\r\nTest2\r\nTest3</li></ul>">>,
+    ?assertEqual(Expect, Result).
 
 ollist_1_test() ->
     Result = eMd2Html:convert(<<"Header 2\r\n1. Test">>),
-    ?assert(Result == <<"<p>Header 2</p><ol start='1'><li>Test</li></ol>">>).
+    Expect = <<"<p>Header 2</p><ol start='1'><li>Test</li></ol>">>,
+    ?assertEqual(Expect, Result).
 
 ollist_2_test() ->
     Result = eMd2Html:convert(<<"1. Test1\r\n   2. Test2">>),
-    ?assert(Result == <<"<ol start='1'><li>Test1</li>"
-                        "<ol start='2'><li>Test2</li></ol></ol>">>).
+    Expect = <<"<ol start='1'><li>Test1</li>"
+               "<ol start='2'><li>Test2</li></ol></ol>">>,
+    ?assertEqual(Expect, Result).
 
 ollist_3_test() ->
     Result = eMd2Html:convert(<<"1. Test1\r\n   * Test2">>),
-    ?assert(Result == <<"<ol start='1'><li>Test1</li>"
-                        "<ul><li>Test2</li></ul></ol>">>).
+    Expect = <<"<ol start='1'><li>Test1</li>"
+               "<ul><li>Test2</li></ul></ol>">>,
+    ?assertEqual(Expect, Result).
 
 ollist_4_test() ->
     Result = eMd2Html:convert(<<"1. Test1\r\n"
                                 "   Test2\r\n"
                                 "   Test3\r\n">>),
-    ?assert(Result == <<"<ol start='1'><li>Test1\r\nTest2\r\nTest3</li></ol>">>).
+    Expect = <<"<ol start='1'><li>Test1\r\nTest2\r\nTest3</li></ol>">>,
+    ?assertEqual(Expect, Result).
 
 paragraph_1_test() ->
     Result = eMd2Html:convert(<<"Hej här kommer lite text">>),
-    ?assert(Result == <<"<p>Hej här kommer lite text</p>">>).
+    Expect = <<"<p>Hej här kommer lite text</p>">>,
+    ?assertEqual(Expect, Result).
 
 paragraph_2_test() ->
     Result = eMd2Html:convert(<<"Hej här kommer lite text\r\nMed två rader">>),
-    ?assert(Result == <<"<p>Hej här kommer lite text\r\nMed två rader</p>">>).
+    Expect = <<"<p>Hej här kommer lite text\r\nMed två rader</p>">>,
+    ?assertEqual(Expect, Result).
 
 paragraph_3_test() ->
     Result = eMd2Html:convert(<<"Hej här kommer lite text  \r\n"
                                 "Med två rader">>),
-    ?assert(Result == <<"<p>Hej här kommer lite text<br />\r\n"
-                        "Med två rader</p>">>).
+    Expect = <<"<p>Hej här kommer lite text<br />\r\n"
+               "Med två rader</p>">>,
+    ?assertEqual(Expect, Result).
 
 paragraph_4_test() ->
     Result = eMd2Html:convert(<<"Hej\r\nSvejs  \r\n">>),
-    ?assert(Result == <<"<p>Hej\r\nSvejs</p>">>).
+    Expect = <<"<p>Hej\r\nSvejs</p>">>,
+    ?assertEqual(Expect, Result).
 
 url_1_test() ->
     Result = eMd2Html:convert(<<"<http://google.com>">>),
-    ?assert(Result == <<"<p><a href='http://google.com'>http://google.com</a></p>">>).
+    Expect = <<"<p><a href='http://google.com'>http://google.com</a></p>">>,
+    ?assertEqual(Expect, Result).
 
 url_2_test() ->
     Result = eMd2Html:convert(<<"x<http://google.com>y<http://google.com>">>),
-    ?assert(Result ==
-            <<"<p>x<a href='http://google.com'>http://google.com</a>"
-              "y<a href='http://google.com'>http://google.com</a></p>">>).
+    Expect = <<"<p>x<a href='http://google.com'>http://google.com</a>"
+               "y<a href='http://google.com'>http://google.com</a></p>">>,
+    ?assertEqual(Expect, Result).
 
 blockquote_1_test() ->
     Result = eMd2Html:convert(<<"> Test">>),
-    ?assert(Result == <<"<blockquote><p>Test</p></blockquote>">>).
+    Expect = <<"<blockquote><p>Test</p></blockquote>">>,
+    ?assertEqual(Expect, Result).
 
 blockquote_2_test() ->
     Result = eMd2Html:convert(<<"> Test\r\n">>),
-    ?assert(Result == <<"<blockquote><p>Test</p></blockquote>">>).
+    Expect = <<"<blockquote><p>Test</p></blockquote>">>,
+    ?assertEqual(Expect, Result).
+
+blockquote_3_test() ->
+    Result = eMd2Html:convert(<<"> Test1\r\n> Test2\r\n">>),
+    Expect = <<"<blockquote><p>Test1\r\nTest2</p></blockquote>">>,
+    ?assertEqual(Expect, Result).
+
+blockquote_4_test() ->
+    Result = eMd2Html:convert(<<"> Test\r\n> av\r\n> Block quote\r\n">>),
+    Expect = <<"<blockquote><p>Test\r\nav\r\nBlock quote</p></blockquote>">>,
+    ?assertEqual(Expect, Result).
+
+blockquote_5_test() ->
+    Result = eMd2Html:convert(<<"Hej\r\n\r\n> Test\r\n> av\r\n> Block quote\r\n">>),
+    Expect = <<"<p>Hej</p>"
+                 "<blockquote>"
+                 "<p>Test\r\nav\r\nBlock quote</p>"
+                 "</blockquote>">>,
+    ?assertEqual(Expect, Result).
