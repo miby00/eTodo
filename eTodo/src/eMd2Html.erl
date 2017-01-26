@@ -440,11 +440,11 @@ insertBR(<<>>, SoFar) ->
     SoFar.
 
 remWS(Content) ->
-    remWS(Content, 0, false).
+    remWS(Content, 0, all).
 
-%% Remove WS only removes one \r\n
 remWS(<<>>,                    Count, _)     -> {<<>>, Count};
 remWS(<<13, 10, Rest/binary>>, Count, false) -> remWS(Rest, Count,     true);
+remWS(<<13, 10, Rest/binary>>, Count, all)   -> remWS(Rest, Count,     all);
 remWS(<<32,     Rest/binary>>, Count, LRem)  -> remWS(Rest, Count + 1, LRem);
 remWS(<<9,      Rest/binary>>, Count, LRem)  -> remWS(Rest, Count + 4, LRem);
 remWS(Rest,                    Count, _)     -> {Rest, Count}.
