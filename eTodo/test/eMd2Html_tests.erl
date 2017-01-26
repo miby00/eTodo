@@ -99,6 +99,11 @@ ullist_4_test() ->
     Expect = <<"<ul><li>Test1\r\nTest2\r\nTest3</li></ul>">>,
     ?assertEqual(Expect, Result).
 
+ullist_5_test() ->
+    Result = eMd2Html:convert(<<"* Test1\r\n\r\nTest3">>),
+    Expect = <<"<ul><li>Test1</li></ul><p>Test3</p>">>,
+    ?assertEqual(Expect, Result).
+
 ollist_1_test() ->
     Result = eMd2Html:convert(<<"Header 2\r\n1. Test">>),
     Expect = <<"<p>Header 2</p><ol start='1'><li>Test</li></ol>">>,

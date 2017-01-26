@@ -10,11 +10,23 @@
 -author("mikael.bylund@gmail.com").
 
 %% API
--export([convert/1]).
+-export([convert/1, dbg/1, debug/1]).
 
 -define(brTag, "<br />").
 
 -define(punctChar, "!\"#$%&'()*+,--/:;<>=?@[]\\^`{}|~").
+
+
+dbg(Info) ->
+    redbug:stop(),
+    timer:sleep(500),
+    Info2 = ["eMd2Html:" ++ Value || Value <- Info],
+    redbug:start(Info2, [{msgs, 1000}, {time, 100000}]).
+
+debug(Info) ->
+    redbug:stop(),
+    timer:sleep(500),
+    redbug:start(Info, [{msgs, 1000}, {time, 100000}]).
 
 %% PS  => Stack built when parsing: [TD]
 %% TD  => {Tag, CT, CI}
@@ -428,14 +440,14 @@ insertBR(<<>>, SoFar) ->
     SoFar.
 
 remWS(Content) ->
-    remWS(Content, 0).
+    remWS(Content, 0, false).
 
-remWS(<<>>,                Count) -> {<<>>, Count};
-remWS(<<13, Rest/binary>>, Count) -> remWS(Rest, Count + 1);
-remWS(<<10, Rest/binary>>, Count) -> remWS(Rest, Count + 1);
-remWS(<<32, Rest/binary>>, Count) -> remWS(Rest, Count + 1);
-remWS(<<9,  Rest/binary>>, Count) -> remWS(Rest, Count + 4);
-remWS(Rest,                Count) -> {Rest, Count}.
+%% Remove WS only removes one \r\n
+remWS(<<>>,                    Count, _)     -> {<<>>, Count};
+remWS(<<13, 10, Rest/binary>>, Count, false) -> remWS(Rest, Count,     true);
+remWS(<<32,     Rest/binary>>, Count, LRem)  -> remWS(Rest, Count + 1, LRem);
+remWS(<<9,      Rest/binary>>, Count, LRem)  -> remWS(Rest, Count + 4, LRem);
+remWS(Rest,                    Count, _)     -> {Rest, Count}.
 
 checkIfList(Content) ->
     case parseOLNum(Content) of
