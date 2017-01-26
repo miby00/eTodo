@@ -14,6 +14,8 @@
 
 -define(brTag, "<br />").
 
+-define(punctChar, "!\"#$%&'()*+,--/:;<>=?@[]\\^`{}|~").
+
 %% PS  => Stack built when parsing: [TD]
 %% TD  => {Tag, CT, CI}
 %% CT  => current token
@@ -39,11 +41,24 @@ convert(<<10, Rest/binary>>, PS, PL, CL, Acc) ->
 convert(Content, [], PL, CL, Acc) ->
     convert(Content, [{p, <<>>}], PL, CL, Acc);
 
+%% Backslash escapes
+convert(<<"\\\\", Rest/binary>>, PState, PL, CL, Acc) ->
+    convert(Rest, addCT(<<"\\">>, PState), PL, CL, Acc);
+
+convert(<<"\\", Char:8, Rest/binary>>, PState, PL, CL, Acc) ->
+    case lists:member(Char, ?punctChar) of
+        true ->
+            Entity = entity(<<Char:8>>),
+            convert(Rest, addCT(Entity, PState), PL, CL, Acc);
+        false ->
+            convert(<<Char:8, Rest/binary>>, addCT(<<"\\">>, PState), PL, CL, Acc)
+    end;
+
 %% Block quote
 convert(<<$>, Rest/binary>>,
         PState = [{p, CT}|St], PL, CL, Acc) when byte_size(CL) < 4 ->
     case {remWS(CL), lists:member(blockquote, St)} of
-        {{<<>>, _}, false} ->
+        {{<<>>, Count}, false} when Count < 4 ->
             BTag = makeTag(p, CT),
             Acc2 = <<Acc/binary, BTag/binary, "<blockquote>">>,
             convert(Rest, [{p, <<>>}, blockquote|St], PL, CL, Acc2);
@@ -53,7 +68,7 @@ convert(<<$>, Rest/binary>>,
             convert(Rest, addCT(<<">">>, PState), PL, CL, Acc)
     end;
 
-%% Close blockquote
+%% Close block quote
 convert(Content, [blockquote|St], PL, CL, Acc) ->
     Acc2 = <<Acc/binary, "</blockquote>">>,
     convert(Content, St, PL, CL, Acc2);
@@ -71,6 +86,34 @@ convert(<<$>, Rest/binary>>, [{url, CT}|St], PL, CL, Acc) ->
             Url = <<"<a href='", CT/binary, "'>", CT/binary, "</a>">>,
             convert(Rest, addCT(Url, St), PL, CL, Acc)
     end;
+
+%% Code block
+convert(<<13, 10, 32, 32, 32, 32, Rest/binary>>, [{code, CT}], <<>>, <<>>, Acc) ->
+    convert(Rest, [{code, <<CT/binary, 13, 10>>}], <<>>, <<>>, Acc);
+
+convert(<<13, 10, 9, Rest/binary>>, [{code, CT}], <<>>, <<>>, Acc) ->
+    convert(Rest, [{code, <<CT/binary, 13, 10>>}], <<>>, <<>>, Acc);
+
+convert(<<13, 10, Rest/binary>>, [{code, CT}], <<>>, <<>>, Acc) ->
+    BTag = makeTag(code, CT),
+    Acc2 = <<Acc/binary, BTag/binary>>,
+    convert(Rest, [{p, <<>>}], <<>>, <<>>, Acc2);
+
+convert(<<>>, [{code, CT}], <<>>, <<>>, Acc) ->
+    BTag = makeTag(code, CT),
+    <<Acc/binary, BTag/binary>>;
+
+convert(<<Char:8, Rest/binary>>, [{code, CT}], <<>>, <<>>, Acc) ->
+    convert(Rest, [{code, <<CT/binary, Char:8>>}], <<>>, <<>>, Acc);
+
+convert(<<"    ", Rest/binary>>, [{p, <<>>}], <<>>, <<>>, Acc) ->
+    convert(Rest, [{code, <<>>}], <<>>, <<>>, Acc);
+
+convert(<<"    ", Rest/binary>>, [{p, <<>>}], <<>>, <<>>, Acc) ->
+    convert(Rest, [{code, <<>>}], <<>>, <<>>, Acc);
+
+convert(<<9, Rest/binary>>, [{p, <<>>}], <<>>, <<>>, Acc) ->
+    convert(Rest, [{code, <<>>}], <<>>, <<>>, Acc);
 
 %% Headers
 convert(<<"#", Rest/binary>>, PState = [{p, CT}|St], PL, CL, Acc)
@@ -173,6 +216,11 @@ convert(<<>>, PState = [{Tag, _, CT}|_], _PL, _CL, Acc)
     BTag       = makeTag(li, CT),
     <<Acc/binary, BTag/binary, CTags/binary>>;
 
+convert(<<>>, [{url, CT}|St], _PL, _CL, Acc) ->
+    {CTags, _} = closeTags(0, St),
+    BTag       = makeTag(p, <<$<, CT/binary>>),
+    <<Acc/binary, BTag/binary, CTags/binary>>;
+
 convert(<<>>, [{Tag, CT}|St], _PL, _CL, Acc) ->
     {CTags, _} = closeTags(0, St),
     BTag       = makeTag(Tag, CT),
@@ -212,6 +260,9 @@ convert(<<Char:8, Rest/binary>>, [{Tag, Ind, CT}|St], PL, CL, Acc)
     when (Tag == ol) or (Tag == ul) ->
     convert(Rest, [{Tag, Ind, <<CT/binary, Char:8>>}|St], PL, CL, Acc).
 
+%%%-------------------------------------------------------------------
+%%% Different help functions
+%%%-------------------------------------------------------------------
 
 %% Check indentation of ordered and unorded lists.
 checkIndent(_, Indent, _, Rest, BTag, [{Tag, Indent, CT}|St], PL, CL, Acc) ->
@@ -255,6 +306,14 @@ closeTags(Ind1, [blockquote|Rest], SoFar) ->
 closeTags(_Ind, PState, SoFar) ->
     {SoFar, PState}.
 
+makeTag(code, Content) ->
+    Content2 = entities(Content),
+    case remWS(Content2) of
+        {<<>>, _} ->
+            <<>>;
+        {Cont3, _} ->
+            <<"<pre><code>", Cont3/binary, "</code></pre>">>
+    end;
 makeTag(Tag, Content) ->
     BTag     = list_to_binary(atom_to_list(Tag)),
     Content2 = insertBR(Content),
@@ -355,7 +414,7 @@ remWS(<<>>,                Count) -> {<<>>, Count};
 remWS(<<13, Rest/binary>>, Count) -> remWS(Rest, Count + 1);
 remWS(<<10, Rest/binary>>, Count) -> remWS(Rest, Count + 1);
 remWS(<<32, Rest/binary>>, Count) -> remWS(Rest, Count + 1);
-remWS(<<9,  Rest/binary>>, Count) -> remWS(Rest, Count + 1);
+remWS(<<9,  Rest/binary>>, Count) -> remWS(Rest, Count + 4);
 remWS(Rest,                Count) -> {Rest, Count}.
 
 checkIfList(Content) ->
@@ -437,3 +496,19 @@ addCT(D, [{Tag, Num, CT}|St]) when is_atom(Tag), is_binary(D), is_binary(CT) ->
     [{Tag, Num, <<CT/binary, D/binary>>}|St].
 
 calcIndent(Bin1, Bin2) -> byte_size(Bin1) - byte_size(Bin2).
+
+entities(Content) ->
+    entities(Content, <<>>).
+
+entities(<<>>, Acc) ->
+    Acc;
+entities(<<Char:8, Rest/binary>>, Acc) ->
+    Entity = entity(<<Char:8>>),
+    entities(Rest, <<Acc/binary, Entity/binary>>).
+
+entity(<<$<>>) -> <<"&lt;">>;
+entity(<<$>>>) -> <<"&gt;">>;
+entity(<<$">>) -> <<"&quot;">>;
+entity(<<$&>>) -> <<"&amp;">>;
+entity(Value)  -> Value.
+

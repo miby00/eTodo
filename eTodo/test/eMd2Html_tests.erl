@@ -183,3 +183,13 @@ blockquote_5_test() ->
                  "<p>Test\r\nav\r\nBlock quote</p>"
                  "</blockquote>">>,
     ?assertEqual(Expect, Result).
+
+code_1_test() ->
+    Result = eMd2Html:convert(<<"    Hej\r\n">>),
+    Expect = <<"<pre><code>Hej</code></pre>">>,
+    ?assertEqual(Expect, Result).
+
+code_2_test() ->
+    Result = eMd2Html:convert(<<"    Hej\r\n    Svejs\r\n">>),
+    Expect = <<"<pre><code>Hej\r\nSvejs</code></pre>">>,
+    ?assertEqual(Expect, Result).
