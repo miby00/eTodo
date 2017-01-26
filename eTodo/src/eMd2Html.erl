@@ -478,7 +478,7 @@ parseList(ol, Content, Ind) ->
     end.
 
 continueLI(false, Content, Ind) ->
-    case remWS(Content) of
+    case remWS(Content, 0, true) of
         {Content2, Count} when Count >= Ind ->
             {cont, Content2};
         _ ->
@@ -491,7 +491,7 @@ parseULBullet(Content) ->
     parseULBullet(Content, 0).
 
 parseULBullet(Content, Ind) ->
-    case remWS(Content) of
+    case remWS(Content, 0, true) of
         {_Content, Count} when Count > (3 + Ind) ->
             false;
         {Content2, _} ->
@@ -507,7 +507,7 @@ parseOLNum(Content) ->
     parseOLNum(Content, 0).
 
 parseOLNum(Content, Ind) ->
-    case remWS(Content) of
+    case remWS(Content, 0, true) of
         {_Content, Count} when Count > (Ind + 3) ->
             false;
         {Content2, _} ->
