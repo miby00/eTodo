@@ -217,41 +217,41 @@ parse(<<>>, [{_Tag, <<>>}], _PL, _CL, Acc) ->
 parse(<<>>, [{p, CT}| St], PL, CL, Acc) ->
     case header(CL, PL) of
         {true, Tag, Hdr} ->
-            {CTags, _} = closeTags(0, St),
+            {CTags, _} = closeTags(St),
             BTag       = makeTag(Tag, Hdr),
             <<Acc/binary, BTag/binary, CTags/binary>>;
         false ->
-            {CTags, _} = closeTags(0, St),
+            {CTags, _} = closeTags(St),
             BTag       = makeTag(p, <<CT/binary>>),
             <<Acc/binary, BTag/binary, CTags/binary>>
     end;
 
 parse(<<>>, PState = [{Tag, _, CT}| _], _PL, _CL, Acc)
     when (Tag == ul) or (Tag == ol) ->
-    {CTags, _} = closeTags(0, PState),
+    {CTags, _} = closeTags(PState),
     BTag       = makeTag(li, CT),
     <<Acc/binary, BTag/binary, CTags/binary>>;
 
 parse(<<>>, [{url, CT}| St], _PL, _CL, Acc) ->
-    {CTags, _} = closeTags(0, St),
+    {CTags, _} = closeTags(St),
     BTag       = makeTag(p, <<$<, CT/binary>>),
     <<Acc/binary, BTag/binary, CTags/binary>>;
 
 parse(<<>>, [{Tag, CT}| St], _PL, _CL, Acc) ->
-    {CTags, _} = closeTags(0, St),
+    {CTags, _} = closeTags(St),
     BTag       = makeTag(Tag, CT),
     <<Acc/binary, BTag/binary, CTags/binary>>;
 
 %% Parse Lists
 parse(Content, [ol_start| St], PL, CL, Acc) ->
     {true, NumBin, Rest} = parseOLNum(Content),
-    Indent = calcIndent(Content, Rest),
+    Indent = calcIndent(CL, Content, Rest),
     Acc2   = <<Acc/binary, "<ol start='", NumBin/binary, "'>">>,
     convert(Rest, [{ol, Indent, <<>>}|St], PL, CL, Acc2);
 
 parse(Content, [ul_start| St], PL, CL, Acc) ->
     {true, Rest} = parseULBullet(Content),
-    Indent = calcIndent(Content, Rest),
+    Indent = calcIndent(CL, Content, Rest),
     Acc2   = <<Acc/binary, "<ul>">>,
     convert(Rest, [{ul, Indent, <<>>}|St], PL, CL, Acc2);
 
@@ -260,10 +260,10 @@ parse(<<13, 10, Rest/binary>>, PState = [{Tag, Ind, CT}| St], PL, CL, Acc)
     BTag = makeTag(li, CT),
     case {Tag, parseList(Tag, Rest, Ind)} of
         {_, {true, Rest2}} ->
-            Indent2 = calcIndent(Rest, Rest2),
+            Indent2 = calcIndent(CL, Rest, Rest2),
             checkIndent(ul, Indent2, <<>>, Rest2, BTag, PState, PL, CL, Acc);
         {_, {true, Num, Rest2}} ->
-            Indent2 = calcIndent(Rest, Rest2),
+            Indent2 = calcIndent(CL, Rest, Rest2),
             checkIndent(ol, Indent2, Num, Rest2, BTag, PState, PL, CL, Acc);
         {ul, false} ->
             convert(Rest, St, PL, CL, <<Acc/binary, BTag/binary, "</ul>">>);
@@ -302,6 +302,10 @@ makeStartTag(ol, Num) ->
     <<"<ol start='", Num/binary, "'>">>;
 makeStartTag(ul, _Num) ->
     <<"<ul>">>.
+
+
+closeTags(PState) ->
+    closeTags(-1, PState, <<>>).
 
 %% Close tags left open or to a specific indentation(used by lists)
 closeTags(Ind, PState) ->
@@ -470,7 +474,7 @@ parseList(ol, Content, Ind) ->
     end.
 
 continueLI(false, Content, Ind) ->
-    case remWS(Content, 0, true) of
+    case remWS(Content, true) of
         {Content2, Count} when Count >= Ind ->
             {cont, Content2};
         _ ->
@@ -483,7 +487,7 @@ parseULBullet(Content) ->
     parseULBullet(Content, 0).
 
 parseULBullet(Content, Ind) ->
-    case remWS(Content, 0, true) of
+    case remWS(Content, true) of
         {_Content, Count} when Count > (3 + Ind) ->
             false;
         {Content2, _} ->
@@ -499,7 +503,7 @@ parseOLNum(Content) ->
     parseOLNum(Content, 0).
 
 parseOLNum(Content, Ind) ->
-    case remWS(Content, 0, true) of
+    case remWS(Content, true) of
         {_Content, Count} when Count > (Ind + 3) ->
             false;
         {Content2, _} ->
@@ -519,7 +523,9 @@ addCT(D, [{Tag, CT}|St]) when is_atom(Tag), is_binary(D), is_binary(CT) ->
 addCT(D, [{Tag, Num, CT}|St]) when is_atom(Tag), is_binary(D), is_binary(CT) ->
     [{Tag, Num, <<CT/binary, D/binary>>}|St].
 
-calcIndent(Bin1, Bin2) -> byte_size(Bin1) - byte_size(Bin2).
+calcIndent(CurrentLine, Content, Rest) ->
+    {_, Count} = remWS(CurrentLine),
+    Count + byte_size(Content) - byte_size(Rest).
 
 entities(Content) ->
     entities(Content, <<>>).
