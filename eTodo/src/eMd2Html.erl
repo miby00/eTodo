@@ -116,28 +116,27 @@ parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, CL, Acc) ->
             convert(Rest, [{p, <<CT/binary, 13, 10>>}|St], PL, CL, Acc)
     end;
 
-%% Fenced code block
-parse(<<"~~~", 13, 10, Rest/binary>>, [{p, _}], <<>>, CL, Acc) ->
-    convert(Rest, [{f1_code, <<>>}], <<>>, CL, Acc);
-parse(<<"~~~", 10, Rest/binary>>, [{p, _}], <<>>, CL, Acc) ->
-    convert(Rest, [{f1_code, <<>>}], <<>>, CL, Acc);
-parse(<<"```", 13, 10, Rest/binary>>, [{p, _}], <<>>, CL, Acc) ->
-    convert(Rest, [{f2_code, <<>>}], <<>>, CL, Acc);
-parse(<<"```", 10, Rest/binary>>, [{p, _}], <<>>, CL, Acc) ->
-    convert(Rest, [{f2_code, <<>>}], <<>>, CL, Acc);
+%% Start fenced code block
+parse(<<"~~~", Rest/binary>>, [{p, _CT}], <<>>, <<"~~~">>, Acc) ->
 
+    convert(Rest, [{f1_code, <<>>}], <<>>, <<"~~~">>, Acc);
+parse(<<"```", Rest/binary>>, [{p, _CT}], <<>>, <<"```">>, Acc) ->
+    convert(Rest, [{f2_code, <<>>}], <<>>, <<"```">>, Acc);
+
+%% Stop fenced code block
+parse(<<"~~~", Rest/binary>>, [{f1_code, CT}], PL, <<"~~~">>, Acc) ->
+    BTag = makeTag(code, CT),
+    Acc2 = <<Acc/binary, BTag/binary>>,
+    convert(Rest, [{p, <<>>}], PL, <<"~~~">>, Acc2);
+parse(<<"```", Rest/binary>>, [{f2_code, CT}], PL, <<"```">>, Acc) ->
+    BTag = makeTag(code, CT),
+    Acc2 = <<Acc/binary, BTag/binary>>,
+    convert(Rest, [{p, <<>>}], PL, <<"~~~">>, Acc2);
+
+%% Parse code block
 parse(<<13, 10, Rest/binary>>, [{Tag, CT}], PL, CL, Acc)
-    when (Tag == f1_code) or (Tag == f2_code) ->
-    End = endFenced(Tag),
-    case remWS(Rest) of
-        {<<End:3/bytes, Rest2/binary>>, Count} when Count =< 3 ->
-            BTag = makeTag(code, CT),
-            Acc2 = <<Acc/binary, BTag/binary>>,
-            convert(Rest2, [{p, <<>>}], PL, CL, Acc2);
-        _ ->
-            convert(Rest, [{Tag, <<CT/binary, 13, 10>>}], PL, CL, Acc)
-    end;
-
+    when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
+    convert(Rest, [{Tag, <<CT/binary, 13, 10>>}], PL, CL, Acc);
 parse(<<Char:8, Rest/binary>>, [{Tag, CT}], PL, CL, Acc)
     when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
     convert(Rest, [{Tag, <<CT/binary, Char:8>>}], PL, CL, Acc);
@@ -537,9 +536,6 @@ entity(<<$">>)  -> <<"&quot;">>;
 entity(<<$&>>)  -> <<"&amp;">>;
 entity(<<160>>) -> <<"§nbsp;">>;
 entity(Value)   -> Value.
-
-endFenced(f1_code) -> <<"~~~">>;
-endFenced(f2_code) -> <<"```">>.
 
 getCodeIndent([{_Tag, Ind, _CT}|_]) -> Ind + 4;
 getCodeIndent(_)                    -> 4.

@@ -211,10 +211,10 @@ fcode_1_test() ->
 
 fcode_2_test() ->
     Result = eMd2Html:convert(<<"```\r\nTest\r\n```">>),
-   Expect = <<"<pre><code>Test</code></pre>">>,
+   Expect = <<"<pre><code>Test\r\n</code></pre>">>,
     ?assertEqual(Expect, Result).
 
 fcode_3_test() ->
     Result = eMd2Html:convert(<<"~~~\r\nTest\r\n~~~">>),
-    Expect = <<"<pre><code>Test</code></pre>">>,
+    Expect = <<"<pre><code>Test\r\n</code></pre>">>,
     ?assertEqual(Expect, Result).
