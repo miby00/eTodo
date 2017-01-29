@@ -71,6 +71,11 @@ header_12_test() ->
     Expect = <<"<h2>Header 2</h2>">>,
     ?assertEqual(Expect, Result).
 
+header_13_test() ->
+    Result = eMd2Html:convert(<<"Header 1\r\n=\r\n">>),
+    Expect = <<"<h1>Header 1</h1>">>,
+    ?assertEqual(Expect, Result).
+
 ullist_1_test() ->
     Result = eMd2Html:convert(<<"Header 2\r\n- Test">>),
     Expect = <<"<p>Header 2</p><ul><li>Test</li></ul>">>,

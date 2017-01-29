@@ -107,21 +107,36 @@ parse(<<>>, [{Tag, CT}], _PL, _CL, Acc)
     BTag = makeTag(code, CT),
     <<Acc/binary, BTag/binary>>;
 
+%% Paragraph text ending
+parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, <<>>, Acc) ->
+    BTag = makeTag(p, CT),
+    Acc2 = <<Acc/binary, BTag/binary>>,
+    convert(Rest, St, PL, <<>>, Acc2);
+
 parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, CL, Acc) ->
-    CodeIndent = getCodeIndent(St),
-    case remWS(Rest) of
-        {Rest2, Count} when Count >= CodeIndent ->
-            convert(Rest2, [{code, <<>>}], PL, CL, Acc);
-        _ ->
-            convert(Rest, [{p, <<CT/binary, 13, 10>>}|St], PL, CL, Acc)
+    case header(CL, PL) of
+        {true, Tag, Hdr} ->
+            BTag = makeTag(Tag, Hdr),
+            Size = byte_size(CL),
+            Acc2 = <<Acc/binary, BTag/binary>>,
+            <<CL:Size/bytes, Rest2/binary>> = Rest,
+            convert(Rest2, St, PL, CL, Acc2);
+        false ->
+            CodeIndent = getCodeIndent(St),
+            case remWS(Rest) of
+                {Rest2, Count} when Count >= CodeIndent ->
+                    convert(Rest2, [{code, <<>>}], PL, CL, Acc);
+                _ ->
+                    convert(Rest, [{p, <<CT/binary, 13, 10>>}|St], PL, CL, Acc)
+            end
     end;
 
 %% Start fenced code block
-parse(<<"~~~", Rest/binary>>, [{p, _CT}], <<>>, <<"~~~">>, Acc) ->
+parse(<<"~~~", Rest/binary>>, [{p, _CT}], PL, <<"~~~">>, Acc) ->
 
-    convert(Rest, [{f1_code, <<>>}], <<>>, <<"~~~">>, Acc);
-parse(<<"```", Rest/binary>>, [{p, _CT}], <<>>, <<"```">>, Acc) ->
-    convert(Rest, [{f2_code, <<>>}], <<>>, <<"```">>, Acc);
+    convert(Rest, [{f1_code, <<>>}], PL, <<"~~~">>, Acc);
+parse(<<"```", Rest/binary>>, [{p, _CT}], PL, <<"```">>, Acc) ->
+    convert(Rest, [{f2_code, <<>>}], PL, <<"```">>, Acc);
 
 %% Stop fenced code block
 parse(<<"~~~", Rest/binary>>, [{f1_code, CT}], PL, <<"~~~">>, Acc) ->
@@ -170,29 +185,6 @@ parse(<<13, 10, Rest/binary>>, [{Tag, CT}| St], PL, CL, Acc)
     BTag = makeTag(Tag, CT),
     Acc2 = <<Acc/binary, BTag/binary>>,
     convert(Rest, St, PL, CL, Acc2);
-
-%% Paragraph text ending
-parse(<<13, 10, Rest/binary>>, [{p, CT}| St], <<>>, CL, Acc) ->
-    BTag = makeTag(p, CT),
-    Acc2 = <<Acc/binary, BTag/binary>>,
-    convert(Rest, St, <<>>, CL, Acc2);
-
-parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, CL, Acc) ->
-    case header(CL, PL) of
-        {true, Tag, Hdr} ->
-            BTag = makeTag(Tag, Hdr),
-            Acc2 = <<Acc/binary, BTag/binary, 13, 10>>,
-            convert(Rest, St, PL, CL, Acc2);
-        false ->
-            case Rest of
-                <<13, 10, Rest2/binary>> ->
-                    BTag = makeTag(p, CT),
-                    Acc2 = <<Acc/binary, BTag/binary>>,
-                    convert(Rest2, St, PL, CL, Acc2);
-                Rest ->
-                    convert(Rest, [{p, <<CT/binary, 13, 10>>}|St], PL, CL, Acc)
-            end
-    end;
 
 %% Check for list
 parse(<<Char:8, Rest/binary>>, [{p, CT}| St], PL, CL, Acc) ->
