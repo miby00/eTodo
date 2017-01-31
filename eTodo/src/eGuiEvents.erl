@@ -1467,6 +1467,8 @@ logWorkButtonEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
     {ok, Desc, ShowInWorkLog, ShowInTimeLog} = eTodoDB:getWorkDescAll(Uid),
     Desc2 = getWorkDesc(Desc, ETodo#etodo.description),
     Spent = eTodoDB:getAllLoggedWork(Uid) ++ " h",
+    LTime = eTodoDB:getAllLoggedWorkDate(Uid),
+    wxStaticText:setToolTip(SpentObj, constructTooltip(LTime)),
 
     wxSpinCtrl:setValue(HoursObj,   Hours),
     wxSpinCtrl:setValue(MinutesObj, Minutes),
@@ -2471,6 +2473,7 @@ descNotebookEvent(_Type, _Id, _Frame, State) ->
             DescObj  = obj("descriptionArea", State),
             Descript = wxTextCtrl:getValue(DescObj),
             Page     = eMd2Html:convert(Descript),
+            file:write_file("desc.html", Page),
             wxHtmlWindow:setPage(Obj, unicode:characters_to_list(Page, utf8));
         _ ->
             ok
@@ -2487,6 +2490,7 @@ commentNotebookEvent(_Type, _Id, _Frame, State) ->
             CommentObj = obj("commentArea",     State),
             Comment    = wxTextCtrl:getValue(CommentObj),
             Page       = eMd2Html:convert(Comment),
+            file:write_file("comment.html", Page),
             wxHtmlWindow:setPage(Obj, unicode:characters_to_list(Page, utf8));
         _ ->
             ok
@@ -2615,3 +2619,13 @@ listBoxGet(Obj, Index) ->
         false ->
             ""
     end.
+
+constructTooltip(LTime) ->
+    constructTooltip(LTime, []).
+
+constructTooltip([], Acc) ->
+    lists:flatten(Acc);
+constructTooltip([Time], Acc) ->
+    constructTooltip([], [Time|Acc]);
+constructTooltip([Time|Rest], Acc) ->
+    constructTooltip(Rest, ["\n", Time|Acc]).

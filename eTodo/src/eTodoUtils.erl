@@ -83,6 +83,12 @@ toStr({Year, Month, Day}) ->
     toStr(Year) ++ "-" ++
         addZero(toStr(Month)) ++ "-" ++
         addZero(toStr(Day));
+toStr({{Year, Month, Day}, {Hour, Min}}) ->
+    toStr(Year) ++ "-" ++
+        addZero(toStr(Month)) ++ "-" ++
+        addZero(toStr(Day))   ++ " " ++
+        addZero(toStr(Hour))  ++ ":" ++
+        addZero(toStr(Min));
 toStr({{Year, Month, Day}, {Hour, Min, Sec}}) ->
     toStr(Year) ++ "-" ++
         addZero(toStr(Month)) ++ "-" ++
@@ -396,7 +402,7 @@ cancelTimer(Ref) ->
 getWeekDay(Date) ->
     DayNum = calendar:day_of_the_week(Date),
     lists:nth(DayNum, ["Monday", "Tuesday", "Wednesday",
-        "Thursday", "Friday", "Saturday", "Sunday"]).
+                       "Thursday", "Friday", "Saturday", "Sunday"]).
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
