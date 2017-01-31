@@ -60,16 +60,18 @@ parse(<<"\\", Char:8, Rest/binary>>, PState, PL, CL, Acc) ->
     end;
 
 %% Block quote
-parse(<<$>, Rest/binary>>, PState = [{p, CT}|St], PL, CL, Acc) ->
+parse(<<13, 10, $>, Rest/binary>>, PState = [{p, CT}|St], PL, CL, Acc) ->
     case lists:member(blockquote, St) of
         false ->
             BTag = makeTag(p, CT),
             Acc2 = <<Acc/binary, BTag/binary, "<blockquote>">>,
             convert(Rest, [{p, <<>>}, blockquote|St], PL, CL, Acc2);
         true ->
-            convert(element(1, remWS(Rest)), [{p, CT}|St], PL, CL, Acc);
+            BlockQuoteText = element(1, remWS(Rest)),
+            convert(<<13, 10, BlockQuoteText/binary>>,
+                    [{p, <<CT/binary>>}|St], PL, CL, Acc);
         _ ->
-            convert(Rest, addCT(<<">">>, PState), PL, CL, Acc)
+            convert(Rest, addCT(<<13, 10, $>>>, PState), PL, CL, Acc)
     end;
 
 %% Close block quote
