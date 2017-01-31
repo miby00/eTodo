@@ -10,7 +10,7 @@
 -author("mikael.bylund@gmail.com").
 
 %% API
--export([convert/1, dbg/0, dbg/1, debug/1]).
+-export([convert/1, dbg/0, dbg/1, debug/1, remInd/1]).
 
 -define(brTag, "<br />").
 
@@ -95,8 +95,8 @@ parse(<<$>, Rest/binary>>, [{url, CT}| St], PL, CL, Acc) ->
 
 %% Indented code block
 parse(<<13, 10, Rest/binary>>, [{code, CT}], PL, CL, Acc) ->
-    case remWS(Rest, true) of
-        {Rest2, Count} when Count > 3 ->
+    case remInd(Rest) of
+        {Rest2, Count} when Count >= 4, is_binary(Rest2) ->
             convert(Rest2, [{code, <<CT/binary, 13, 10>>}], PL, CL, Acc);
         _ ->
             BTag = makeTag(code, CT),
@@ -364,19 +364,18 @@ headerEnd(<<32, Rest/binary>>, space) ->
 headerEnd(_, space) ->
     false.
 
-header(CT, LL) ->
+header(CT, PL) ->
     case setext(CT) of
         {true, Tag} ->
-            checkHeader(Tag, LL);
+            case remLS(PL) of
+                {Rest, Count} when Count =< 3 ->
+                    {true, Tag, Rest};
+                _->
+                    false
+            end;
         false ->
             false
     end.
-
-checkHeader(_  , <<"    ",    _/binary>>) -> false;
-checkHeader(Tag, <<"   ",  Rest/binary>>) -> {true, Tag, Rest};
-checkHeader(Tag, <<"  ",   Rest/binary>>) -> {true, Tag, Rest};
-checkHeader(Tag, <<" ",    Rest/binary>>) -> {true, Tag, Rest};
-checkHeader(Tag, Rest)                    -> {true, Tag, Rest}.
 
 setext(Setext) ->
     checkSetext(Setext, start).
@@ -427,17 +426,21 @@ evalInsertBR(Rest, SoFar) ->
     end.
 
 remWS(Content) ->
-    remWS(Content, 0, all).
+    remWS(Content, infinity, 0, all).
 
-remWS(Content, CRLF) ->
-    remWS(Content, 0, CRLF).
+remLS(Content) ->
+    remWS(Content, infinity, 0, true).
 
-remWS(<<>>,                    Count, _)     -> {<<>>, Count};
-remWS(<<13, 10, Rest/binary>>, Count, false) -> remWS(Rest, Count,     true);
-remWS(<<13, 10, Rest/binary>>, Count, all)   -> remWS(Rest, Count,     all);
-remWS(<<32,     Rest/binary>>, Count, LRem)  -> remWS(Rest, Count + 1, LRem);
-remWS(<<9,      Rest/binary>>, Count, LRem)  -> remWS(Rest, Count + 4, LRem);
-remWS(Rest,                    Count, _)     -> {Rest, Count}.
+remInd(Content) ->
+    remWS(Content, 4, 0, true).
+
+remWS(<<>>,                    _, C, _)      -> {<<>>, C};
+remWS(Rest, Ind, Count, _) when Count >= Ind -> {Rest, Count};
+remWS(<<13, 10, Rest/binary>>, I, C, false)  -> remWS(Rest, I, C,     true);
+remWS(<<13, 10, Rest/binary>>, I, C, all)    -> remWS(Rest, I, C,     all);
+remWS(<<32,     Rest/binary>>, I, C, LRem)   -> remWS(Rest, I, C + 1, LRem);
+remWS(<<9,      Rest/binary>>, I, C, LRem)   -> remWS(Rest, I, C + 4, LRem);
+remWS(Rest,                    _, C, _)      -> {Rest, C}.
 
 checkIfList(Content) ->
     case parseOLNum(Content) of
@@ -468,7 +471,7 @@ parseList(ol, Content, Ind) ->
     end.
 
 continueLI(false, Content, Ind) ->
-    case remWS(Content, true) of
+    case remLS(Content) of
         {Content2, Count} when Count >= Ind ->
             {cont, Content2};
         _ ->
@@ -481,7 +484,7 @@ parseULBullet(Content) ->
     parseULBullet(Content, 0).
 
 parseULBullet(Content, Ind) ->
-    case remWS(Content, true) of
+    case remLS(Content) of
         {_Content, Count} when Count > (3 + Ind) ->
             false;
         {Content2, _} ->
@@ -497,7 +500,7 @@ parseOLNum(Content) ->
     parseOLNum(Content, 0).
 
 parseOLNum(Content, Ind) ->
-    case remWS(Content, true) of
+    case remLS(Content) of
         {_Content, Count} when Count > (Ind + 3) ->
             false;
         {Content2, _} ->
@@ -554,7 +557,7 @@ getCurrentRow(<<Char:8,  Rest/binary>>, Acc) ->
 evalRemWS(Content, [{Tag, _, _}|_]) when (Tag == ul) or (Tag == ol) ->
     Content;
 evalRemWS(Content, _PState) ->
-    case remWS(Content, true) of
+    case remLS(Content) of
         {Rest2, Count} when Count =< 3 ->
             Rest2;
         _ ->
