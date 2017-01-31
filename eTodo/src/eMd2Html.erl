@@ -10,7 +10,7 @@
 -author("mikael.bylund@gmail.com").
 
 %% API
--export([convert/1, dbg/1, debug/1]).
+-export([convert/1, dbg/0, dbg/1, debug/1]).
 
 -define(brTag, "<br />").
 
@@ -499,15 +499,16 @@ parseOLNum(Content, Ind) ->
         {_Content, Count} when Count > (Ind + 3) ->
             false;
         {Content2, _} ->
-            doParseOLNum(Content2, <<>>)
+            doParseOLNum(Content2, <<>>, start)
     end.
 
-doParseOLNum(<<Num:8, Rest/binary>>, SoFar)
-  when ((Num >= $0) and (Num =< $9)) and (byte_size(SoFar) < 10) ->
-    doParseOLNum(Rest, <<SoFar/binary, Num:8>>);
-doParseOLNum(<<". ", Rest/binary>>, SoFar) ->
+doParseOLNum(<<Num:8, Rest/binary>>, SoFar, State)
+  when ((Num >= $0) and (Num =< $9)) and (byte_size(SoFar) < 10) and
+       (((State == start) or (State == cont))) ->
+    doParseOLNum(Rest, <<SoFar/binary, Num:8>>, cont);
+doParseOLNum(<<". ", Rest/binary>>, SoFar, cont) ->
     {true, SoFar, element(1, remWS(Rest))};
-doParseOLNum(_Content, _SoFar) ->
+doParseOLNum(_Content, _SoFar, _) ->
     false.
 
 addCT(D, [{Tag, CT}|St]) when is_atom(Tag), is_binary(D), is_binary(CT) ->
@@ -561,6 +562,12 @@ evalRemWS(Content, _PState) ->
 %%%-------------------------------------------------------------------
 %%% Debug info
 %%%-------------------------------------------------------------------
+
+dbg() ->
+    redbug:stop(),
+    timer:sleep(500),
+    Dbg = ["eMd2Html:convert", "eMd2Html:parse"],
+    redbug:start(Dbg, [{msgs, 1000}, {time, 100000}]).
 
 dbg(Info) ->
     redbug:stop(),
