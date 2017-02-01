@@ -16,7 +16,6 @@
 
 -define(punct, "!\"#$%&'()*+,--/:;<>=?@[]\\^`{}|~").
 
-
 %% PS  => Stack built when parsing: [TD]
 %% TD  => {Tag, CT, CI}
 %% CT  => current token
@@ -105,7 +104,7 @@ parse(<<13, 10, Rest/binary>>, [{code, CT}], PL, CL, Acc) ->
     end;
 
 parse(<<>>, [{Tag, CT}], _PL, _CL, Acc)
-    when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
+  when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
     BTag = makeTag(code, CT),
     <<Acc/binary, BTag/binary>>;
 
@@ -152,10 +151,10 @@ parse(<<"```", Rest/binary>>, [{f2_code, CT}], PL, <<"```">>, Acc) ->
 
 %% Parse code block
 parse(<<13, 10, Rest/binary>>, [{Tag, CT}], PL, CL, Acc)
-    when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
+  when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
     convert(Rest, [{Tag, <<CT/binary, 13, 10>>}], PL, CL, Acc);
 parse(<<Char:8, Rest/binary>>, [{Tag, CT}], PL, CL, Acc)
-    when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
+  when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
     convert(Rest, [{Tag, <<CT/binary, Char:8>>}], PL, CL, Acc);
 
 %% Headers
@@ -221,7 +220,7 @@ parse(<<>>, [{p, CT}| St], PL, CL, Acc) ->
     end;
 
 parse(<<>>, PState = [{Tag, _, CT}| _], _PL, _CL, Acc)
-    when (Tag == ul) or (Tag == ol) ->
+  when (Tag == ul) or (Tag == ol) ->
     {CTags, _} = closeTags(PState),
     BTag       = makeTag(li, CT),
     <<Acc/binary, BTag/binary, CTags/binary>>;
@@ -267,7 +266,7 @@ parse(<<13, 10, Rest/binary>>, PState = [{Tag, Ind, CT}| St], PL, CL, Acc)
             convert(Rest2, [{Tag, Ind, <<CT/binary, 13, 10>>}|St], PL, CL, Acc)
     end;
 parse(<<Char:8, Rest/binary>>, [{Tag, Ind, CT}| St], PL, CL, Acc)
-    when (Tag == ol) or (Tag == ul) ->
+  when (Tag == ol) or (Tag == ul) ->
     convert(Rest, [{Tag, Ind, <<CT/binary, Char:8>>}|St], PL, CL, Acc).
 
 %%%-------------------------------------------------------------------
