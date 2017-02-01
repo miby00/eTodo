@@ -372,11 +372,12 @@ makeWorkLogReport(Date, [{Act, Desc} | Rest],
     Uid = list_to_integer(Act),
     UidStr = convertUid(Uid),
 
-    Link1 = aTag([{href, convertUid(Uid, Date)}], hours(Act, D1) ++ ":" ++ minutes(Act, D1)),
-    Link2 = aTag([{href, convertUid(Uid, incDate(Date, 1))}], hours(Act, D2) ++ ":" ++ minutes(Act, D2)),
-    Link3 = aTag([{href, convertUid(Uid, incDate(Date, 2))}], hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
-    Link4 = aTag([{href, convertUid(Uid, incDate(Date, 3))}], hours(Act, D4) ++ ":" ++ minutes(Act, D4)),
-    Link5 = aTag([{href, convertUid(Uid, incDate(Date, 4))}], hours(Act, D5) ++ ":" ++ minutes(Act, D5)),
+    Link1 = makeLink(Uid, Date, Act, D1),
+    Link2 = makeLink(Uid, incDate(Date, 1), Act, D2),
+    Link3 = makeLink(Uid, incDate(Date, 2), Act, D3),
+    Link4 = makeLink(Uid, incDate(Date, 3), Act, D4),
+    Link5 = makeLink(Uid, incDate(Date, 4), Act, D5),
+
     Row = trTag(bgColor(Odd),
                 [tdTag(aTag([{href, UidStr}], empty(Desc, Act))),
                  tdTag(Opts, Link1),
@@ -385,6 +386,16 @@ makeWorkLogReport(Date, [{Act, Desc} | Rest],
                  tdTag(Opts, Link4),
                  tdTag(Opts, Link5)]),
     makeWorkLogReport(Date, Rest, Days, [Row | SoFar]).
+
+makeLink(Uid, Date, Act, Day) ->
+    Time1 = hours(Act, Day) ++ ":" ++ minutes(Act, Day),
+    Time2 = spanTag([{style, "color:grey;"}], Time1),
+    case Time1 of
+        "00:00" ->
+            aTag([{href, convertUid(Uid, Date)}], Time2);
+        _ ->
+            aTag([{href, convertUid(Uid, Date)}], Time1)
+    end.
 
 empty("", Value) -> Value;
 empty(undefined, Value) -> Value;

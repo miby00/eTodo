@@ -1431,6 +1431,7 @@ commentButtonEvent(_Type, _Id, _Frame, State) ->
             wxTextCtrl:appendText(CommentField, "\r\n" ++ Signature),
             wxTextCtrl:setFocus(CommentField)
     end,
+    wxNotebook:changeSelection(obj("commentNotebook", State), 0),
     State.
 
 sendTaskButtonEvent(_Type, _Id, _Frame,
@@ -2624,7 +2625,7 @@ constructTooltip(LTime) ->
     constructTooltip(LTime, []).
 
 constructTooltip([], Acc) ->
-    lists:flatten(Acc);
+    lists:flatten(lists:sublist(Acc, 1, 49));
 constructTooltip([Time], Acc) ->
     constructTooltip([], [Time|Acc]);
 constructTooltip([Time|Rest], Acc) ->
