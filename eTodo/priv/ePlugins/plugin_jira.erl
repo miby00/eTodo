@@ -287,12 +287,13 @@ makeComment([], Acc) ->
     lists:reverse(Acc);
 makeComment([{Created, Body, Author}|Rest], Acc)
     when is_binary(Created), is_binary(Body), is_binary(Author) ->
-    Msg  = <<Created/binary, " ", Author/binary, ": ", Body/binary, "\n">>,
+    Created2 = convertDate(Created),
+    Msg  = <<Created2/binary, " ", Author/binary, ": ", Body/binary, "\n\n">>,
     Msg2 = characters_to_binary(Msg),
     Acc2 = [binary_to_list(Msg2)|Acc],
     makeComment(Rest, Acc2);
 makeComment([Value|Rest], Acc) when is_list(Value) ->
-    makeComment(Rest, [Value ++ "\n"|Acc]);
+    makeComment(Rest, [Value ++ "\n\n"|Acc]);
 makeComment([_Value|Rest], Acc) ->
     makeComment(Rest, Acc).
 
@@ -307,6 +308,11 @@ get(Key, Map, Default) ->
         Value ->
             Value
     end.
+
+convertDate(<<Date:10/bytes, _/binary>>) ->
+    Date;
+convertDate(Value) ->
+    Value.
 
 defaultConfig() ->
     #{baseurl => "http://JIRA:8080/rest/api",
