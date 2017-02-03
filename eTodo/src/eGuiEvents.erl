@@ -1459,11 +1459,21 @@ logWorkButtonEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
 
     {ETodo, _} = State#guiState.activeTodo,
     Uid        = ETodo#etodo.uid,
-    DateTime   = wxDatePickerCtrl:getValue(DateObj),
-    {Date, _}  = DateTime,
-    wxDatePickerCtrl:setToolTip(DateObj, getWeekDay(Date)),
+    Date2      = case wxDatePickerCtrl:getValue(DateObj) of
+                    {{2001,1,1}, _} ->
+                         Date = date(),
+                         wxDatePickerCtrl:setValue(DateObj, {Date, {1,0,0}}),
+                         Date;
+                     {Date, _} ->
+                         Date;
+                     _ ->
+                         Date = date(),
+                         wxDatePickerCtrl:setValue(DateObj, {Date, {1,0,0}}),
+                         Date
+                 end,
+    wxDatePickerCtrl:setToolTip(DateObj, getWeekDay(Date2)),
 
-    {Date, Hours, Minutes} = eTodoDB:getLoggedWork(User, Uid, Date),
+    {Date2, Hours, Minutes} = eTodoDB:getLoggedWork(User, Uid, Date2),
     {Estimate, Remaining}  = eTodoDB:getTime(Uid),
     {ok, Desc, ShowInWorkLog, ShowInTimeLog} = eTodoDB:getWorkDescAll(Uid),
     Desc2 = getWorkDesc(Desc, ETodo#etodo.description),
