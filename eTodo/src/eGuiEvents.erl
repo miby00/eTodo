@@ -1465,10 +1465,6 @@ logWorkButtonEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
                          wxDatePickerCtrl:setValue(DateObj, {Date, {1,0,0}}),
                          Date;
                      {Date, _} ->
-                         Date;
-                     _ ->
-                         Date = date(),
-                         wxDatePickerCtrl:setValue(DateObj, {Date, {1,0,0}}),
                          Date
                  end,
     wxDatePickerCtrl:setToolTip(DateObj, getWeekDay(Date2)),
