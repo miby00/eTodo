@@ -25,7 +25,7 @@
 
 getName() -> "JIRA".
 
-getDesc() -> "Create JIRA task from eTodo.".
+getDesc() -> "Create eTodo task from JIRA issue.".
 
 -record(state, {config = defaultConfig()}).
 
@@ -79,9 +79,8 @@ getMenu(_ETodo, State = #state{config = Config}) ->
     Url         = BaseUrl ++ "/rest/api/2/search?jql=" ++
         http_uri:encode(Search) ++ "&fields=summary,key",
     Result      = httpRequest(Config, get, Url),
-    SubMenu     = constructSubMenu(1502, Result),
+    SubMenu     = constructSubMenu(1501, Result),
     {ok, [{1500, "Log work in JIRA"},
-          {1501, "Show logged work in JIRA"},
           {{subMenu, "Create Task from JIRA"},
            SubMenu}], State}.
 
@@ -227,9 +226,6 @@ eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg, State) ->
 eMenuEvent(_EScriptDir, _User, 1500, _ETodo, _MenuText, State) ->
     io:format(_MenuText),
     State;
-eMenuEvent(_EScriptDir, _User, 1501, _ETodo, _MenuText, State) ->
-    io:format(_MenuText),
-    State;
 eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
            State = #state{config = Config}) ->
     [Key|_]   = string:tokens(MenuText, ":"),
@@ -240,7 +236,13 @@ eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
     Fields    = get(<<"fields">>, MapRes, #{}),
     Summary   = get(<<"summary">>, Fields, <<>>),
     Desc      = get(<<"description">>, Fields, Summary),
-    Desc2     = characters_to_binary(Desc),
+    Desc3     = case Desc of
+                    Summary ->
+                        characters_to_binary(Desc);
+                    Desc ->
+                        Desc2 = <<Summary/binary, "\n\n", Desc/binary>>,
+                        characters_to_binary(Desc2)
+                end,
     Status    = get(<<"name">>, get(<<"status">>, Fields, #{}), <<>>),
     Priority  = get(<<"id">>, get(<<"priority">>, Fields, <<>>), 2),
     ComUrl    = BaseUrl ++ "/2/issue/" ++ Key ++ "/comment",
@@ -257,7 +259,7 @@ eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
     Todo = #todo{uid         = eTodoUtils:makeRef(),
                  status      = status2DB(Status),
                  priority    = prio2DB(Priority),
-                 description = binary_to_list(Desc2),
+                 description = binary_to_list(Desc3),
                  comment     = makeComment([IssUrl|Comments2]),
                  progress    = 0,
                  createTime  = eTodoUtils:dateTime()},
