@@ -223,9 +223,20 @@ eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg, State) ->
 %%                  NewState
 %% @end
 %%--------------------------------------------------------------------
-eMenuEvent(_EScriptDir, _User, 1500, _ETodo, _MenuText, State) ->
-    io:format(_MenuText),
-    State;
+eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
+           State = #state{config = Config}) ->
+    Comment = lists:flatten(ETodo#etodo.comment),
+    case parseComment(Comment, maps:get(baseurl, Config)) of
+        {error, keyNotFound} ->
+            State;
+        Key ->
+            BaseUrl = maps:get(baseurl, Config) ++ "/rest/api",
+            FullUrl = BaseUrl ++ "/2/issue/" ++ Key ++ "/worklog",
+            Result  = httpRequest(Config, get, FullUrl),
+            MapRes  = jsx:decode(Result, [return_maps]),
+            io:format("~p~n", [MapRes]),
+            State
+    end;
 eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
            State = #state{config = Config}) ->
     [Key|_]   = string:tokens(MenuText, ":"),
@@ -315,6 +326,27 @@ convertDate(<<Date:10/bytes, _/binary>>) ->
     Date;
 convertDate(Value) ->
     Value.
+
+parseComment(Comment, BaseUrl) ->
+    case string:str(Comment, BaseUrl) of
+        0 ->
+            {error, keyNotFound};
+        Pos ->
+            Rest = string:substr(Comment, Pos + length(BaseUrl)),
+            findKey(Rest)
+    end.
+
+findKey("/browse/" ++ Rest) ->
+    findKey(Rest, []);
+findKey(_Rest) ->
+    {error, keyNotFound}.
+
+findKey([], _Acc) ->
+    {error, keyNotFound};
+findKey([$>|_], Acc) ->
+    lists:reverse(Acc);
+findKey([Char|Rest], Acc) ->
+    findKey(Rest, [Char|Acc]).
 
 defaultConfig() ->
     #{baseurl => "http://JIRA:8080/rest/api",
