@@ -81,7 +81,7 @@
                 settings     = [],
                 key}).
 
--include("eTodo.hrl").
+-include_lib("eTodo/include/eTodo.hrl").
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 

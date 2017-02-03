@@ -9,7 +9,7 @@
 -module(eRows).
 -author("mikael.bylund@gmail.com").
 
--include("eTodo.hrl").
+-include_lib("eTodo/include/eTodo.hrl").
 
 %% API
 -export([deleteRow/2,

@@ -59,7 +59,7 @@
          selectTag/1, selectTag/2, inputTag/1,
          metaTag/1, imgTag/1]).
 
--include("eTodo.hrl").
+-include_lib("eTodo/include/eTodo.hrl").
 -include_lib("inets/include/httpd.hrl").
 
 -define(DodgerBlue, "#1e90ff").

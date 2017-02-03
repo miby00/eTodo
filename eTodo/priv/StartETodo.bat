@@ -9,6 +9,7 @@ erl -make
 cd ..
 cd ..
 cd eTodo\src
+SET ERL_LIBS="../.."
 erl -make
 cd ..
 cd ebin

@@ -12,7 +12,7 @@
 
 -include_lib("wx/include/wx.hrl").
 
--include("eTodo.hrl").
+-include_lib("eTodo/include/eTodo.hrl").
 
 -behaviour(wx_object).
 
@@ -22,6 +22,7 @@
          checkConflict/5,
          delayedUpdateGui/2,
          getSearchCfg/0,
+         getTaskList/0,
          getFilterCfg/1,
          getTimeReportData/0,
          loggedIn/1,
@@ -122,6 +123,10 @@ stop() ->
 
 getSearchCfg() ->
     wx_object:call(?MODULE, getSearchCfg).
+
+getTaskList() ->
+    wx_object:call(?MODULE, getTaskList).
+
 
 getFilterCfg(TaskList) ->
     wx_object:call(?MODULE, {getFilterCfg, TaskList}).
@@ -585,6 +590,9 @@ getGuiSettings(State = #guiState{activeTodo = {ETodo, _}}) ->
 %%--------------------------------------------------------------------
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
+handle_call(getTaskList, _From, State) ->
+    TaskList = getTaskList(State),
+    {reply, TaskList, State};
 handle_call(getSearchCfg, _From, State = #guiState{searchCfg = Cfg}) ->
     {reply, Cfg, State};
 handle_call({getFilterCfg, TaskList}, _From, State = #guiState{filter = Cfg}) ->

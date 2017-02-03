@@ -23,43 +23,13 @@
          eSetStatusUpdate/5,
          eMenuEvent/6]).
 
--record(etodo,  {status,
-                 statusCol,
-                 statusDB,
-                 priority,
-                 priorityCol,
-                 priorityDB,
-                 owner,
-                 ownerCol,
-                 dueTime,
-                 dueTimeCol,
-                 dueTimeDB,
-                 description,
-                 descriptionCol,
-                 comment,
-                 commentCol,
-                 sharedWith,
-                 sharedWithCol,
-                 sharedWithDB,
-                 createTime,
-                 createTimeCol,
-                 createTimeDB,
-                 doneTime,
-                 doneTimeCol,
-                 doneTimeDB,
-                 hasSubTodo,
-                 uid,
-                 uidCol,
-                 uidDB,
-                 progress,
-                 lists,
-                 listsDB}).
-
 getName() -> "JIRA".
 
 getDesc() -> "Create JIRA task from eTodo.".
 
 -record(state, {config = defaultConfig()}).
+
+-include_lib("eTodo/include/eTodo.hrl").
 
 -define(configFile, "jira.config").
 
@@ -106,13 +76,13 @@ terminate(_Reason, _State) ->
 getMenu(_ETodo, State = #state{config = Config}) ->
     #{search   := Search,
       baseurl  := BaseUrl} = Config,
-    Url         = BaseUrl ++ "/2/search?jql=" ++
+    Url         = BaseUrl ++ "/rest/api/2/search?jql=" ++
         http_uri:encode(Search) ++ "&fields=summary,key",
     Result      = httpRequest(Config, get, Url),
-    SubMenu     = constructSubMenu(55002, Result),
-    {ok, [{55000, "Create JIRA Task"},
-          {55001, "Update JIRA Task"},
-          {{subMenu, "Create Task from feature"},
+    SubMenu     = constructSubMenu(1502, Result),
+    {ok, [{1500, "Log work in JIRA"},
+          {1501, "Show logged work in JIRA"},
+          {{subMenu, "Create Task from JIRA"},
            SubMenu}], State}.
 
 httpRequest(#{bauth := BAuth}, Method, Url) ->
@@ -254,25 +224,96 @@ eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg, State) ->
 %%                  NewState
 %% @end
 %%--------------------------------------------------------------------
-eMenuEvent(_EScriptDir, _User, 55000, _ETodo, _MenuText, State) ->
+eMenuEvent(_EScriptDir, _User, 1500, _ETodo, _MenuText, State) ->
     io:format(_MenuText),
     State;
-eMenuEvent(_EScriptDir, _User, 55001, _ETodo, _MenuText, State) ->
+eMenuEvent(_EScriptDir, _User, 1501, _ETodo, _MenuText, State) ->
     io:format(_MenuText),
     State;
-eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, MenuText,
+eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
            State = #state{config = Config}) ->
-    [Key|_] = string:tokens(MenuText, ":"),
-    BaseUrl = maps:get(baseurl, Config),
-    FullUrl = BaseUrl ++ "/2/issue/" ++ Key,
-    Result  = httpRequest(Config, get, FullUrl),
-    Result2 = io_lib:format("~tp.~n", [jsx:decode(Result, [return_maps])]),
-    file:write_file("issue.json", Result2),
+    [Key|_]   = string:tokens(MenuText, ":"),
+    BaseUrl   = maps:get(baseurl, Config) ++ "/rest/api",
+    FullUrl   = BaseUrl ++ "/2/issue/" ++ Key ++ "/?fields=description,status,summary,priority",
+    Result    = httpRequest(Config, get, FullUrl),
+    MapRes    = jsx:decode(Result, [return_maps]),
+    Fields    = get(<<"fields">>, MapRes, #{}),
+    Summary   = get(<<"summary">>, Fields, <<>>),
+    Desc      = get(<<"description">>, Fields, Summary),
+    Desc2     = characters_to_binary(Desc),
+    Status    = get(<<"name">>, get(<<"status">>, Fields, #{}), <<>>),
+    Priority  = get(<<"id">>, get(<<"priority">>, Fields, <<>>), 2),
+    ComUrl    = BaseUrl ++ "/2/issue/" ++ Key ++ "/comment",
+    Result2   = httpRequest(Config, get, ComUrl),
+    MapRes2   = jsx:decode(Result2, [return_maps]),
+    Comments1 = get(<<"comments">>, MapRes2, []),
+    Comments2 = [{get(<<"created">>, Comment, <<>>),
+                  get(<<"body">>,    Comment, <<>>),
+                  get(<<"displayName">>,
+                           get(<<"author">>, Comment, #{}), <<>>)}
+                 || Comment <- Comments1],
+    IssUrl     = "<" ++ maps:get(baseurl, Config) ++ "/browse/" ++ Key ++ ">",
+
+    Todo = #todo{uid         = eTodoUtils:makeRef(),
+                 status      = status2DB(Status),
+                 priority    = prio2DB(Priority),
+                 description = binary_to_list(Desc2),
+                 comment     = makeComment([IssUrl|Comments2]),
+                 progress    = 0,
+                 createTime  = eTodoUtils:dateTime()},
+
+    TaskList = eTodo:getTaskList(),
+    Row = eTodoDB:getRow(User, TaskList),
+    eTodoDB:addTodo(#userInfo{userName = User,
+                              uid      = Todo#todo.uid,
+                              row      = Row,
+                              parent   = eTodoUtils:tryInt(TaskList)}, Todo),
+
+    eTodo:todoCreated(TaskList, Row, Todo),
     State.
+
+status2DB(<<"In Progress">>) -> inProgress;
+status2DB(_)                 -> planning.
+
+prio2DB(<<"1">>) -> low;
+prio2DB(<<"2">>) -> medium;
+prio2DB(<<"3">>) -> high;
+prio2DB(_Prio)   -> high.
+
+makeComment(Comments) ->
+    makeComment(Comments, []).
+
+makeComment([], Acc) ->
+    lists:reverse(Acc);
+makeComment([{Created, Body, Author}|Rest], Acc)
+    when is_binary(Created), is_binary(Body), is_binary(Author) ->
+    Msg  = <<Created/binary, " ", Author/binary, ": ", Body/binary, "\n">>,
+    Msg2 = characters_to_binary(Msg),
+    Acc2 = [binary_to_list(Msg2)|Acc],
+    makeComment(Rest, Acc2);
+makeComment([Value|Rest], Acc) when is_list(Value) ->
+    makeComment(Rest, [Value ++ "\n"|Acc]);
+makeComment([_Value|Rest], Acc) ->
+    makeComment(Rest, Acc).
+
+characters_to_binary(null)  -> <<>>;
+characters_to_binary(Value) ->
+    unicode:characters_to_binary(Value, utf8, latin1).
+
+get(Key, Map, Default) ->
+    case maps:get(Key, Map, Default) of
+        null ->
+            Default;
+        Value ->
+            Value
+    end.
 
 defaultConfig() ->
     #{baseurl => "http://JIRA:8080/rest/api",
       user    => "",
       pwd     => "",
-      search  => "project=\"CallGuide Feature\" AND issuetype=\"CallGuide Feature\" AND status not in (RestrictedRelease, OnHold, GeneralAvailability, Closed) AND \"Fea. ConstrLeader\"=currentUser()",
+      search  => "project=\"CallGuide Development\" and "
+                 "(issuetype=Story or issuetype=Task or issuetype=Sub-task) "
+                 "and status not in (Resolved, Closed) and Assignee=currentUser()",
       bauth   => ""}.
+

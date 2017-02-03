@@ -14,7 +14,7 @@
          makeTodoList/5,
          makeForm/2]).
 
--include("eTodo.hrl").
+-include_lib("eTodo/include/eTodo.hrl").
 -include_lib("inets/include/httpd.hrl").
 
 -import(eTodoUtils, [toStr/1, toStr/2, makeStr/1, default/2]).

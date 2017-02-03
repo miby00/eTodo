@@ -30,7 +30,8 @@
 
 -import(eGuiFunctions, [type/1, obj/2]).
 
--include("eTodo.hrl").
+-include_lib("eTodo/include/eTodo.hrl").
+
 
 %% To add a new language construct a new hrl file with one of the ones below
 %% as template. Add the new language to languages and then you are done.

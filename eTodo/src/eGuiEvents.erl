@@ -9,7 +9,7 @@
 -module(eGuiEvents).
 -author("mikael.bylund@gmail.com").
 
--include("eTodo.hrl").
+-include_lib("eTodo/include/eTodo.hrl").
 
 -include_lib("wx/include/wx.hrl").
 

@@ -90,7 +90,7 @@ getMenu(ETodo, State) ->
     LINK = "[tT][hH][uU][nN][dD][eE][rR][lL][iI][nN][kK]://" ++
            "[mM][eE][sS][sS][aA][gG][eE][iI][dD]=",
     TLinks = getThunderLinks(Text, LINK, REXP, []),
-    {ok, getMenu(TLinks, 70000, []), State}.
+    {ok, getMenu(TLinks, 1600, []), State}.
 
 getMenu([], _MenuOption, SoFar) -> SoFar;
 getMenu([TLink|Rest], MenuOption, SoFar) ->

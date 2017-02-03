@@ -13,7 +13,7 @@
 
 -behaviour(gen_server).
 
--include("eTodo.hrl").
+-include_lib("eTodo/include/eTodo.hrl").
 
 %% API
 -export([start/3,

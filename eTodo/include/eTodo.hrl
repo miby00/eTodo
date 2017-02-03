@@ -160,7 +160,7 @@
         "workLogStartDate"   => wxDatePickerCtrl
        }).
 
--include("eLang.hrl").
+-include_lib("eTodo/include/eLang.hrl").
 
 %%====================================================================
 %% Table records for mnesia

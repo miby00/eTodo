@@ -96,7 +96,7 @@
                   {createTime,  8, ?createTime},
                   {doneTime,    9, ?doneTimestamp}]).
 
--include("eTodo.hrl").
+-include_lib("eTodo/include/eTodo.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 
 -record(state, {undo = [], redo = [], opType = normal}).

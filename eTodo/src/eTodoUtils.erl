@@ -9,7 +9,7 @@
 %%%-------------------------------------------------------------------
 -module(eTodoUtils).
 
--include("eTodo.hrl").
+-include_lib("eTodo/include/eTodo.hrl").
 
 -include_lib("wx/include/wx.hrl").
 
