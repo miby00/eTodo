@@ -1,0 +1,32 @@
+{
+  "name": "eTodo",
+  "icons": [
+    {
+      "src": "/priv/Icons/eTodo.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "density": 0.33
+    },
+    {
+      "src": "/priv/Icons/etodoBig",
+      "sizes": "32x32",
+      "type": "image/png",
+      "density": 0.75
+    },
+    {
+      "src": "/priv/Icons/etodoBiggest.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "density": 1.25
+    },
+    {
+      "src": "/priv/Icons/etodoSuper.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "density": 4
+    }
+  ],
+  "start_url": "eTodo/eWeb:index",
+  "display": "standalone",
+  "orientation": "landscape"
+}

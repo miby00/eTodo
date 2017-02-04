@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>eTodo help page</title>
+    <meta name="description" content="">
+    <link rel="stylesheet" href="./css/fonts.css" />
+    <link rel="stylesheet" href="./css/jqtree.css"/>
+    <link rel="stylesheet" href="./css/eTodo.css"/>
+    <link rel="stylesheet" href="./css/latex.css"/>
+    <link rel="stylesheet" href="./css/mermaid.css"/>
+    <link rel="stylesheet" href="./css/styles eTodo.css"/>
+</head>
+<body class="A4pages latex">
+    <div id="contents"><p><img src="graphics/eTodo.png" alt="eTodo"></p>
+<h1 id="introduction">Introduction</h1>
+<p>eTodo is a P2P task manager written in erlang. Key functionality include:</p>
+<ul>
+<li>Tasks that can be shared between peers</li>
+<li>Communication between peers using chat</li>
+<li>Task progress that can be shown to non eTodo users using “link view” functionality</li>
+<li>A To-Do list in eTodo has a default order.It is easy to move tasks up and down within a list</li>
+<li>A task can be in more than one list</li>
+<li>A task can have one or more sub tasks, and so can sub tasks.</li>
+<li>Non intrusive reminders</li>
+<li>Local storage (no central server)</li>
+</ul>
+<h1 id="getting-started">Getting started</h1>
+<h2 id="create-and-use-to-do-lists">Create and use To-Do lists</h2>
+<h3 id="to-do-list-all-tasks-">To-Do list “All tasks”</h3>
+<p>All users have a To-Do list called “All tasks”, this list includes all To-Do:s (including all sub To-Do:s) created in eTodo. “All tasks” is a system list and cannot be removed.</p>
+<p>Use “All tasks” list if you want to search in all your To-Do:s</p>
+<p>It can also be used to find new To-Do:s that has been shared with you. To find To-Do:s that are not assigned to any other list other then “All tasks” use filter “Assigned” that you access by right clicking on the column header named “Id” or you can just change list to &quot;Inbox&quot;</p>
+<h3 id="to-do-list-inbox-">To-Do list “Inbox”</h3>
+<p>This list isn&#39;t actually a To-Do list. It is the list &quot;All tasks&quot; with filter &quot;Assigned&quot; activated.
+This is the easiest way of checking for new To-Do:s or To-Do:s which hasn&#39;t been assigned to a list.</p>
+<h3 id="how-to-create-a-new-to-do-list">How to create a new To-Do list</h3>
+<p>You create a new To-Do list using the button:</p>
+<p><img src="graphics/manageLists.png" alt="Manage Lists"> A window will appear where you can add, remove and rename To-Do lists.</p>
+<p>After you have created a new list, choose the list in the drop down to the right of the “Manage lists” button.</p>
+<h3 id="how-to-create-a-new-to-do">How to create a new To-Do</h3>
+<p>You can create a To-Do using the toolbar buttons: <img src="graphics/addTop.png" alt="Add at top">  <img src="graphics/addBottom.png" alt="Add at bottom"></p>
+<p>The first toolbar button will place the new To-Do in the beginning of the To-Do list.
+The second toolbar button will place the new To-Do at the end of the To-Do list.
+Control+N is the keyboard short cut for creating a new To-Do at the end of a To-Do list.</p>
+<h3 id="how-to-edit-a-to-do">How to edit a To-Do</h3>
+<p>A To-Do is edited using the bottom part of the main To-Do window.</p>
+<p><img src="graphics/eTodoWin.png" alt="eTodo window"></p>
+<p>Status and priority is changed using the comboboxes in the edit area. Status can also be changed by right clicking on a To-Do and using the context menu.</p>
+<p>Reminders are set using the button: <img src="graphics/clock.png" alt="clock"> &quot;Set reminder for task&quot;</p>
+<p><img src="graphics/eTodoReminderWin.png" alt="eTodo reminder window"></p>
+<p>The check box Start date can enable/disable a reminder.</p>
+<ul>
+<li>Choose a start date</li>
+<li>Choose a start time</li>
+<li>Choose how often a message about the To-Do should be sent to the reminder window.</li>
+<li>Execute command can be used to run an external program when the reminder occurs, for instance to play a sound.</li>
+<li>End date is set if the reminder should stop even if the task isn&#39;t set to done.</li>
+</ul>
+<p>Due date is just to set a date when the task is due, it has nothing to do with reminders.
+The description field is for writing about the task that should be done.
+The comment field is for writing about the ongoing work on the task.</p>
+<p><img src="graphics/comment.png" alt="comment"> “Add comment” adds the date and user name to the end of the comment field.</p>
+<p><img src="graphics/sendMsg.png" alt="send message"> “Send message about task update”</p>
+<p>Send a message to all user the task is shared with, that says the task has been updated.</p>
+<p>Owner indicates which user that is supposed to own the task at the moment.</p>
+<p><img src="graphics/user.png" alt="manage owners"> “Manage owners”</p>
+<p>If you need to set an owner that isn&#39;t an eTodo user, you can do that using this button. Just create a new owner.</p>
+<p><img src="graphics/manageLists.png" alt="Add task to list"> “Add task to list”</p>
+<p>Is used to assign lists to a task this can also be done by right clicking the To-Do and adding/removing the ToDo to a list using the &quot;Lists&quot; sub menu.</p>
+<p>To move a task to a sub task, use cut/paste task.</p>
+<p><img src="graphics/user.png" alt="Share task with user"> “Share task with user”</p>
+<p>A task can be shared with other peers. A shared task will be added to the “All tasks” list of the other peer. Updates to the shared task is done in real time.</p>
+<p>Use the &quot;Inbox&quot; to find tasks that has been shared with you.</p>
+<h2 id="using-search-function">Using search function</h2>
+<p>The list “All tasks” is a good place to start when you want to search through all your To-Do:s. When you are doing a search you need to configure which fields to search in. </p>
+<p>This is done using the button: <img src="graphics/search.png" alt="Search"> “Configure which fields to search in”</p>
+<p>To do a search enter the text you want to search for in the search field and press enter. This will do a normal search which is a non case sensitive text search.</p>
+<p>There are two more search methods available</p>
+<ul>
+<li>Regexp search</li>
+<li>Advanced search</li>
+</ul>
+<p>Regexp search is activated by writing “re~” before your search string. To learn about the regexp search syntax check out the documentation for the re module in Erlang.</p>
+<p>Advanced search is activated by writing “as~” before your search string. You have the following logical operators when using advanced search:</p>
+<ul>
+<li>or (used to get the union of two results)</li>
+<li>and (used to get the intersection of tow results)</li>
+<li>not (used to get every thing but the result written after not)</li>
+</ul>
+<p>To get the contents of a ToDo list you use @”Listname”</p>
+<p>There is also the possibility of using the two other methods of searching while using advanced search. This is accomplished by using the following construct. {[Field1, Field2, ...], “value”} where value is the search string and Field* is the columns to search through.</p>
+<h3 id="examples-">Examples:</h3>
+<p><code>as~ {[Owner], “mikael”} and @”Work”</code></p>
+<p>Gets all To-Do:s that have owner “mikael” and is in the list “Work”</p>
+<p><code>as~ @”Work” or @”Private”</code></p>
+<p>Gets all To-Do:s in the lists “Work” and “Private”</p>
+<p><code>as~ @”Work” not @”Boring”</code></p>
+<p>Gets all To-Do:s inte the list “Work” which isn&#39;t in the list “Boring”</p>
+<h2 id="connecting-to-other-etodo-peers">Connecting to other eTodo peers</h2>
+<p>eTodo can connect to other eTodo users by connecting a circle. As long as the
+other peer is connected to the same circle using the same password the two peers
+will connect.</p>
+<p>To connect to a circle a peer in that circle needs to be configured.</p>
+<p>Open the network settings window:</p>
+<p><img src="graphics/networkSettings.png" alt="network settings"></p>
+<p>Enter the eTodo peer info:</p>
+<ul>
+<li>Peers user name</li>
+<li>Host name or IP-address for the eTodo peer (connected to the circle)</li>
+<li>The port of the peer (default 19000)</li>
+</ul>
+<p>After that is done, just log into the circle using Ctrl+l and all the peers
+connected to the circle should appear.</p>
+<h2 id="firewalls">Firewalls</h2>
+<p>To be able to directly connect from peer A to peerB, peer B:s IP and port needs
+to be accessable. </p>
+<div class="mermaid">graph LR;
+
+A(Peer A) -- direct connection --> B(Peer B)</div><p>If direct communication isn&#39;t possible due to firewall issues,
+eTodo looks for another peer C which is connected to peer B.
+It then connects to peer B using peer C as a proxy.</p>
+<div class="mermaid">graph LR;
+
+A(Peer A) -- proxy connection --> C(Peer C)
+C(Peer C) -- direct connection --> B(Peer B)</div><p>Data can go trough multiple peers before it reaches its destination.
+It always tries to take the shortest route.</p>
+<p>Connecting to the web gui using your phone is almost always a problem.
+This can be solved using another eTodo installation as a proxy.
+You need to set the web password of the proxy server to the same
+password as the eTodo peer you are trying to reach.</p>
+<p>After the installation of the proxy peer is done, use &quot;Make proxy link&quot;
+menu alternative on the destination peer to make a link which uses the
+proxy peer to connect to the web gui. </p>
+<h2 id="summary">Summary</h2>
+<h4 id="why-did-i-make-etodo-">Why did I make eTodo?</h4>
+<ul>
+<li>Because its fun, and I wanted to learn to use wxErlang.</li>
+<li>My own favourite To-Do manager QTodo, was    getting a bit outdated</li>
+<li>I wanted to do something in erlang that I    could release as open source</li>
+</ul>
+<h3 id="why-make-it-a-p2p-application-">Why make it a P2P application?</h3>
+<p>The short explanation is that me and a friend took a course in P2P systems and made this our programming assignment.</p>
+<p>Another reason was to solve the problem of sharing To-Do:s.</p>
+<p>My goal with eTodo was to be able to have all my To-Do:s in one application, and I don&#39;t really like to save my own personal To-Do:s on a central server not owned by me, and my employer doesn&#39;t really like me to save work To-Do:s on a central server outside the company, so storing everything in a local database solves both issues.</p>
+<h3 id="design-goals-of-etodo">Design goals of eTodo</h3>
+<ul>
+<li>Support multiple lists, that can share the same To-Do</li>
+<li>Support sub To-Do:s, so you can split a big To-Do in to several smaller To-Do:s</li>
+<li>Support user default sort order, a To-Do should be easy to move up and down within a To-Do list</li>
+<li>Support Undo and Redo</li>
+<li>Support for sharing To-Do:s with people using eTodo</li>
+<li>Support for showing To-Do:s to people not    using eTodo</li>
+<li>Support for looking, changing status and adding To-Do:s from your phone</li>
+<li>Support for printing To-Do:s</li>
+<li>Support for reminders that doesn&#39;t interrupt your work ( I hate pop-ups ;) )</li>
+<li>Everything should be saved locally, and not on a centralised server</li>
+</ul>
+<h3 id="features-planned-to-be-added-in-the-future">Features planned to be added in the future</h3>
+<ul>
+<li>Improve the graphical user interface</li>
+<li>Improve overall performance</li>
+<li>Better connection handling</li>
+<li>HTTP-tunneling for connections between eTodo peers</li>
+<li>Email integration using IMAP</li>
+<li>More documentation</li>
+</ul>
+<h3 id="features-that-might-be-added-in-the-future">Features that might be added in the future</h3>
+<ul>
+<li>A more customisable and better graphical user interface for the web</li>
+<li>An app for iPhone</li>
+<li>An app for Android</li>
+<li>Everything that the users of eTodo contributes or wants( that I like ;) </li>
+</ul>
+</div>
+    <div id="pageNav"></div>
+    
+    <script>
+        var data = [{"name":"eTodo help page","id":"eTodo","label":"eTodo help page","order":1,"url":"/eTodo.html","children":[]}];
+        var sitePath = '/home/miby00/Arbete/IdeaProjects/eTodo client/eTodo/priv/www/docs';
+    </script>
+    <script type="text/javascript" src="./js/mermaid.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="./js/scripts.js"></script>
+</body>
+</html>
