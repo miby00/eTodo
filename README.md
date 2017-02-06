@@ -29,7 +29,7 @@ eTodo require an Erlang installation with a working wxErlang environment.
 
 I recommend using Erlang Solutions [installation packages](https://www.erlang-solutions.com/downloads/download-erlang-otp).
 
-### Download build and run eTodo
+### Download, build and run eTodo
 
 Feel free to ignore steps already taken ;-)
 
