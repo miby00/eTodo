@@ -27,19 +27,19 @@ the instructions below.
 
 eTodo require an Erlang installation with a working wxErlang environment. 
 
-I recommend using Erlang Solutions [installation packages](https://www.erlang-solutions.com/downloads/download-erlang-otp).
+I recommend using Erlang Solutions [installation packages](https://www.erlang-solutions.com/resources/download.html).
 
 ### Download, build and run eTodo
 
 Feel free to ignore steps already taken ;-)
 
-* Install [Erlang](https://www.erlang-solutions.com/downloads/download-erlang-otp)
+* Install [Erlang](https://https://www.erlang-solutions.com/resources/download.html)
 * Install [rebar3](https://github.com/erlang/rebar3)
 * Download code using **"download.ZIP"** button or use:
 
         $ git clone https://github.com/miby00/eTodo.git
         
-Before you run eTodo, enter the config folder and edit the *sys.config* file.
+**Before you run eTodo**: enter the config folder and edit the *sys.config* file.
 Set the *dir* and *logDir* configurations.
 
   Do one of the following (in the root folder of the project):

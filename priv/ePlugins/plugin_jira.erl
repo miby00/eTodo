@@ -349,9 +349,9 @@ findKey([Char|Rest], Acc) ->
     findKey(Rest, [Char|Acc]).
 
 defaultConfig() ->
-    #{baseurl => "http://JIRA:8080/rest/api",
-      user    => "",
-      pwd     => "",
+    #{baseurl => "http://JIRA:8080",
+      user    => "JiraUser",
+      pwd     => "JiraPassword",
       search  => "project=\"CallGuide Development\" and "
                  "(issuetype=Story or issuetype=Task or issuetype=Sub-task) "
                  "and status not in (Resolved, Closed) and Assignee=currentUser()",
