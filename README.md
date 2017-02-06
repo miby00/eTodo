@@ -35,7 +35,8 @@ Feel free to ignore steps already taken ;-)
 
 * Install [Erlang](https://https://www.erlang-solutions.com/resources/download.html)
 * Install [rebar3](https://github.com/erlang/rebar3)
-* Download code using **"download.ZIP"** button or use:
+* Install [GIT](https://git-scm.com/downloads)
+* Download code using GIT, use the command:
 
         $ git clone https://github.com/miby00/eTodo.git
         
