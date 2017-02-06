@@ -203,18 +203,11 @@ init([Arg]) ->
     eLog:log(debug, ?MODULE, init, [Arg],
              "##### eTodo started #####", ?LINE),
 
-    case os:getenv("eTodoMode") of
-        false ->
-            %% Change dir while building GUI to allow wx to find icons.
-            file:set_cwd(code:priv_dir(?MODULE)),
-            {WXFrame, State} = initGUI(Arg),
-            eLang:initiateGUI(State),
-            file:set_cwd(WorkDir),
-            {WXFrame, State};
-        _ ->
-            User      = os:getenv("eTodoUser"),
-            Pwd       = os:getenv("eTodoPwd"),
-            Circle    = os:getenv("eTodoCircle"),
+    case application:get_env(eTodo, mode) of
+        {ok, "noGui"} ->
+            {ok, User}   = application:get_env(eTodo, user),
+            {ok, Pwd}    = application:get_env(eTodo, pwd),
+            {ok, Circle} = application:get_env(eTodo, circle),
             %% Add handler to receive events
             ePeerEM:add_handler(eTodoEH, {User, noGui}),
             ePeerEM:connectToCircle(User, Circle, Pwd),
@@ -222,7 +215,14 @@ init([Arg]) ->
             %% Start wx so eTodo can receive events.
             wx:new(),
             {wxFrame:new(), #guiState{mode = noGui,
-                                      user = User}}
+                                      user = User}};
+        _ ->
+            %% Change dir while building GUI to allow wx to find icons.
+            file:set_cwd(code:priv_dir(?MODULE)),
+            {WXFrame, State} = initGUI(Arg),
+            eLang:initiateGUI(State),
+            file:set_cwd(WorkDir),
+            {WXFrame, State}
     end.
 
 initGUI(Arg) ->
@@ -645,7 +645,7 @@ handle_cast({todoUpdated, _Sender, Todo = #diff{}},
     {noreply, State};
 handle_cast({loggedIn, Peer}, State = #guiState{mode = noGui,
                                                 user = User}) ->
-    case {os:getenv("eTodoStatus"), os:getenv("eTodoStatusMsg")} of
+    case getStatus() of
         {Status, StatusMsg} when
               (Status =/= false) and (StatusMsg =/= false) ->
             StatusUpdate = #userStatus{userName  = User,
@@ -1618,3 +1618,18 @@ getTeamPomodoroClock() ->
             {54 - Min, 59 - Seconds}
     end.
 
+%%====================================================================
+%% Get status configuration
+%%====================================================================
+getStatus() ->
+    case application:get_env(eTodo, status) of
+        {ok, Status} ->
+            case application:get_env(eTodo, statusMsg) of
+                {ok, StatusMsg} ->
+                    {Status, StatusMsg};
+                _ ->
+                    {Status, false}
+            end;
+        _ ->
+            {false, false}
+    end.

@@ -374,8 +374,8 @@ init([]) ->
     {ok, #state{}}.
 
 createProgressDialog() ->
-    case os:getenv("eTodoMode") of
-        "noGui" ->
+    case application:get_env(eTodo, mode) of
+        {ok, "noGui"} ->
             undefined;
         _ ->
             wx:new(),

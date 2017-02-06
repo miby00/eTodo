@@ -27,19 +27,19 @@ noGui([User, Circle, Pwd, Status|StatusMsg]) ->
     noGui(User, Circle, Pwd, Status, StatusMsg2).
 
 noGui(User, Circle, Pwd) ->
-    os:putenv("eTodoMode",   "noGui"),
-    os:putenv("eTodoUser",   User),
-    os:putenv("eTodoCircle", Circle),
-    os:putenv("eTodoPwd",    Pwd),
+    application:set_env(eTodo, mode,   "noGui"),
+    application:set_env(eTodo, user,   User),
+    application:set_env(eTodo, circle, Circle),
+    application:set_env(eTodo, pwd,    Pwd),
     gui().
 
 noGui(User, Circle, Pwd, Status, StatusMsg) ->
-    os:putenv("eTodoMode",      "noGui"),
-    os:putenv("eTodoUser",      User),
-    os:putenv("eTodoCircle",    Circle),
-    os:putenv("eTodoPwd",       Pwd),
-    os:putenv("eTodoStatus",    Status),
-    os:putenv("eTodoStatusMsg", StatusMsg),
+    application:set_env(eTodo, mode,      "noGui"),
+    application:set_env(eTodo, user,      User),
+    application:set_env(eTodo, circle,    Circle),
+    application:set_env(eTodo, pwd,       Pwd),
+    application:set_env(eTodo, status,    Status),
+    application:set_env(eTodo, statusMsg, StatusMsg),
     gui().
 
 gui() ->
