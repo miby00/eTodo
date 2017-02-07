@@ -370,7 +370,7 @@ runCmd(_Operation, _Args, _Servers, []) ->
 runCmd(Operation, Args, Servers, [{EPlugin, Arg}|Rest]) ->
     case lists:keyfind(EPlugin, 1, Servers) of
         {EPlugin, {ok, Pid}} ->
-            (catch apply(ePlugin, Operation, [Pid|Args] ++ [Arg]));
+            doApply(Operation, [Pid|Args] ++ [Arg]);
         _ ->
             ok
     end,
@@ -380,7 +380,7 @@ runCmd(Operation, Args, Servers, [{EPlugin, Arg}|Rest]) ->
 runCmd(_Operation, _Args, []) ->
     ok;
 runCmd(Operation, Args, [{_Module, {ok, Pid}}|Rest]) ->
-    (catch apply(ePlugin, Operation, [Pid|Args])),
+    doApply(Operation, [Pid|Args]),
     runCmd(Operation, Args, Rest);
 runCmd(Operation, Args, [_StartupError|Rest]) ->
     runCmd(Operation, Args, Rest).
@@ -450,3 +450,12 @@ getMenu(Plugin, ETodo, [{Plugin, {ok, Pid}}|_Rest]) ->
     ePlugin:getMenu(Pid, ETodo);
 getMenu(Plugin, ETodo, [{_Plugin, _}|Rest]) ->
     getMenu(Plugin, ETodo, Rest).
+
+doApply(Operation, Args) ->
+    case catch apply(ePlugin, Operation, Args) of
+        {'EXIT', Reason} ->
+            eLog:log(debug, ?MODULE, doApply, [Operation, Args, Reason],
+                "Plugin crash.", ?LINE);
+        ReturnValue ->
+            ReturnValue
+    end.

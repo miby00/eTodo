@@ -223,11 +223,17 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
         {error, keyNotFound} ->
             State;
         Key ->
-            BaseUrl = JiraUrl ++ "/rest/api",
-            FullUrl = BaseUrl ++ "/2/issue/" ++ Key ++ "/worklog",
-            Result  = httpRequest(BAuth, get, FullUrl),
-            MapRes  = jsx:decode(Result, [return_maps]),
-            io:format("~p~n", [MapRes]),
+            BaseUrl    = JiraUrl ++ "/rest/api",
+            FullUrl    = BaseUrl ++ "/2/issue/" ++ Key ++ "/worklog",
+            Result     = httpRequest(BAuth, get, FullUrl),
+            MapRes     = jsx:decode(Result, [return_maps]),
+            WorkLogs   = maps:get(<<"worklogs">>, MapRes, []),
+            WorkLogs2  = [filterWorkLogs(WorkLog) || WorkLog <- WorkLogs],
+            LoggedWork = eTodoDB:getAllLoggedWorkDate(ETodo#etodo.uid),
+            NotLoggedW = calcWorkToLog(LoggedWork, WorkLogs2),
+            io:format("NotLoggedWork:~n~p~n"
+                      "LoggedWork:~n~p~n"
+                      "WorkLogs:~n~p~n", [NotLoggedW, LoggedWork, WorkLogs2]),
             State
     end;
 eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
@@ -340,3 +346,46 @@ findKey([$>|_], Acc) ->
     lists:reverse(Acc);
 findKey([Char|Rest], Acc) ->
     findKey(Rest, [Char|Acc]).
+
+filterWorkLogs(#{<<"author">>           := #{<<"name">>         := Name,
+                                             <<"emailAddress">> := Email,
+                                             <<"active">>       := Active},
+                 <<"comment">>          := Comment,
+                 <<"started">>          := LogTime,
+                 <<"id">>               := Id,
+                 <<"timeSpentSeconds">> := TimeSpent}) ->
+    <<LogDate:10/bytes, _/binary>> = LogTime,
+    {LogDate, #{name             => Name,
+                email            => Email,
+                active           => Active,
+                comment          => Comment,
+                workLogId        => Id,
+                timeSpentSeconds => TimeSpent}};
+filterWorkLogs(_WorkLog) ->
+    {undefined, #{}}.
+
+calcWorkToLog(LoggedWork, WorkLogs) ->
+    calcWorkToLog(LoggedWork, WorkLogs, []).
+
+calcWorkToLog([], _, Acc) ->
+    lists:reverse(Acc);
+calcWorkToLog([Work|Rest], WorkLogs, Acc) ->
+    [Date, Hours, Minutes] = string:tokens(Work, " :"),
+    Seconds = seconds(Hours, Minutes),
+    BinDate = list_to_binary(Date),
+    case lists:keyfind(BinDate, 1, WorkLogs) of
+        {BinDate, WL = #{timeSpentSeconds := TimeSpent,
+                      active           := true}} ->
+            case TimeSpent >= Seconds of
+                true ->
+                    calcWorkToLog(Rest, WorkLogs, Acc);
+                false ->
+                    calcWorkToLog(Rest, WorkLogs,
+                                  [{{update, WL}, Date, Seconds}|Acc])
+            end;
+        _ ->
+            calcWorkToLog(Rest, WorkLogs, [{new, Date, Seconds}|Acc])
+    end.
+
+seconds(Hours, Minutes) ->
+    3600 * list_to_integer(Hours) + 60 * list_to_integer(Minutes).
