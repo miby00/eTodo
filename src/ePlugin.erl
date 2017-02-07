@@ -227,8 +227,8 @@ handle_call({getMenu, ETodo}, _From,
                 {[], State}
         end,
 
-    eLog:log(debug, ?MODULE, runCmd, [getMenu, ETodo, Menu],
-        "Result from port program", ?LINE),
+    eLog:log(debug, ?MODULE, handle_call, [Module, getMenu, ETodo, Menu],
+        "Result from plugin", ?LINE),
 
     {reply, Menu, State3};
 handle_call({eGetStatusUpdate, Args = [_User, Status, StatusMsg]}, _From,
@@ -241,8 +241,9 @@ handle_call({eGetStatusUpdate, Args = [_User, Status, StatusMsg]}, _From,
                 {{ok, Status, StatusMsg}, State}
         end,
 
-    eLog:log(debug, ?MODULE, runCmd, [eGetStatusUpdate, Args, Result2],
-             "Result from port program", ?LINE),
+    eLog:log(debug, ?MODULE, handle_call,
+             [Module, eGetStatusUpdate, Args, Result2],
+             "Result from plugin", ?LINE),
 
     {reply, Result2, State3};
 handle_call(_Request, _From, State) ->

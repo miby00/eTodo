@@ -235,7 +235,7 @@ eMenuEvent(User, MenuOption, ETodo) ->
 init([]) ->
     EPluginDir = ePluginDir(),
     EPlugins   = filelib:wildcard(EPluginDir ++ "/plugin*.beam"),
-    Loaded     = (catch loadPlugins(EPlugins)),
+    Loaded     = (catch compileAndLoad(EPlugins, EPluginDir)),
     EPluginModules = [Module || {module, Module} <- Loaded],
     EPluginServers = [{Module, ePlugin:start_link(Module)} || Module <- EPluginModules],
     {ok, #state{ePluginDir     = ePluginDir(),
@@ -243,7 +243,11 @@ init([]) ->
                 eAllPlugins    = EPluginModules,
                 ePluginServers = EPluginServers}}.
 
-loadPlugins(EPlugins) ->
+compileAndLoad(EPlugins, EPluginDir) ->
+    RES = [compile:file(rootName(Filename), [{outdir, EPluginDir}])
+           || Filename <- EPlugins],
+    eLog:log(debug, ?MODULE, compileAndLoad, [RES],
+             "Compile result...", ?LINE),
     [code:load_abs(rootName(Filename)) || Filename <- EPlugins].
 
 ePluginDir() ->

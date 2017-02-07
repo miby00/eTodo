@@ -45,7 +45,7 @@
 		eWeb,
 		ePluginServer
 	       ]},
-  {applications, [kernel, stdlib, mnesia, inets, crypto, asn1, public_key, ssl, wx, eLog, ePort]},
+  {applications, [kernel, stdlib, compiler, sasl, mnesia, inets, crypto, asn1, public_key, ssl, wx, jsx, eLog, ePort]},
   {included_applications, []},
   {env, []},
   {mod, {eTodoApp, []}
