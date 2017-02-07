@@ -27,11 +27,9 @@ getName() -> "JIRA".
 
 getDesc() -> "Create eTodo task from JIRA issue.".
 
--record(state, {config = defaultConfig()}).
+-record(state, {jiraUrl, jiraSearch, bauth}).
 
 -include_lib("eTodo/include/eTodo.hrl").
-
--define(configFile, "jira.config").
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -40,26 +38,15 @@ getDesc() -> "Create eTodo task from JIRA issue.".
 %% @end
 %%--------------------------------------------------------------------
 init() ->
-    {ok, Dir}  = application:get_env(mnesia, dir),
-    ConfigFile = filename:join(Dir, ?configFile),
-    Config = case file:consult(ConfigFile) of
-                 {ok, [Cfg]} when is_map(Cfg) ->
-                     Cfg;
-                 _ ->
-                     eLog:log(debug, ?MODULE, init, [ConfigFile],
-                         "No config file found... Create template", ?LINE),
-                     defaultConfig()
-             end,
-    UserPwd     = maps:get(user, Config) ++ ":" ++ maps:get(pwd, Config),
-    BAuth       = "Basic " ++ base64:encode_to_string(UserPwd),
-    Config2     = Config#{bauth := BAuth},
-    case filelib:is_file(ConfigFile) of
-        true ->
-            ok;
-        false ->
-            file:write_file(ConfigFile, io_lib:format("~tp.~n", [Config2]))
-    end,
-    #state{config = Config2}.
+    {ok, Url}       = application:get_env(eTodo, jiraUrl),
+    {ok, SearchCfg} = application:get_env(eTodo, jiraSearch),
+    {ok, User}      = application:get_env(eTodo, jiraUser),
+    {ok, Pwd}       = application:get_env(eTodo, jiraPwd),
+
+    UserPwd         = User ++ ":" ++ Pwd,
+    BAuth           = "Basic " ++ base64:encode_to_string(UserPwd),
+
+    #state{jiraUrl = Url, jiraSearch = SearchCfg, bauth = BAuth}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -77,18 +64,17 @@ terminate(_Reason, _State) ->
 %% @spec getMenu(ETodo, State) -> {ok, [{menuOption, menuText}, ...], NewState}
 %% @end
 %%--------------------------------------------------------------------
-getMenu(_ETodo, State = #state{config = Config}) ->
-    #{search   := Search,
-      baseurl  := BaseUrl} = Config,
-    Url         = BaseUrl ++ "/rest/api/2/search?jql=" ++
+getMenu(_ETodo,
+        State = #state{jiraUrl = JiraUrl, jiraSearch = Search, bauth = BAuth}) ->
+    Url = JiraUrl ++ "/rest/api/2/search?jql=" ++
         http_uri:encode(Search) ++ "&fields=summary,key",
-    Result      = httpRequest(Config, get, Url),
+    Result      = httpRequest(BAuth, get, Url),
     SubMenu     = constructSubMenu(1501, Result),
     {ok, [{1500, "Log work in JIRA"},
           {{subMenu, "Create Task from JIRA"},
            SubMenu}], State}.
 
-httpRequest(#{bauth := BAuth}, Method, Url) ->
+httpRequest(BAuth, Method, Url) ->
     AuthOption  = {"Authorization", BAuth},
     ContentType = {"Content-Type", "application/json"},
     Request     = {Url, [AuthOption, ContentType]},
@@ -231,25 +217,25 @@ eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg, State) ->
 %% @end
 %%--------------------------------------------------------------------
 eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
-           State = #state{config = Config}) ->
+           State = #state{jiraUrl = JiraUrl, bauth = BAuth}) ->
     Comment = lists:flatten(ETodo#etodo.comment),
-    case parseComment(Comment, maps:get(baseurl, Config)) of
+    case parseComment(Comment, JiraUrl) of
         {error, keyNotFound} ->
             State;
         Key ->
-            BaseUrl = maps:get(baseurl, Config) ++ "/rest/api",
+            BaseUrl = JiraUrl ++ "/rest/api",
             FullUrl = BaseUrl ++ "/2/issue/" ++ Key ++ "/worklog",
-            Result  = httpRequest(Config, get, FullUrl),
+            Result  = httpRequest(BAuth, get, FullUrl),
             MapRes  = jsx:decode(Result, [return_maps]),
             io:format("~p~n", [MapRes]),
             State
     end;
 eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
-           State = #state{config = Config}) ->
+           State = #state{jiraUrl = JiraUrl, bauth = BAuth}) ->
     [Key|_]   = string:tokens(MenuText, ":"),
-    BaseUrl   = maps:get(baseurl, Config) ++ "/rest/api",
+    BaseUrl   = JiraUrl ++ "/rest/api",
     FullUrl   = BaseUrl ++ "/2/issue/" ++ Key ++ "/?fields=description,status,summary,priority",
-    Result    = httpRequest(Config, get, FullUrl),
+    Result    = httpRequest(BAuth, get, FullUrl),
     MapRes    = jsx:decode(Result, [return_maps]),
     Fields    = get(<<"fields">>, MapRes, #{}),
     Summary   = get(<<"summary">>, Fields, <<>>),
@@ -264,7 +250,7 @@ eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
     Status    = get(<<"name">>, get(<<"status">>, Fields, #{}), <<>>),
     Priority  = get(<<"id">>, get(<<"priority">>, Fields, <<>>), 2),
     ComUrl    = BaseUrl ++ "/2/issue/" ++ Key ++ "/comment",
-    Result2   = httpRequest(Config, get, ComUrl),
+    Result2   = httpRequest(BAuth, get, ComUrl),
     MapRes2   = jsx:decode(Result2, [return_maps]),
     Comments1 = get(<<"comments">>, MapRes2, []),
     Comments2 = [{get(<<"created">>, Comment, <<>>),
@@ -272,7 +258,7 @@ eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
                   get(<<"displayName">>,
                            get(<<"author">>, Comment, #{}), <<>>)}
                  || Comment <- Comments1],
-    IssUrl     = "<" ++ maps:get(baseurl, Config) ++ "/browse/" ++ Key ++ ">",
+    IssUrl     = "<" ++ JiraUrl ++ "/browse/" ++ Key ++ ">",
 
     Todo = #todo{uid         = eTodoUtils:makeRef(),
                  status      = status2DB(Status),
@@ -354,13 +340,3 @@ findKey([$>|_], Acc) ->
     lists:reverse(Acc);
 findKey([Char|Rest], Acc) ->
     findKey(Rest, [Char|Acc]).
-
-defaultConfig() ->
-    #{baseurl => "http://JIRA:8080",
-      user    => "JiraUser",
-      pwd     => "JiraPassword",
-      search  => "project=\"CallGuide Development\" and "
-                 "(issuetype=Story or issuetype=Task or issuetype=Sub-task) "
-                 "and status not in (Resolved, Closed) and Assignee=currentUser()",
-      bauth   => ""}.
-
