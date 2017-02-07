@@ -9,7 +9,7 @@
 
 -module(plugin_jira).
 
--export([getName/0, getDesc/0, getMenu/2, init/0, terminate/2]).
+-export([getName/0, getDesc/0, getMenu/2, init/1, terminate/2]).
 
 -export([eGetStatusUpdate/5,
          eTimerStarted/7,
@@ -27,9 +27,10 @@ getName() -> "JIRA".
 
 getDesc() -> "Create eTodo task from JIRA issue.".
 
--record(state, {jiraUrl, jiraSearch, bauth}).
+-record(state, {frame, jiraUrl, jiraSearch, bauth}).
 
 -include_lib("eTodo/include/eTodo.hrl").
+-include_lib("wx/include/wx.hrl").
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -37,7 +38,7 @@ getDesc() -> "Create eTodo task from JIRA issue.".
 %% @spec init() -> State.
 %% @end
 %%--------------------------------------------------------------------
-init() ->
+init([WX, Frame]) ->
     {ok, Url}       = application:get_env(eTodo, jiraUrl),
     {ok, SearchCfg} = application:get_env(eTodo, jiraSearch),
     {ok, User}      = application:get_env(eTodo, jiraUser),
@@ -46,7 +47,8 @@ init() ->
     UserPwd         = User ++ ":" ++ Pwd,
     BAuth           = "Basic " ++ base64:encode_to_string(UserPwd),
 
-    #state{jiraUrl = Url, jiraSearch = SearchCfg, bauth = BAuth}.
+    wx:set_env(WX),
+    #state{frame = Frame, jiraUrl = Url, jiraSearch = SearchCfg, bauth = BAuth}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -73,22 +75,6 @@ getMenu(_ETodo,
     {ok, [{1500, "Log work in JIRA"},
           {{subMenu, "Create Task from JIRA"},
            SubMenu}], State}.
-
-httpRequest(BAuth, Method, Url) ->
-    AuthOption  = {"Authorization", BAuth},
-    ContentType = {"Content-Type", "application/json"},
-    Request     = {Url, [AuthOption, ContentType]},
-    Options     = [{body_format,binary}],
-    case httpc:request(Method, Request, [{url_encode, false}], Options) of
-        {ok, {_StatusLine, _Headers, Body}} ->
-            eLog:log(debug, ?MODULE, init, [Method, Url, Body],
-                     "Request success", ?LINE),
-            Body;
-        Else ->
-            eLog:log(debug, ?MODULE, init, [Method, Url, Else],
-                     "Request failure", ?LINE),
-            Else
-    end.
 
 constructSubMenu(MenuOption, Result) ->
     MapResult = jsx:decode(Result, [return_maps]),
@@ -217,7 +203,7 @@ eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg, State) ->
 %% @end
 %%--------------------------------------------------------------------
 eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
-           State = #state{jiraUrl = JiraUrl, bauth = BAuth}) ->
+           State = #state{jiraUrl = JiraUrl, bauth = BAuth, frame = Frame}) ->
     Comment = lists:flatten(ETodo#etodo.comment),
     case parseComment(Comment, JiraUrl) of
         {error, keyNotFound} ->
@@ -231,9 +217,17 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
             WorkLogs2  = [filterWorkLogs(WorkLog) || WorkLog <- WorkLogs],
             LoggedWork = eTodoDB:getAllLoggedWorkDate(ETodo#etodo.uid),
             NotLoggedW = calcWorkToLog(LoggedWork, WorkLogs2),
+            Message    = constructMessage(NotLoggedW),
+
             io:format("NotLoggedWork:~n~p~n"
                       "LoggedWork:~n~p~n"
                       "WorkLogs:~n~p~n", [NotLoggedW, LoggedWork, WorkLogs2]),
+
+            Now        = iso8601:format(calendar:universal_time()),
+            MsgDlg     = wxMessageDialog:new(Frame, Message,
+                                             [{caption, "Update work log"},
+                                              {style,   ?wxYES_NO}]),
+            wxDialog:showModal(MsgDlg),
             State
     end;
 eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
@@ -389,3 +383,47 @@ calcWorkToLog([Work|Rest], WorkLogs, Acc) ->
 
 seconds(Hours, Minutes) ->
     3600 * list_to_integer(Hours) + 60 * list_to_integer(Minutes).
+
+httpRequest(BAuth, Method, Url) ->
+    AuthOption  = {"Authorization", BAuth},
+    ContentType = {"Content-Type", "application/json"},
+    Request     = {Url, [AuthOption, ContentType]},
+    Options     = [{body_format,binary}],
+    case httpc:request(Method, Request, [{url_encode, false}], Options) of
+        {ok, {_StatusLine, _Headers, Body}} ->
+            eLog:log(debug, ?MODULE, init, [Method, Url, Body],
+                "http success", ?LINE),
+            Body;
+        Else ->
+            eLog:log(debug, ?MODULE, init, [Method, Url, Else],
+                "http failure", ?LINE),
+            Else
+    end.
+
+httpPost(BAuth, Method, Body, Url) ->
+    AuthOption  = {"Authorization", BAuth},
+    ContentType = {"Content-Type", "application/json"},
+    Request     = {Url, [AuthOption, ContentType], "application/json", Body},
+    Options     = [{body_format,binary}],
+    case httpc:request(Method, Request, [{url_encode, false}], Options) of
+        {ok, {_StatusLine, _Headers, Body}} ->
+            eLog:log(debug, ?MODULE, init, [Method, Url, Body],
+                "http success", ?LINE),
+            Body;
+        Else ->
+            eLog:log(debug, ?MODULE, init, [Method, Url, Else],
+                "http failure", ?LINE),
+            Else
+    end.
+
+constructMessage(NotLoggedW) ->
+    constructMessage(NotLoggedW, []).
+
+constructMessage([], Acc) ->
+    lists:reverse(Acc);
+constructMessage([{_, Date, Seconds}|Rest], Acc) ->
+    constructMessage(Rest, [Date ++ " Time spent(seconds): " ++
+        integer_to_list(Seconds)|Acc]);
+constructMessage([{_, Date, Seconds}|Rest], Acc) ->
+    constructMessage(Rest, [Date ++ " Time spent(seconds): " ++
+        integer_to_list(Seconds) ++ "~n"|Acc]).

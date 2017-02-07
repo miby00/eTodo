@@ -67,8 +67,6 @@ init([]) ->
                   Restart, Shutdown, Type, [eTodoAlarm]},
                  {ePeerEM, {ePeerEM, start_link, []},
                   Restart, Shutdown, Type, [ePeerEM]},
-                 {ePluginServer, {ePluginServer, start_link, []},
-                  Restart, Shutdown, Type, [ePluginServer]},
                  {ePeerServer, {ePeerServer, start_link, []},
                   Restart, Shutdown, Type, [ePeerServer]},
                  {ePeerCircle, {ePeerCircle, start_link, []},

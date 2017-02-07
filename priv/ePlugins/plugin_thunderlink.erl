@@ -9,7 +9,7 @@
 
 -module(plugin_thunderlink).
 
--export([getName/0, getDesc/0, getMenu/2, init/0, terminate/2]).
+-export([getName/0, getDesc/0, getMenu/2, init/1, terminate/2]).
 
 -export([eGetStatusUpdate/5,
          eTimerStarted/7,
@@ -27,37 +27,7 @@ getName() -> "Thunderlink".
 
 getDesc() -> "Support for thunderlinks to emails.".
 
--record(etodo,  {status,
-                 statusCol,
-                 statusDB,
-                 priority,
-                 priorityCol,
-                 priorityDB,
-                 owner,
-                 ownerCol,
-                 dueTime,
-                 dueTimeCol,
-                 dueTimeDB,
-                 description,
-                 descriptionCol,
-                 comment,
-                 commentCol,
-                 sharedWith,
-                 sharedWithCol,
-                 sharedWithDB,
-                 createTime,
-                 createTimeCol,
-                 createTimeDB,
-                 doneTime,
-                 doneTimeCol,
-                 doneTimeDB,
-                 hasSubTodo,
-                 uid,
-                 uidCol,
-                 uidDB,
-                 progress,
-                 lists,
-                 listsDB}).
+-include_lib("eTodo/include/eTodo.hrl").
 
 -record(state, {}).
 
@@ -67,7 +37,7 @@ getDesc() -> "Support for thunderlinks to emails.".
 %% @spec init() -> State.
 %% @end
 %%--------------------------------------------------------------------
-init() -> #state{}.
+init(_Args) -> #state{}.
 
 %%--------------------------------------------------------------------
 %% @doc

@@ -234,6 +234,10 @@ initGUI(Arg) ->
     (catch wxSystemOptions:setOption("mac.listctrl.always_use_generic", 1)),
 
     Frame     = wxFrame:new(),
+
+    %% Plugins need to be able to do some GUI additions
+    ePluginServer:start_link(wx:get_env(), Frame),
+
     Login     = wxDialog:new(),
     Time      = wxDialog:new(),
     Timer     = wxDialog:new(),

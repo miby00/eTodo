@@ -11,7 +11,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/2]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -61,8 +61,8 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+start_link(WX, Frame) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [WX, Frame], []).
 
 
 %%--------------------------------------------------------------------
@@ -232,12 +232,12 @@ eMenuEvent(User, MenuOption, ETodo) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([]) ->
+init([WX, Frame]) ->
     EPluginDir = ePluginDir(),
     EPlugins   = filelib:wildcard(EPluginDir ++ "/plugin*.beam"),
     Loaded     = (catch compileAndLoad(EPlugins, EPluginDir)),
     EPluginModules = [Module || {module, Module} <- Loaded],
-    EPluginServers = [{Module, ePlugin:start_link(Module)} || Module <- EPluginModules],
+    EPluginServers = [{Module, ePlugin:start_link(Module, WX, Frame)} || Module <- EPluginModules],
     {ok, #state{ePluginDir     = ePluginDir(),
                 ePlugins       = EPluginModules,
                 eAllPlugins    = EPluginModules,

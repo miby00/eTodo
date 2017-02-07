@@ -12,7 +12,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1]).
+-export([start_link/3]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -50,10 +50,10 @@
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec(start_link(MODULE :: atom()) ->
+-spec(start_link(MODULE :: atom(), WX :: term(), Frame :: term()) ->
              {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
-start_link(Module) ->
-    gen_server:start_link(?MODULE, [Module], []).
+start_link(Module, WX, Frame) ->
+    gen_server:start_link(?MODULE, [Module, WX, Frame], []).
 
 stop(Pid) ->
     gen_server:cast(Pid, stop).
@@ -198,8 +198,8 @@ eMenuEvent(Pid, Dir, User, MenuOption, ETodo, MenuText) ->
              {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
              {stop, Reason :: term()} | ignore).
 
-init([Module]) ->
-    State = (catch Module:init()),
+init([Module, WX, Frame]) ->
+    State = (catch Module:init([WX, Frame])),
     {ok, #state{state = State, module = Module}}.
 
 %%--------------------------------------------------------------------

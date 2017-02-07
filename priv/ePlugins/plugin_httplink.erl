@@ -9,7 +9,7 @@
 
 -module(plugin_httplink).
 
--export([getName/0, getDesc/0, getMenu/2, init/0, terminate/2]).
+-export([getName/0, getDesc/0, getMenu/2, init/1, terminate/2]).
 
 -export([eGetStatusUpdate/5,
          eTimerStarted/7,
@@ -67,7 +67,7 @@ getDesc() -> "Support for finding and opening http/https links.".
 %% @spec init() -> State.
 %% @end
 %%--------------------------------------------------------------------
-init() -> #state{}.
+init(_Args) -> #state{}.
 
 %%--------------------------------------------------------------------
 %% @doc
