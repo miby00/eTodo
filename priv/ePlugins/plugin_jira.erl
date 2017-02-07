@@ -40,20 +40,24 @@ getDesc() -> "Create eTodo task from JIRA issue.".
 %% @end
 %%--------------------------------------------------------------------
 init() ->
-    Config = case file:consult(?configFile) of
+    {ok, Dir}  = application:get_env(mnesia, dir),
+    ConfigFile = filename:join(Dir, ?configFile),
+    Config = case file:consult(ConfigFile) of
                  {ok, [Cfg]} when is_map(Cfg) ->
                      Cfg;
                  _ ->
+                     eLog:log(debug, ?MODULE, init, [ConfigFile],
+                         "No config file found... Create template", ?LINE),
                      defaultConfig()
              end,
     UserPwd     = maps:get(user, Config) ++ ":" ++ maps:get(pwd, Config),
     BAuth       = "Basic " ++ base64:encode_to_string(UserPwd),
     Config2     = Config#{bauth := BAuth},
-    case filelib:is_file(?configFile) of
+    case filelib:is_file(ConfigFile) of
         true ->
             ok;
         false ->
-            file:write_file(?configFile, io_lib:format("~tp.~n", [Config2]))
+            file:write_file(ConfigFile, io_lib:format("~tp.~n", [Config2]))
     end,
     #state{config = Config2}.
 
@@ -91,9 +95,12 @@ httpRequest(#{bauth := BAuth}, Method, Url) ->
     Options     = [{body_format,binary}],
     case httpc:request(Method, Request, [{url_encode, false}], Options) of
         {ok, {_StatusLine, _Headers, Body}} ->
-            file:write_file("json.txt", Body),
+            eLog:log(debug, ?MODULE, init, [Method, Url, Body],
+                     "Request success", ?LINE),
             Body;
         Else ->
+            eLog:log(debug, ?MODULE, init, [Method, Url, Else],
+                     "Request failure", ?LINE),
             Else
     end.
 
