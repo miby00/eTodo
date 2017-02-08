@@ -245,6 +245,7 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
                     MSel   = wxMultiChoiceDialog:getSelections(MultiDlg),
                     TTLog  = [lists:nth(I, LoggedWork2) || I <- MSel, I =/= 0],
                     SetRem = {lists:member(0, MSel), Remaining},
+                    doSetRemaining(SetRem, BAuth, BaseUrl ++ "/2/issue/" ++ Key),
                     logTime(TTLog, BAuth, FullUrl, SetRem);
                 ?wxID_CANCEL ->
                     ok
@@ -502,3 +503,16 @@ iso8601(Date) ->
     {_, {Hour, Minute, Second}} = calendar:universal_time(),
     FmtStr = "T~2..0w:~2..0w:~2..0w.000+0000",
     iolist_to_binary(io_lib:format(Date ++ FmtStr, [Hour, Minute, Second])).
+
+doSetRemaining(_SetRemaining, _BAuth, _Url) ->
+    ok;
+doSetRemaining({true, Remaining}, BAuth, Url) ->
+    JSON = jsx:encode(#{<<"update">> =>
+                        #{<<"timetracking">> =>
+                          #{<<"edit">> =>
+                            #{<<"remainingEstimate">> =>
+                              list_to_binary(integer_to_list(Remaining) ++ "h")}}}}),
+    httpPost(BAuth, put, JSON, Url);
+doSetRemaining(_SetRemaining, _BAuth, _Url) ->
+    ok.
+
