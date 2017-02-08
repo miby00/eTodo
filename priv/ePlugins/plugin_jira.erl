@@ -25,7 +25,7 @@
 
 getName() -> "JIRA".
 
-getDesc() -> "Create eTodo task from JIRA issue.".
+getDesc() -> "Create eTodo task from JIRA issue and report work logs.".
 
 -record(state, {frame, jiraUrl, jiraSearch, bauth}).
 
