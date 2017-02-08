@@ -46,7 +46,8 @@
                 ePlugins       = [],
                 eAllPlugins    = [],
                 ePluginMenu    = [],
-                ePluginServers = []}).
+                ePluginServers = [],
+                wx, frame}).
 
 -import(eTodoUtils, [makeStr/1, toStr/1]).
 
@@ -234,14 +235,16 @@ eMenuEvent(User, MenuOption, ETodo) ->
 %%--------------------------------------------------------------------
 init([WX, Frame]) ->
     EPluginDir = ePluginDir(),
-    EPlugins   = filelib:wildcard(EPluginDir ++ "/plugin*.beam"),
+    EPlugins   = filelib:wildcard(EPluginDir ++ "/plugin*.erl"),
     Loaded     = (catch compileAndLoad(EPlugins, EPluginDir)),
     EPluginModules = [Module || {module, Module} <- Loaded],
     EPluginServers = [{Module, ePlugin:start_link(Module, WX, Frame)} || Module <- EPluginModules],
     {ok, #state{ePluginDir     = ePluginDir(),
                 ePlugins       = EPluginModules,
                 eAllPlugins    = EPluginModules,
-                ePluginServers = EPluginServers}}.
+                ePluginServers = EPluginServers,
+                wx             = WX,
+                frame          = Frame}}.
 
 compileAndLoad(EPlugins, EPluginDir) ->
     RES = [compile:file(rootName(Filename), [{outdir, EPluginDir}])
@@ -303,13 +306,14 @@ handle_call(_Request, _From, State) ->
 %%--------------------------------------------------------------------
 handle_cast({setConfiguredPlugins, Plugins},
              State = #state{ePlugins       = Old,
-                            ePluginServers = Servers}) ->
+                            ePluginServers = Servers,
+                            wx = WX, frame = Frame}) ->
 
     ModulesToStop  = Old -- Plugins,
     ModulesToStart = Plugins -- Old,
 
     Servers2 = stopPluginServers(ModulesToStop,   Servers),
-    Servers3 = startPluginServers(ModulesToStart, Servers2),
+    Servers3 = startPluginServers(ModulesToStart, WX, Frame, Servers2),
 
     {noreply, State#state{ePlugins = Plugins, ePluginServers = Servers3}};
 handle_cast({eMenuEvent, Args = [_User, MenuOption, _ETodo]},
@@ -438,11 +442,11 @@ stopPluginServers([Module|Rest], Servers) ->
             stopPluginServers(Rest, Servers)
     end.
 
-startPluginServers([], Servers) ->
+startPluginServers([], _WX, _Frame, Servers) ->
     Servers;
-startPluginServers([Module|Rest], Servers) ->
-    Servers2 = [{Module, ePlugin:start_link(Module)}|Servers],
-    startPluginServers(Rest, Servers2).
+startPluginServers([Module|Rest], WX, Frame, Servers) ->
+    Servers2 = [{Module, ePlugin:start_link(Module, WX, Frame)}|Servers],
+    startPluginServers(Rest, WX, Frame, Servers2).
 
 getMenu(_Plugin, _ETodo, []) ->
     [];

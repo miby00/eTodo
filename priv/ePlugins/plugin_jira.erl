@@ -209,25 +209,31 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
         {error, keyNotFound} ->
             State;
         Key ->
-            BaseUrl    = JiraUrl ++ "/rest/api",
-            FullUrl    = BaseUrl ++ "/2/issue/" ++ Key ++ "/worklog",
-            Result     = httpRequest(BAuth, get, FullUrl),
-            MapRes     = jsx:decode(Result, [return_maps]),
-            WorkLogs   = maps:get(<<"worklogs">>, MapRes, []),
-            WorkLogs2  = [filterWorkLogs(WorkLog) || WorkLog <- WorkLogs],
-            LoggedWork = eTodoDB:getAllLoggedWorkDate(ETodo#etodo.uid),
-            NotLoggedW = calcWorkToLog(LoggedWork, WorkLogs2),
-            Choices    = constructMessage(NotLoggedW),
+            BaseUrl     = JiraUrl ++ "/rest/api",
+            FullUrl     = BaseUrl ++ "/2/issue/" ++ Key ++ "/worklog",
+            Result      = httpRequest(BAuth, get, FullUrl),
+            MapRes      = jsx:decode(Result, [return_maps]),
+            WorkLogs    = maps:get(<<"worklogs">>, MapRes, []),
+            WorkLogs2   = [filterWorkLogs(WorkLog) || WorkLog <- WorkLogs],
+            LoggedWork  = eTodoDB:getAllLoggedWorkDate(ETodo#etodo.uid),
+            LoggedWork2 = calcWorkToLog(LoggedWork, WorkLogs2),
 
-            io:format("NotLoggedWork:~n~p~n"
-                      "LoggedWork:~n~p~n"
-                      "WorkLogs:~n~p~n", [NotLoggedW, LoggedWork, WorkLogs2]),
+            {Choices, Selections} = constructMessage(LoggedWork2),
 
-            Now        = iso8601:format(calendar:universal_time()),
             MultiDlg   = wxMultiChoiceDialog:new(Frame,
                                                  "Choose which dates to log.",
-                                                 "Update work log", Choices, []),
-            wxDialog:showModal(MultiDlg),
+                                                 "Update work log", Choices),
+            wxMultiChoiceDialog:setSize(MultiDlg, {300, 300}),
+            wxMultiChoiceDialog:setSelections(MultiDlg, Selections),
+            case wxMultiChoiceDialog:showModal(MultiDlg) of
+                ?wxID_OK ->
+                    MSel  = wxMultiChoiceDialog:getSelections(MultiDlg),
+                    TTLog = [lists:nth(I + 1, LoggedWork2) || I <- MSel],
+                    logTime(TTLog, BAuth, FullUrl);
+                ?wxID_CANCEL ->
+                    ok
+            end,
+            wxMultiChoiceDialog:destroy(MultiDlg),
             State
     end;
 eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
@@ -362,7 +368,7 @@ calcWorkToLog(LoggedWork, WorkLogs) ->
     calcWorkToLog(LoggedWork, WorkLogs, []).
 
 calcWorkToLog([], _, Acc) ->
-    lists:reverse(Acc);
+    Acc;
 calcWorkToLog([Work|Rest], WorkLogs, Acc) ->
     [Date, Hours, Minutes] = string:tokens(Work, " :"),
     Seconds = seconds(Hours, Minutes),
@@ -372,7 +378,8 @@ calcWorkToLog([Work|Rest], WorkLogs, Acc) ->
                       active           := true}} ->
             case TimeSpent >= Seconds of
                 true ->
-                    calcWorkToLog(Rest, WorkLogs, Acc);
+                    calcWorkToLog(Rest, WorkLogs,
+                                  [{{done, WL}, Date, Seconds}|Acc]);
                 false ->
                     calcWorkToLog(Rest, WorkLogs,
                                   [{{update, WL}, Date, Seconds}|Acc])
@@ -406,21 +413,68 @@ httpPost(BAuth, Method, Body, Url) ->
     Request     = {Url, [AuthOption, ContentType], "application/json", Body},
     Options     = [{body_format,binary}],
     case httpc:request(Method, Request, [{url_encode, false}], Options) of
-        {ok, {_StatusLine, _Headers, Body}} ->
-            eLog:log(debug, ?MODULE, init, [Method, Url, Body],
+        {ok, {_StatusLine, _Headers, RBody}} ->
+            eLog:log(debug, ?MODULE, init, [Method, Url, Body, RBody],
                 "http success", ?LINE),
             Body;
         Else ->
-            eLog:log(debug, ?MODULE, init, [Method, Url, Else],
+            eLog:log(debug, ?MODULE, init, [Method, Url, Body, Else],
                 "http failure", ?LINE),
             Else
     end.
 
-constructMessage(NotLoggedW) ->
-    constructMessage(NotLoggedW, []).
+constructMessage(LoggedWork) ->
+    constructMessage(LoggedWork, {[], []}, 0).
 
-constructMessage([], Acc) ->
-    lists:reverse(Acc);
-constructMessage([{_, Date, Seconds}|Rest], Acc) ->
-    constructMessage(Rest, [Date ++ " Time spent(seconds): " ++
-        integer_to_list(Seconds)|Acc]).
+constructMessage([], {Acc1, Acc2}, _Index) ->
+    {lists:reverse(Acc1), Acc2};
+constructMessage([{new, Date, Seconds}|Rest], {Acc1, Acc2}, Index) ->
+    NAcc1 = [Date ++ " Time spent: " ++
+                     binary_to_list(convertSeconds2Jira(Seconds))|Acc1],
+    constructMessage(Rest, {NAcc1, [Index|Acc2]}, Index + 1);
+constructMessage([{{update, _}, Date, Seconds}|Rest], {Acc1, Acc2}, Index) ->
+    NAcc1 = [Date ++ " Time spent: " ++
+                     binary_to_list(convertSeconds2Jira(Seconds))|Acc1],
+    constructMessage(Rest, {NAcc1, [Index|Acc2]}, Index + 1);
+constructMessage([{_, Date, Seconds}|Rest], {Acc1, Acc2}, Index) ->
+    NAcc1 = [Date ++ " Time spent: " ++
+                     binary_to_list(convertSeconds2Jira(Seconds))|Acc1],
+    constructMessage(Rest, {NAcc1, Acc2}, Index + 1).
+
+
+convertSeconds2Jira(Seconds) ->
+    Hours = Seconds div 3600,
+    Min   = (Seconds - Hours * 3600) div 60,
+    constructJiraTime(Hours, Min).
+
+constructJiraTime(0, 0) ->
+    <<>>;
+constructJiraTime(0, Min) ->
+    list_to_binary(integer_to_list(Min) ++ "m");
+constructJiraTime(Hours, 0) ->
+    list_to_binary(integer_to_list(Hours) ++ "h");
+constructJiraTime(Hours, Min) ->
+    HBin = list_to_binary(integer_to_list(Hours) ++ "h"),
+    MBin = list_to_binary(integer_to_list(Min) ++ "m"),
+    <<HBin/binary, MBin/binary>>.
+
+logTime([], _BAuth, _FullUrl) ->
+    ok;
+logTime([{new, Date, Seconds}|Rest], BAuth, FullUrl) ->
+    Started = iso8601(Date),
+    JSON    = jsx:encode(#{<<"timeSpentSeconds">> => Seconds,
+                           <<"comment">>          => <<"Logged from eTodo">>,
+                           <<"started">>          => Started}),
+    httpPost(BAuth, post, JSON, FullUrl),
+    logTime(Rest, BAuth, FullUrl);
+logTime([{{_, WL}, _Date, Seconds}|Rest], BAuth, FullUrl) ->
+    JSON = jsx:encode(#{<<"timeSpentSeconds">> => Seconds,
+                        <<"comment">>          => <<"Logged from eTodo">>}),
+    FullUrl2 = FullUrl ++ "/" ++ binary_to_list(maps:get(workLogId, WL, <<>>)),
+    httpPost(BAuth, put, JSON, FullUrl2),
+    logTime(Rest, BAuth, FullUrl).
+
+iso8601(Date) ->
+    {_, {Hour, Minute, Second}} = calendar:universal_time(),
+    FmtStr = "T~2..0w:~2..0w:~2..0w.000+0000",
+    iolist_to_binary(io_lib:format(Date ++ FmtStr, [Hour, Minute, Second])).
