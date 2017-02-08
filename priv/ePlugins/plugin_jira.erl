@@ -217,17 +217,17 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
             WorkLogs2  = [filterWorkLogs(WorkLog) || WorkLog <- WorkLogs],
             LoggedWork = eTodoDB:getAllLoggedWorkDate(ETodo#etodo.uid),
             NotLoggedW = calcWorkToLog(LoggedWork, WorkLogs2),
-            Message    = constructMessage(NotLoggedW),
+            Choices    = constructMessage(NotLoggedW),
 
             io:format("NotLoggedWork:~n~p~n"
                       "LoggedWork:~n~p~n"
                       "WorkLogs:~n~p~n", [NotLoggedW, LoggedWork, WorkLogs2]),
 
             Now        = iso8601:format(calendar:universal_time()),
-            MsgDlg     = wxMessageDialog:new(Frame, Message,
-                                             [{caption, "Update work log"},
-                                              {style,   ?wxYES_NO}]),
-            wxDialog:showModal(MsgDlg),
+            MultiDlg   = wxMultiChoiceDialog:new(Frame,
+                                                 "Choose which dates to log.",
+                                                 "Update work log", Choices, []),
+            wxDialog:showModal(MultiDlg),
             State
     end;
 eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
@@ -423,7 +423,4 @@ constructMessage([], Acc) ->
     lists:reverse(Acc);
 constructMessage([{_, Date, Seconds}|Rest], Acc) ->
     constructMessage(Rest, [Date ++ " Time spent(seconds): " ++
-        integer_to_list(Seconds)|Acc]);
-constructMessage([{_, Date, Seconds}|Rest], Acc) ->
-    constructMessage(Rest, [Date ++ " Time spent(seconds): " ++
-        integer_to_list(Seconds) ++ "~n"|Acc]).
+        integer_to_list(Seconds)|Acc]).
