@@ -66,15 +66,29 @@ terminate(_Reason, _State) ->
 %% @spec getMenu(ETodo, State) -> {ok, [{menuOption, menuText}, ...], NewState}
 %% @end
 %%--------------------------------------------------------------------
-getMenu(_ETodo,
+getMenu(undefined,
+        State = #state{jiraUrl = JiraUrl, jiraSearch = Search, bauth = BAuth}) ->
+    Url = JiraUrl ++ "/rest/api/2/search?jql=" ++
+                     http_uri:encode(Search) ++ "&fields=summary,key",
+    Result  = httpRequest(BAuth, get, Url),
+    SubMenu = constructSubMenu(1501, Result),
+    {ok, [{{subMenu, "Create Task from JIRA"}, SubMenu}], State};
+getMenu(ETodo,
         State = #state{jiraUrl = JiraUrl, jiraSearch = Search, bauth = BAuth}) ->
     Url = JiraUrl ++ "/rest/api/2/search?jql=" ++
         http_uri:encode(Search) ++ "&fields=summary,key",
-    Result      = httpRequest(BAuth, get, Url),
-    SubMenu     = constructSubMenu(1501, Result),
-    {ok, [{1500, "Log work in JIRA"},
-          {{subMenu, "Create Task from JIRA"},
-           SubMenu}], State}.
+    Result  = httpRequest(BAuth, get, Url),
+    SubMenu = constructSubMenu(1501, Result),
+    Comment = lists:flatten(ETodo#etodo.comment),
+    case parseComment(Comment, JiraUrl) of
+        {error, keyNotFound} ->
+            {ok, [{{subMenu, "Create Task from JIRA"},
+                  SubMenu}], State};
+        _ ->
+            {ok, [{1500, "Log work in JIRA"},
+                  {{subMenu, "Create Task from JIRA"},
+                   SubMenu}], State}
+    end.
 
 constructSubMenu(MenuOption, Result) ->
     MapResult = jsx:decode(Result, [return_maps]),

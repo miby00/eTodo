@@ -54,7 +54,8 @@ terminate(_Reason, #state{callback = CBs}) ->
 %% @spec getMenu(ETodo, State) -> {ok, [{menuOption, menuText}, ...], NewState}
 %% @end
 %%--------------------------------------------------------------------
-getMenu(_ETodo, State) -> {ok, [{66001, "Test Menu"}], State}.
+getMenu(undefined, State) -> {ok, [], State};
+getMenu(_ETodo, State)    -> {ok, [{66001, "Test Menu"}], State}.
 
 %%--------------------------------------------------------------------
 %% @doc

@@ -54,6 +54,8 @@ terminate(_Reason, _State) -> ok.
 %% @spec getMenu(ETodo, State) -> {ok, [{menuOption, menuText}, ...], NewState}
 %% @end
 %%--------------------------------------------------------------------
+getMenu(undefined, State) ->
+    {ok, [], State};
 getMenu(ETodo, State) ->
     Text = ETodo#etodo.description ++ " " ++ ETodo#etodo.comment,
     REXP = "[[:^space:]]*",

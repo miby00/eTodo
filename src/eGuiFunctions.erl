@@ -693,6 +693,13 @@ makeMenuItems(Menu, BookmarkItem, [Bookmark | Rest]) ->
     wxMenu:append(Menu, BookmarkItem, Bookmark),
     makeMenuItems(Menu, BookmarkItem + 1, Rest).
 
+showMenu(_User, {row, -1}, Frame, State = #guiState{popUpMenu = OldMenu}) ->
+    removeOldMenu(OldMenu),
+    Menu = wxMenu:new(),
+    createPluginMenu(Menu, undefined),
+    wxMenu:connect(Menu, command_menu_selected),
+    wxWindow:popupMenu(Frame, Menu),
+    State#guiState{popUpMenu = Menu, popUpCol  = {row, -1}};
 showMenu(User, {row, Row}, Frame, State = #guiState{popUpMenu = OldMenu}) ->
     removeOldMenu(OldMenu),
     Menu = createMenu(User, Row, State),

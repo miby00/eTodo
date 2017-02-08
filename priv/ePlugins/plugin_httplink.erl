@@ -27,37 +27,7 @@ getName() -> "HTTP(s) Link".
 
 getDesc() -> "Support for finding and opening http/https links.".
 
--record(etodo,  {status,
-                 statusCol,
-                 statusDB,
-                 priority,
-                 priorityCol,
-                 priorityDB,
-                 owner,
-                 ownerCol,
-                 dueTime,
-                 dueTimeCol,
-                 dueTimeDB,
-                 description,
-                 descriptionCol,
-                 comment,
-                 commentCol,
-                 sharedWith,
-                 sharedWithCol,
-                 sharedWithDB,
-                 createTime,
-                 createTimeCol,
-                 createTimeDB,
-                 doneTime,
-                 doneTimeCol,
-                 doneTimeDB,
-                 hasSubTodo,
-                 uid,
-                 uidCol,
-                 uidDB,
-                 progress,
-                 lists,
-                 listsDB}).
+-include_lib("eTodo/include/eTodo.hrl").
 
 -record(state, {}).
 
@@ -84,6 +54,8 @@ terminate(_Reason, _State) -> ok.
 %% @spec getMenu(ETodo, State) -> {ok, [{menuOption, menuText}, ...], NewState}
 %% @end
 %%--------------------------------------------------------------------
+getMenu(undefined, State) ->
+    {ok, [], State};
 getMenu(ETodo, State) ->
     Text = ETodo#etodo.description ++ " " ++ ETodo#etodo.comment,
     REXP = "[[:^space:]]*",
