@@ -218,18 +218,20 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
             LoggedWork  = eTodoDB:getAllLoggedWorkDate(ETodo#etodo.uid),
             LoggedWork2 = calcWorkToLog(LoggedWork, WorkLogs2),
 
+            {_Est,     Remaining} = eTodoDB:getTime(ETodo#etodo.uid),
             {Choices, Selections} = constructMessage(LoggedWork2),
 
             MultiDlg   = wxMultiChoiceDialog:new(Frame,
-                                                 "Choose which dates to log.",
+                                                 "Choose which updates to apply",
                                                  "Update work log", Choices),
             wxMultiChoiceDialog:setSize(MultiDlg, {300, 300}),
             wxMultiChoiceDialog:setSelections(MultiDlg, Selections),
             case wxMultiChoiceDialog:showModal(MultiDlg) of
                 ?wxID_OK ->
-                    MSel  = wxMultiChoiceDialog:getSelections(MultiDlg),
-                    TTLog = [lists:nth(I + 1, LoggedWork2) || I <- MSel],
-                    logTime(TTLog, BAuth, FullUrl);
+                    MSel   = wxMultiChoiceDialog:getSelections(MultiDlg),
+                    TTLog  = [lists:nth(I, LoggedWork2) || I <- MSel, I =/= 0],
+                    SetRem = {lists:member(0, MSel), Remaining},
+                    logTime(TTLog, BAuth, FullUrl, SetRem);
                 ?wxID_CANCEL ->
                     ok
             end,
@@ -424,10 +426,10 @@ httpPost(BAuth, Method, Body, Url) ->
     end.
 
 constructMessage(LoggedWork) ->
-    constructMessage(LoggedWork, {[], []}, 0).
+    constructMessage(LoggedWork, {[], []}, 1).
 
 constructMessage([], {Acc1, Acc2}, _Index) ->
-    {lists:reverse(Acc1), Acc2};
+    {["Set remaining to time left"|lists:reverse(Acc1)], Acc2};
 constructMessage([{new, Date, Seconds}|Rest], {Acc1, Acc2}, Index) ->
     NAcc1 = [Date ++ " Time spent: " ++
                      binary_to_list(convertSeconds2Jira(Seconds))|Acc1],
@@ -458,21 +460,29 @@ constructJiraTime(Hours, Min) ->
     MBin = list_to_binary(integer_to_list(Min) ++ "m"),
     <<HBin/binary, MBin/binary>>.
 
-logTime([], _BAuth, _FullUrl) ->
+logTime([], _BAuth, _FullUrl, _SetRemaining) ->
     ok;
-logTime([{new, Date, Seconds}|Rest], BAuth, FullUrl) ->
-    Started = iso8601(Date),
-    JSON    = jsx:encode(#{<<"timeSpentSeconds">> => Seconds,
-                           <<"comment">>          => <<"Logged from eTodo">>,
-                           <<"started">>          => Started}),
-    httpPost(BAuth, post, JSON, FullUrl),
-    logTime(Rest, BAuth, FullUrl);
-logTime([{{_, WL}, _Date, Seconds}|Rest], BAuth, FullUrl) ->
+logTime([{new, Date, Seconds}|Rest], BAuth, FullUrl, SetRemaining) ->
+    Started  = iso8601(Date),
+    JSON     = jsx:encode(#{<<"timeSpentSeconds">> => Seconds,
+                            <<"comment">>          => <<"Logged from eTodo">>,
+                            <<"started">>          => Started}),
+    FullUrl2 = setRemaining(FullUrl, SetRemaining),
+    httpPost(BAuth, post, JSON, FullUrl2),
+    logTime(Rest, BAuth, FullUrl, SetRemaining);
+logTime([{{_, WL}, _Date, Seconds}|Rest], BAuth, FullUrl, SetRemaining) ->
     JSON = jsx:encode(#{<<"timeSpentSeconds">> => Seconds,
                         <<"comment">>          => <<"Logged from eTodo">>}),
     FullUrl2 = FullUrl ++ "/" ++ binary_to_list(maps:get(workLogId, WL, <<>>)),
-    httpPost(BAuth, put, JSON, FullUrl2),
-    logTime(Rest, BAuth, FullUrl).
+    FullUrl3 = setRemaining(FullUrl2, SetRemaining),
+    httpPost(BAuth, put, JSON, FullUrl3),
+    logTime(Rest, BAuth, FullUrl, SetRemaining).
+
+setRemaining(FullUrl, {false, _}) ->
+    FullUrl;
+setRemaining(FullUrl, {true, Remaining}) ->
+    FullUrl ++ "?adjustEstimate=new&newEstimate=" ++
+               integer_to_list(Remaining) ++ "h".
 
 iso8601(Date) ->
     {_, {Hour, Minute, Second}} = calendar:universal_time(),
