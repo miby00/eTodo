@@ -69,7 +69,7 @@ terminate(_Reason, _State) ->
 getMenu(undefined,
         State = #state{jiraUrl = JiraUrl, jiraSearch = Search, bauth = BAuth}) ->
     Url = JiraUrl ++ "/rest/api/2/search?jql=" ++
-                     http_uri:encode(Search) ++ "&fields=summary,key",
+        http_uri:encode(Search) ++ "&fields=summary,key",
     Result  = httpRequest(BAuth, get, Url),
     SubMenu = constructSubMenu(1501, Result),
     {ok, [{{subMenu, "Create Task from JIRA"}, SubMenu}], State};
@@ -83,7 +83,7 @@ getMenu(ETodo,
     case parseComment(Comment, JiraUrl) of
         {error, keyNotFound} ->
             {ok, [{{subMenu, "Create Task from JIRA"},
-                  SubMenu}], State};
+                   SubMenu}], State};
         _ ->
             {ok, [{1500, "Log work in JIRA"},
                   {{subMenu, "Create Task from JIRA"},
@@ -232,8 +232,8 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
             LoggedWork  = eTodoDB:getAllLoggedWorkDate(ETodo#etodo.uid),
             LoggedWork2 = calcWorkToLog(LoggedWork, WorkLogs2),
 
-            {_Est,     Remaining} = eTodoDB:getTime(ETodo#etodo.uid),
-            {Choices, Selections} = constructMessage(LoggedWork2),
+            {_Estimate, Remaining} = eTodoDB:getTime(ETodo#etodo.uid),
+            {Choices, Selections}  = constructMessage(LoggedWork2),
 
             MultiDlg   = wxMultiChoiceDialog:new(Frame,
                                                  "Choose which updates to apply",
@@ -246,7 +246,7 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
                     TTLog  = [lists:nth(I, LoggedWork2) || I <- MSel, I =/= 0],
                     SetRem = {lists:member(0, MSel), Remaining},
                     doSetRemaining(SetRem, BAuth, BaseUrl ++ "/2/issue/" ++ Key),
-                    logTime(TTLog, BAuth, FullUrl, SetRem);
+                    logTime(TTLog, BAuth, FullUrl);
                 ?wxID_CANCEL ->
                     ok
             end,
@@ -279,7 +279,7 @@ eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
     Comments2 = [{get(<<"created">>, Comment, <<>>),
                   get(<<"body">>,    Comment, <<>>),
                   get(<<"displayName">>,
-                           get(<<"author">>, Comment, #{}), <<>>)}
+                      get(<<"author">>, Comment, #{}), <<>>)}
                  || Comment <- Comments1],
     IssUrl     = "<" ++ JiraUrl ++ "/browse/" ++ Key ++ ">",
 
@@ -315,7 +315,7 @@ makeComment(Comments) ->
 makeComment([], Acc) ->
     lists:reverse(Acc);
 makeComment([{Created, Body, Author}|Rest], Acc)
-    when is_binary(Created), is_binary(Body), is_binary(Author) ->
+  when is_binary(Created), is_binary(Body), is_binary(Author) ->
     Created2 = convertDate(Created),
     Msg  = <<Created2/binary, " ", Author/binary, ": ", Body/binary, "\n\n">>,
     Msg2 = characters_to_binary(Msg),
@@ -392,7 +392,7 @@ calcWorkToLog([Work|Rest], WorkLogs, Acc) ->
     BinDate = list_to_binary(Date),
     case lists:keyfind(BinDate, 1, WorkLogs) of
         {BinDate, WL = #{timeSpentSeconds := TimeSpent,
-                      active           := true}} ->
+                         active           := true}} ->
             case TimeSpent >= Seconds of
                 true ->
                     calcWorkToLog(Rest, WorkLogs,
@@ -416,11 +416,11 @@ httpRequest(BAuth, Method, Url) ->
     case httpc:request(Method, Request, [{url_encode, false}], Options) of
         {ok, {_StatusLine, _Headers, Body}} ->
             eLog:log(debug, ?MODULE, init, [Method, Url, Body],
-                "http success", ?LINE),
+                     "http success", ?LINE),
             Body;
         Else ->
             eLog:log(debug, ?MODULE, init, [Method, Url, Else],
-                "http failure", ?LINE),
+                     "http failure", ?LINE),
             Else
     end.
 
@@ -432,11 +432,11 @@ httpPost(BAuth, Method, Body, Url) ->
     case httpc:request(Method, Request, [{url_encode, false}], Options) of
         {ok, {_StatusLine, _Headers, RBody}} ->
             eLog:log(debug, ?MODULE, init, [Method, Url, Body, RBody],
-                "http success", ?LINE),
+                     "http success", ?LINE),
             Body;
         Else ->
             eLog:log(debug, ?MODULE, init, [Method, Url, Body, Else],
-                "http failure", ?LINE),
+                     "http failure", ?LINE),
             Else
     end.
 
@@ -447,15 +447,15 @@ constructMessage([], {Acc1, Acc2}, _Index) ->
     {["Set remaining to time left"|lists:reverse(Acc1)], Acc2};
 constructMessage([{new, Date, Seconds}|Rest], {Acc1, Acc2}, Index) ->
     NAcc1 = [Date ++ " Time spent: " ++
-                     binary_to_list(convertSeconds2Jira(Seconds))|Acc1],
+                 binary_to_list(convertSeconds2Jira(Seconds))|Acc1],
     constructMessage(Rest, {NAcc1, [Index|Acc2]}, Index + 1);
 constructMessage([{{update, _}, Date, Seconds}|Rest], {Acc1, Acc2}, Index) ->
     NAcc1 = [Date ++ " Time spent: " ++
-                     binary_to_list(convertSeconds2Jira(Seconds))|Acc1],
+                 binary_to_list(convertSeconds2Jira(Seconds))|Acc1],
     constructMessage(Rest, {NAcc1, [Index|Acc2]}, Index + 1);
 constructMessage([{_, Date, Seconds}|Rest], {Acc1, Acc2}, Index) ->
     NAcc1 = [Date ++ " Time spent: " ++
-                     binary_to_list(convertSeconds2Jira(Seconds))|Acc1],
+                 binary_to_list(convertSeconds2Jira(Seconds))|Acc1],
     constructMessage(Rest, {NAcc1, Acc2}, Index + 1).
 
 
@@ -475,43 +475,31 @@ constructJiraTime(Hours, Min) ->
     MBin = list_to_binary(integer_to_list(Min) ++ "m"),
     <<HBin/binary, MBin/binary>>.
 
-logTime([], _BAuth, _FullUrl, _SetRemaining) ->
+logTime([], _BAuth, _FullUrl) ->
     ok;
-logTime([{new, Date, Seconds}|Rest], BAuth, FullUrl, SetRemaining) ->
+logTime([{new, Date, Seconds}|Rest], BAuth, FullUrl) ->
     Started  = iso8601(Date),
     JSON     = jsx:encode(#{<<"timeSpentSeconds">> => Seconds,
                             <<"comment">>          => <<"Logged from eTodo">>,
                             <<"started">>          => Started}),
-    FullUrl2 = setRemaining(FullUrl, SetRemaining),
-    httpPost(BAuth, post, JSON, FullUrl2),
-    logTime(Rest, BAuth, FullUrl, SetRemaining);
-logTime([{{_, WL}, _Date, Seconds}|Rest], BAuth, FullUrl, SetRemaining) ->
+    httpPost(BAuth, post, JSON, FullUrl),
+    logTime(Rest, BAuth, FullUrl);
+logTime([{{_, WL}, _Date, Seconds}|Rest], BAuth, FullUrl) ->
     JSON = jsx:encode(#{<<"timeSpentSeconds">> => Seconds,
                         <<"comment">>          => <<"Logged from eTodo">>}),
     FullUrl2 = FullUrl ++ "/" ++ binary_to_list(maps:get(workLogId, WL, <<>>)),
-    FullUrl3 = setRemaining(FullUrl2, SetRemaining),
-    httpPost(BAuth, put, JSON, FullUrl3),
-    logTime(Rest, BAuth, FullUrl, SetRemaining).
-
-setRemaining(FullUrl, {false, _}) ->
-    FullUrl;
-setRemaining(FullUrl, {true, Remaining}) ->
-    FullUrl ++ "?adjustEstimate=new&newEstimate=" ++
-               integer_to_list(Remaining) ++ "h".
+    httpPost(BAuth, put, JSON, FullUrl2),
+    logTime(Rest, BAuth, FullUrl).
 
 iso8601(Date) ->
     {_, {Hour, Minute, Second}} = calendar:universal_time(),
     FmtStr = "T~2..0w:~2..0w:~2..0w.000+0000",
     iolist_to_binary(io_lib:format(Date ++ FmtStr, [Hour, Minute, Second])).
 
-doSetRemaining(_SetRemaining, _BAuth, _Url) ->
-    ok;
 doSetRemaining({true, Remaining}, BAuth, Url) ->
-    JSON = jsx:encode(#{<<"update">> =>
-                        #{<<"timetracking">> =>
-                          #{<<"edit">> =>
-                            #{<<"remainingEstimate">> =>
-                              list_to_binary(integer_to_list(Remaining) ++ "h")}}}}),
+    Jrem = list_to_binary(integer_to_list(Remaining) ++ "h"),
+    Edit = #{<<"edit">> => #{<<"remainingEstimate">> => Jrem}},
+    JSON = jsx:encode(#{<<"update">> => #{<<"timetracking">> => [Edit]}}),
     httpPost(BAuth, put, JSON, Url);
 doSetRemaining(_SetRemaining, _BAuth, _Url) ->
     ok.
