@@ -232,8 +232,8 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
             LoggedWork  = eTodoDB:getAllLoggedWorkDate(ETodo#etodo.uid),
             LoggedWork2 = calcWorkToLog(LoggedWork, WorkLogs2),
 
-            {_Estimate, Remaining} = eTodoDB:getTime(ETodo#etodo.uid),
-            {Choices, Selections}  = constructMessage(LoggedWork2),
+            {Estimate, Remaining} = eTodoDB:getTime(ETodo#etodo.uid),
+            {Choices, Selections} = constructMessage(LoggedWork2),
 
             MultiDlg   = wxMultiChoiceDialog:new(Frame,
                                                  "Choose which updates to apply",
@@ -243,9 +243,11 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
             case wxMultiChoiceDialog:showModal(MultiDlg) of
                 ?wxID_OK ->
                     MSel   = wxMultiChoiceDialog:getSelections(MultiDlg),
-                    TTLog  = [lists:nth(I, LoggedWork2) || I <- MSel, I =/= 0],
+                    TTLog  = [lists:nth(I - 1, LoggedWork2) || I <- MSel, I < 2],
                     SetRem = {lists:member(0, MSel), Remaining},
+                    SetEst = {lists:member(1, MSel), Estimate},
                     doSetRemaining(SetRem, BAuth, BaseUrl ++ "/2/issue/" ++ Key),
+                    doSetEstimate(SetEst,  BAuth, BaseUrl ++ "/2/issue/" ++ Key),
                     logTime(TTLog, BAuth, FullUrl);
                 ?wxID_CANCEL ->
                     ok
@@ -271,7 +273,10 @@ eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
                         characters_to_binary(Desc2)
                 end,
     Status    = get(<<"name">>, get(<<"status">>, Fields, #{}), <<>>),
-    Priority  = get(<<"id">>, get(<<"priority">>, Fields, <<>>), 2),
+    Priority  = get(<<"id">>, get(<<"priority">>, Fields, <<>>), <<"2">>),
+    TimeTrac  = get(<<"timetracking>>">>, Fields, #{}),
+    Estimate  = get(<<"originalEstimate">>, TimeTrac, <<"0h">>),
+    Remaining = get(<<"remainingEstimate">>, TimeTrac, <<"0h">>),
     ComUrl    = BaseUrl ++ "/2/issue/" ++ Key ++ "/comment",
     Result2   = httpRequest(BAuth, get, ComUrl),
     MapRes2   = jsx:decode(Result2, [return_maps]),
@@ -299,6 +304,9 @@ eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
                               parent   = eTodoUtils:tryInt(TaskList)}, Todo),
 
     eTodo:todoCreated(TaskList, Row, Todo),
+
+    eTodoDB:saveTime(integer_to_list(Todo#todo.uid),
+                     convert2Hours(Estimate), convert2Hours(Remaining)),
     State.
 
 status2DB(<<"In Progress">>) -> inProgress;
@@ -444,7 +452,8 @@ constructMessage(LoggedWork) ->
     constructMessage(LoggedWork, {[], []}, 1).
 
 constructMessage([], {Acc1, Acc2}, _Index) ->
-    {["Set remaining to time left"|lists:reverse(Acc1)], Acc2};
+    {["Set remaining to time left",
+      "Set estimate to time estimate"|lists:reverse(Acc1)], Acc2};
 constructMessage([{new, Date, Seconds}|Rest], {Acc1, Acc2}, Index) ->
     NAcc1 = [Date ++ " Time spent: " ++
                  binary_to_list(convertSeconds2Jira(Seconds))|Acc1],
@@ -504,3 +513,13 @@ doSetRemaining({true, Remaining}, BAuth, Url) ->
 doSetRemaining(_SetRemaining, _BAuth, _Url) ->
     ok.
 
+doSetEstimate({true, Estimate}, BAuth, Url) ->
+    Jrem = list_to_binary(integer_to_list(Estimate) ++ "h"),
+    Edit = #{<<"edit">> => #{<<"originalEstimate">> => Jrem}},
+    JSON = jsx:encode(#{<<"update">> => #{<<"timetracking">> => [Edit]}}),
+    httpPost(BAuth, put, JSON, Url);
+doSetEstimate(_SetEstimate, _BAuth, _Url) ->
+    ok.
+
+convert2Hours(JTime) ->
+    0.
