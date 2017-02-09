@@ -67,15 +67,18 @@ terminate(_Reason, _State) -> ok.
 %% @end
 %%--------------------------------------------------------------------
 getMenu(undefined, State) ->
-    {ok, [{1900, "Create project"},
-          {1901, "Delete project"},
-          {1904, "Project week to clipboard"}], State};
+    {ok, [{1900, "Create WBS"},
+          {1901, "Delete WBS"},
+          divider,
+          {1904, "5 days to clipboard"}], State};
 getMenu(_ETodo, State) ->
-    {ok, [{1900, "Create project"},
-          {1901, "Delete project"},
-          {1902, "Assign project"},
-          {1903, "Remove from project"},
-          {1904, "Project week to clipboard"}], State}.
+    {ok, [{1900, "Create WBS"},
+          {1901, "Delete WBS"},
+          divider,
+          {1902, "Assign WBS to task"},
+          {1903, "Remove WBS from task"},
+          divider,
+          {1904, "5 days to clipboard"}], State}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -241,7 +244,7 @@ doDeleteProject(State = #state{frame = Frame, conf = Config, file = CFile}) ->
     State#state{conf = Config2}.
 
 doAssignProject(ETodo, State = #state{frame = Frame, conf = Config, file = CFile}) ->
-    ProjDlg = wxSingleChoiceDialog:new(Frame, "Choose WBS to assign",
+    ProjDlg = wxSingleChoiceDialog:new(Frame, "Assign WBS to task",
                                        "Assign WBS", map2GUI(Config)),
     wxSingleChoiceDialog:setSize(ProjDlg, {400, 400}),
     Config2 = case wxSingleChoiceDialog:showModal(ProjDlg) of
@@ -280,9 +283,11 @@ doRemoveFromProject(ETodo, State = #state{frame = Frame, conf = Config, file = C
 doCopyWeekToClipboard(User, State = #state{frame = Frame,
                                            conf  = Config,
                                            date  = Date}) ->
+    ExtDate = eTodoUtils:toStr(Date),
     ProjDlg = wxSingleChoiceDialog:new(Frame,
-                                       "Choose WBS to copy to clipboard",
-                                       "Copy WBS", map2GUI(Config)),
+                                       "5 days begining with " ++ ExtDate ++
+                                           " to clipboard",
+                                       "Choose WBS", map2GUI(Config)),
     wxSingleChoiceDialog:setSize(ProjDlg, {400, 400}),
     case wxSingleChoiceDialog:showModal(ProjDlg) of
         ?wxID_OK ->

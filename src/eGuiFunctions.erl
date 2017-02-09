@@ -730,6 +730,9 @@ createPluginMenu(Menu, ETodo) ->
 
 createPluginMenu2(_Menu, []) ->
     ok;
+createPluginMenu2(Menu, [divider|Rest]) ->
+    wxMenu:appendSeparator(Menu),
+    createPluginMenu2(Menu, Rest);
 createPluginMenu2(Menu, [{{MenuType, Name}, MenuOptions}|Rest])
     when (MenuType == pluginName) or (MenuType == subMenu) ->
     SubMenu     = wxMenu:new([]),
