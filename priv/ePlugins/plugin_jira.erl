@@ -259,7 +259,7 @@ eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
            State = #state{jiraUrl = JiraUrl, bauth = BAuth}) ->
     [Key|_]   = string:tokens(MenuText, ":"),
     BaseUrl   = JiraUrl ++ "/rest/api",
-    FullUrl   = BaseUrl ++ "/2/issue/" ++ Key ++ "/?fields=description,status,summary,priority",
+    FullUrl   = BaseUrl ++ "/2/issue/" ++ Key ++ "/?fields=description,status,summary,priority,timetracking",
     Result    = httpRequest(BAuth, get, FullUrl),
     MapRes    = jsx:decode(Result, [return_maps]),
     Fields    = get(<<"fields">>, MapRes, #{}),
@@ -274,9 +274,9 @@ eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
                 end,
     Status    = get(<<"name">>, get(<<"status">>, Fields, #{}), <<>>),
     Priority  = get(<<"id">>, get(<<"priority">>, Fields, <<>>), <<"2">>),
-    TimeTrac  = get(<<"timetracking>>">>, Fields, #{}),
-    Estimate  = get(<<"originalEstimate">>, TimeTrac, <<"0h">>),
-    Remaining = get(<<"remainingEstimate">>, TimeTrac, <<"0h">>),
+    TimeTrac  = get(<<"timetracking">>, Fields, #{}),
+    Estimate  = get(<<"originalEstimateSeconds">>, TimeTrac, 0),
+    Remaining = get(<<"remainingEstimateSeconds">>, TimeTrac, 0),
     ComUrl    = BaseUrl ++ "/2/issue/" ++ Key ++ "/comment",
     Result2   = httpRequest(BAuth, get, ComUrl),
     MapRes2   = jsx:decode(Result2, [return_maps]),
@@ -306,7 +306,7 @@ eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
     eTodo:todoCreated(TaskList, Row, Todo),
 
     eTodoDB:saveTime(integer_to_list(Todo#todo.uid),
-                     convert2Hours(Estimate), convert2Hours(Remaining)),
+                     Estimate div 3600, Remaining div 3600),
     State.
 
 status2DB(<<"In Progress">>) -> inProgress;
@@ -520,6 +520,3 @@ doSetEstimate({true, Estimate}, BAuth, Url) ->
     httpPost(BAuth, put, JSON, Url);
 doSetEstimate(_SetEstimate, _BAuth, _Url) ->
     ok.
-
-convert2Hours(JTime) ->
-    0.
