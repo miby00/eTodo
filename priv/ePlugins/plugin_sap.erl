@@ -283,7 +283,7 @@ doRemoveFromProject(ETodo, State = #state{frame = Frame, conf = Config, file = C
 doCopyWeekToClipboard(User, State = #state{frame = Frame,
                                            conf  = Config,
                                            date  = Date}) ->
-    ExtDate = eTodoUtils:toStr(Date),
+    ExtDate = ePluginInterface:toStr(Date),
     ProjDlg = wxSingleChoiceDialog:new(Frame,
                                        "5 days begining with " ++ ExtDate ++
                                            " to clipboard",
@@ -297,7 +297,7 @@ doCopyWeekToClipboard(User, State = #state{frame = Frame,
             CopyStr = lists:flatten(io_lib:format("~p\t\t\t\t~p\t\t\t\t"
                                                   "~p\t\t\t\t~p\t\t\t\t~p",
                                                   [D1, D2, D3, D4, D5])),
-            eGuiFunctions:toClipboard(replaceComma(CopyStr));
+            ePluginInterface:toClipboard(replaceComma(CopyStr));
         _ ->
             ok
     end,
@@ -328,11 +328,11 @@ calcWorkLog(User, Tasks, Date) ->
 calcWorkLog(_User, [], _Date, Acc) ->
     Acc;
 calcWorkLog(User, [Uid|Rest], Date, {D1, D2, D3, D4, D5}) ->
-    {_, H1, M1} = eTodoDB:getLoggedWork(User, Uid, Date),
-    {_, H2, M2} = eTodoDB:getLoggedWork(User, Uid, incDate(Date, 1)),
-    {_, H3, M3} = eTodoDB:getLoggedWork(User, Uid, incDate(Date, 2)),
-    {_, H4, M4} = eTodoDB:getLoggedWork(User, Uid, incDate(Date, 3)),
-    {_, H5, M5} = eTodoDB:getLoggedWork(User, Uid, incDate(Date, 4)),
+    {_, H1, M1} = ePluginInterface:getLoggedWork(User, Uid, Date),
+    {_, H2, M2} = ePluginInterface:getLoggedWork(User, Uid, incDate(Date, 1)),
+    {_, H3, M3} = ePluginInterface:getLoggedWork(User, Uid, incDate(Date, 2)),
+    {_, H4, M4} = ePluginInterface:getLoggedWork(User, Uid, incDate(Date, 3)),
+    {_, H5, M5} = ePluginInterface:getLoggedWork(User, Uid, incDate(Date, 4)),
 
     ND1 = addMinutes(D1 + H1, M1),
     ND2 = addMinutes(D2 + H2, M2),
