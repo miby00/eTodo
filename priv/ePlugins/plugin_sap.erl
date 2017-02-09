@@ -40,7 +40,6 @@ getDesc() -> "SAP time reporting integration.".
 %% @end
 %%--------------------------------------------------------------------
 init([WX, Frame]) ->
-    wx:set_env(WX),
     {ok, Dir}  = application:get_env(mnesia, dir),
     ConfigFile = filename:join(Dir, "plugin_sap.dat"),
     Config     = case file:consult(ConfigFile) of
@@ -49,6 +48,7 @@ init([WX, Frame]) ->
                      _ ->
                          #{}
                  end,
+    wx:set_env(WX),
     #state{frame = Frame, conf = Config, file = ConfigFile}.
 
 %%--------------------------------------------------------------------
@@ -67,15 +67,15 @@ terminate(_Reason, _State) -> ok.
 %% @end
 %%--------------------------------------------------------------------
 getMenu(undefined, State) ->
-    {ok, [{1600, "Create project"},
-          {1601, "Delete project"},
-          {1604, "Project week to clipboard"}], State};
+    {ok, [{1900, "Create project"},
+          {1901, "Delete project"},
+          {1904, "Project week to clipboard"}], State};
 getMenu(_ETodo, State) ->
-    {ok, [{1600, "Create project"},
-          {1601, "Delete project"},
-          {1602, "Assign project"},
-          {1603, "Remove from project"},
-          {1604, "Project week to clipboard"}], State}.
+    {ok, [{1900, "Create project"},
+          {1901, "Delete project"},
+          {1902, "Assign project"},
+          {1903, "Remove from project"},
+          {1904, "Project week to clipboard"}], State}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -199,15 +199,15 @@ eSetWorkLogDate(_Dir, _User, Date, State) ->
 %%       NewState
 %% @end
 %%--------------------------------------------------------------------
-eMenuEvent(_EScriptDir, _User, 1600, _ETodo, _MenuText, State) ->
+eMenuEvent(_EScriptDir, _User, 1900, _ETodo, _MenuText, State) ->
     doCreateProject(State);
-eMenuEvent(_EScriptDir, _User, 1601, _ETodo, _MenuText, State) ->
+eMenuEvent(_EScriptDir, _User, 1901, _ETodo, _MenuText, State) ->
     doDeleteProject(State);
-eMenuEvent(_EScriptDir, _User, 1602, ETodo, _MenuText, State) ->
+eMenuEvent(_EScriptDir, _User, 1902, ETodo, _MenuText, State) ->
     doAssignProject(ETodo, State);
-eMenuEvent(_EScriptDir, _User, 1603, ETodo, _MenuText, State) ->
+eMenuEvent(_EScriptDir, _User, 1903, ETodo, _MenuText, State) ->
     doRemoveFromProject(ETodo, State);
-eMenuEvent(_EScriptDir, User, 1604, _ETodo, _MenuText, State) ->
+eMenuEvent(_EScriptDir, User, 1904, _ETodo, _MenuText, State) ->
     doCopyWeekToClipboard(User, State);
 eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, _MenuText, State) ->
     State.
@@ -216,65 +216,65 @@ doCreateProject(State = #state{frame = Frame, conf = Config, file = CFile}) ->
     ProjDlg = wxTextEntryDialog:new(Frame, "Enter WBS"),
     Config2 = case wxTextEntryDialog:showModal(ProjDlg) of
                   ?wxID_OK ->
-                      ProjText = wxTextEntryDialog:getValue(ProjDlg),
-                      Config#{ProjText => []};
+                      PTxt  = toKey(wxTextEntryDialog:getValue(ProjDlg)),
+                      Config#{PTxt => []};
                   _ ->
                       Config
               end,
     wxTextEntryDialog:destroy(ProjDlg),
-    file:write_file(CFile, io_lib:format("~tp.~n", [Config2])),
+    writeConfigChanges(CFile, Config, Config2),
     State#state{conf = Config2}.
 
 doDeleteProject(State = #state{frame = Frame, conf = Config, file = CFile}) ->
     ProjDlg = wxSingleChoiceDialog:new(Frame, "Choose WBS to delete",
-                                       "Delete WBS", maps:keys(Config)),
-    wxSingleChoiceDialog:setSize(ProjDlg, {300, 400}),
+                                       "Delete WBS", map2GUI(Config)),
+    wxSingleChoiceDialog:setSize(ProjDlg, {400, 400}),
     Config2 = case wxSingleChoiceDialog:showModal(ProjDlg) of
                   ?wxID_OK ->
-                      ProjText = wxSingleChoiceDialog:getStringSelection(ProjDlg),
-                      maps:remove(ProjText, Config);
+                      PTxt = toKey(wxSingleChoiceDialog:getStringSelection(ProjDlg)),
+                      maps:remove(PTxt, Config);
                   _ ->
                       Config
               end,
     wxSingleChoiceDialog:destroy(ProjDlg),
-    file:write_file(CFile, io_lib:format("~tp.~n", [Config2])),
+    writeConfigChanges(CFile, Config, Config2),
     State#state{conf = Config2}.
 
 doAssignProject(ETodo, State = #state{frame = Frame, conf = Config, file = CFile}) ->
     ProjDlg = wxSingleChoiceDialog:new(Frame, "Choose WBS to assign",
-                                       "Assign WBS", maps:keys(Config)),
-    wxSingleChoiceDialog:setSize(ProjDlg, {300, 400}),
+                                       "Assign WBS", map2GUI(Config)),
+    wxSingleChoiceDialog:setSize(ProjDlg, {400, 400}),
     Config2 = case wxSingleChoiceDialog:showModal(ProjDlg) of
                   ?wxID_OK ->
-                      Uid       = ETodo#etodo.uid,
-                      ProjText  = wxSingleChoiceDialog:getStringSelection(ProjDlg),
-                      Projects  = maps:get(ProjText, Config),
+                      Uid  = ETodo#etodo.uid,
+                      PTxt = toKey(wxSingleChoiceDialog:getStringSelection(ProjDlg)),
+                      Projects  = maps:get(PTxt, Config),
                       Projects2 = [Uid|lists:delete(Uid, Projects)],
-                      Config#{ProjText := Projects2};
+                      Config#{PTxt := Projects2};
                   _ ->
                       Config
               end,
     wxSingleChoiceDialog:destroy(ProjDlg),
-    file:write_file(CFile, io_lib:format("~tp.~n", [Config2])),
+    writeConfigChanges(CFile, Config, Config2),
     State#state{conf = Config2}.
 
 doRemoveFromProject(ETodo, State = #state{frame = Frame, conf = Config, file = CFile}) ->
     Choices = filterProjects(Config, ETodo#etodo.uid),
     ProjDlg = wxSingleChoiceDialog:new(Frame, "Remove WBS from task",
                                        "Remove WBS", Choices),
-    wxSingleChoiceDialog:setSize(ProjDlg, {300, 400}),
+    wxSingleChoiceDialog:setSize(ProjDlg, {400, 400}),
     Config2 = case wxSingleChoiceDialog:showModal(ProjDlg) of
                   ?wxID_OK ->
-                      Uid       = ETodo#etodo.uid,
-                      ProjText  = wxSingleChoiceDialog:getStringSelection(ProjDlg),
-                      Projects  = maps:get(ProjText, Config),
+                      Uid  = ETodo#etodo.uid,
+                      PTxt = toKey(wxSingleChoiceDialog:getStringSelection(ProjDlg)),
+                      Projects  = maps:get(PTxt, Config),
                       Projects2 = lists:delete(Uid, Projects),
-                      Config#{ProjText := Projects2};
+                      Config#{PTxt := Projects2};
                   _ ->
                       Config
               end,
     wxSingleChoiceDialog:destroy(ProjDlg),
-    file:write_file(CFile, io_lib:format("~tp.~n", [Config2])),
+    writeConfigChanges(CFile, Config, Config2),
     State#state{conf = Config2}.
 
 doCopyWeekToClipboard(User, State = #state{frame = Frame,
@@ -282,12 +282,12 @@ doCopyWeekToClipboard(User, State = #state{frame = Frame,
                                            date  = Date}) ->
     ProjDlg = wxSingleChoiceDialog:new(Frame,
                                        "Choose WBS to copy to clipboard",
-                                       "Copy WBS", maps:keys(Config)),
-    wxSingleChoiceDialog:setSize(ProjDlg, {300, 400}),
+                                       "Copy WBS", map2GUI(Config)),
+    wxSingleChoiceDialog:setSize(ProjDlg, {400, 400}),
     case wxSingleChoiceDialog:showModal(ProjDlg) of
         ?wxID_OK ->
-            ProjText = wxSingleChoiceDialog:getStringSelection(ProjDlg),
-            Tasks    = maps:get(ProjText, Config),
+            PTxt  = toKey(wxSingleChoiceDialog:getStringSelection(ProjDlg)),
+            Tasks = maps:get(PTxt, Config),
             {D1, D2, D3, D4, D5} = calcWorkLog(User, Tasks, Date),
             CopyStr = lists:flatten(io_lib:format("~p\t\t\t\t~p\t\t\t\t"
                                                   "~p\t\t\t\t~p\t\t\t\t~p",
@@ -308,7 +308,7 @@ filterProjects([], _, _, Acc) ->
 filterProjects([Project|Rest], Config, Uid, Acc) ->
     case lists:member(Uid, maps:get(Project, Config)) of
         true ->
-            filterProjects(Rest, Config, Uid, [Project|Acc]);
+            filterProjects(Rest, Config, Uid, [toGUI(Project)|Acc]);
         false ->
             filterProjects(Rest, Config, Uid, Acc)
     end.
@@ -354,3 +354,17 @@ replaceComma([$.|Rest], Acc) ->
     replaceComma(Rest, [$,|Acc]);
 replaceComma([Char|Rest], Acc) ->
     replaceComma(Rest, [Char|Acc]).
+
+writeConfigChanges(_CFile, Config, Config) ->
+    ok;
+writeConfigChanges(CFile, _Config, Config2) ->
+    file:write_file(CFile, io_lib:format("~tp.~n", [Config2])).
+
+toKey(Value) ->
+    base64:encode_to_string(unicode:characters_to_binary(Value)).
+
+toGUI(Value) ->
+    unicode:characters_to_list(base64:decode(Value), utf8).
+
+map2GUI(Map) ->
+    [toGUI(Value) || Value <- maps:keys(Map)].
