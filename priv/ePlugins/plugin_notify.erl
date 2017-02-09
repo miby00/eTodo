@@ -21,6 +21,7 @@
          eLoggedInMsg/3,
          eLoggedOutMsg/3,
          eSetStatusUpdate/5,
+         eSetWorkLogDate/4,
          eMenuEvent/6]).
 
 getName() -> "Notify".
@@ -158,6 +159,16 @@ eLoggedOutMsg(_Dir, _User, State) ->
 %% @end
 %%--------------------------------------------------------------------
 eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg, State) ->
+    State.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Called every time the user changes work log date
+%% @spec eSetWorkLogDate(Dir, User, Date, State) ->
+%%       NewState
+%% @end
+%%--------------------------------------------------------------------
+eSetWorkLogDate(_Dir, _User, _Date, State) ->
     State.
 
 %%--------------------------------------------------------------------

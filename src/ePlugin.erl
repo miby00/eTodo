@@ -25,6 +25,7 @@
 
 -export([getMenu/2,
          eSetStatusUpdate/5,
+         eSetWorkLogDate/4,
          eGetStatusUpdate/5,
          eTimerStarted/7,
          eTimerStopped/3,
@@ -78,6 +79,7 @@ getMenu(Pid, ETodo) ->
 %%--------------------------------------------------------------------
 eGetStatusUpdate(Pid, Dir, User, Status, StatusMsg) ->
     gen_server:call(Pid, {eGetStatusUpdate, [Dir, User, Status, StatusMsg]}).
+
 %%--------------------------------------------------------------------
 %% @doc
 %% Called when the user changes status in eTodo
@@ -87,6 +89,16 @@ eGetStatusUpdate(Pid, Dir, User, Status, StatusMsg) ->
 %%--------------------------------------------------------------------
 eSetStatusUpdate(Pid, Dir, User, Status, StatusMsg) ->
     gen_server:cast(Pid, {eSetStatusUpdate, [Dir, User, Status, StatusMsg]}).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Called when the user changes date in work log window
+%%
+%% @spec eSetWorkLogDate(Pid, Dir, User, Date) -> ok
+%% @end
+%%--------------------------------------------------------------------
+eSetWorkLogDate(Pid, Dir, User, Date) ->
+    gen_server:cast(Pid, {eSetWorkLogDate, [Dir, User, Date]}).
 
 %%--------------------------------------------------------------------
 %% @doc

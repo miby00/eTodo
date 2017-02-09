@@ -21,6 +21,7 @@
          eLoggedInMsg/3,
          eLoggedOutMsg/3,
          eSetStatusUpdate/5,
+         eSetWorkLogDate/4,
          eMenuEvent/6]).
 
 getName() -> "Debug plugin".
@@ -83,7 +84,7 @@ eGetStatusUpdate(Dir, User, Status, StatusMsg, State = #state{callback = CBs}) -
 eTimerStarted(Dir, User, Text, Hours, Min, Sec, State = #state{callback = CBs}) ->
     State2 = State#state{callback = [eTimerStarted|CBs]},
     io("eTimerStarted(Dir, User, Text, Hours, Min, Sec, State): ~p~n",
-        [[Dir, User, Text, Hours, Min, Sec, State2]]),
+       [[Dir, User, Text, Hours, Min, Sec, State2]]),
     State2.
 
 %%--------------------------------------------------------------------
@@ -96,7 +97,7 @@ eTimerStarted(Dir, User, Text, Hours, Min, Sec, State = #state{callback = CBs}) 
 eTimerStopped(Dir, User, State = #state{callback = CBs}) ->
     State2 = State#state{callback = [eTimerStopped|CBs]},
     io("eTimerStopped(Dir, User, State): ~p~n",
-        [[Dir, User, State2]]),
+       [[Dir, User, State2]]),
     State2.
 
 %%--------------------------------------------------------------------
@@ -109,7 +110,7 @@ eTimerStopped(Dir, User, State = #state{callback = CBs}) ->
 eTimerEnded(Dir, User, Text, State = #state{callback = CBs}) ->
     State2 = State#state{callback = [eTimerEnded|CBs]},
     io("eTimerEnded(Dir, User, Text, State): ~p~n",
-        [[Dir, User, Text, State2]]),
+       [[Dir, User, Text, State2]]),
     State2.
 
 %%--------------------------------------------------------------------
@@ -188,6 +189,19 @@ eSetStatusUpdate(Dir, User, Status, StatusMsg, State = #state{callback = CBs}) -
     State2 = State#state{callback = [eSetStatusUpdate|CBs]},
     io("eSetStatusUpdate(Dir, User, Status, StatusMsg, State): ~p~n",
        [[Dir, User, Status, StatusMsg, State2]]),
+    State2.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Called every time the user changes work log date
+%% @spec eSetWorkLogDate(Dir, User, Date, State) ->
+%%       NewState
+%% @end
+%%--------------------------------------------------------------------
+eSetWorkLogDate(Dir, User, Date, State) ->
+    State2 = State#state{callback = [eSetWorkLogDate|CBs]},
+    io("eSetStatusUpdate(Dir, User, Date, State): ~p~n",
+       [[Dir, User, Date, State2]]),
     State2.
 
 %%--------------------------------------------------------------------

@@ -27,6 +27,7 @@
          getRightMenuForPlugins/1]).
 
 -export([eSetStatusUpdate/3,
+         eSetWorkLogDate/2,
          eGetStatusUpdate/3,
          eTimerStarted/5,
          eTimerStopped/1,
@@ -111,7 +112,7 @@ getRightMenuForPlugins(ETodo) ->
 %% @doc
 %% Called when the user changes status in eTodo
 %%
-%% @spec eSetStatusUpdate(User, Status, StatusMsg) -> noChange |
+%% @spec eGetStatusUpdate(User, Status, StatusMsg) -> noChange |
 %%                                                    {ok, Status, StatusMsg}
 %% @end
 %%--------------------------------------------------------------------
@@ -127,6 +128,16 @@ eGetStatusUpdate(User, Status, StatusMsg) ->
 %%--------------------------------------------------------------------
 eSetStatusUpdate(User, Status, StatusMsg) ->
     gen_server:cast(?MODULE, {eSetStatusUpdate, [User, Status, StatusMsg]}).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Called when the user changes status in eTodo
+%%
+%% @spec eSetWorkLogDate(User, Date) -> ok
+%% @end
+%%--------------------------------------------------------------------
+eSetWorkLogDate(User, Date) ->
+    gen_server:cast(?MODULE, {eSetWorkLogDate, [User, Date]}).
 
 %%--------------------------------------------------------------------
 %% @doc

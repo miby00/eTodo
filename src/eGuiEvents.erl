@@ -136,6 +136,7 @@
          userStatusMsgEvent/4,
          webUIEnabledEvent/4,
          workDateEvent/4,
+         workLogReportEvent/4,
          workLogStartDateEvent/4]).
 
 -import(eGuiFunctions, [addTodo/4,
@@ -168,6 +169,7 @@
                         setTaskLists/2,
                         showBookmarkMenu/2,
                         showMenu/4,
+                        toClipboard/2,
                         updateGui/3,
                         updateGui/4,
                         updateTodo/4,
@@ -599,6 +601,9 @@ msgTextWinEvent(_Type, _Id, Frame, State = #guiState{msgMenu = MsgMenu}) ->
 remTextWinEvent(_Type, _Id, Frame, State = #guiState{msgMenu = MsgMenu}) ->
     wxWindow:popupMenu(Frame, MsgMenu),
     State.
+
+workLogReportEvent(_Type, _Id, Frame, State = #guiState{user = User}) ->
+    showMenu(User, {row, -1}, Frame, State).
 
 %%====================================================================
 %%  Task list event (command_list_item_selected  or
@@ -2541,25 +2546,6 @@ clearSysMsgCounter(State) ->
     Notebook = obj("mainNotebook",  State),
     wxNotebook:setPageText(Notebook, 2, ?tr("reminderPanel")),
     State#guiState{unreadSysMsgs = 0}.
-
-%%======================================================================
-%% Function : toClipboard(Text, State) -> ok
-%% Purpose  : Copy text to clipboard.
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-toClipboard(Text, State) ->
-    ClipBoard = wxClipboard:get(),
-    case wxClipboard:open(ClipBoard) of
-        true ->
-            TextObj = wxTextDataObject:new([{text, Text}]),
-            wxClipboard:setData(ClipBoard, TextObj),
-            wxClipboard:close(ClipBoard),
-            State;
-        false ->
-            State
-    end.
 
 %%======================================================================
 %% Function :

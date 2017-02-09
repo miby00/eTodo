@@ -53,6 +53,8 @@
          setTaskLists/2,
          showBookmarkMenu/2,
          showMenu/4,
+         toClipboard/1,
+         toClipboard/2,
          type/1,
          updateGui/3,
          updateGui/4,
@@ -1545,6 +1547,8 @@ generateWorkLog(State = #guiState{user = User}) ->
     Obj2      = obj("workLogReport",    State),
     DateTime  = wxDatePickerCtrl:getValue(Obj1),
     {Date, _} = DateTime,
+    ePluginServer:eSetWorkLogDate(User, Date),
+
     Report    = eHtml:makeWorkLogReport(User, Date),
     wxHtmlWindow:setPage(Obj2, Report),
     State.
@@ -1641,3 +1645,26 @@ deleteAndUpdate(Size, Index, _TodoList, State) when Size =< Index ->
 deleteAndUpdate(Size, Index, TodoList, State) ->
     setColor(TodoList, Index),
     deleteAndUpdate(Size, Index + 1, TodoList, State).
+
+%%======================================================================
+%% Function : toClipboard(Text, State) -> ok
+%% Purpose  : Copy text to clipboard.
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+toClipboard(Text) ->
+    toClipboard(Text, ok).
+
+toClipboard(Text, State) ->
+    ClipBoard = wxClipboard:get(),
+    case wxClipboard:open(ClipBoard) of
+        true ->
+            TextObj = wxTextDataObject:new([{text, Text}]),
+            wxClipboard:setData(ClipBoard, TextObj),
+            wxClipboard:close(ClipBoard),
+            State;
+        false ->
+            State
+    end.
+

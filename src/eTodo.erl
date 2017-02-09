@@ -1127,10 +1127,12 @@ handle_cmd(Name, Type, Index, Id, Frame, State) ->
 %% Notes    :
 %%======================================================================
 connectMsgFrame(Frame, Dict) ->
-    AllMsgObj = wxXmlResource:xrcctrl(Frame, "msgTextWin", wxHtmlWindow),
-    RemMsgObj = wxXmlResource:xrcctrl(Frame, "remTextWin", wxHtmlWindow),
-    wxHtmlWindow:connect(AllMsgObj, right_down),
-    wxHtmlWindow:connect(RemMsgObj, right_down),
+    AllMsgObj  = wxXmlResource:xrcctrl(Frame, "msgTextWin",    wxHtmlWindow),
+    RemMsgObj  = wxXmlResource:xrcctrl(Frame, "remTextWin",    wxHtmlWindow),
+    WorkLogObj = wxXmlResource:xrcctrl(Frame, "workLogReport", wxHtmlWindow),
+    wxHtmlWindow:connect(AllMsgObj,  right_down),
+    wxHtmlWindow:connect(RemMsgObj,  right_down),
+    wxHtmlWindow:connect(WorkLogObj, right_down),
     Dict2  = connectItems(["msgTextCtrl"],
                           [command_text_enter, command_text_updated],
                           Frame,   Dict),
