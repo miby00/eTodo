@@ -426,7 +426,9 @@ getModulesToCast(MenuOption, [{MenuOptionsList, Module}|Rest], Acc) ->
             getModulesToCast(MenuOption, Rest, [{Module, MenuText} | Acc]);
         false ->
             getModulesToCast(MenuOption, Rest, Acc)
-    end.
+    end;
+getModulesToCast(MenuOption, [_|Rest], Acc) ->
+    getModulesToCast(MenuOption, Rest, Acc).
 
 checkModule(_MenuOption, [], _Module) ->
     false;
@@ -439,6 +441,8 @@ checkModule(MenuOption, [{{subMenu, _}, MenuOptions}|Rest], Module) ->
     end;
 checkModule(MenuOption, [{MenuOption, MenuText}|_Rest], _Module) ->
     {MenuOption, MenuText};
+checkModule(MenuOption, [divider|Rest], Module) ->
+    checkModule(MenuOption, Rest, Module);
 checkModule(MenuOption, [{_MenuOption, _}|Rest], Module) ->
     checkModule(MenuOption, Rest, Module).
 

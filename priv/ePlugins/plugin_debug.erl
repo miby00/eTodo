@@ -198,7 +198,7 @@ eSetStatusUpdate(Dir, User, Status, StatusMsg, State = #state{callback = CBs}) -
 %%       NewState
 %% @end
 %%--------------------------------------------------------------------
-eSetWorkLogDate(Dir, User, Date, State) ->
+eSetWorkLogDate(Dir, User, Date, State = #state{callback = CBs}) ->
     State2 = State#state{callback = [eSetWorkLogDate|CBs]},
     io("eSetStatusUpdate(Dir, User, Date, State): ~p~n",
        [[Dir, User, Date, State2]]),
