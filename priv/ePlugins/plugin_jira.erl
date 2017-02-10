@@ -227,7 +227,7 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
             case wxMultiChoiceDialog:showModal(MultiDlg) of
                 ?wxID_OK ->
                     MSel   = wxMultiChoiceDialog:getSelections(MultiDlg),
-                    TTLog  = [lists:nth(I - 1, LoggedWork2) || I <- MSel, I < 2],
+                    TTLog  = [lists:nth(I - 1, LoggedWork2) || I <- MSel, I > 1],
                     SetRem = {lists:member(0, MSel), Remaining},
                     SetEst = {lists:member(1, MSel), Estimate},
                     doSetRemaining(SetRem, BAuth, BaseUrl ++ "/2/issue/" ++ Key),
@@ -247,8 +247,8 @@ eMenuEvent(_EScriptDir, User, 1501, _ETodo, _MenuText,
     Result   = httpRequest(BAuth, get, Url),
     Issues   = issueList(Result),
     MultiDlg = wxMultiChoiceDialog:new(Frame,
-                                       "Choose which updates to apply",
-                                       "Update work log", Issues),
+                                       "Choose which issues to create tasks from",
+                                       "Create task", Issues),
     wxMultiChoiceDialog:setSize(MultiDlg, {500, 500}),
     case wxMultiChoiceDialog:showModal(MultiDlg) of
         ?wxID_OK ->
@@ -469,7 +469,7 @@ httpPost(BAuth, Method, Body, Url) ->
     end.
 
 constructMessage(LoggedWork) ->
-    constructMessage(LoggedWork, {[], []}, 1).
+    constructMessage(LoggedWork, {[], []}, 2).
 
 constructMessage([], {Acc1, Acc2}, _Index) ->
     {["Set remaining to time left",
