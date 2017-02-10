@@ -31,7 +31,7 @@ getDesc() -> "SAP time reporting integration.".
 -include_lib("wx/include/wx.hrl").
 -include_lib("eTodo/include/eTodo.hrl").
 
--record(state, {frame, conf, file, date = date()}).
+-record(state, {frame, conf, date = date()}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -40,16 +40,9 @@ getDesc() -> "SAP time reporting integration.".
 %% @end
 %%--------------------------------------------------------------------
 init([WX, Frame]) ->
-    {ok, Dir}  = application:get_env(mnesia, dir),
-    ConfigFile = filename:join(Dir, "plugin_sap.dat"),
-    Config     = case file:consult(ConfigFile) of
-                     {ok, [Cfg]} when is_map(Cfg) ->
-                         Cfg;
-                     _ ->
-                         #{}
-                 end,
+    Config = ePluginInterface:readConfig(?MODULE),
     wx:set_env(WX),
-    #state{frame = Frame, conf = Config, file = ConfigFile}.
+    #state{frame = Frame, conf = Config}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -215,7 +208,7 @@ eMenuEvent(_EScriptDir, User, 1904, _ETodo, _MenuText, State) ->
 eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, _MenuText, State) ->
     State.
 
-doCreateProject(State = #state{frame = Frame, conf = Config, file = CFile}) ->
+doCreateProject(State = #state{frame = Frame, conf = Config}) ->
     ProjDlg = wxTextEntryDialog:new(Frame, "Enter WBS"),
     Config2 = case wxTextEntryDialog:showModal(ProjDlg) of
                   ?wxID_OK ->
@@ -225,10 +218,10 @@ doCreateProject(State = #state{frame = Frame, conf = Config, file = CFile}) ->
                       Config
               end,
     wxTextEntryDialog:destroy(ProjDlg),
-    writeConfigChanges(CFile, Config, Config2),
+    writeConfigChanges(Config, Config2),
     State#state{conf = Config2}.
 
-doDeleteProject(State = #state{frame = Frame, conf = Config, file = CFile}) ->
+doDeleteProject(State = #state{frame = Frame, conf = Config}) ->
     ProjDlg = wxSingleChoiceDialog:new(Frame, "Choose WBS to delete",
                                        "Delete WBS", map2GUI(Config)),
     wxSingleChoiceDialog:setSize(ProjDlg, {400, 400}),
@@ -240,10 +233,10 @@ doDeleteProject(State = #state{frame = Frame, conf = Config, file = CFile}) ->
                       Config
               end,
     wxSingleChoiceDialog:destroy(ProjDlg),
-    writeConfigChanges(CFile, Config, Config2),
+    writeConfigChanges(Config, Config2),
     State#state{conf = Config2}.
 
-doAssignProject(ETodo, State = #state{frame = Frame, conf = Config, file = CFile}) ->
+doAssignProject(ETodo, State = #state{frame = Frame, conf = Config}) ->
     ProjDlg = wxSingleChoiceDialog:new(Frame, "Assign WBS to task",
                                        "Assign WBS", map2GUI(Config)),
     wxSingleChoiceDialog:setSize(ProjDlg, {400, 400}),
@@ -258,10 +251,10 @@ doAssignProject(ETodo, State = #state{frame = Frame, conf = Config, file = CFile
                       Config
               end,
     wxSingleChoiceDialog:destroy(ProjDlg),
-    writeConfigChanges(CFile, Config, Config2),
+    writeConfigChanges(Config, Config2),
     State#state{conf = Config2}.
 
-doRemoveFromProject(ETodo, State = #state{frame = Frame, conf = Config, file = CFile}) ->
+doRemoveFromProject(ETodo, State = #state{frame = Frame, conf = Config}) ->
     Choices = filterProjects(Config, ETodo#etodo.uid),
     ProjDlg = wxSingleChoiceDialog:new(Frame, "Remove WBS from task",
                                        "Remove WBS", Choices),
@@ -277,7 +270,7 @@ doRemoveFromProject(ETodo, State = #state{frame = Frame, conf = Config, file = C
                       Config
               end,
     wxSingleChoiceDialog:destroy(ProjDlg),
-    writeConfigChanges(CFile, Config, Config2),
+    writeConfigChanges(Config, Config2),
     State#state{conf = Config2}.
 
 doCopyWeekToClipboard(User, State = #state{frame = Frame,
@@ -360,10 +353,10 @@ replaceComma([$.|Rest], Acc) ->
 replaceComma([Char|Rest], Acc) ->
     replaceComma(Rest, [Char|Acc]).
 
-writeConfigChanges(_CFile, Config, Config) ->
+writeConfigChanges(Config, Config) ->
     ok;
-writeConfigChanges(CFile, _Config, Config2) ->
-    file:write_file(CFile, io_lib:format("~tp.~n", [Config2])).
+writeConfigChanges(_Config, Config2) ->
+    ePluginInterface:saveConfig(?MODULE, Config2).
 
 toKey(Value) ->
     base64:encode_to_string(unicode:characters_to_binary(Value)).

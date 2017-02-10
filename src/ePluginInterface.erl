@@ -22,7 +22,9 @@
          addTodo/2,
          tryInt/1,
          todoCreated/3,
-         saveTime/3]).
+         saveTime/3,
+         readConfig/1,
+         saveConfig/2]).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -154,3 +156,32 @@ todoCreated(TaskList, Row, Todo) ->
 saveTime(Uid, Estimate, Remaining) ->
     eTodoDB:saveTime(integer_to_list(Uid),
                      Estimate div 3600, Remaining div 3600).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Read config file
+%% @spec readConfig(Module) -> [terms]
+%%
+%% @end
+%%--------------------------------------------------------------------
+readConfig(Module) ->
+    {ok, Dir}  = application:get_env(mnesia, dir),
+    ConfigFile = filename:join(Dir, atom_to_list(Module) ++ ".dat"),
+    case file:consult(ConfigFile) of
+        {ok, [Cfg]} when is_map(Cfg) ->
+            Cfg;
+        _ ->
+            #{}
+    end.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Save config file
+%% @spec saveConfig(Module, Config) -> ok
+%%
+%% @end
+%%--------------------------------------------------------------------
+saveConfig(Module, Config) ->
+    {ok, Dir}  = application:get_env(mnesia, dir),
+    ConfigFile = filename:join(Dir, atom_to_list(Module) ++ ".dat"),
+    file:write_file(ConfigFile, io_lib:format("~tp.~n", [Config])).
