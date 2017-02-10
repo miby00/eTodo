@@ -345,9 +345,8 @@ doCopyWeekToClipboardAllWBS([WBS|Rest], User, State = #state{frame = Frame,
             doCopyWeekToClipboardAllWBS(Rest, User, State);
         {D1, D2, D3, D4, D5} ->
             MsgDlg = wxMessageDialog:new(Frame, "5 days begining with " ++
-                                             ExtDate ++ " in clipboard\n" ++
-                                             "*** " ++ WBS ++ " ***",
-                                         [{caption, "Copy time to SAP"},
+                                             ExtDate ++ " in clipboard",
+                                         [{caption, WBS},
                                           {style, ?wxICON_INFORMATION}]),
             CopyStr = lists:flatten(io_lib:format(?sapFormat,
                                                   [D1, D2, D3, D4, D5])),

@@ -67,44 +67,17 @@ terminate(_Reason, _State) ->
 %% @spec getMenu(ETodo, State) -> {ok, [{menuOption, menuText}, ...], NewState}
 %% @end
 %%--------------------------------------------------------------------
-getMenu(undefined,
-        State = #state{jiraUrl = JiraUrl, jiraSearch = Search, bauth = BAuth}) ->
-    Url = JiraUrl ++ "/rest/api/2/search?jql=" ++
-        http_uri:encode(Search) ++ "&fields=summary,key",
-    Result  = httpRequest(BAuth, get, Url),
-    SubMenu = constructSubMenu(1501, Result),
-    {ok, [{{subMenu, "Create Task from JIRA"}, SubMenu}], State};
-getMenu(ETodo,
-        State = #state{jiraUrl = JiraUrl, jiraSearch = Search, bauth = BAuth}) ->
-    Url = JiraUrl ++ "/rest/api/2/search?jql=" ++
-        http_uri:encode(Search) ++ "&fields=summary,key",
-    Result  = httpRequest(BAuth, get, Url),
-    SubMenu = constructSubMenu(1501, Result),
+getMenu(undefined, State) ->
+    {ok, [{1501, "Create Task from JIRA"}], State};
+getMenu(ETodo, State = #state{jiraUrl = JiraUrl}) ->
     Comment = lists:flatten(ETodo#etodo.comment),
     case parseComment(Comment, JiraUrl) of
         {error, keyNotFound} ->
-            {ok, [{{subMenu, "Create Task from JIRA"},
-                   SubMenu}], State};
+            {ok, [{1501, "Create Task from JIRA"}], State};
         _ ->
             {ok, [{1500, "Log work in JIRA"},
-                  {{subMenu, "Create Task from JIRA"},
-                   SubMenu}], State}
+                  {1501, "Create Task from JIRA"}], State}
     end.
-
-constructSubMenu(MenuOption, Result) ->
-    MapResult = jsx:decode(Result, [return_maps]),
-    Issues    = maps:get(<<"issues">>, MapResult),
-    constructSubMenu2(MenuOption, Issues, []).
-
-constructSubMenu2(_MenuOption, [], SoFar) ->
-    SoFar;
-constructSubMenu2(MenuOption, [Feature|Rest], SoFar) ->
-    FeatureRef   = binary_to_list(maps:get(<<"key">>, Feature)),
-    Fields       = maps:get(<<"fields">>, Feature),
-    FeatureDesc  = unicode:characters_to_binary(maps:get(<<"summary">>, Fields),
-                                                utf8, latin1),
-    FeatureMText = FeatureRef ++ ": " ++ binary_to_list(FeatureDesc),
-    constructSubMenu2(MenuOption + 1, Rest, [{MenuOption, FeatureMText}|SoFar]).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -266,11 +239,32 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
             wxMultiChoiceDialog:destroy(MultiDlg),
             State
     end;
-eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
-           State = #state{jiraUrl = JiraUrl, bauth = BAuth}) ->
+eMenuEvent(_EScriptDir, User, 1501, _ETodo, _MenuText,
+           State = #state{jiraUrl = JiraUrl, jiraSearch = Search,
+                          bauth   = BAuth,   frame      = Frame}) ->
+    Url = JiraUrl ++ "/rest/api/2/search?jql=" ++
+        http_uri:encode(Search) ++ "&fields=summary,key",
+    Result   = httpRequest(BAuth, get, Url),
+    Issues   = issueList(Result),
+    MultiDlg = wxMultiChoiceDialog:new(Frame,
+                                       "Choose which updates to apply",
+                                       "Update work log", Issues),
+    wxMultiChoiceDialog:setSize(MultiDlg, {500, 500}),
+    case wxMultiChoiceDialog:showModal(MultiDlg) of
+        ?wxID_OK ->
+            MSel = wxMultiChoiceDialog:getSelections(MultiDlg),
+            [addTask(User, lists:nth(I + 1, Issues), State) || I <- MSel];
+        ?wxID_CANCEL ->
+            ok
+    end,
+    wxMultiChoiceDialog:destroy(MultiDlg),
+    State.
+
+addTask(User, MenuText, State= #state{jiraUrl = JiraUrl, bauth = BAuth}) ->
     [Key|_]   = string:tokens(MenuText, ":"),
     BaseUrl   = JiraUrl ++ "/rest/api",
-    FullUrl   = BaseUrl ++ "/2/issue/" ++ Key ++ "/?fields=description,status,summary,priority,timetracking",
+    FullUrl   = BaseUrl ++ "/2/issue/" ++ Key ++
+        "/?fields=description,status,summary,priority,timetracking",
     Result    = httpRequest(BAuth, get, FullUrl),
     MapRes    = jsx:decode(Result, [return_maps]),
     Fields    = get(<<"fields">>, MapRes, #{}),
@@ -319,6 +313,21 @@ eMenuEvent(_EScriptDir, User, _MenuOption, _ETodo, MenuText,
 
     ePluginInterface:saveTime(Todo#todo.uid, Estimate, Remaining),
     State.
+
+issueList(Result) ->
+    MapResult = jsx:decode(Result, [return_maps]),
+    Issues    = maps:get(<<"issues">>, MapResult),
+    issueList2(Issues, []).
+
+issueList2([], SoFar) ->
+    SoFar;
+issueList2([Feature| Rest], SoFar) ->
+    FeatureRef   = binary_to_list(maps:get(<<"key">>, Feature)),
+    Fields       = maps:get(<<"fields">>, Feature),
+    FeatureDesc  = unicode:characters_to_binary(maps:get(<<"summary">>, Fields),
+                                                utf8, latin1),
+    FeatureMText = FeatureRef ++ ": " ++ binary_to_list(FeatureDesc),
+    issueList2(Rest, [FeatureMText| SoFar]).
 
 status2DB(<<"In Progress">>) -> inProgress;
 status2DB(_)                 -> planning.
