@@ -31,6 +31,9 @@ getDesc() -> "SAP time reporting integration.".
 -include_lib("wx/include/wx.hrl").
 -include_lib("eTodo/include/eTodo.hrl").
 
+%% Defines how clipboard data should look
+-define(sapFormat, "~p\t\t\t\t~p\t\t\t\t~p\t\t\t\t~p\t\t\t\t~p").
+
 -record(state, {frame, conf, date = date()}).
 
 %%--------------------------------------------------------------------
@@ -60,18 +63,24 @@ terminate(_Reason, _State) -> ok.
 %% @end
 %%--------------------------------------------------------------------
 getMenu(undefined, State) ->
-    {ok, [{1900, "Create WBS"},
-          {1901, "Delete WBS"},
+    {ok, [{1900, "Add WBS"},
+          {1901, "Remove WBS"},
           divider,
-          {1904, "5 days to clipboard"}], State};
+          {1902, "Verify work log"},
+          divider,
+          {1905, "5 days to clipboard (one WBS)"},
+          {1906, "5 days to clipboard (all WBS)"}], State};
 getMenu(_ETodo, State) ->
-    {ok, [{1900, "Create WBS"},
-          {1901, "Delete WBS"},
+    {ok, [{1900, "Add WBS"},
+          {1901, "Remove WBS"},
           divider,
-          {1902, "Assign WBS to task"},
-          {1903, "Remove WBS from task"},
+          {1902, "Verify work log"},
           divider,
-          {1904, "5 days to clipboard"}], State}.
+          {1903, "Assign WBS to task"},
+          {1904, "Remove WBS from task"},
+          divider,
+          {1905, "5 days to clipboard (one WBS)"},
+          {1906, "5 days to clipboard (all WBS)"}], State}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -199,17 +208,21 @@ eMenuEvent(_EScriptDir, _User, 1900, _ETodo, _MenuText, State) ->
     doCreateProject(State);
 eMenuEvent(_EScriptDir, _User, 1901, _ETodo, _MenuText, State) ->
     doDeleteProject(State);
-eMenuEvent(_EScriptDir, _User, 1902, ETodo, _MenuText, State) ->
-    doAssignProject(ETodo, State);
+eMenuEvent(_EScriptDir, User, 1902, _ETodo, _MenuText, State) ->
+    doVerifyWorkLog(User, State);
 eMenuEvent(_EScriptDir, _User, 1903, ETodo, _MenuText, State) ->
+    doAssignProject(ETodo, State);
+eMenuEvent(_EScriptDir, _User, 1904, ETodo, _MenuText, State) ->
     doRemoveFromProject(ETodo, State);
-eMenuEvent(_EScriptDir, User, 1904, _ETodo, _MenuText, State) ->
-    doCopyWeekToClipboard(User, State);
+eMenuEvent(_EScriptDir, User, 1905, _ETodo, _MenuText, State) ->
+    doCopyWeekToClipboardOneWBS(User, State);
+eMenuEvent(_EScriptDir, User, 1906, _ETodo, _MenuText, State) ->
+    doCopyWeekToClipboardAllWBS(User, State);
 eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, _MenuText, State) ->
     State.
 
 doCreateProject(State = #state{frame = Frame, conf = Config}) ->
-    ProjDlg = wxTextEntryDialog:new(Frame, "Enter WBS"),
+    ProjDlg = wxTextEntryDialog:new(Frame, "Add WBS"),
     Config2 = case wxTextEntryDialog:showModal(ProjDlg) of
                   ?wxID_OK ->
                       PTxt  = toKey(wxTextEntryDialog:getValue(ProjDlg)),
@@ -235,6 +248,46 @@ doDeleteProject(State = #state{frame = Frame, conf = Config}) ->
     wxSingleChoiceDialog:destroy(ProjDlg),
     writeConfigChanges(Config, Config2),
     State#state{conf = Config2}.
+
+doVerifyWorkLog(User, State = #state{frame = Frame, date = Date, conf = Cfg}) ->
+    WLList    = ePluginInterface:getWorkLog(User, Date),
+    Keys      = maps:keys(Cfg),
+    WLVerList = [{verify(Keys, Uid, Cfg), GUIDesc} || {Uid, GUIDesc} <- WLList],
+    case constructVerifyMessage(WLVerList) of
+        [] ->
+            Dlg = wxMessageDialog:new(Frame, "All tasks in work log has WBS",
+                                      [{caption, "Work log verified"},
+                                       {style,   ?wxICON_INFORMATION}]),
+            wxMessageDialog:showModal(Dlg),
+            wxMessageDialog:destroy(Dlg);
+        Msg ->
+            Dlg = wxMessageDialog:new(Frame, Msg,
+                                      [{caption, "Tasks missing WBS"},
+                                       {style,   ?wxICON_INFORMATION}]),
+            wxMessageDialog:showModal(Dlg),
+            wxMessageDialog:destroy(Dlg)
+    end,
+    State.
+
+constructVerifyMessage(VLVerList) ->
+    constructVerifyMessage(VLVerList, []).
+
+constructVerifyMessage([], Acc) ->
+    lists:flatten(lists:reverse(Acc));
+constructVerifyMessage([{false, GUIDesc}|Rest], Acc) ->
+    constructVerifyMessage(Rest, [GUIDesc ++ "\n"|Acc]);
+constructVerifyMessage([{true, _GUIDesc}|Rest], Acc) ->
+    constructVerifyMessage(Rest, Acc).
+
+verify([], _Uid, _Cfg) ->
+    false;
+verify([Key|Rest], Uid, Cfg) ->
+    case lists:member(Uid, maps:get(Key, Cfg, [])) of
+        true ->
+            true;
+        false ->
+            verify(Rest, Uid, Cfg)
+    end.
 
 doAssignProject(ETodo, State = #state{frame = Frame, conf = Config}) ->
     ProjDlg = wxSingleChoiceDialog:new(Frame, "Assign WBS to task",
@@ -273,9 +326,40 @@ doRemoveFromProject(ETodo, State = #state{frame = Frame, conf = Config}) ->
     writeConfigChanges(Config, Config2),
     State#state{conf = Config2}.
 
-doCopyWeekToClipboard(User, State = #state{frame = Frame,
-                                           conf  = Config,
-                                           date  = Date}) ->
+doCopyWeekToClipboardAllWBS(User, State = #state{conf  = Config}) ->
+    WBSList = map2GUI(Config),
+    doCopyWeekToClipboardAllWBS(WBSList, User, State).
+
+doCopyWeekToClipboardAllWBS([], _User, State) ->
+    State;
+doCopyWeekToClipboardAllWBS([WBS|Rest], User, State = #state{frame = Frame,
+                                                             conf  = Config,
+                                                             date  = Date}) ->
+
+    PTxt    = toKey(WBS),
+    Tasks   = maps:get(PTxt, Config),
+    ExtDate = ePluginInterface:toStr(Date),
+
+    case calcWorkLog(User, Tasks, Date) of
+        {0, 0, 0, 0, 0} ->
+            doCopyWeekToClipboardAllWBS(Rest, User, State);
+        {D1, D2, D3, D4, D5} ->
+            MsgDlg = wxMessageDialog:new(Frame, "5 days begining with " ++
+                                             ExtDate ++ " in clipboard\n" ++
+                                             "*** " ++ WBS ++ " ***",
+                                         [{caption, "Copy time to SAP"},
+                                          {style, ?wxICON_INFORMATION}]),
+            CopyStr = lists:flatten(io_lib:format(?sapFormat,
+                                                  [D1, D2, D3, D4, D5])),
+            ePluginInterface:toClipboard(replaceComma(CopyStr)),
+            wxMessageDialog:showModal(MsgDlg),
+            wxMessageDialog:destroy(MsgDlg),
+            doCopyWeekToClipboardAllWBS(Rest, User, State)
+    end.
+
+doCopyWeekToClipboardOneWBS(User, State = #state{frame = Frame,
+                                                 conf  = Config,
+                                                 date  = Date}) ->
     ExtDate = ePluginInterface:toStr(Date),
     ProjDlg = wxSingleChoiceDialog:new(Frame,
                                        "5 days begining with " ++ ExtDate ++
@@ -287,8 +371,7 @@ doCopyWeekToClipboard(User, State = #state{frame = Frame,
             PTxt  = toKey(wxSingleChoiceDialog:getStringSelection(ProjDlg)),
             Tasks = maps:get(PTxt, Config),
             {D1, D2, D3, D4, D5} = calcWorkLog(User, Tasks, Date),
-            CopyStr = lists:flatten(io_lib:format("~p\t\t\t\t~p\t\t\t\t"
-                                                  "~p\t\t\t\t~p\t\t\t\t~p",
+            CopyStr = lists:flatten(io_lib:format(?sapFormat,
                                                   [D1, D2, D3, D4, D5])),
             ePluginInterface:toClipboard(replaceComma(CopyStr));
         _ ->

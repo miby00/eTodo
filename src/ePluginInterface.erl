@@ -24,7 +24,9 @@
          todoCreated/3,
          saveTime/3,
          readConfig/1,
-         saveConfig/2]).
+         saveConfig/2,
+         getWorkLog/2,
+         incDate/2]).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -160,7 +162,7 @@ saveTime(Uid, Estimate, Remaining) ->
 %%--------------------------------------------------------------------
 %% @doc
 %% Read config file
-%% @spec readConfig(Module) -> [terms]
+%% @spec readConfig(Module) -> Map :: map()
 %%
 %% @end
 %%--------------------------------------------------------------------
@@ -185,3 +187,33 @@ saveConfig(Module, Config) ->
     {ok, Dir}  = application:get_env(mnesia, dir),
     ConfigFile = filename:join(Dir, atom_to_list(Module) ++ ".dat"),
     file:write_file(ConfigFile, io_lib:format("~tp.~n", [Config])).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Get complete work log for a date
+%% @spec getWorkLog(User, Date) -> [{Uid, WorkLogDesc}]
+%%
+%% @end
+%%--------------------------------------------------------------------
+getWorkLog(User, Date) ->
+    D1 = eTodoDB:getLoggedWork(User, Date),
+    D2 = eTodoDB:getLoggedWork(User, incDate(Date, 1)),
+    D3 = eTodoDB:getLoggedWork(User, incDate(Date, 2)),
+    D4 = eTodoDB:getLoggedWork(User, incDate(Date, 3)),
+    D5 = eTodoDB:getLoggedWork(User, incDate(Date, 4)),
+    All = lists:flatten([D1, D2, D3, D4, D5]),
+    Act1 = [Task || {Task, _H, _M} <- All],
+    Act2 = lists:usort(Act1),
+    Act3 = [{Task, eTodoDB:getWorkDesc(Task)} || Task <- Act2],
+    lists:keysort(2, Act3).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Increase date with Inc days.
+%% @spec incDate(Date, Inc) -> date()
+%%
+%% @end
+%%--------------------------------------------------------------------
+incDate(Date, Inc) ->
+    Days = calendar:date_to_gregorian_days(Date),
+    calendar:gregorian_days_to_date(Days + Inc).
