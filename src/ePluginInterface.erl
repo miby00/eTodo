@@ -26,7 +26,10 @@
          readConfig/1,
          saveConfig/2,
          getWorkLog/2,
-         incDate/2]).
+         incDate/2,
+         systemEntry/1,
+         appendToPage/1,
+         getWeekDay/1]).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -217,3 +220,36 @@ getWorkLog(User, Date) ->
 incDate(Date, Inc) ->
     Days = calendar:date_to_gregorian_days(Date),
     calendar:gregorian_days_to_date(Days + Inc).
+
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Generate system message
+%% @spec systemEntry(Text) -> void()
+%%
+%% @end
+%%--------------------------------------------------------------------
+systemEntry(Text) ->
+    eTodo:systemEntry(system, Text).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Generate own created html message
+%% @spec appendToPage(Html) -> void()
+%%
+%% @end
+%%--------------------------------------------------------------------
+appendToPage(Html) ->
+    eTodo:appendToPage(Html).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Get week day
+%% @spec getWeekDay(Date) -> weekday
+%%
+%% @end
+%%--------------------------------------------------------------------
+getWeekDay(Date) ->
+    DayNum = calendar:day_of_the_week(Date),
+    lists:nth(DayNum, ["Monday", "Tuesday", "Wednesday",
+                       "Thursday", "Friday", "Saturday", "Sunday"]).

@@ -24,6 +24,28 @@
          eSetWorkLogDate/4,
          eMenuEvent/6]).
 
+-import(eHtml, [htmlTag/0,   htmlTag/1,   htmlTag/2,
+                headTag/0,   headTag/1,   headTag/2,
+                bodyTag/0,   bodyTag/1,   bodyTag/2,
+                titleTag/1,  titleTag/2,
+                styleTag/1,  styleTag/2,
+                tableTag/0,  tableTag/1,  tableTag/2,
+                divTag/0,    divTag/1,    divTag/2,
+                spanTag/0,   spanTag/1,   spanTag/2,
+                fontTag/0,   fontTag/1,   fontTag/2,
+                pTag/0,      pTag/1,      pTag/2,
+                bTag/0,      bTag/1,      bTag/2,
+                tdTag/0,     tdTag/1,     tdTag/2,
+                thTag/0,     thTag/1,     thTag/2,
+                trTag/0,     trTag/1,     trTag/2,
+                brTag/0,
+                formTag/0,   formTag/1,   formTag/2,
+                aTag/0,      aTag/1,      aTag/2,
+                selectTag/1, selectTag/2, inputTag/1,
+                metaTag/1,   imgTag/1]).
+
+-import(ePluginInterface, [getWeekDay/1, incDate/2, toStr/1]).
+
 getName() -> "SAP".
 
 getDesc() -> "SAP time reporting integration.".
@@ -69,7 +91,8 @@ getMenu(undefined, State) ->
           {1902, "Verify work log"},
           divider,
           {1905, "5 days to clipboard (one WBS)"},
-          {1906, "5 days to clipboard (all WBS)"}], State};
+          {1906, "5 days to clipboard (all WBS)"},
+          {1907, "5 days to message window (all WBS)"}], State};
 getMenu(_ETodo, State) ->
     {ok, [{1900, "Add WBS"},
           {1901, "Remove WBS"},
@@ -80,7 +103,8 @@ getMenu(_ETodo, State) ->
           {1904, "Remove WBS from task"},
           divider,
           {1905, "5 days to clipboard (one WBS)"},
-          {1906, "5 days to clipboard (all WBS)"}], State}.
+          {1906, "5 days to clipboard (all WBS)"},
+          {1907, "5 days to message window (all WBS)"}], State}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -218,6 +242,8 @@ eMenuEvent(_EScriptDir, User, 1905, _ETodo, _MenuText, State) ->
     doCopyWeekToClipboardOneWBS(User, State);
 eMenuEvent(_EScriptDir, User, 1906, _ETodo, _MenuText, State) ->
     doCopyWeekToClipboardAllWBS(User, State);
+eMenuEvent(_EScriptDir, User, 1907, _ETodo, _MenuText, State) ->
+    doCopyWeekToTableAllWBS(User, State);
 eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, _MenuText, State) ->
     State.
 
@@ -326,6 +352,68 @@ doRemoveFromProject(ETodo, State = #state{frame = Frame, conf = Config}) ->
     writeConfigChanges(Config, Config2),
     State#state{conf = Config2}.
 
+doCopyWeekToTableAllWBS(User, State = #state{conf  = Config, date = Date}) ->
+    WBSList = map2GUI(Config),
+    Html =
+        trTag([{bgcolor, "black"}],
+              [tdTag(fontTag([{color, "white"}], "WBS")),
+               tdTag([{align, "center"}],
+                     fontTag([{color, "white"}], getWeekDay(Date))),
+               tdTag([{align, "center"}],
+                     fontTag([{color, "white"}], getWeekDay(incDate(Date, 1)))),
+               tdTag([{align, "center"}],
+                     fontTag([{color, "white"}], getWeekDay(incDate(Date, 2)))),
+               tdTag([{align, "center"}],
+                     fontTag([{color, "white"}], getWeekDay(incDate(Date, 3)))),
+               tdTag([{align, "center"}],
+                     fontTag([{color, "white"}], getWeekDay(incDate(Date, 4))))]),
+
+    doCopyWeekToTableAllWBS(WBSList, User, Html, {0, 0, 0, 0, 0}, State).
+
+doCopyWeekToTableAllWBS([], _User, Html, {S1, S2, S3, S4, S5}, State) ->
+    HtmlRow =
+        trTag([{bgcolor, "black"}],
+              [tdTag([{width, "30%"}, {align, "left"}],
+                     fontTag([{color, "white"}], "Total")),
+               tdTag([{width, "14%"}, {align, "center"}],
+                     fontTag([{color, "white"}], toString(S1))),
+               tdTag([{width, "14%"}, {align, "center"}],
+                     fontTag([{color, "white"}], toString(S2))),
+               tdTag([{width, "14%"}, {align, "center"}],
+                     fontTag([{color, "white"}], toString(S3))),
+               tdTag([{width, "14%"}, {align, "center"}],
+                     fontTag([{color, "white"}], toString(S4))),
+               tdTag([{width, "14%"}, {align, "center"}],
+                     fontTag([{color, "white"}], toString(S5)))]),
+
+    HtmlPage = unicode:characters_to_list(tableTag([Html, HtmlRow]), utf8),
+    ePluginInterface:appendToPage(HtmlPage),
+    State;
+doCopyWeekToTableAllWBS([WBS|Rest], User, Html, Tot = {T1, T2, T3, T4, T5},
+                        State = #state{conf = Config, date  = Date}) ->
+    PTxt    = toKey(WBS),
+    Tasks   = maps:get(PTxt, Config),
+
+    case calcWorkLog(User, Tasks, Date) of
+        {0, 0, 0, 0, 0} ->
+            doCopyWeekToTableAllWBS(Rest, User, Html, Tot, State);
+        {D1, D2, D3, D4, D5} ->
+            Color = if ((length(Rest) rem 2) == 0) -> "#C0C0C0"; true -> "white" end,
+
+            HtmlRow =
+                trTag([{bgcolor, Color}],
+                      [tdTag([{width, "30%"}, {align, "left"}], WBS),
+                       tdTag([{width, "14%"}, {align, "center"}], toString(D1)),
+                       tdTag([{width, "14%"}, {align, "center"}], toString(D2)),
+                       tdTag([{width, "14%"}, {align, "center"}], toString(D3)),
+                       tdTag([{width, "14%"}, {align, "center"}], toString(D4)),
+                       tdTag([{width, "14%"}, {align, "center"}], toString(D5))]),
+
+            doCopyWeekToTableAllWBS(Rest, User, [Html, HtmlRow],
+                                    {T1 + D1, T2 + D2, T3 + D3,
+                                     T4 + D4, T5 + D5}, State)
+    end.
+
 doCopyWeekToClipboardAllWBS(User, State = #state{conf  = Config}) ->
     WBSList = map2GUI(Config),
     doCopyWeekToClipboardAllWBS(WBSList, User, State).
@@ -338,7 +426,7 @@ doCopyWeekToClipboardAllWBS([WBS|Rest], User, State = #state{frame = Frame,
 
     PTxt    = toKey(WBS),
     Tasks   = maps:get(PTxt, Config),
-    ExtDate = ePluginInterface:toStr(Date),
+    ExtDate = toStr(Date),
 
     case calcWorkLog(User, Tasks, Date) of
         {0, 0, 0, 0, 0} ->
@@ -348,9 +436,10 @@ doCopyWeekToClipboardAllWBS([WBS|Rest], User, State = #state{frame = Frame,
                                              ExtDate ++ " in clipboard",
                                          [{caption, WBS},
                                           {style, ?wxICON_INFORMATION}]),
-            CopyStr = lists:flatten(io_lib:format(?sapFormat,
-                                                  [D1, D2, D3, D4, D5])),
-            ePluginInterface:toClipboard(replaceComma(CopyStr)),
+            CopyStr  = lists:flatten(io_lib:format(?sapFormat,
+                                                   [D1, D2, D3, D4, D5])),
+            CopyStr2 = replaceComma(CopyStr),
+            ePluginInterface:toClipboard(CopyStr2),
             wxMessageDialog:showModal(MsgDlg),
             wxMessageDialog:destroy(MsgDlg),
             doCopyWeekToClipboardAllWBS(Rest, User, State)
@@ -359,7 +448,7 @@ doCopyWeekToClipboardAllWBS([WBS|Rest], User, State = #state{frame = Frame,
 doCopyWeekToClipboardOneWBS(User, State = #state{frame = Frame,
                                                  conf  = Config,
                                                  date  = Date}) ->
-    ExtDate = ePluginInterface:toStr(Date),
+    ExtDate = toStr(Date),
     ProjDlg = wxSingleChoiceDialog:new(Frame,
                                        "5 days begining with " ++ ExtDate ++
                                            " to clipboard",
@@ -372,7 +461,8 @@ doCopyWeekToClipboardOneWBS(User, State = #state{frame = Frame,
             {D1, D2, D3, D4, D5} = calcWorkLog(User, Tasks, Date),
             CopyStr = lists:flatten(io_lib:format(?sapFormat,
                                                   [D1, D2, D3, D4, D5])),
-            ePluginInterface:toClipboard(replaceComma(CopyStr));
+            CopyStr2 = replaceComma(CopyStr),
+            ePluginInterface:toClipboard(CopyStr2);
         _ ->
             ok
     end,
@@ -392,10 +482,6 @@ filterProjects([Project|Rest], Config, Uid, Acc) ->
         false ->
             filterProjects(Rest, Config, Uid, Acc)
     end.
-
-incDate(Date, Inc) ->
-    Days = calendar:date_to_gregorian_days(Date),
-    calendar:gregorian_days_to_date(Days + Inc).
 
 calcWorkLog(User, Tasks, Date) ->
     calcWorkLog(User, Tasks, Date, {0, 0, 0, 0, 0}).
@@ -448,3 +534,7 @@ toGUI(Value) ->
 
 map2GUI(Map) ->
     [toGUI(Value) || Value <- maps:keys(Map)].
+
+
+toString(Number) ->
+    io_lib:format("~w", [Number]).

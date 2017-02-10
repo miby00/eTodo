@@ -31,6 +31,7 @@
          start/0,
          start/1,
          stop/0,
+         appendToPage/1,
          systemEntry/2,
          taskListDeleted/1,
          taskListsUpdated/0,
@@ -145,6 +146,9 @@ delayedUpdateGui(ETodo, Index) ->
 
 msgEntry(User, Users, Text) ->
     wx_object:cast(?MODULE, {msgEntry, User, Users, Text}), ok.
+
+appendToPage(Html) ->
+    wx_object:cast(?MODULE, {appendToPage, Html}), ok.
 
 systemEntry(Uid, Text) ->
     wx_object:cast(?MODULE, {systemEntry, Uid, Text}), ok.
@@ -685,6 +689,10 @@ handle_cast({acceptingIncCon, User, Circle, Port}, State) ->
     ConnectionInfo = Circle ++ "(" ++ Host ++ ":" ++ PortStr ++ ")",
     wxStatusBar:setStatusText(StatusBarObj, User,   [{number, 0}]),
     wxStatusBar:setStatusText(StatusBarObj, ConnectionInfo, [{number, 1}]),
+    {noreply, State};
+handle_cast({appendToPage, Html}, State) ->
+    MsgObj = obj("msgTextWin", State),
+    appendToPage(MsgObj, {Html, ""}),
     {noreply, State};
 handle_cast({msgEntry, User, Users, Text},
             State = #guiState{frame = Frame,
