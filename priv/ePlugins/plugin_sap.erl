@@ -371,9 +371,9 @@ doCopyWeekToTableAllWBS(User, State = #state{conf  = Config, date = Date}) ->
                      fontTag([{color, "white"}], getWeekDay(incDate(Date, 4)))),
                tdTag([{bgcolor, "white"}, {width, "5%"}], [])]),
 
-    doCopyWeekToTableAllWBS(WBSList, User, Html, {0, 0, 0, 0, 0}, State).
+    doCopyWeekToTableAllWBS(WBSList, User, Html, {0, 0, 0, 0, 0}, 0, State).
 
-doCopyWeekToTableAllWBS([], _User, Html, {S1, S2, S3, S4, S5}, State) ->
+doCopyWeekToTableAllWBS([], _User, Html, {S1, S2, S3, S4, S5}, _C, State) ->
     HtmlRow =
         trTag([{bgcolor, "black"}],
               [tdTag([{bgcolor, "white"}, {width, "5%"}], []),
@@ -398,16 +398,16 @@ doCopyWeekToTableAllWBS([], _User, Html, {S1, S2, S3, S4, S5}, State) ->
     HtmlPage = unicode:characters_to_list(Html2, utf8),
     ePluginInterface:appendToPage(HtmlPage),
     State;
-doCopyWeekToTableAllWBS([WBS|Rest], User, Html, Tot = {T1, T2, T3, T4, T5},
+doCopyWeekToTableAllWBS([WBS|Rest], User, Html, Tot = {T1, T2, T3, T4, T5}, C,
                         State = #state{conf = Config, date  = Date}) ->
     PTxt    = toKey(WBS),
     Tasks   = maps:get(PTxt, Config),
 
     case calcWorkLog(User, Tasks, Date) of
         {0, 0, 0, 0, 0} ->
-            doCopyWeekToTableAllWBS(Rest, User, Html, Tot, State);
+            doCopyWeekToTableAllWBS(Rest, User, Html, Tot, C, State);
         {D1, D2, D3, D4, D5} ->
-            Color = if ((length(Rest) rem 2) == 0) -> "#C0C0C0"; true -> "white" end,
+            Color = if ((C rem 2) == 1) -> "#C0C0C0"; true -> "white" end,
 
             HtmlRow =
                 trTag([{bgcolor, Color}],
@@ -422,7 +422,7 @@ doCopyWeekToTableAllWBS([WBS|Rest], User, Html, Tot = {T1, T2, T3, T4, T5},
 
             doCopyWeekToTableAllWBS(Rest, User, [Html, HtmlRow],
                                     {T1 + D1, T2 + D2, T3 + D3,
-                                     T4 + D4, T5 + D5}, State)
+                                     T4 + D4, T5 + D5}, C + 1, State)
     end.
 
 doCopyWeekToClipboardAllWBS(User, State = #state{conf  = Config}) ->
