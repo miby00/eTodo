@@ -1492,6 +1492,8 @@ logWorkButtonEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
     wxCheckBox:setValue(TLCheckB,   default(ShowInTimeLog, false)),
 
     wxDialog:show(LWDlg),
+
+    wxSpinCtrl:setFocus(HoursObj),
     State.
 
 logWorkCancelEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg}) ->
