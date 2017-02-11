@@ -356,7 +356,8 @@ doCopyWeekToTableAllWBS(User, State = #state{conf  = Config, date = Date}) ->
     WBSList = map2GUI(Config),
     Html =
         trTag([{bgcolor, "black"}],
-              [tdTag(fontTag([{color, "white"}], "WBS")),
+              [tdTag([{bgcolor, "white"}, {width, "5%"}], []),
+               tdTag(fontTag([{color, "white"}], "WBS")),
                tdTag([{align, "center"}],
                      fontTag([{color, "white"}], getWeekDay(Date))),
                tdTag([{align, "center"}],
@@ -366,27 +367,34 @@ doCopyWeekToTableAllWBS(User, State = #state{conf  = Config, date = Date}) ->
                tdTag([{align, "center"}],
                      fontTag([{color, "white"}], getWeekDay(incDate(Date, 3)))),
                tdTag([{align, "center"}],
-                     fontTag([{color, "white"}], getWeekDay(incDate(Date, 4))))]),
+                     fontTag([{color, "white"}], getWeekDay(incDate(Date, 4)))),
+               tdTag([{bgcolor, "white"}, {width, "5%"}], [])]),
 
     doCopyWeekToTableAllWBS(WBSList, User, Html, {0, 0, 0, 0, 0}, State).
 
 doCopyWeekToTableAllWBS([], _User, Html, {S1, S2, S3, S4, S5}, State) ->
     HtmlRow =
         trTag([{bgcolor, "black"}],
-              [tdTag([{width, "30%"}, {align, "left"}],
+              [tdTag([{bgcolor, "white"}, {width, "5%"}], []),
+               tdTag([{width, "30%"}, {align, "left"}],
                      fontTag([{color, "white"}], "Total")),
-               tdTag([{width, "14%"}, {align, "center"}],
+               tdTag([{width, "12%"}, {align, "center"}],
                      fontTag([{color, "white"}], toString(S1))),
-               tdTag([{width, "14%"}, {align, "center"}],
+               tdTag([{width, "12%"}, {align, "center"}],
                      fontTag([{color, "white"}], toString(S2))),
-               tdTag([{width, "14%"}, {align, "center"}],
+               tdTag([{width, "12%"}, {align, "center"}],
                      fontTag([{color, "white"}], toString(S3))),
-               tdTag([{width, "14%"}, {align, "center"}],
+               tdTag([{width, "12%"}, {align, "center"}],
                      fontTag([{color, "white"}], toString(S4))),
-               tdTag([{width, "14%"}, {align, "center"}],
-                     fontTag([{color, "white"}], toString(S5)))]),
+               tdTag([{width, "12%"}, {align, "center"}],
+                     fontTag([{color, "white"}], toString(S5))),
+               tdTag([{bgcolor, "white"}, {width, "5%"}], [])]),
 
-    HtmlPage = unicode:characters_to_list(tableTag([Html, HtmlRow]), utf8),
+    EmptyRow = trTag([{bgcolor, "white"}], [tdTag([{colspan, 8}], [])]),
+
+    ePluginInterface:systemEntry(""),
+    Html2    = tableTag([Html, HtmlRow, EmptyRow, EmptyRow]),
+    HtmlPage = unicode:characters_to_list(Html2, utf8),
     ePluginInterface:appendToPage(HtmlPage),
     State;
 doCopyWeekToTableAllWBS([WBS|Rest], User, Html, Tot = {T1, T2, T3, T4, T5},
@@ -402,12 +410,14 @@ doCopyWeekToTableAllWBS([WBS|Rest], User, Html, Tot = {T1, T2, T3, T4, T5},
 
             HtmlRow =
                 trTag([{bgcolor, Color}],
-                      [tdTag([{width, "30%"}, {align, "left"}], WBS),
-                       tdTag([{width, "14%"}, {align, "center"}], toString(D1)),
-                       tdTag([{width, "14%"}, {align, "center"}], toString(D2)),
-                       tdTag([{width, "14%"}, {align, "center"}], toString(D3)),
-                       tdTag([{width, "14%"}, {align, "center"}], toString(D4)),
-                       tdTag([{width, "14%"}, {align, "center"}], toString(D5))]),
+                      [tdTag([{bgcolor, "white"}, {width, "10%"}], []),
+                       tdTag([{width, "30%"}, {align, "left"}], WBS),
+                       tdTag([{width, "12%"}, {align, "center"}], toString(D1)),
+                       tdTag([{width, "12%"}, {align, "center"}], toString(D2)),
+                       tdTag([{width, "12%"}, {align, "center"}], toString(D3)),
+                       tdTag([{width, "12%"}, {align, "center"}], toString(D4)),
+                       tdTag([{width, "12%"}, {align, "center"}], toString(D5)),
+                       tdTag([{bgcolor, "white"}, {width, "5%"}], [])]),
 
             doCopyWeekToTableAllWBS(Rest, User, [Html, HtmlRow],
                                     {T1 + D1, T2 + D2, T3 + D3,
@@ -533,8 +543,23 @@ toGUI(Value) ->
     unicode:characters_to_list(base64:decode(Value), utf8).
 
 map2GUI(Map) ->
-    [toGUI(Value) || Value <- maps:keys(Map)].
+    lists:sort([toGUI(Value) || Value <- maps:keys(Map)]).
 
 
+toString(Number) when is_integer(Number) and (Number < 10) ->
+    "0" ++ integer_to_list(Number) ++ ":00";
+toString(Number) when is_integer(Number) ->
+    integer_to_list(Number) ++ ":00";
 toString(Number) ->
-    io_lib:format("~w", [Number]).
+    Minutes = trunc((Number - trunc(Number)) * 60),
+    Hours   = trunc(Number),
+    case {Hours < 10, Minutes < 10} of
+        {true, true} ->
+            "0" ++ integer_to_list(Hours) ++ ":0" ++ integer_to_list(Minutes);
+        {false, true}->
+            integer_to_list(Hours) ++ ":0" ++ integer_to_list(Minutes);
+        {true, false}->
+            "0" ++ integer_to_list(Hours) ++ ":" ++ integer_to_list(Minutes);
+        {false, false} ->
+            integer_to_list(Hours) ++ ":" ++ integer_to_list(Minutes)
+    end.
