@@ -56,7 +56,7 @@ getDesc() -> "SAP time reporting integration.".
 %% Defines how clipboard data should look
 -define(sapFormat, "~p\t\t\t\t~p\t\t\t\t~p\t\t\t\t~p\t\t\t\t~p").
 
--record(state, {frame, conf, date = date()}).
+-record(state, {frame, conf, date = date(), sapFormat}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -67,7 +67,8 @@ getDesc() -> "SAP time reporting integration.".
 init([WX, Frame]) ->
     Config = ePluginInterface:readConfig(?MODULE),
     wx:set_env(WX),
-    #state{frame = Frame, conf = Config}.
+    SAPFormat = application:get_env(eTodo, sapFormat, ?sapFormat),
+    #state{frame = Frame, conf = Config, sapFormat = SAPFormat}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -430,9 +431,9 @@ doCopyWeekToClipboardAllWBS(User, State = #state{conf  = Config}) ->
 
 doCopyWeekToClipboardAllWBS([], _User, State) ->
     State;
-doCopyWeekToClipboardAllWBS([WBS|Rest], User, State = #state{frame = Frame,
-                                                             conf  = Config,
-                                                             date  = Date}) ->
+doCopyWeekToClipboardAllWBS([WBS|Rest], User,
+                            State = #state{frame = Frame, conf      = Config,
+                                           date  = Date,  sapFormat = SAPFormat}) ->
 
     PTxt    = toKey(WBS),
     Tasks   = maps:get(PTxt, Config),
@@ -446,7 +447,7 @@ doCopyWeekToClipboardAllWBS([WBS|Rest], User, State = #state{frame = Frame,
                                              ExtDate ++ " in clipboard",
                                          [{caption, WBS},
                                           {style, ?wxICON_INFORMATION}]),
-            CopyStr  = lists:flatten(io_lib:format(?sapFormat,
+            CopyStr  = lists:flatten(io_lib:format(SAPFormat,
                                                    [D1, D2, D3, D4, D5])),
             CopyStr2 = replaceComma(CopyStr),
             ePluginInterface:toClipboard(CopyStr2),
@@ -455,9 +456,9 @@ doCopyWeekToClipboardAllWBS([WBS|Rest], User, State = #state{frame = Frame,
             doCopyWeekToClipboardAllWBS(Rest, User, State)
     end.
 
-doCopyWeekToClipboardOneWBS(User, State = #state{frame = Frame,
-                                                 conf  = Config,
-                                                 date  = Date}) ->
+doCopyWeekToClipboardOneWBS(User,
+                            State = #state{frame = Frame, conf      = Config,
+                                           date  = Date,  sapFormat = SAPFormat}) ->
     ExtDate = toStr(Date),
     ProjDlg = wxSingleChoiceDialog:new(Frame,
                                        "5 days begining with " ++ ExtDate ++
@@ -469,7 +470,7 @@ doCopyWeekToClipboardOneWBS(User, State = #state{frame = Frame,
             PTxt  = toKey(wxSingleChoiceDialog:getStringSelection(ProjDlg)),
             Tasks = maps:get(PTxt, Config),
             {D1, D2, D3, D4, D5} = calcWorkLog(User, Tasks, Date),
-            CopyStr = lists:flatten(io_lib:format(?sapFormat,
+            CopyStr = lists:flatten(io_lib:format(SAPFormat,
                                                   [D1, D2, D3, D4, D5])),
             CopyStr2 = replaceComma(CopyStr),
             ePluginInterface:toClipboard(CopyStr2);
