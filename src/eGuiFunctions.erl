@@ -1595,7 +1595,7 @@ smartSplit([], SoFar) ->
     lists:reverse(SoFar);
 smartSplit([Char|_], SoFar) when (Char == 10) or (Char == 13) ->
     lists:reverse(SoFar);
-smartSplit([Char|_], SoFar) when (Char == 32) and length(SoFar) > 35 ->
+smartSplit([Char|_], SoFar) when (Char == 32) and (length(SoFar) > 35) ->
     lists:reverse(SoFar);
 smartSplit(_Text, SoFar) when length(SoFar) > 45 ->
     string:sub_string(lists:reverse(SoFar), 1, 7) ++ "...";
