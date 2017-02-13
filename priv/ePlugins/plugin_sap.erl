@@ -67,8 +67,7 @@ getDesc() -> "SAP time reporting integration.".
 init([WX, Frame]) ->
     Config = ePluginInterface:readConfig(?MODULE),
     wx:set_env(WX),
-    SAPFormat = application:get_env(eTodo, sapFormat, ?sapFormat),
-    #state{frame = Frame, conf = Config, sapFormat = SAPFormat}.
+    #state{frame = Frame, conf = Config, sapFormat = ?sapFormat}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -547,6 +546,8 @@ map2GUI(Map) ->
     lists:sort([toGUI(Value) || Value <- maps:keys(Map)]).
 
 
+toString(0) ->
+    spanTag([{style, "color:grey;"}], "00:00");
 toString(Number) when is_integer(Number) and (Number < 10) ->
     "0" ++ integer_to_list(Number) ++ ":00";
 toString(Number) when is_integer(Number) ->
