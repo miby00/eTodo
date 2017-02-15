@@ -230,9 +230,11 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
                     TTLog  = [lists:nth(I - 1, LoggedWork2) || I <- MSel, I > 1],
                     SetRem = {lists:member(0, MSel), Remaining},
                     SetEst = {lists:member(1, MSel), Estimate},
-                    doSetRemaining(SetRem, BAuth, BaseUrl ++ "/2/issue/" ++ Key),
-                    doSetEstimate(SetEst,  BAuth, BaseUrl ++ "/2/issue/" ++ Key),
-                    logTime(TTLog, BAuth, FullUrl);
+                    doSetRemaining(SetRem, BAuth,
+                                   BaseUrl ++ "/2/issue/" ++ Key, Frame),
+                    doSetEstimate(SetEst,  BAuth,
+                                  BaseUrl ++ "/2/issue/" ++ Key, Frame),
+                    logTime(TTLog, BAuth, FullUrl, Frame);
                 ?wxID_CANCEL ->
                     ok
             end,
@@ -452,16 +454,26 @@ httpRequest(BAuth, Method, Url) ->
             Else
     end.
 
-httpPost(BAuth, Method, Body, Url) ->
+httpPost(BAuth, Method, Body, Url, Frame) ->
     AuthOption  = {"Authorization", BAuth},
     ContentType = {"Content-Type", "application/json"},
     Request     = {Url, [AuthOption, ContentType], "application/json", Body},
     Options     = [{body_format,binary}],
     case httpc:request(Method, Request, [{url_encode, false}], Options) of
-        {ok, {_StatusLine, _Headers, RBody}} ->
+        {ok, {{_HTTPVersion, Status, _Reason}, _Headers, RBody}}
+            when (Status == 200) or (Status == 201) ->
             eLog:log(debug, ?MODULE, init, [Method, Url, Body, RBody],
                      "http success", ?LINE),
             Body;
+            {ok, {{_HTTPVersion, _Error, Reason}, _Headers, RBody}} ->
+                eLog:log(debug, ?MODULE, init, [Method, Url, Body, RBody],
+                         "http failure", ?LINE),
+                MsgDlg = wxMessageDialog:new(Frame, "Error occured: " ++ Reason,
+                                             [{style,   ?wxICON_ERROR},
+                                              {caption, "Worklog failure"}]),
+                wxMessageDialog:showModal(MsgDlg),
+                wxMessageDialog:destroy(MsgDlg),
+                Body;
         Else ->
             eLog:log(debug, ?MODULE, init, [Method, Url, Body, Else],
                      "http failure", ?LINE),
@@ -504,39 +516,39 @@ constructJiraTime(Hours, Min) ->
     MBin = list_to_binary(integer_to_list(Min) ++ "m"),
     <<HBin/binary, MBin/binary>>.
 
-logTime([], _BAuth, _FullUrl) ->
+logTime([], _BAuth, _FullUrl, _Frame) ->
     ok;
-logTime([{new, Date, Seconds}|Rest], BAuth, FullUrl) ->
+logTime([{new, Date, Seconds}|Rest], BAuth, FullUrl, Frame) ->
     Started  = iso8601(Date),
     JSON     = jsx:encode(#{<<"timeSpentSeconds">> => Seconds,
                             <<"comment">>          => <<"Logged from eTodo">>,
                             <<"started">>          => Started}),
-    httpPost(BAuth, post, JSON, FullUrl),
-    logTime(Rest, BAuth, FullUrl);
-logTime([{{_, WL}, _Date, Seconds}|Rest], BAuth, FullUrl) ->
+    httpPost(BAuth, post, JSON, FullUrl, Frame),
+    logTime(Rest, BAuth, FullUrl, Frame);
+logTime([{{_, WL}, _Date, Seconds}|Rest], BAuth, FullUrl, Frame) ->
     JSON = jsx:encode(#{<<"timeSpentSeconds">> => Seconds,
                         <<"comment">>          => <<"Logged from eTodo">>}),
     FullUrl2 = FullUrl ++ "/" ++ binary_to_list(maps:get(workLogId, WL, <<>>)),
-    httpPost(BAuth, put, JSON, FullUrl2),
-    logTime(Rest, BAuth, FullUrl).
+    httpPost(BAuth, put, JSON, FullUrl2, Frame),
+    logTime(Rest, BAuth, FullUrl, Frame).
 
 iso8601(Date) ->
     {_, {Hour, Minute, Second}} = calendar:universal_time(),
     FmtStr = "T~2..0w:~2..0w:~2..0w.000+0000",
     iolist_to_binary(io_lib:format(Date ++ FmtStr, [Hour, Minute, Second])).
 
-doSetRemaining({true, Remaining}, BAuth, Url) ->
+doSetRemaining({true, Remaining}, BAuth, Url, Frame) ->
     Jrem = list_to_binary(integer_to_list(Remaining) ++ "h"),
     Edit = #{<<"edit">> => #{<<"remainingEstimate">> => Jrem}},
     JSON = jsx:encode(#{<<"update">> => #{<<"timetracking">> => [Edit]}}),
-    httpPost(BAuth, put, JSON, Url);
-doSetRemaining(_SetRemaining, _BAuth, _Url) ->
+    httpPost(BAuth, put, JSON, Url, Frame);
+doSetRemaining(_SetRemaining, _BAuth, _Url, _Frame) ->
     ok.
 
-doSetEstimate({true, Estimate}, BAuth, Url) ->
+doSetEstimate({true, Estimate}, BAuth, Url, Frame) ->
     Jrem = list_to_binary(integer_to_list(Estimate) ++ "h"),
     Edit = #{<<"edit">> => #{<<"originalEstimate">> => Jrem}},
     JSON = jsx:encode(#{<<"update">> => #{<<"timetracking">> => [Edit]}}),
-    httpPost(BAuth, put, JSON, Url);
-doSetEstimate(_SetEstimate, _BAuth, _Url) ->
+    httpPost(BAuth, put, JSON, Url, Frame);
+doSetEstimate(_SetEstimate, _BAuth, _Url, _Frame) ->
     ok.
