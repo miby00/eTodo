@@ -59,10 +59,10 @@ getMenu(undefined, State) ->
     {ok, [], State};
 getMenu(ETodo, State) ->
     Text = ETodo#etodo.description ++ " " ++ ETodo#etodo.comment,
-    REXP = "[[:^space:]]*",
+    REXP = "[[:^space:]|]+(?=>)",
     LINK = "[hH][tT][tT][pP][sS]?://",
     HLinks = getHttpLinks(Text, LINK, REXP, []),
-    {ok, getMenu(HLinks, 50000, []), State}.
+    {ok, getMenu(HLinks, 1700, []), State}.
 
 getMenu([], _MenuOption, SoFar) -> SoFar;
 getMenu([HLink|Rest], MenuOption, SoFar) ->

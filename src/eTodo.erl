@@ -462,7 +462,7 @@ initGUI(Arg) ->
 
     %% Set initial date for work log report.
     WorkLoadObj  = obj("workLogStartDate", State),
-    LastWeekDays = calendar:date_to_gregorian_days(date()) - 4,
+    LastWeekDays = calendar:date_to_gregorian_days(mondayThisWeek()),
     LastWeek     = calendar:gregorian_days_to_date(LastWeekDays),
     wxDatePickerCtrl:setValue(WorkLoadObj, {LastWeek, {0,0,0}}),
 
@@ -1527,14 +1527,14 @@ sysMsgStatusBar(Msg, State) ->
     StatusBarObj = obj("mainStatusBar", State),
     Notebook     = obj("mainNotebook",  State),
     CurrPage     = wxNotebook:getCurrentPage(Notebook),
-    TaskPage     = wxNotebook:getPage(Notebook, 0),
+    MsgPage  = wxNotebook:getPage(Notebook, 1),
     case CurrPage of
-        TaskPage ->
+        MsgPage ->
+            clearStatusBar(State);
+        _ ->
             State2 = increaseSysMsgCounter(Msg, State),
             wxStatusBar:setStatusText(StatusBarObj, Msg, [{number, 2}]),
-            State2;
-        _ ->
-            State
+            State2
     end.
 
 increaseMsgCounter(State = #guiState{unreadMsgs = Before}) ->
@@ -1647,3 +1647,12 @@ getStatus() ->
         _ ->
             {false, false}
     end.
+
+%%====================================================================
+%% Find date for monday this week.
+%%====================================================================
+mondayThisWeek() ->
+    DayNum   = calendar:day_of_the_week(date()), %% Monday = 1, Tuesday = 2, ...
+    GregDays = calendar:date_to_gregorian_days(date()) + 1 - DayNum,
+    calendar:gregorian_days_to_date(GregDays).
+
