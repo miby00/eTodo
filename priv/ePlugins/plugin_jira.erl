@@ -212,7 +212,7 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
             Result      = httpRequest(BAuth, get, FullUrl),
             MapRes      = jsx:decode(Result, [return_maps]),
             WorkLogs    = maps:get(<<"worklogs">>, MapRes, []),
-            WorkLogs2   = [filterWorkLogs(WorkLog) || WorkLog <- WorkLogs],
+            WorkLogs2   = filterWorkLogs(WorkLogs),
             LoggedWork  = ePluginInterface:getAllLoggedWorkDate(ETodo#etodo.uid),
             LoggedWork2 = calcWorkToLog(LoggedWork, WorkLogs2),
 
@@ -392,22 +392,26 @@ findKey([$>|_], Acc) ->
 findKey([Char|Rest], Acc) ->
     findKey(Rest, [Char|Acc]).
 
-filterWorkLogs(#{<<"author">>           := #{<<"name">>         := Name,
-                                             <<"emailAddress">> := Email,
-                                             <<"active">>       := Active},
-                 <<"comment">>          := Comment,
-                 <<"started">>          := LogTime,
-                 <<"id">>               := Id,
-                 <<"timeSpentSeconds">> := TimeSpent}) ->
+filterWorkLogs(WorkLogs) when is_list(WorkLogs) ->
+    filterWorkLogs(WorkLogs, []).
+
+filterWorkLogs([], Acc) ->
+    lists:reverse(Acc);
+filterWorkLogs([#{<<"author">> := #{<<"active">> := false}}|Rest], Acc) ->
+    filterWorkLogs(Rest, Acc);
+filterWorkLogs([#{<<"author">>           := #{<<"name">>        := Name,
+                                             <<"emailAddress">> := Email},
+                  <<"comment">>          := Comment,
+                  <<"started">>          := LogTime,
+                  <<"id">>               := Id,
+                  <<"timeSpentSeconds">> := TimeSpent}|Rest], Acc) ->
     <<LogDate:10/bytes, _/binary>> = LogTime,
-    {LogDate, #{name             => Name,
-                email            => Email,
-                active           => Active,
-                comment          => Comment,
-                workLogId        => Id,
-                timeSpentSeconds => TimeSpent}};
-filterWorkLogs(_WorkLog) ->
-    {undefined, #{}}.
+    Acc2 = [{LogDate, #{name             => Name,
+                        email            => Email,
+                        comment          => Comment,
+                        workLogId        => Id,
+                        timeSpentSeconds => TimeSpent}}|Acc],
+    filterWorkLogs(Rest, Acc2).
 
 calcWorkToLog(LoggedWork, WorkLogs) ->
     calcWorkToLog(LoggedWork, WorkLogs, []).
