@@ -28,7 +28,7 @@ getName() -> "JIRA".
 
 getDesc() -> "Create eTodo task from JIRA issue and report work logs.".
 
--record(state, {frame, jiraUrl, jiraSearch, bauth}).
+-record(state, {frame, jiraUser, jiraUrl, jiraSearch, bauth}).
 
 -include_lib("eTodo/include/eTodo.hrl").
 -include_lib("wx/include/wx.hrl").
@@ -49,7 +49,11 @@ init([WX, Frame]) ->
     BAuth           = "Basic " ++ base64:encode_to_string(UserPwd),
 
     wx:set_env(WX),
-    #state{frame = Frame, jiraUrl = Url, jiraSearch = SearchCfg, bauth = BAuth}.
+    #state{frame      = Frame,
+           jiraUser   = list_to_binary(User),
+           jiraUrl    = Url,
+           jiraSearch = SearchCfg,
+           bauth      = BAuth}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -212,7 +216,7 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
             Result      = httpRequest(BAuth, get, FullUrl),
             MapRes      = jsx:decode(Result, [return_maps]),
             WorkLogs    = maps:get(<<"worklogs">>, MapRes, []),
-            WorkLogs2   = filterWorkLogs(WorkLogs),
+            WorkLogs2   = filterWorkLogs(WorkLogs, State#state.jiraUser),
             LoggedWork  = ePluginInterface:getAllLoggedWorkDate(ETodo#etodo.uid),
             LoggedWork2 = calcWorkToLog(LoggedWork, WorkLogs2),
 
@@ -394,26 +398,27 @@ findKey([$>|_], Acc) ->
 findKey([Char|Rest], Acc) ->
     findKey(Rest, [Char|Acc]).
 
-filterWorkLogs(WorkLogs) when is_list(WorkLogs) ->
-    filterWorkLogs(WorkLogs, []).
+filterWorkLogs(WorkLogs, JiraUser) when is_list(WorkLogs) ->
+    filterWorkLogs(WorkLogs, JiraUser, []).
 
-filterWorkLogs([], Acc) ->
+filterWorkLogs([], _JiraUser, Acc) ->
     lists:reverse(Acc);
-filterWorkLogs([#{<<"author">> := #{<<"active">> := false}}|Rest], Acc) ->
-    filterWorkLogs(Rest, Acc);
 filterWorkLogs([#{<<"author">>           := #{<<"name">>        := Name,
                                              <<"emailAddress">> := Email},
                   <<"comment">>          := Comment,
                   <<"started">>          := LogTime,
                   <<"id">>               := Id,
-                  <<"timeSpentSeconds">> := TimeSpent}|Rest], Acc) ->
+                  <<"timeSpentSeconds">> := TimeSpent}|Rest], JiraUser, Acc)
+    when (Name == JiraUser) ->
     <<LogDate:10/bytes, _/binary>> = LogTime,
     Acc2 = [{LogDate, #{name             => Name,
                         email            => Email,
                         comment          => Comment,
                         workLogId        => Id,
                         timeSpentSeconds => TimeSpent}}|Acc],
-    filterWorkLogs(Rest, Acc2).
+    filterWorkLogs(Rest, JiraUser, Acc2);
+filterWorkLogs([_WL|Rest], JiraUser, Acc) ->
+    filterWorkLogs(Rest, JiraUser, Acc).
 
 calcWorkToLog(LoggedWork, WorkLogs) ->
     calcWorkToLog(LoggedWork, WorkLogs, []).
@@ -425,8 +430,7 @@ calcWorkToLog([Work|Rest], WorkLogs, Acc) ->
     Seconds = seconds(Hours, Minutes),
     BinDate = list_to_binary(Date),
     case lists:keyfind(BinDate, 1, WorkLogs) of
-        {BinDate, WL = #{timeSpentSeconds := TimeSpent,
-                         active           := true}} ->
+        {BinDate, WL = #{timeSpentSeconds := TimeSpent}} ->
             case TimeSpent >= Seconds of
                 true ->
                     calcWorkToLog(Rest, WorkLogs,
