@@ -167,7 +167,7 @@ getWebSettingsJSON(SessionId, Env, Input) ->
     mod_esi:deliver(SessionId, HtmlPage).
 
 link(SessionId, Env, Input) ->
-    FileData = call({link, SessionId, Env, Input}),
+    FileData = gen_server:call(?MODULE, {link, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, FileData).
 
 login(SessionId, Env, Input) ->
@@ -338,6 +338,26 @@ getGuestUsers(User) ->
 handle_call(getPort, _From, State = #state{port = Port}) ->
     {reply, Port, State};
 
+handle_call({link, _SessionId, _Env, Input}, _From, State) ->
+    Dict       = makeDict(Input),
+    {ok, File} = find("filename",  Dict),
+    {ok, Ref}  = find("reference", Dict),
+    FileName   = filename:join([getRootDir(), "www", "linkedFiles",
+            Ref ++ "_" ++ File]),
+
+    FileData =
+        case file:read_file(FileName) of
+            {ok, Bin} ->
+                MimeType    = mime_type(FileName),
+                Disposition = getDisposition(MimeType, File),
+                ["Content-Type: ", MimeType,
+                    "\r\nContent-Disposition: ", Disposition,
+                    "\r\n\r\n", zlib:gunzip(Bin)];
+            Error ->
+                Error
+        end,
+    {reply, FileData, State};
+
 handle_call({login, _SessionId, _Env, _Input}, _From,
             State = #state{user = User}) ->
     HtmlPage =[eHtml:pageHeader(User),
@@ -391,24 +411,6 @@ handle_call({call, Message = {_Message, SessionId, Env, _Input}, Timeout}, From,
         {notConnected, State3} ->
             {reply, unAuthorized(State3#state.user), State3}
     end;
-
-handle_call({link, _SessionId, _Env, Input}, _From, State) ->
-    Dict       = makeDict(Input),
-    {ok, File} = find("filename",  Dict),
-    {ok, Ref}  = find("reference", Dict),
-    FileName   = filename:join([getRootDir(), "www", "linkedFiles",
-                                Ref ++ "_" ++ File]),
-
-    FileData =
-        case file:read_file(FileName) of
-            {ok, Bin} ->
-                ["Content-Type: application/octet-stream\r\n"
-                 "Content-Disposition: attachment; filename=", File,
-                 "\r\n\r\n", zlib:gunzip(Bin)];
-            Error ->
-                Error
-        end,
-    {reply, FileData, State};
 
 handle_call({listsTodos, SessionId, _Env, Input}, _From,
             State = #state{user = User, status = SList}) ->
@@ -1786,3 +1788,33 @@ removeWS(Value) ->
     catch
         _:_ -> "0"
     end.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Get mime type from extension.
+%% @spec doShowSchedule(User) -> Html
+%% @end
+%%--------------------------------------------------------------------
+mime_type(FileName) ->
+        "." ++ Extension = filename:extension(FileName),
+    MimeTypes = mime_types(),
+    proplists:get_value(string:to_lower(Extension), MimeTypes,
+                        "application/octet-stream").
+
+mime_types() ->
+    MimeTypesFile = filename:join(code:lib_dir(inets),
+        "examples/server_root/conf/mime.types"),
+    {ok, MimeTypes} = httpd_conf:load_mime_types(MimeTypesFile),
+    MimeTypes.
+
+getDisposition("image/jpeg", _File) ->
+    "inline";
+getDisposition("image/png", _File) ->
+    "inline";
+getDisposition("image/gif", _File) ->
+    "inline";
+getDisposition("image/bmp", _File) ->
+    "inline";
+getDisposition(_MimeType, File) ->
+    "attachment; filename=" ++ File.
