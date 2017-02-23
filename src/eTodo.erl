@@ -460,6 +460,9 @@ initGUI(Arg) ->
             ok
     end,
 
+    %% Clear away message
+    wxComboBox:setValue(obj("userStatusMsg", State), ""),
+
     %% Set initial date for work log report.
     WorkLoadObj  = obj("workLogStartDate", State),
     LastWeekDays = calendar:date_to_gregorian_days(mondayThisWeek()),
