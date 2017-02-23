@@ -1803,7 +1803,7 @@ mime_type(FileName) ->
                         "application/octet-stream").
 
 mime_types() ->
-    MimeTypesFile   = filename:join(code:priv_dir(etodo), "mime.types"),
+    MimeTypesFile   = filename:join(code:priv_dir(eTodo), "mime.types"),
     {ok, MimeTypes} = httpd_conf:load_mime_types(MimeTypesFile),
     MimeTypes.
 
