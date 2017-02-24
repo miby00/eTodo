@@ -905,23 +905,23 @@ sortETodos(User, ETodos) ->
 doSortETodos(?descDef, ETodos) ->
     ETodos;
 doSortETodos(?status, ETodos) ->
-    L1 = [{ETodo, makeSortValue(?status, ETodo#etodo.status)} || 
-        ETodo <- ETodos, is_record(ETodo, etodo)],
+    L1 = [{ETodo, makeSortValue(?status, ETodo#etodo.status)} ||
+             ETodo <- ETodos, is_record(ETodo, etodo)],
     L2 = lists:keysort(2, L1),
     [ETodo || {ETodo, _} <- L2];
 doSortETodos(?prio, ETodos) ->
-    L1 = [{ETodo, makeSortValue(?prio, ETodo#etodo.priority)} || 
-        ETodo <- ETodos, is_record(ETodo, etodo)],
+    L1 = [{ETodo, makeSortValue(?prio, ETodo#etodo.priority)} ||
+             ETodo <- ETodos, is_record(ETodo, etodo)],
     L2 = lists:keysort(2, L1),
     [ETodo || {ETodo, _} <- L2];
 doSortETodos(?description, ETodos) ->
     L1 = [{ETodo, string:to_lower(ETodo#etodo.description)} ||
-        ETodo <- ETodos, is_record(ETodo, etodo)],
+             ETodo <- ETodos, is_record(ETodo, etodo)],
     L2 = lists:keysort(2, L1),
     [ETodo || {ETodo, _} <- L2];
 doSortETodos(?comment, ETodos) ->
     L1 = [{ETodo, string:to_lower(ETodo#etodo.comment)} ||
-        ETodo <- ETodos, is_record(ETodo, etodo)],
+             ETodo <- ETodos, is_record(ETodo, etodo)],
     L2 = lists:keysort(2, L1),
     [ETodo || {ETodo, _} <- L2];
 doSortETodos(?createTime, ETodos) ->
@@ -1266,19 +1266,23 @@ generateMsg(Sender, Sender, Users, Text) ->
                    _ ->
                        [" to ", makeHtml(makeStr(Users))]
                end,
-    {tableTag([{align, "right"}, {width, "100%"}],
-              [trTag(
+    {tableTag([{align, "right"}, {width, "100%"},
+               {cellspacing, "0"}, {cellpadding, "10"}],
+              [trTag([tdTag([{colspan, 4}], [])]),
+               trTag(
                  [tdTag([{width, "150"}], []),
-                  tdTag([{valign, "top"}, {align, "left"}, {width, "100%"}],
+                  tdTag([{valign, "top"}, {align, "left"},
+                         {width, "100%"}, {bgcolor, "#e6f2ff"}],
                         fontTag([{color, "Blue"}], [Sender, UserList])),
-                  tdTag([{valign, "top"}, {width, "80"}, {align, "center"}],
+                  tdTag([{valign, "top"}, {width, "80"},
+                         {align, "center"}, {bgcolor, "#e6f2ff"}],
                         fontTag([{color, ?DodgerBlue}], toStr(time(), time))),
                   tdTag([{valign, "top"}, {width, "40"}],
                         imgTag([{src, getRootDir() ++ "/Icons/" ++ Icon}]))]),
                trTag(
                  [tdTag(),
-                  tdTag([{align, "left"}], makeHtml(Text)),
-                  tdTag([{valign, "top"}, {align, center}],
+                  tdTag([{align, "left"}, {bgcolor, "#e6f2ff"}], makeHtml(Text)),
+                  tdTag([{valign, "top"}, {align, center}, {bgcolor, "#e6f2ff"}],
                         imgTag([{src, Portrait}, {height, "45"}, {width, "45"}])),
                   tdTag()])]),
      tableTag([{class, "msgSent"}],
@@ -1303,20 +1307,23 @@ generateMsg(_User, Sender, Users, Text) ->
                    _ ->
                        [" to ", makeHtml(makeStr(Users))]
                end,
-    {tableTag([{align, "left"}, {width, "100%"}],
-              [trTag(
+    {tableTag([{align, "left"}, {width, "100%"},
+               {cellspacing, "0"}, {cellpadding, "10"}],
+              [trTag([tdTag([{colspan, 4}, {height, "5"}], [])]),
+               trTag(
                  [tdTag([{valign, "top"}, {width, "40"}],
                         imgTag([{src, getRootDir() ++ "/Icons/" ++ Icon}])),
-                  tdTag([{valign, "top"}, {width, "80"}, {align, "center"}],
+                  tdTag([{valign, "top"}, {width, "80"},
+                         {align, "center"}, {bgcolor, "#e6f2ff"}],
                         fontTag([{color, ?DodgerBlue}], toStr(time(), time))),
-                  tdTag([{valign, "top"}, {width, "100%"}],
+                  tdTag([{valign, "top"}, {width, "100%"}, {bgcolor, "#e6f2ff"}],
                         fontTag([{color, "Blue"}], [Sender, UserList])),
                   tdTag([{width, "150"}], [])]),
                trTag(
                  [tdTag(),
-                  tdTag([{valign, "top"}, {align, center}],
+                  tdTag([{valign, "top"}, {align, center}, {bgcolor, "#e6f2ff"}],
                         imgTag([{src, Portrait}, {height, "45"}, {width, "45"}])),
-                  tdTag(makeHtml(Text)), tdTag()])]),
+                  tdTag([{bgcolor, "#e6f2ff"}], makeHtml(Text)), tdTag()])]),
      tableTag([{class, "msgReceived"}],
               [trTag(
                  [tdTag([{class, "msgImg"}],

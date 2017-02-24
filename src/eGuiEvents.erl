@@ -1986,18 +1986,26 @@ doRedo(State) ->
 %% Reply
 %%====================================================================
 replyMenuEvent(_Type, _Id, _Frame, State = #guiState{reply = []}) ->
+    Obj = obj("msgTextCtrl",  State),
+    wxTextCtrl:setFocus(Obj),
     State;
 replyMenuEvent(_Type, _Id, _Frame, State = #guiState{reply = Reply}) ->
-    Obj = obj("userCheckBox", State),
-    checkItemsInListWithClear(Obj, [Reply]),
+    Obj1 = obj("userCheckBox", State),
+    Obj2 = obj("msgTextCtrl",  State),
+    checkItemsInListWithClear(Obj1, [Reply]),
+    wxTextCtrl:setFocus(Obj2),
     State.
 
 replyAllMenuEvent(_Type, _Id, _Frame, State = #guiState{replyAll = []}) ->
+    Obj = obj("msgTextCtrl",  State),
+    wxTextCtrl:setFocus(Obj),
     State;
 replyAllMenuEvent(_Type, _Id, _Frame, State = #guiState{reply    = Sender,
                                                         replyAll = ReplyAll}) ->
-    Obj = obj("userCheckBox", State),
-    checkItemsInListWithClear(Obj, [Sender|ReplyAll]),
+    Obj1 = obj("userCheckBox", State),
+    Obj2 = obj("msgTextCtrl",  State),
+    checkItemsInListWithClear(Obj1, [Sender|ReplyAll]),
+    wxTextCtrl:setFocus(Obj2),
     State.
 
 %%====================================================================
