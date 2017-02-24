@@ -1607,9 +1607,9 @@ makeText(Text) ->
 makeText([], _State, Alt, SoFar) ->
     lists:reverse(Alt ++ SoFar);
 makeText("<br>" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [10, 13|SoFar]);
+    makeText(Rest, text, Alt, [10|SoFar]);
 makeText("<br />" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [10, 13|SoFar]);
+    makeText(Rest, text, Alt, [10|SoFar]);
 makeText("&aring;" ++ Rest, text, Alt, SoFar) ->
     makeText(Rest, text, Alt, [229|SoFar]);
 makeText("&auml;" ++ Rest, text, Alt, SoFar) ->
