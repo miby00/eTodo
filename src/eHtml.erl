@@ -1366,16 +1366,18 @@ getPortrait(User) ->
 %% Notes    :
 %%======================================================================
 generateSystemMsg(system, Text) ->
-    {tableTag(
-       [trTag(
+    {tableTag([{cellspacing, "0"}, {cellpadding, "10"}],
+       [trTag([tdTag([{colspan, 3}], [])]),
+        trTag(
           [tdTag([{valign, "top"}],
                  imgTag([{src, getRootDir() ++ "/Icons/etodoChat.png"}])),
-           tdTag([{valign, "top"}],
+           tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
                  fontTag([{color, ?DodgerBlue}],
                          toStr(time(), time))),
-           tdTag([{valign, "top"}],
+           tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
                  fontTag([{color, "Blue"}], "eTodo"))]),
-        trTag([tdTag(), tdTag(), tdTag(makeHtml(Text))])]),
+        trTag([tdTag(), tdTag([{bgcolor, "#f5f5f5"}], []),
+               tdTag([{bgcolor, "#f5f5f5"}], makeHtml(Text))])]),
      tableTag(
        [trTag(
           [tdTag([{class, "msgImg"}],
@@ -1385,17 +1387,19 @@ generateSystemMsg(system, Text) ->
         trTag([tdTag(), tdTag([{colspan, 2}], makeHtml(Text, "/priv"))])])};
 generateSystemMsg(Uid, Text) ->
     UidStr = eTodoUtils:convertUid(Uid),
-    {tableTag(
-       [trTag(
+    {tableTag([{cellspacing, "0"}, {cellpadding, "10"}],
+       [trTag([tdTag([{colspan, 3}], [])]),
+        trTag(
           [tdTag([{valign, "top"}],
                  imgTag([{src, getRootDir() ++ "/Icons/etodoChat.png"}])),
-           tdTag([{valign, "top"}],
+           tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
                  fontTag([{color, ?DodgerBlue}],
                          toStr(time(), time))),
-           tdTag([{valign, "top"}],
+           tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
                  fontTag([{color, "Red"}],
                          aTag([{href, UidStr}], "eTodo")))]),
-        trTag([tdTag(), tdTag(), tdTag(makeHtml(Text))])]),
+        trTag([tdTag(), tdTag([{bgcolor, "#f5f5f5"}], []),
+               tdTag([{bgcolor, "#f5f5f5"}], makeHtml(Text))])]),
      tableTag(
        [trTag(
           [tdTag([{class, "msgImg"}],
@@ -1414,16 +1418,18 @@ generateSystemMsg(Uid, Text) ->
 %% Notes    :
 %%======================================================================
 generateAlarmMsg(timer, Text) ->
-    {tableTag(
-       [trTag(
+    {tableTag([{cellspacing, "0"}, {cellpadding, "10"}],
+       [trTag([tdTag([{colspan, 3}], [])]),
+        trTag(
           [tdTag([{valign, "top"}],
                  imgTag([{src, getRootDir() ++ "/Icons/clockChat.png"}])),
-           tdTag([{valign, "top"}],
+           tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
                  fontTag([{color, ?DodgerBlue}],
                          toStr(time(), time))),
-           tdTag([{valign, "top"}],
+           tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
                  fontTag([{color, "Red"}], "Timer expired"))]),
-        trTag([tdTag(), tdTag(), tdTag(makeHtml(Text))])]),
+        trTag([tdTag(), tdTag([{bgcolor, "#f5f5f5"}], []),
+               tdTag([{bgcolor, "#f5f5f5"}], makeHtml(Text))])]),
      tableTag(
        [trTag(
           [tdTag([{class, "msgImg"}],
@@ -1433,17 +1439,19 @@ generateAlarmMsg(timer, Text) ->
         trTag([tdTag(), tdTag([{colspan, 2}], makeHtml(Text, "/priv"))])])};
 generateAlarmMsg(Uid, Text) ->
     UidStr = eTodoUtils:convertUid(Uid),
-    {tableTag(
-       [trTag(
+    {tableTag([{cellspacing, "0"}, {cellpadding, "10"}],
+       [trTag([tdTag([{colspan, 3}], [])]),
+        trTag(
           [tdTag([{valign, "top"}],
                  imgTag([{src, getRootDir() ++ "/Icons/clockChat.png"}])),
-           tdTag([{valign, "top"}],
+           tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
                  fontTag([{color, ?DodgerBlue}],
                          toStr(time(), time))),
-           tdTag([{valign, "top"}],
+           tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
                  fontTag([{color, "Red"}],
                          aTag([{href, UidStr}], "eTodo")))]),
-        trTag([tdTag(), tdTag(), tdTag(makeHtml(Text))])]),
+        trTag([tdTag(), tdTag([{bgcolor, "#f5f5f5"}], []),
+               tdTag([{bgcolor, "#f5f5f5"}], makeHtml(Text))])]),
      tableTag([{class, "msgAlarm"}],
               [trTag(
                  [tdTag([{class, "msgImg"}],
