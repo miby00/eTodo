@@ -116,6 +116,14 @@
          sortColumnsBoxEvent/4,
          sortColumnsCancelEvent/4,
          sortColumnsOkEvent/4,
+         smileyHappyEvent/4,
+         smileyMischiefEvent/4,
+         smileyLOLEvent/4,
+         smileyShockedEvent/4,
+         smileyCryingEvent/4,
+         smileyWinkEvent/4,
+         smileyHeartEvent/4,
+         linkFileButtonEvent/4,
          timerOkEvent/4,
          timerCancelEvent/4,
          timerToolEvent/4,
@@ -1149,6 +1157,84 @@ sortColumnsBoxEvent(_Type, _Id, _Frame,
     State.
 
 %%====================================================================
+%% Smiley buttons
+%%====================================================================
+smileyHappyEvent(_Type, _Id, _Frame, State) ->
+    Obj  = obj("msgTextCtrl", State),
+    wxTextCtrl:appendText(Obj, ":-)"),
+    wxTextCtrl:setFocus(Obj),
+    State.
+
+smileyLOLEvent(_Type, _Id, _Frame, State) ->
+    Obj  = obj("msgTextCtrl", State),
+    wxTextCtrl:appendText(Obj, ":D"),
+    wxTextCtrl:setFocus(Obj),
+    State.
+
+smileyMischiefEvent(_Type, _Id, _Frame, State) ->
+    Obj  = obj("msgTextCtrl", State),
+    wxTextCtrl:appendText(Obj, ":P"),
+    wxTextCtrl:setFocus(Obj),
+    State.
+
+smileyShockedEvent(_Type, _Id, _Frame, State) ->
+    Obj  = obj("msgTextCtrl", State),
+    wxTextCtrl:appendText(Obj, ":O"),
+    wxTextCtrl:setFocus(Obj),
+    State.
+
+smileyCryingEvent(_Type, _Id, _Frame, State) ->
+    Obj  = obj("msgTextCtrl", State),
+    wxTextCtrl:appendText(Obj, ":,("),
+    wxTextCtrl:setFocus(Obj),
+    State.
+
+smileyWinkEvent(_Type, _Id, _Frame, State) ->
+    Obj  = obj("msgTextCtrl", State),
+    wxTextCtrl:appendText(Obj, ";-)"),
+    wxTextCtrl:setFocus(Obj),
+    State.
+
+smileyHeartEvent(_Type, _Id, _Frame, State) ->
+    Obj  = obj("msgTextCtrl", State),
+    wxTextCtrl:appendText(Obj, "<3"),
+    wxTextCtrl:setFocus(Obj),
+    State.
+
+linkFileButtonEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
+    PortStr = toStr(eWeb:getPort()),
+
+    case {getFileToLink(State), PortStr} of
+        {{?wxID_OK, Path, File}, PortStr} when PortStr =/= "-1" ->
+            Reference    = toStr(makeRef()),
+            Args         =
+                "?filename="  ++ http_uri:encode(File) ++
+                "&reference=" ++ http_uri:encode(Reference),
+
+            ConCfg = default(eTodoDB:getConnection(User),
+                #conCfg{host = "localhost"}),
+            Host   = default(ConCfg#conCfg.host, "localhost"),
+
+            {ok, Bin} = file:read_file(Path),
+            ZBin      = zlib:gzip(Bin),
+            FileName  = filename:join([getRootDir(), "www", "linkedFiles",
+                    Reference ++ "_" ++ File]),
+            filelib:ensure_dir(FileName),
+            file:write_file(FileName, ZBin),
+            Link = "https://" ++ Host ++ ":" ++ PortStr ++
+                "/eTodo/eWeb:link" ++ Args,
+
+            Obj  = obj("msgTextCtrl", State),
+            wxTextCtrl:appendText(Obj, Link),
+            wxTextCtrl:setFocus(Obj),
+            State;
+        _->
+            eTodo:systemEntry(system, "Failed to link file, "
+                                      "web server not running"),
+            State
+    end.
+
+%%====================================================================
 %% Manage task owners.
 %%====================================================================
 addOwnerButtonEvent(_Type, _Id, _Frame,
@@ -1632,7 +1718,7 @@ checkBoxUseFilterEvent(_Type, _Id, _Frame, State) ->
     updateTodoWindow(State).
 
 linkFileMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
-    PortStr      = toStr(eWeb:getPort()),
+    PortStr = toStr(eWeb:getPort()),
 
     case getFileToLink(State) of
         {?wxID_OK, Path, File} ->

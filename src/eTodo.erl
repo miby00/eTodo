@@ -1185,7 +1185,9 @@ connectMainFrame(Frame, Dict) ->
     Buttons = ["setReminderButton", "commentButton",
                "manageListsButton", "sendTaskButton","addOwnerButton",
                "configureSearch", "shareButton", "addListButton",
-               "bookmarkBtn", "logWorkButton"],
+               "bookmarkBtn", "logWorkButton", "linkFileButton",
+               "smileyMischief", "smileyShocked", "smileyCrying",
+               "smileyWink", "smileyHappy", "smileyLOL", "smileyHeart"],
 
     TextFields = ["searchText", "userStatusMsg"],
 
