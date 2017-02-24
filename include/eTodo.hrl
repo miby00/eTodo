@@ -301,6 +301,7 @@
 
 -define(clearMsg,         1060).
 -define(clearRem,         1061).
+-define(clearLinked,      1062).
 
 -define(assigned,         1065).
 
@@ -319,9 +320,11 @@
 %% Constants for gui
 -define(clearMsgText,       ?tr(clearMsgText)).
 -define(clearRemText,       ?tr(clearRemText)).
+-define(clearLinkedText,    ?tr(clearLinkedText)).
 
--define(clearMsgText(LANG), ?tr(LANG, clearMsgText)).
--define(clearRemText(LANG), ?tr(LANG, clearRemText)).
+-define(clearMsgText(LANG),    ?tr(LANG, clearMsgText)).
+-define(clearRemText(LANG),    ?tr(LANG, clearRemText)).
+-define(clearLinkedText(LANG), ?tr(LANG, clearLinkedText)).
 
 -define(descSortDef,    "Sort order default").
 -define(descSortAsc,    "Sort order ascending").

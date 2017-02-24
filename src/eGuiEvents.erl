@@ -2378,6 +2378,12 @@ guiEvent(_Type, ?clearRem, _Frame, State) ->
     RemObj = obj("remTextWin", State),
     wxHtmlWindow:setPage(RemObj, ""),
     State;
+guiEvent(_Type, ?clearLinked, _Frame, State) ->
+    FileDir = filename:join([getRootDir(), "www", "linkedFiles"]),
+    {ok, FileList} = file:list_dir(FileDir),
+    [file:delete(filename:join([getRootDir(), "www", "linkedFiles", File])) ||
+        File <- FileList],
+    State;
 guiEvent(_Type, ?sortDef, _Frame, State = #guiState{user      = User}) ->
     eTodoDB:saveListCfg(User, sorted, default),
     updateTodoWindow(State);

@@ -220,8 +220,9 @@ doInitiateGUI(Language, Components, GUIState) ->
     wxNotebook:setPageText(Notebook, 0, tr(Language, "mainPanel")),
 
     %% Make message menu update
-    wxMenu:setLabel(GUIState#guiState.msgMenu, ?clearMsg, ?clearMsgText(Language)),
-    wxMenu:setLabel(GUIState#guiState.msgMenu, ?clearRem, ?clearRemText(Language)).
+    wxMenu:setLabel(GUIState#guiState.msgMenu, ?clearMsg,    ?clearMsgText(Language)),
+    wxMenu:setLabel(GUIState#guiState.msgMenu, ?clearRem,    ?clearRemText(Language)),
+    wxMenu:setLabel(GUIState#guiState.msgMenu, ?clearLinked, ?clearLinkedText(Language)).
 
 translate(Language, Component, GuiState) ->
     translate(Language, Component, type(Component), GuiState).

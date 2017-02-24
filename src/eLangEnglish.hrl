@@ -59,6 +59,7 @@
          }).
 
 -define(englishDef, #{
-          clearMsgText   => "Clear \"Messages\" tab",
-          clearRemText   => "Clear \"Reminders\" tab"
+          clearLinkedText => "Clear linked files",
+          clearMsgText    => "Clear \"Messages\" tab",
+          clearRemText    => "Clear \"Reminders\" tab"
          }).

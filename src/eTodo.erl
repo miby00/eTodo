@@ -261,8 +261,9 @@ initGUI(Arg) ->
     Xrc       = wxXmlResource:get(),
 
     %% Add menu choice
-    wxMenu:append(MsgMenu, ?clearMsg, ?clearMsgText),
-    wxMenu:append(MsgMenu, ?clearRem, ?clearRemText),
+    wxMenu:append(MsgMenu, ?clearMsg,    ?clearMsgText),
+    wxMenu:append(MsgMenu, ?clearRem,    ?clearRemText),
+    wxMenu:append(MsgMenu, ?clearLinked, ?clearLinkedText),
     wxMenu:connect(MsgMenu, command_menu_selected),
 
     wxXmlResource:initAllHandlers(Xrc),

@@ -59,6 +59,7 @@
          }).
 
 -define(swedishDef, #{
-          clearMsgText   => "Rensa \"Meddelanden\" fliken",
-          clearRemText   => "Rensa \"Påminnselser\" fliken"
+          clearLinkedText => "Rensa länkade filer",
+          clearMsgText    => "Rensa \"Meddelanden\" fliken",
+          clearRemText    => "Rensa \"Påminnselser\" fliken"
          }).
