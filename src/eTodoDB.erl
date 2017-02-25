@@ -666,7 +666,7 @@ handle_call({getAllLoggedWorkDate, Uid}, _From, State) ->
     Result = [toStr({Work#logWork.date,
                      {Work#logWork.hours,
                       Work#logWork.minutes}}) || Work <- DateSorted,
-              (Work#logWork.hours + Work#logWork.minutes) =/= 0],
+                                                 (Work#logWork.hours + Work#logWork.minutes) =/= 0],
     {reply, Result, State};
 handle_call({getWorkDesc, Uid}, _From, State) ->
     Result = default(matchOne(#workDesc{uid = Uid, _ = '_'}), #workDesc{}),
@@ -877,6 +877,16 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_cast({appendToPage, User, Type, Html}, State) ->
+    TS = fun() ->
+                 mnesia:write(#messages{key       = make_ref(),
+                                        timestamp = erlang:timestamp(),
+                                        userName  = User,
+                                        type      = Type,
+                                        message   = zlib:zip(Html)})
+         end,
+    mnesia:transaction(TS),
+    {noreply, State};
 handle_cast(stop, State) ->
     {stop, normal, State};
 handle_cast(_Msg, State) ->
