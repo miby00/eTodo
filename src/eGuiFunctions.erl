@@ -15,8 +15,7 @@
 
 %% API
 -export([addTodo/4,
-         appendToPage/2,
-         appendToReminders/2,
+         appendToPage/4,
          checkStatus/1,
          checkUndoStatus/1,
          clearAndInitiate/2,
@@ -116,13 +115,19 @@ updateTodo(List, ETodo, Row, State) ->
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
-appendToPage(MsgObj, {Html, _HtmlCSS}) ->
-    wxHtmlWindow:appendToPage(MsgObj, Html),
+appendToPage(MsgObj, Type, {Html, _HtmlCSS}, State) ->
+    case evalShow(Type, State#guiState.msgCfg) of
+        true ->
+            wxHtmlWindow:appendToPage(MsgObj, Html);
+        false ->
+            ok
+    end,
+    eTodoDB:appendToPage(State#guiState.user, Type, Html),
     setScrollBar(MsgObj).
 
-appendToReminders(MsgObj, {Html, _HtmlCSS}) ->
-    wxHtmlWindow:appendToPage(MsgObj, Html),
-    setScrollBar(MsgObj).
+evalShow(msgEntry,    {Chat, _, _})   -> Chat;
+evalShow(systemEntry, {_, _, System}) -> System;
+evalShow(alarmEntry,  {_, Alarm, _})  -> Alarm.
 
 setScrollBar(MsgObj) ->
     Range = wxHtmlWindow:getScrollRange(MsgObj, ?wxVERTICAL),

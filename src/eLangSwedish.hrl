@@ -44,7 +44,6 @@
           "priorityLang"       => "Prioritet:",
           "proxyLinkMenu"      => "Skapa proxy länk",
           "redoMenu"           => "Återskapa\tCtrl+Y",
-          "reminderPanel"      => "Påminnelser",
           "replyAllMenu"       => "Svara alla\tShift+Ctrl+R",
           "replyMenu"          => "Svara avsändare\tCtrl+R",
           "restoreMenuItem"    => "Återställ databas",
@@ -60,6 +59,7 @@
 
 -define(swedishDef, #{
           clearLinkedText => "Rensa länkade filer",
-          clearMsgText    => "Rensa \"Meddelanden\" fliken",
-          clearRemText    => "Rensa \"Påminnselser\" fliken"
+          clearMsgText    => "Rensa chat meddelanden",
+          clearSysText    => "Rensa system meddelanden",
+          clearRemText    => "Rensa påminnelser"
          }).

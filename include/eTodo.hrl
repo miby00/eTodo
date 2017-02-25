@@ -15,7 +15,8 @@
                    loginDlg, timeDlg, activeTodo = {undefined, -1},
                    clipBoard, startup, columns, rows = [], popUpMenu,
                    popUpCol, filter = [], usersDlg, addListDlg, manListsDlg,
-                   settingsDlg, drillDown = [], drillFromList, mode,
+                   settingsDlg, msgCfgDlg, msgCfg = {true, true, true},
+                   drillDown = [], drillFromList, mode,
                    print, conflictDlg, msgMenu, msgStatusSent = false,
                    aboutDlg, manOwnerDlg, helpFrame, userStatus = [],
                    unreadMsgs = 0, unreadSysMsgs = 0, delayedUpdate,
@@ -113,8 +114,6 @@
         "recurrence"         => wxRadioBox,
         "themeRadioBox"      => wxRadioBox,
         "redoMenu"           => wxMenuItem,
-        "reminderPanel"      => wxPanel,
-        "remTextWin"         => wxHtmlWindow,
         "replyAllMenu"       => wxMenuItem,
         "replyMenu"          => wxMenuItem,
         "restoreMenuItem"    => wxMenuItem,
@@ -235,6 +234,8 @@
 
 -record(logTime,   {uid, timeEstimate = 0, timeRemaining = 0}).
 
+-record(messages,  {key, userName, timestamp, type, message}).
+
 %%====================================================================
 %% Diff record used to send updates to other nodes.
 %%====================================================================
@@ -302,6 +303,7 @@
 -define(clearMsg,         1060).
 -define(clearRem,         1061).
 -define(clearLinked,      1062).
+-define(clearSys,         1063).
 
 -define(assigned,         1065).
 
@@ -319,10 +321,12 @@
 
 %% Constants for gui
 -define(clearMsgText,       ?tr(clearMsgText)).
+-define(clearSysText,       ?tr(clearSysText)).
 -define(clearRemText,       ?tr(clearRemText)).
 -define(clearLinkedText,    ?tr(clearLinkedText)).
 
 -define(clearMsgText(LANG),    ?tr(LANG, clearMsgText)).
+-define(clearSysText(LANG),    ?tr(LANG, clearSysText)).
 -define(clearRemText(LANG),    ?tr(LANG, clearRemText)).
 -define(clearLinkedText(LANG), ?tr(LANG, clearLinkedText)).
 

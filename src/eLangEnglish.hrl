@@ -44,7 +44,6 @@
           "priorityLang"       => "Priority:",
           "proxyLinkMenu"      => "Make proxy link",
           "redoMenu"           => "Redo\tCtrl+Y",
-          "reminderPanel"      => "Reminders",
           "replyAllMenu"       => "Reply all\tShift+Ctrl+R",
           "replyMenu"          => "Reply sender\tCtrl+R",
           "restoreMenuItem"    => "Restore database",
@@ -60,6 +59,7 @@
 
 -define(englishDef, #{
           clearLinkedText => "Clear linked files",
-          clearMsgText    => "Clear \"Messages\" tab",
-          clearRemText    => "Clear \"Reminders\" tab"
+          clearMsgText    => "Clear chat messages",
+          clearSysText    => "Clear system messages",
+          clearRemText    => "Clear reminders"
          }).

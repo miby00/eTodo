@@ -62,8 +62,7 @@
                      toStr/1]).
 
 -import(eGuiFunctions, [addTodo/4,
-                        appendToPage/2,
-                        appendToReminders/2,
+                        appendToPage/4,
                         checkStatus/1,
                         checkUndoStatus/1,
                         clearStatusBar/1,
@@ -251,6 +250,7 @@ initGUI(Arg) ->
     Users     = wxDialog:new(),
     AddList   = wxDialog:new(),
     Settings  = wxDialog:new(),
+    MsgCfg    = wxDialog:new(),
     ManLists  = wxDialog:new(),
     ManOwner  = wxDialog:new(),
     ManBookm  = wxDialog:new(),
@@ -262,6 +262,7 @@ initGUI(Arg) ->
 
     %% Add menu choice
     wxMenu:append(MsgMenu, ?clearMsg,    ?clearMsgText),
+    wxMenu:append(MsgMenu, ?clearSys,    ?clearSysText),
     wxMenu:append(MsgMenu, ?clearRem,    ?clearRemText),
     wxMenu:append(MsgMenu, ?clearLinked, ?clearLinkedText),
     wxMenu:connect(MsgMenu, command_menu_selected),
@@ -280,6 +281,7 @@ initGUI(Arg) ->
     wxXmlResource:loadDialog(Xrc,  Users,    Frame, "userDlg"),
     wxXmlResource:loadDialog(Xrc,  AddList,  Frame, "listDlg"),
     wxXmlResource:loadDialog(Xrc,  Settings, Frame, "settingsDlg"),
+    wxXmlResource:loadDialog(Xrc,  MsgCfg,   Frame, "msgSettingsDlg"),
     wxXmlResource:loadDialog(Xrc,  ManLists, Frame, "manageListDlg"),
     wxXmlResource:loadDialog(Xrc,  ManOwner, Frame, "manageOwnerDlg"),
     wxXmlResource:loadDialog(Xrc,  ManBookm, Frame, "manageBookmarkDlg"),
@@ -297,6 +299,7 @@ initGUI(Arg) ->
     setIcon(Users),
     setIcon(AddList),
     setIcon(Settings),
+    setIcon(MsgCfg),
     setIcon(ManLists),
     setIcon(ManOwner),
     setIcon(ManBookm),
@@ -340,40 +343,42 @@ initGUI(Arg) ->
     Dict14 = connectDlg(AddList,  "listOk",               Dict13),
     Dict15 = connectDlg(AddList,  "listCancel",           Dict14),
     Dict16 = connectDlg(AddList,  "listCheckListBox",     Event3, Dict15),
-    Dict17 = connectDlg(Settings, "settingsOk",           Dict16),
-    Dict18 = connectDlg(Settings, "settingsCancel",       Dict17),
-    Dict19 = connectDlg(Settings, "webUIEnabled",         Event1, Dict18),
-    Dict20 = connectDlg(ManLists, "manageListOk",         Dict19),
-    Dict21 = connectDlg(ManLists, "manageListCancel",     Dict20),
-    Dict22 = connectDlg(ManLists, "createListButton",     Dict21),
-    Dict23 = connectDlg(ManLists, "removeListButton",     Dict22),
-    Dict24 = connectDlg(ManLists, "updateListButton",     Dict23),
-    Dict25 = connectDlg(ManLists, "manageListBox",        Event4, Dict24),
-    Dict26 = connectDlg(ManOwner, "manageOwnerOk",        Dict25),
-    Dict27 = connectDlg(ManOwner, "manageOwnerCancel",    Dict26),
-    Dict28 = connectDlg(ManOwner, "createOwnerButton",    Dict27),
-    Dict29 = connectDlg(ManOwner, "removeOwnerButton",    Dict28),
-    Dict30 = connectDlg(ManOwner, "updateOwnerButton",    Dict29),
-    Dict31 = connectDlg(ManOwner, "manageOwnerBox",       Event4, Dict30),
-    Dict32 = connectDlg(ManBookm, "manageBookmarkOk",     Dict31),
-    Dict33 = connectDlg(ManBookm, "manageBookmarkCancel", Dict32),
-    Dict34 = connectDlg(ManBookm, "createBookmarkButton", Dict33),
-    Dict35 = connectDlg(ManBookm, "removeBookmarkButton", Dict34),
-    Dict36 = connectDlg(ManBookm, "updateBookmarkButton", Dict35),
-    Dict37 = connectDlg(ManBookm, "manageBookmarkBox",    Event4, Dict36),
-    Dict38 = connectDlg(SortCols, "sortColumnsOk",        Dict37),
-    Dict39 = connectDlg(SortCols, "sortColumnsCancel",    Dict38),
-    Dict40 = connectDlg(SortCols, "moveColUpButton",      Dict39),
-    Dict41 = connectDlg(SortCols, "moveColDownButton",    Dict40),
-    Dict42 = connectDlg(SortCols, "sortColumnsBox",       Event4, Dict41),
-    Dict43 = connectDlg(Timer,    "timerOk",              Dict42),
-    Dict44 = connectDlg(Timer,    "timerCancel",          Dict43),
-    Dict45 = connectDlg(Plugins,  "pluginOk",             Dict44),
-    Dict46 = connectDlg(Plugins,  "pluginCancel",         Dict45),
-    Dict47 = connectDlg(Plugins,  "usePlugins",           Event4, Dict46),
-    Dict48 = connectDlg(LogWork,  "logWorkOk",            Dict47),
-    Dict49 = connectDlg(LogWork,  "logWorkCancel",        Dict48),
-    Dict50 = connectDlg(LogWork,  "workDate",             Event2, Dict49),
+    Dict17 = connectDlg(MsgCfg,   "msgSettingsOk",        Dict16),
+    Dict18 = connectDlg(MsgCfg,   "msgSettingsCancel",    Dict17),
+    Dict19 = connectDlg(Settings, "settingsOk",           Dict18),
+    Dict20 = connectDlg(Settings, "settingsCancel",       Dict19),
+    Dict21 = connectDlg(Settings, "webUIEnabled",         Event1, Dict20),
+    Dict22 = connectDlg(ManLists, "manageListOk",         Dict21),
+    Dict23 = connectDlg(ManLists, "manageListCancel",     Dict22),
+    Dict24 = connectDlg(ManLists, "createListButton",     Dict23),
+    Dict25 = connectDlg(ManLists, "removeListButton",     Dict24),
+    Dict26 = connectDlg(ManLists, "updateListButton",     Dict25),
+    Dict27 = connectDlg(ManLists, "manageListBox",        Event4, Dict26),
+    Dict28 = connectDlg(ManOwner, "manageOwnerOk",        Dict27),
+    Dict29 = connectDlg(ManOwner, "manageOwnerCancel",    Dict28),
+    Dict30 = connectDlg(ManOwner, "createOwnerButton",    Dict29),
+    Dict31 = connectDlg(ManOwner, "removeOwnerButton",    Dict30),
+    Dict32 = connectDlg(ManOwner, "updateOwnerButton",    Dict31),
+    Dict33 = connectDlg(ManOwner, "manageOwnerBox",       Event4, Dict32),
+    Dict34 = connectDlg(ManBookm, "manageBookmarkOk",     Dict33),
+    Dict35 = connectDlg(ManBookm, "manageBookmarkCancel", Dict34),
+    Dict36 = connectDlg(ManBookm, "createBookmarkButton", Dict35),
+    Dict37 = connectDlg(ManBookm, "removeBookmarkButton", Dict36),
+    Dict38 = connectDlg(ManBookm, "updateBookmarkButton", Dict37),
+    Dict39 = connectDlg(ManBookm, "manageBookmarkBox",    Event4, Dict38),
+    Dict40 = connectDlg(SortCols, "sortColumnsOk",        Dict39),
+    Dict41 = connectDlg(SortCols, "sortColumnsCancel",    Dict40),
+    Dict42 = connectDlg(SortCols, "moveColUpButton",      Dict41),
+    Dict43 = connectDlg(SortCols, "moveColDownButton",    Dict42),
+    Dict44 = connectDlg(SortCols, "sortColumnsBox",       Event4, Dict43),
+    Dict45 = connectDlg(Timer,    "timerOk",              Dict44),
+    Dict46 = connectDlg(Timer,    "timerCancel",          Dict45),
+    Dict47 = connectDlg(Plugins,  "pluginOk",             Dict46),
+    Dict48 = connectDlg(Plugins,  "pluginCancel",         Dict47),
+    Dict49 = connectDlg(Plugins,  "usePlugins",           Event4, Dict48),
+    Dict50 = connectDlg(LogWork,  "logWorkOk",            Dict49),
+    Dict51 = connectDlg(LogWork,  "logWorkCancel",        Dict50),
+    Dict52 = connectDlg(LogWork,  "workDate",             Event2, Dict51),
 
 
     connectModalDialog(Conflict, "useLocalButton",  ?useLocal),
@@ -382,7 +387,7 @@ initGUI(Arg) ->
 
     Print = wxHtmlEasyPrinting:new(),
 
-    State = #guiState{dict        = Dict50,
+    State = #guiState{dict        = Dict52,
                       rows        = eRows:new(),
                       startup     = Arg,
                       user        = DefUser,
@@ -402,6 +407,7 @@ initGUI(Arg) ->
                       manBookmDlg = ManBookm,
                       sortColsDlg = SortCols,
                       settingsDlg = Settings,
+                      msgCfgDlg   = MsgCfg,
                       conflictDlg = Conflict,
                       aboutDlg    = About,
                       toolBar     = wxFrame:getToolBar(Frame),
@@ -696,13 +702,14 @@ handle_cast({acceptingIncCon, User, Circle, Port}, State) ->
     {noreply, State};
 handle_cast({appendToPage, Html}, State) ->
     MsgObj = obj("msgTextWin", State),
-    appendToPage(MsgObj, {Html, ""}),
+    appendToPage(MsgObj, systemEntry, {Html, ""}, State),
     {noreply, State};
 handle_cast({msgEntry, User, Users, Text},
             State = #guiState{frame = Frame,
                               user  = UserName}) ->
     MsgObj = obj("msgTextWin", State),
-    appendToPage(MsgObj, eHtml:generateMsg(UserName, User, Users, Text)),
+    appendToPage(MsgObj, msgEntry,
+                 eHtml:generateMsg(UserName, User, Users, Text), State),
     Msg = "Received message from " ++ User,
     State2 = chatMsgStatusBar(Msg, State),
     raiseIfIconified(Frame),
@@ -711,19 +718,20 @@ handle_cast({msgEntry, User, Users, Text},
     {noreply, State2#guiState{reply = User, replyAll = ReplyAll}};
 handle_cast({systemEntry, system, Text}, State) ->
     MsgObj       = obj("msgTextWin",    State),
-    appendToPage(MsgObj, eHtml:generateSystemMsg(system, Text)),
+    appendToPage(MsgObj, systemEntry,
+                 eHtml:generateSystemMsg(system, Text), State),
     State2 = sysMsgStatusBar("System message received.", State),
     {noreply, State2};
 handle_cast({systemEntry, Uid, Text}, State) ->
     MsgObj       = obj("msgTextWin",    State),
-    appendToPage(MsgObj, eHtml:generateSystemMsg(Uid, Text)),
+    appendToPage(MsgObj, systemEntry,
+                 eHtml:generateSystemMsg(Uid, Text), State),
     sysMsgStatusBar("System message received.", State),
     {noreply, State};
 handle_cast({alarmEntry, Uid, Text}, State) ->
     MsgObj       = obj("msgTextWin",    State),
-    RemObj       = obj("remTextWin",    State),
-    appendToPage(MsgObj, eHtml:generateAlarmMsg(Uid, Text)),
-    appendToReminders(RemObj, eHtml:generateAlarmMsg(Uid, Text)),
+    appendToPage(MsgObj, alarmEntry,
+                 eHtml:generateAlarmMsg(Uid, Text), State),
 
     sysMsgStatusBar("Alarm message received.", State),
     {noreply, State};
@@ -1140,15 +1148,13 @@ handle_cmd(Name, Type, Index, Id, Frame, State) ->
 %%======================================================================
 connectMsgFrame(Frame, Dict) ->
     AllMsgObj  = wxXmlResource:xrcctrl(Frame, "msgTextWin",    wxHtmlWindow),
-    RemMsgObj  = wxXmlResource:xrcctrl(Frame, "remTextWin",    wxHtmlWindow),
     WorkLogObj = wxXmlResource:xrcctrl(Frame, "workLogReport", wxHtmlWindow),
     wxHtmlWindow:connect(AllMsgObj,  right_down),
-    wxHtmlWindow:connect(RemMsgObj,  right_down),
     wxHtmlWindow:connect(WorkLogObj, right_down),
     Dict2  = connectItems(["msgTextCtrl"],
                           [command_text_enter, command_text_updated],
                           Frame,   Dict),
-    connectItems(["msgTextWin", "remTextWin", "workLogReport",
+    connectItems(["msgTextWin", "workLogReport",
                   "timeLogReport", "scheduleReport",
                   "descAreaPreview", "commentAreaPreview"],
                  command_html_link_clicked, Frame, Dict2).
@@ -1187,7 +1193,8 @@ connectMainFrame(Frame, Dict) ->
                "configureSearch", "shareButton", "addListButton",
                "bookmarkBtn", "logWorkButton", "linkFileButton",
                "smileyMischief", "smileyShocked", "smileyCrying",
-               "smileyWink", "smileyHappy", "smileyLOL", "smileyHeart"],
+               "smileyWink", "smileyHappy", "smileyLOL", "smileyHeart",
+               "msgSettingsButton"],
 
     TextFields = ["searchText", "userStatusMsg"],
 
@@ -1533,12 +1540,12 @@ sysMsgStatusBar(Msg, State) ->
     StatusBarObj = obj("mainStatusBar", State),
     Notebook     = obj("mainNotebook",  State),
     CurrPage     = wxNotebook:getCurrentPage(Notebook),
-    MsgPage  = wxNotebook:getPage(Notebook, 1),
+    MsgPage      = wxNotebook:getPage(Notebook, 1),
     case CurrPage of
         MsgPage ->
             clearStatusBar(State);
         _ ->
-            State2 = increaseSysMsgCounter(Msg, State),
+            State2 = increaseMsgCounter(State),
             wxStatusBar:setStatusText(StatusBarObj, Msg, [{number, 2}]),
             State2
     end.
@@ -1549,17 +1556,6 @@ increaseMsgCounter(State = #guiState{unreadMsgs = Before}) ->
     wxNotebook:setPageText(Notebook, 1,
                            "Messages(" ++ integer_to_list(Num) ++ ")"),
     State#guiState{unreadMsgs = Num}.
-
-%% Only increase counter for alarms.
-increaseSysMsgCounter("Alarm message received.",
-                      State = #guiState{unreadSysMsgs = Before}) ->
-    Num = Before + 1,
-    Notebook = obj("mainNotebook",  State),
-    wxNotebook:setPageText(Notebook, 2,
-                           "Reminders(" ++ integer_to_list(Num) ++ ")"),
-    State#guiState{unreadSysMsgs = Num};
-increaseSysMsgCounter(_Msg, State) ->
-    increaseMsgCounter(State).
 
 %%====================================================================
 %% Event to trigger gui save

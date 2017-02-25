@@ -81,6 +81,9 @@
          moveUpToolEvent/4,
          msgTextCtrlEvent/4,
          msgTextWinEvent/4,
+         msgSettingsButtonEvent/4,
+         msgSettingsCancelEvent/4,
+         msgSettingsOkEvent/4,
          ownerChoiceEvent/4,
          pasteMenuEvent/4,
          pasteToolEvent/4,
@@ -92,7 +95,6 @@
          progressInfoEvent/4,
          redoMenuEvent/4,
          redoToolEvent/4,
-         remTextWinEvent/4,
          reminderCancelEvent/4,
          reminderOkEvent/4,
          removeBookmarkButtonEvent/4,
@@ -148,7 +150,7 @@
          workLogStartDateEvent/4]).
 
 -import(eGuiFunctions, [addTodo/4,
-                        appendToPage/2,
+                        appendToPage/4,
                         checkStatus/1,
                         checkUndoStatus/1,
                         clearAndInitiate/2,
@@ -595,7 +597,8 @@ sendMsg(Users, State = #guiState{user = User}) ->
     MsgObj      = obj("msgTextWin",   State),
     MsgText     = wxTextCtrl:getValue(MsgTextCtrl),
     wxTextCtrl:clear(MsgTextCtrl),
-    appendToPage(MsgObj, eHtml:generateMsg(User, User, Users, MsgText)),
+    appendToPage(MsgObj, msgEntry,
+                 eHtml:generateMsg(User, User, Users, MsgText), State),
     ePeerEM:sendMsg(User, Users, msgEntry, MsgText),
     State#guiState{msgStatusSent = false}.
 
@@ -603,10 +606,6 @@ sendMsg(Users, State = #guiState{user = User}) ->
 %% Show right click menu on message window.
 %%====================================================================
 msgTextWinEvent(_Type, _Id, Frame, State = #guiState{msgMenu = MsgMenu}) ->
-    wxWindow:popupMenu(Frame, MsgMenu),
-    State.
-
-remTextWinEvent(_Type, _Id, Frame, State = #guiState{msgMenu = MsgMenu}) ->
     wxWindow:popupMenu(Frame, MsgMenu),
     State.
 
@@ -2308,6 +2307,36 @@ settingsCancelEvent(_Type, _Id, _Frame,
     wxDialog:hide(Settings),
     State.
 
+msgSettingsButtonEvent(_Type, _Id, _Frame,
+    State = #guiState{msgCfgDlg = Settings}) ->
+    wxDialog:setSize(Settings, {250, 205}),
+    wxDialog:show(Settings),
+    State.
+
+msgSettingsCancelEvent(_Type, _Id, _Frame,
+    State = #guiState{msgCfgDlg = Settings, msgCfg = {C, A, S}}) ->
+    Alarm  = wxXmlResource:xrcctrl(Settings, "showAlarm",  wxCheckBox),
+    Chat   = wxXmlResource:xrcctrl(Settings, "showChat",   wxCheckBox),
+    System = wxXmlResource:xrcctrl(Settings, "showSystem", wxCheckBox),
+
+    wxCheckBox:setValue(Chat,   C),
+    wxCheckBox:setValue(Alarm,  A),
+    wxCheckBox:setValue(System, S),
+
+    wxDialog:hide(Settings),
+    State.
+
+msgSettingsOkEvent(_Type, _Id, _Frame,
+    State  = #guiState{msgCfgDlg = Settings}) ->
+    Alarm  = wxXmlResource:xrcctrl(Settings, "showAlarm",  wxCheckBox),
+    Chat   = wxXmlResource:xrcctrl(Settings, "showChat",   wxCheckBox),
+    System = wxXmlResource:xrcctrl(Settings, "showSystem", wxCheckBox),
+
+    wxDialog:hide(Settings),
+    State#guiState{msgCfg = {wxCheckBox:isChecked(Chat),
+                             wxCheckBox:isChecked(Alarm),
+                             wxCheckBox:isChecked(System)}}.
+
 bookmarkBtnEvent(context_menu, _Id, _Frame,
                  State = #guiState{bookmCfg = BookmCfg}) ->
     Items = [Bookmark || {Bookmark, _Cfg} <- BookmCfg],
@@ -2460,9 +2489,13 @@ guiEvent(_Type, ?clearMsg, _Frame, State) ->
     MsgObj = obj("msgTextWin", State),
     wxHtmlWindow:setPage(MsgObj, ""),
     State;
+guiEvent(_Type, ?clearSys, _Frame, State) ->
+    MsgObj = obj("msgTextWin", State),
+    wxHtmlWindow:setPage(MsgObj, ""),
+    State;
 guiEvent(_Type, ?clearRem, _Frame, State) ->
-    RemObj = obj("remTextWin", State),
-    wxHtmlWindow:setPage(RemObj, ""),
+    MsgObj = obj("msgTextWin", State),
+    wxHtmlWindow:setPage(MsgObj, ""),
     State;
 guiEvent(_Type, ?clearLinked, _Frame, State) ->
     FileDir = filename:join([getRootDir(), "www", "linkedFiles"]),
@@ -2615,18 +2648,14 @@ mainNotebookEvent(_Type, _Id, _Frame, State) ->
     Notebook     = obj("mainNotebook",  State),
     CurrPage     = wxNotebook:getCurrentPage(Notebook),
     MsgPage      = wxNotebook:getPage(Notebook, 1),
-    RemPage      = wxNotebook:getPage(Notebook, 2),
-    WorkReport   = wxNotebook:getPage(Notebook, 3),
-    TimeReport   = wxNotebook:getPage(Notebook, 4),
-    ScheduleRep  = wxNotebook:getPage(Notebook, 5),
+    WorkReport   = wxNotebook:getPage(Notebook, 2),
+    TimeReport   = wxNotebook:getPage(Notebook, 3),
+    ScheduleRep  = wxNotebook:getPage(Notebook, 4),
 
     case CurrPage of
         MsgPage ->
             State2 = clearMsgCounter(State),
-            State3 = clearSysMsgCounter(State2),
-            clearStatusBar(State3);
-        RemPage ->
-            clearSysMsgCounter(State);
+            clearStatusBar(State2);
         WorkReport ->
             eGuiFunctions:generateWorkLog(State);
         TimeReport ->
@@ -2643,11 +2672,6 @@ clearMsgCounter(State = #guiState{user = User}) ->
     UserCfg = eTodoDB:readUserCfg(User),
     eTodoDB:saveUserCfg(UserCfg#userCfg{unreadMsgs = []}),
     State#guiState{unreadMsgs = 0}.
-
-clearSysMsgCounter(State) ->
-    Notebook = obj("mainNotebook",  State),
-    wxNotebook:setPageText(Notebook, 2, ?tr("reminderPanel")),
-    State#guiState{unreadSysMsgs = 0}.
 
 %%======================================================================
 %% Function :

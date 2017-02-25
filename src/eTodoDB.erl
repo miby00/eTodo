@@ -16,6 +16,7 @@
 
          addReminder/1,
          addTodo/2,
+         appendToPage/3,
          assignLists/3,
          clearUndo/0,
          delTodo/2,
@@ -131,6 +132,9 @@ addReminder(AlarmCfg) ->
 
 addTodo(UserInfo, Todo) when Todo#todo.uid =/= undefined ->
     gen_server:call(?MODULE, {addTodo, toList(UserInfo), Todo}).
+
+appendToPage(User, Type, Html) ->
+    gen_server:cast(?MODULE, {appendToPage, User, Type, Html}).
 
 assignLists(User, Uid, Lists) ->
     gen_server:call(?MODULE, {assignLists, User, Uid, Lists}).
@@ -341,6 +345,7 @@ recordInfo(conCfg)      -> record_info(fields, conCfg);
 recordInfo(logWork)     -> record_info(fields, logWork);
 recordInfo(logTime)     -> record_info(fields, logTime);
 recordInfo(workDesc)    -> record_info(fields, workDesc);
+recordInfo(messages)    -> record_info(fields, messages);
 recordInfo(httpd_user)  -> record_info(fields, httpd_user);
 recordInfo(httpd_group) -> record_info(fields, httpd_group).
 
@@ -362,7 +367,8 @@ recordInfo(httpd_group) -> record_info(fields, httpd_group).
 init([]) ->
     ExistingTables = mnesia:system_info(tables),
     TablesToCreate = [todo, userInfo, conCfg, userCfg, logWork, logTime,
-                      workDesc, listCfg, alarmCfg, httpd_user, httpd_group],
+                      workDesc, listCfg, alarmCfg, httpd_user, httpd_group,
+                      messages],
 
     PDlg = createProgressDialog(),
     createTables(ExistingTables, [schema]),
