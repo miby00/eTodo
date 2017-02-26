@@ -172,7 +172,7 @@ getWebSettingsJSON(SessionId, Env, Input) ->
     mod_esi:deliver(SessionId, HtmlPage).
 
 link(SessionId, Env, Input) ->
-    FileData = gen_server:call(?MODULE, {link, SessionId, Env, Input}),
+    FileData = call({link, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, FileData).
 
 login(SessionId, Env, Input) ->
@@ -343,26 +343,6 @@ getGuestUsers(User) ->
 handle_call(getPort, _From, State = #state{port = Port}) ->
     {reply, Port, State};
 
-handle_call({link, _SessionId, _Env, Input}, _From, State) ->
-    Dict       = makeDict(Input),
-    {ok, File} = find("filename",  Dict),
-    {ok, Ref}  = find("reference", Dict),
-    FileName   = filename:join([getRootDir(), "www", "linkedFiles",
-            Ref ++ "_" ++ File]),
-
-    FileData =
-        case file:read_file(FileName) of
-            {ok, Bin} ->
-                MimeType    = mime_type(FileName),
-                Disposition = getDisposition(MimeType, File),
-                ["Content-Type: ", MimeType,
-                    "\r\nContent-Disposition: ", Disposition,
-                    "\r\n\r\n", zlib:gunzip(Bin)];
-            Error ->
-                Error
-        end,
-    {reply, FileData, State};
-
 handle_call({login, _SessionId, _Env, _Input}, _From,
             State = #state{user = User}) ->
     HtmlPage =[eHtml:pageHeader(User),
@@ -416,6 +396,26 @@ handle_call({call, Message = {_Message, SessionId, Env, _Input}, Timeout}, From,
         {notConnected, State3} ->
             {reply, unAuthorized(State3#state.user), State3}
     end;
+
+handle_call({link, _SessionId, _Env, Input}, _From, State) ->
+    Dict       = makeDict(Input),
+    {ok, File} = find("filename",  Dict),
+    {ok, Ref}  = find("reference", Dict),
+    FileName   = filename:join([getRootDir(), "www", "linkedFiles",
+            Ref ++ "_" ++ File]),
+
+    FileData =
+        case file:read_file(FileName) of
+            {ok, Bin} ->
+                MimeType    = mime_type(FileName),
+                Disposition = getDisposition(MimeType, File),
+                ["Content-Type: ", MimeType,
+                    "\r\nContent-Disposition: ", Disposition,
+                    "\r\n\r\n", zlib:gunzip(Bin)];
+            Error ->
+                Error
+        end,
+    {reply, FileData, State};
 
 handle_call({listsTodos, SessionId, _Env, Input}, _From,
             State = #state{user = User, status = SList}) ->
@@ -1200,6 +1200,7 @@ proxyCall({Message, SessionId, Env, Input},
   when (Message == index)      or
        (Message == mobile)     or
        (Message == show)       or
+       (Message == link)       or
        (Message == showStatus) or
        (Message == showLoggedWork) ->
     Dict = makeDict(Input),
@@ -1395,10 +1396,10 @@ flattenMsg(HtmlIOList) ->
 %% @spec userOK(User, Message) -> true | false.
 %% @end
 %%--------------------------------------------------------------------
+userOK(_User, {link, _SessionId, _Env, _Input}, _WUser)           -> true;
 userOK(_User, _Message, "")                                       -> false;
 userOK(_User, {show, _SessionId, _Env, _Input}, _WUser)           -> true;
 userOK(_User, {showTimeReport, _SessionId, _Env, _Input}, _WUser) -> true;
-userOK(_User, {link, _SessionId, _Env, _Input}, _WUser)           -> true;
 userOK(User, {_Msg, _SessionId, _Env, _Input}, User)              -> true;
 userOK(_User, {_Msg, _SessionId, _Env, _Input}, _WUser)           -> false.
 
