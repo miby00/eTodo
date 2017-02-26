@@ -124,7 +124,7 @@ appendToPage(MsgObj, Type, {Html, _HtmlCSS}, State) ->
     appendToPage(MsgObj, Type, "", "", {Html, _HtmlCSS}, State).
 
 appendToPage(MsgObj, Type, From, To, {Html, _HtmlCSS}, State) ->
-    case evalShow(Type, State#guiState.msgCfg) of
+    case evalShow(Type, From, To, State#guiState.msgCfg) of
         true ->
             wxHtmlWindow:appendToPage(MsgObj, Html);
         false ->
@@ -133,9 +133,12 @@ appendToPage(MsgObj, Type, From, To, {Html, _HtmlCSS}, State) ->
     eTodoDB:appendToPage(State#guiState.user, Type, From, To, Html),
     setScrollBar(MsgObj).
 
-evalShow(msgEntry,    {Chat, _, _})   -> Chat;
-evalShow(systemEntry, {_, _, System}) -> System;
-evalShow(alarmEntry,  {_, Alarm, _})  -> Alarm.
+evalShow(msgEntry,    _, _, {type, {Chat, _, _},   _}) -> Chat;
+evalShow(systemEntry, _, _, {type, {_, _, System}, _}) -> System;
+evalShow(alarmEntry,  _, _, {type, {_, Alarm, _},  _}) -> Alarm;
+
+evalShow(_, UserName, _, {user, _, UserName}) -> true;
+evalShow(_,  _From, To,  {user, _, UserName}) -> lists:member(UserName, To).
 
 setScrollBar(MsgObj) ->
     Range = wxHtmlWindow:getScrollRange(MsgObj, ?wxVERTICAL),
@@ -1689,13 +1692,15 @@ updateMsgWindow(State, User) ->
     setScrollBar(HtmlWin),
     State.
 
-getMessages(User, State = #guiState{msgCfg = {true, true, true}}) ->
+getMessages(User, State = #guiState{msgCfg = {type, {true, true, true}, _}}) ->
     clearMsgCounter(State#guiState{user = User}),
     eTodoDB:getMessages(User);
-getMessages(User, #guiState{msgCfg = {Chat, Alarm, System}}) ->
+getMessages(User, #guiState{msgCfg = {type, {Chat, Alarm, System}, _}}) ->
     eTodoDB:getMessages(User, addType(Chat, msgEntry,
         addType(Alarm, alarmEntry,
-            addType(System, systemEntry, [])))).
+            addType(System, systemEntry, []))));
+getMessages(User, #guiState{msgCfg = {user, _, UserName}}) ->
+    eTodoDB:getMessagesFromOrTo(User, UserName).
 
 addType(true,  Type,  Acc) -> [Type|Acc];
 addType(false, _Type, Acc) -> Acc.

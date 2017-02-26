@@ -2314,17 +2314,35 @@ settingsCancelEvent(_Type, _Id, _Frame,
 
 msgSettingsButtonEvent(_Type, _Id, _Frame,
                        State = #guiState{msgCfgDlg = Settings,
-                                         msgCfg    = {C, A, S}}) ->
+                                         msgCfg    = {Flt, {C, A, S}, UserName},
+                                         user      = User}) ->
 
     Alarm  = wxXmlResource:xrcctrl(Settings, "showAlarm",  wxCheckBox),
     Chat   = wxXmlResource:xrcctrl(Settings, "showChat",   wxCheckBox),
     System = wxXmlResource:xrcctrl(Settings, "showSystem", wxCheckBox),
 
+    FilterType = wxXmlResource:xrcctrl(Settings, "msgFilter",      wxRadioBox),
+    UserChoice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxChoice),
+
+    case Flt of
+        type ->
+            wxRadioBox:setSelection(FilterType, 0);
+        user ->
+            wxRadioBox:setSelection(FilterType, 1)
+    end,
+
+    wxChoice:setStringSelection(UserChoice, UserName),
+
     wxCheckBox:setValue(Chat,   C),
     wxCheckBox:setValue(Alarm,  A),
     wxCheckBox:setValue(System, S),
 
-    wxDialog:setSize(Settings, {250, 205}),
+    Users  = lists:delete(User, eTodoDB:getUsers()),
+    Choice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxChoice),
+    wxChoice:clear(Choice),
+    wxChoice:appendStrings(Choice, Users),
+
+    wxDialog:setSize(Settings, {270, 325}),
     wxDialog:show(Settings),
     State.
 
@@ -2342,8 +2360,20 @@ msgSettingsOkEvent(_Type, _Id, _Frame,
     AlarmB  = wxCheckBox:isChecked(Alarm),
     SysB    = wxCheckBox:isChecked(System),
 
+    FilterType = wxXmlResource:xrcctrl(Settings, "msgFilter",      wxRadioBox),
+    UserChoice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxChoice),
+    UserName   = wxChoice:getStringSelection(UserChoice),
+
+    State2 = case wxRadioBox:getSelection(FilterType) of
+                 0 ->
+                     Cfg = {type, {ChatB, AlarmB, SysB}, UserName},
+                     State#guiState{msgCfg = Cfg};
+                 1 ->
+                     Cfg = {user, {ChatB, AlarmB, SysB}, UserName},
+                     State#guiState{msgCfg = Cfg}
+             end,
     wxDialog:hide(Settings),
-    updateMsgWindow(State#guiState{msgCfg = {ChatB, AlarmB, SysB}}, User).
+    updateMsgWindow(State2, User).
 
 bookmarkBtnEvent(context_menu, _Id, _Frame,
                  State = #guiState{bookmCfg = BookmCfg}) ->

@@ -19,6 +19,7 @@
          appendToPage/5,
          getMessages/1,
          getMessages/2,
+         getMessagesFromOrTo/2,
          assignLists/3,
          clearUndo/0,
          delMessages/2,
@@ -142,8 +143,11 @@ appendToPage(User, Type, From, To, Html) ->
 getMessages(User) ->
     gen_server:call(?MODULE, {getMessages, User}).
 
-getMessages(User, FromOrToOrType) ->
-    gen_server:call(?MODULE, {getMessages, User, FromOrToOrType}).
+getMessages(User, Type) ->
+    gen_server:call(?MODULE, {getMessages, User, Type}).
+
+getMessagesFromOrTo(User, FromOrTo) ->
+    gen_server:call(?MODULE, {getMessagesFromOrTo, User, FromOrTo}).
 
 assignLists(User, Uid, Lists) ->
     gen_server:call(?MODULE, {assignLists, User, Uid, Lists}).
