@@ -63,6 +63,8 @@
 
 -import(eGuiFunctions, [addTodo/4,
                         appendToPage/4,
+                        appendToPage/6,
+                        chatMsgStatusBar/2,
                         checkStatus/1,
                         checkUndoStatus/1,
                         clearStatusBar/1,
@@ -77,9 +79,10 @@
                         obj/2,
                         pos/2,
                         saveColumnSizes/1,
-                        saveMsg/5,
+                        saveMsg/2,
                         setColumnWidth/4,
                         setDoneTimeStamp/3,
+                        setScrollBar/1,
                         setOwner/3,
                         setPeerStatusIfNeeded/1,
                         setSelection/1,
@@ -89,6 +92,7 @@
                         type/1,
                         updateGui/3,
                         updateGui/4,
+                        updateMsgWindow/2,
                         updateTodo/4,
                         updateTodoInDB/2,
                         updateTodoWindow/1,
@@ -262,8 +266,11 @@ initGUI(Arg) ->
 
     %% Add menu choice
     wxMenu:append(MsgMenu, ?clearMsg,    ?clearMsgText),
+    wxMenu:appendSeparator(MsgMenu),
     wxMenu:append(MsgMenu, ?clearSys,    ?clearSysText),
+    wxMenu:appendSeparator(MsgMenu),
     wxMenu:append(MsgMenu, ?clearRem,    ?clearRemText),
+    wxMenu:appendSeparator(MsgMenu),
     wxMenu:append(MsgMenu, ?clearLinked, ?clearLinkedText),
     wxMenu:connect(MsgMenu, command_menu_selected),
 
@@ -480,7 +487,9 @@ initGUI(Arg) ->
     State7 = eGuiFunctions:generateTimeLog(State6),
     State8 = eGuiFunctions:generateSchedule(State7),
 
-    {Frame, checkStatus(State8#guiState{columns = Columns})}.
+    State9 = updateMsgWindow(State8, DefUser),
+
+    {Frame, checkStatus(State9#guiState{columns = Columns})}.
 
 setWindowSize(DefUser, Frame) ->
     UserCfg = eTodoDB:readUserCfg(DefUser),
@@ -682,7 +691,7 @@ handle_cast({todoDeleted, Uid},
     eTodoDB:delTodo(Uid, User),
     {noreply, State};
 handle_cast({taskListDeleted, List},
-    State = #guiState{user = User, mode = noGui}) ->
+            State = #guiState{user = User, mode = noGui}) ->
     TodoLists1 = getTodoLists(User),
     TodoLists2 = lists:delete(List, TodoLists1),
     eTodoDB:moveTodosToTaskList(User, ?defTaskList, List),
@@ -708,32 +717,32 @@ handle_cast({msgEntry, User, Users, Text},
             State = #guiState{frame = Frame,
                               user  = UserName}) ->
     MsgObj = obj("msgTextWin", State),
-    appendToPage(MsgObj, msgEntry,
+    appendToPage(MsgObj, msgEntry, User, Users,
                  eHtml:generateMsg(UserName, User, Users, Text), State),
     Msg = "Received message from " ++ User,
     State2 = chatMsgStatusBar(Msg, State),
     raiseIfIconified(Frame),
     ReplyAll = lists:delete(UserName, Users),
-    saveMsg(UserName, User, Users, Text, State),
+    saveMsg(UserName, State),
     {noreply, State2#guiState{reply = User, replyAll = ReplyAll}};
 handle_cast({systemEntry, system, Text}, State) ->
     MsgObj       = obj("msgTextWin",    State),
     appendToPage(MsgObj, systemEntry,
                  eHtml:generateSystemMsg(system, Text), State),
-    State2 = sysMsgStatusBar("System message received.", State),
+    State2 = chatMsgStatusBar("System message received.", State),
     {noreply, State2};
 handle_cast({systemEntry, Uid, Text}, State) ->
     MsgObj       = obj("msgTextWin",    State),
     appendToPage(MsgObj, systemEntry,
                  eHtml:generateSystemMsg(Uid, Text), State),
-    sysMsgStatusBar("System message received.", State),
+    chatMsgStatusBar("System message received.", State),
     {noreply, State};
 handle_cast({alarmEntry, Uid, Text}, State) ->
     MsgObj       = obj("msgTextWin",    State),
     appendToPage(MsgObj, alarmEntry,
                  eHtml:generateAlarmMsg(Uid, Text), State),
 
-    sysMsgStatusBar("Alarm message received.", State),
+    chatMsgStatusBar("Alarm message received.", State),
     {noreply, State};
 handle_cast({loggedIn, User}, State = #guiState{userStatus = Users}) ->
     UserObj      = obj("userCheckBox",  State),
@@ -1514,48 +1523,6 @@ raiseIfIconified(Frame) ->
         false ->
             ok
     end.
-
-%%======================================================================
-%% Function : chatMsgStatusBar(Msg, State) -> ok
-%% Purpose  : Add message to status bar if "Messages" isn't active.
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-chatMsgStatusBar(Msg, State) ->
-    Notebook = obj("mainNotebook",  State),
-    CurrPage = wxNotebook:getCurrentPage(Notebook),
-    MsgPage  = wxNotebook:getPage(Notebook, 1),
-    case CurrPage of
-        MsgPage ->
-            clearStatusBar(State);
-        _ ->
-            State2 = increaseMsgCounter(State),
-            StatusBarObj = obj("mainStatusBar", State2),
-            wxStatusBar:setStatusText(StatusBarObj, Msg, [{number, 2}]),
-            State2
-    end.
-
-sysMsgStatusBar(Msg, State) ->
-    StatusBarObj = obj("mainStatusBar", State),
-    Notebook     = obj("mainNotebook",  State),
-    CurrPage     = wxNotebook:getCurrentPage(Notebook),
-    MsgPage      = wxNotebook:getPage(Notebook, 1),
-    case CurrPage of
-        MsgPage ->
-            clearStatusBar(State);
-        _ ->
-            State2 = increaseMsgCounter(State),
-            wxStatusBar:setStatusText(StatusBarObj, Msg, [{number, 2}]),
-            State2
-    end.
-
-increaseMsgCounter(State = #guiState{unreadMsgs = Before}) ->
-    Num = Before + 1,
-    Notebook = obj("mainNotebook",  State),
-    wxNotebook:setPageText(Notebook, 1,
-                           "Messages(" ++ integer_to_list(Num) ++ ")"),
-    State#guiState{unreadMsgs = Num}.
 
 %%====================================================================
 %% Event to trigger gui save

@@ -151,9 +151,11 @@
 
 -import(eGuiFunctions, [addTodo/4,
                         appendToPage/4,
+                        appendToPage/6,
                         checkStatus/1,
                         checkUndoStatus/1,
                         clearAndInitiate/2,
+                        clearMsgCounter/1,
                         clearStatusBar/1,
                         deleteAndUpdate/3,
                         doLogout/2,
@@ -168,12 +170,13 @@
                         obj/2,
                         pos/2,
                         saveColumnSizes/1,
-                        resendUnreadMsgs/1,
+                        setUnreadMsgs/2,
                         setColumnWidth/4,
                         setColor/2,
                         setOwner/3,
                         setPeerStatusIfNeeded/1,
                         setPortrait/2,
+                        setScrollBar/1,
                         setSelection/1,
                         setSelection/2,
                         setTaskLists/2,
@@ -183,6 +186,7 @@
                         updateGui/3,
                         updateGui/4,
                         updateTodo/4,
+                        updateMsgWindow/2,
                         updateTodoInDB/2,
                         updateTodoWindow/1,
                         useFilter/3,
@@ -329,10 +333,11 @@ loginToCircle(Default, OldUser, User, Circle, Password, Md5Pwd,
     ePluginServer:setConfiguredPlugins(default(UserCfg#userCfg.plugins, [])),
     %% Start web gui
     eWeb:start_link(User),
-    State3  = updateTodoWindow(State2),
+    State3 = updateTodoWindow(State2),
     State4 = userStatusAvailable(State3),
-    resendUnreadMsgs(User),
-    focusAndSelect(State4#guiState{loggedIn = true}).
+    State5 = setUnreadMsgs(User, State4),
+    State6 = updateMsgWindow(State5, User),
+    focusAndSelect(State6#guiState{loggedIn = true}).
 
 loginCancelEvent(_Type, _Id, _Frame,  State = #guiState{loginDlg = Login}) ->
     wxDialog:hide(Login),
@@ -597,7 +602,7 @@ sendMsg(Users, State = #guiState{user = User}) ->
     MsgObj      = obj("msgTextWin",   State),
     MsgText     = wxTextCtrl:getValue(MsgTextCtrl),
     wxTextCtrl:clear(MsgTextCtrl),
-    appendToPage(MsgObj, msgEntry,
+    appendToPage(MsgObj, msgEntry, User, Users,
                  eHtml:generateMsg(User, User, Users, MsgText), State),
     ePeerEM:sendMsg(User, Users, msgEntry, MsgText),
     State#guiState{msgStatusSent = false}.
@@ -729,9 +734,9 @@ timerOkEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
 
     if OldTimerRef =/= undefined -> ePluginServer:eTimerStopped(User);
        true ->
-           UserCfg1 = eTodoDB:readUserCfg(User),
-           UserCfg2 = UserCfg1#userCfg{lastTimer = {Hours, Minutes, Seconds}},
-           eTodoDB:saveUserCfg(UserCfg2)
+            UserCfg1 = eTodoDB:readUserCfg(User),
+            UserCfg2 = UserCfg1#userCfg{lastTimer = {Hours, Minutes, Seconds}},
+            eTodoDB:saveUserCfg(UserCfg2)
     end,
 
     ePluginServer:eTimerStarted(User, MsgTxt, Hours, Minutes, Seconds),
@@ -1211,13 +1216,13 @@ linkFileButtonEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
                 "&reference=" ++ http_uri:encode(Reference),
 
             ConCfg = default(eTodoDB:getConnection(User),
-                #conCfg{host = "localhost"}),
+                             #conCfg{host = "localhost"}),
             Host   = default(ConCfg#conCfg.host, "localhost"),
 
             {ok, Bin} = file:read_file(Path),
             ZBin      = zlib:gzip(Bin),
             FileName  = filename:join([getRootDir(), "www", "linkedFiles",
-                    Reference ++ "_" ++ File]),
+                                       Reference ++ "_" ++ File]),
             filelib:ensure_dir(FileName),
             file:write_file(FileName, ZBin),
             Link = "https://" ++ Host ++ ":" ++ PortStr ++
@@ -1229,7 +1234,7 @@ linkFileButtonEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
             State;
         _->
             eTodo:systemEntry(system, "Failed to link file, "
-                                      "web server not running"),
+                              "web server not running"),
             State
     end.
 
@@ -1550,7 +1555,7 @@ logWorkButtonEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
     {ETodo, _} = State#guiState.activeTodo,
     Uid        = ETodo#etodo.uid,
     Date2      = case wxDatePickerCtrl:getValue(DateObj) of
-                    {{2001,1,1}, _} ->
+                     {{2001,1,1}, _} ->
                          Date = date(),
                          wxDatePickerCtrl:setValue(DateObj, {Date, {1,0,0}}),
                          Date;
@@ -2308,13 +2313,9 @@ settingsCancelEvent(_Type, _Id, _Frame,
     State.
 
 msgSettingsButtonEvent(_Type, _Id, _Frame,
-    State = #guiState{msgCfgDlg = Settings}) ->
-    wxDialog:setSize(Settings, {250, 205}),
-    wxDialog:show(Settings),
-    State.
+                       State = #guiState{msgCfgDlg = Settings,
+                                         msgCfg    = {C, A, S}}) ->
 
-msgSettingsCancelEvent(_Type, _Id, _Frame,
-    State = #guiState{msgCfgDlg = Settings, msgCfg = {C, A, S}}) ->
     Alarm  = wxXmlResource:xrcctrl(Settings, "showAlarm",  wxCheckBox),
     Chat   = wxXmlResource:xrcctrl(Settings, "showChat",   wxCheckBox),
     System = wxXmlResource:xrcctrl(Settings, "showSystem", wxCheckBox),
@@ -2323,19 +2324,26 @@ msgSettingsCancelEvent(_Type, _Id, _Frame,
     wxCheckBox:setValue(Alarm,  A),
     wxCheckBox:setValue(System, S),
 
+    wxDialog:setSize(Settings, {250, 205}),
+    wxDialog:show(Settings),
+    State.
+
+msgSettingsCancelEvent(_Type, _Id, _Frame,
+                       State = #guiState{msgCfgDlg = Settings}) ->
     wxDialog:hide(Settings),
     State.
 
 msgSettingsOkEvent(_Type, _Id, _Frame,
-    State  = #guiState{msgCfgDlg = Settings}) ->
-    Alarm  = wxXmlResource:xrcctrl(Settings, "showAlarm",  wxCheckBox),
-    Chat   = wxXmlResource:xrcctrl(Settings, "showChat",   wxCheckBox),
-    System = wxXmlResource:xrcctrl(Settings, "showSystem", wxCheckBox),
+                   State  = #guiState{msgCfgDlg = Settings, user = User}) ->
+    Chat    = wxXmlResource:xrcctrl(Settings, "showChat",   wxCheckBox),
+    Alarm   = wxXmlResource:xrcctrl(Settings, "showAlarm",  wxCheckBox),
+    System  = wxXmlResource:xrcctrl(Settings, "showSystem", wxCheckBox),
+    ChatB   = wxCheckBox:isChecked(Chat),
+    AlarmB  = wxCheckBox:isChecked(Alarm),
+    SysB    = wxCheckBox:isChecked(System),
 
     wxDialog:hide(Settings),
-    State#guiState{msgCfg = {wxCheckBox:isChecked(Chat),
-                             wxCheckBox:isChecked(Alarm),
-                             wxCheckBox:isChecked(System)}}.
+    updateMsgWindow(State#guiState{msgCfg = {ChatB, AlarmB, SysB}}, User).
 
 bookmarkBtnEvent(context_menu, _Id, _Frame,
                  State = #guiState{bookmCfg = BookmCfg}) ->
@@ -2480,29 +2488,52 @@ doUndo(State) ->
 %%====================================================================
 %% Gui event: unnamed events are received here.
 %%====================================================================
+confirmRemove(State, Frame, User, Type, GuiDesc) ->
+    Dlg = wxMessageDialog:new(Frame, "Are you sure you want to remove " ++
+                                  GuiDesc ++ "?",
+                              [{caption, "Remove messages"},
+                               {style,   ?wxYES_NO}]),
+    case wxMessageDialog:showModal(Dlg) of
+        ?wxID_YES ->
+            eTodoDB:delMessages(User, Type),
+            wxMessageDialog:destroy(Dlg),
+            updateMsgWindow(State, User);
+        _ ->
+            wxMessageDialog:destroy(Dlg),
+            State
+    end.
+
+confirmRemoveLinked(State, Frame) ->
+    Dlg = wxMessageDialog:new(Frame, "Are you sure you want to remove "
+                              "linked files?",
+                              [{caption, "Remove linked files"},
+                               {style,   ?wxYES_NO}]),
+    case wxMessageDialog:showModal(Dlg) of
+        ?wxID_YES ->
+            FileDir = filename:join([getRootDir(), "www", "linkedFiles"]),
+            {ok, FileList} = file:list_dir(FileDir),
+            [file:delete(filename:join([getRootDir(),
+                                        "www", "linkedFiles", File])) ||
+                File <- FileList],
+            State;
+        _ ->
+            State
+    end.
+
 guiEvent(_Type, MenuOption, _Frame,
-    State = #guiState{activeTodo = {ETodo, _}, user = User})
-    when MenuOption >= ?plugins ->
+         State = #guiState{activeTodo = {ETodo, _}, user = User})
+  when MenuOption >= ?plugins ->
     ePluginServer:eMenuEvent(User, MenuOption, ETodo),
     State;
-guiEvent(_Type, ?clearMsg, _Frame, State) ->
-    MsgObj = obj("msgTextWin", State),
-    wxHtmlWindow:setPage(MsgObj, ""),
-    State;
-guiEvent(_Type, ?clearSys, _Frame, State) ->
-    MsgObj = obj("msgTextWin", State),
-    wxHtmlWindow:setPage(MsgObj, ""),
-    State;
-guiEvent(_Type, ?clearRem, _Frame, State) ->
-    MsgObj = obj("msgTextWin", State),
-    wxHtmlWindow:setPage(MsgObj, ""),
-    State;
-guiEvent(_Type, ?clearLinked, _Frame, State) ->
-    FileDir = filename:join([getRootDir(), "www", "linkedFiles"]),
-    {ok, FileList} = file:list_dir(FileDir),
-    [file:delete(filename:join([getRootDir(), "www", "linkedFiles", File])) ||
-        File <- FileList],
-    State;
+guiEvent(_Type, ?clearMsg, Frame, State = #guiState{user = User}) ->
+    confirmRemove(State, Frame, User, msgEntry, "chat messages");
+guiEvent(_Type, ?clearSys, Frame, State = #guiState{user = User}) ->
+    confirmRemove(State, Frame, User, systemEntry, "system messages");
+guiEvent(_Type, ?clearRem, Frame, State = #guiState{user = User}) ->
+    confirmRemove(State, Frame, User, alarmEntry, "reminders");
+guiEvent(_Type, ?clearLinked, Frame, State) ->
+    confirmRemoveLinked(State, Frame);
+
 guiEvent(_Type, ?sortDef, _Frame, State = #guiState{user      = User}) ->
     eTodoDB:saveListCfg(User, sorted, default),
     updateTodoWindow(State);
@@ -2588,10 +2619,10 @@ guiEvent(_Type, Bookmark, _Frame, State = #guiState{bookmCfg = BookmCfg})
             State
     end;
 guiEvent(_Type, Status, _Frame,
-    State = #guiState{popUpCol  = {row, Row}, user = User}) ->
+         State = #guiState{popUpCol  = {row, Row}, user = User}) ->
     ETodo  = getETodoAtIndex(Row, State#guiState.rows),
     ETodo2 = ETodo#etodo{statusDB = toStatusDB(Status),
-        status   = toStr(toStatusDB(Status))},
+                         status   = toStr(toStatusDB(Status))},
     updateTodoInDB(User, ETodo2),
     TaskList = getTaskList(State),
     TodoList = getTodoList(TaskList, State),
@@ -2666,12 +2697,6 @@ mainNotebookEvent(_Type, _Id, _Frame, State) ->
             State
     end.
 
-clearMsgCounter(State = #guiState{user = User}) ->
-    Notebook = obj("mainNotebook",  State),
-    wxNotebook:setPageText(Notebook, 1, ?tr("messagePanel")),
-    UserCfg = eTodoDB:readUserCfg(User),
-    eTodoDB:saveUserCfg(UserCfg#userCfg{unreadMsgs = []}),
-    State#guiState{unreadMsgs = 0}.
 
 %%======================================================================
 %% Function :

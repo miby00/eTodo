@@ -16,9 +16,12 @@
 %% API
 -export([addTodo/4,
          appendToPage/4,
+         appendToPage/6,
+         chatMsgStatusBar/2,
          checkStatus/1,
          checkUndoStatus/1,
          clearAndInitiate/2,
+         clearMsgCounter/1,
          clearStatusBar/1,
          deleteAndUpdate/3,
          doLogout/2,
@@ -38,14 +41,15 @@
          obj/2,
          pos/2,
          saveColumnSizes/1,
-         saveMsg/5,
-         resendUnreadMsgs/1,
+         saveMsg/2,
+         setUnreadMsgs/2,
          setColumnWidth/4,
          setColor/2,
          setDoneTimeStamp/3,
          setOwner/3,
          setPeerStatusIfNeeded/1,
          setPortrait/2,
+         setScrollBar/1,
          setSelection/1,
          setSelection/2,
          setSelection/4,
@@ -57,6 +61,7 @@
          type/1,
          updateGui/3,
          updateGui/4,
+         updateMsgWindow/2,
          updateTodo/4,
          updateTodoInDB/2,
          updateTodoWindow/1,
@@ -116,13 +121,16 @@ updateTodo(List, ETodo, Row, State) ->
 %% Notes    :
 %%======================================================================
 appendToPage(MsgObj, Type, {Html, _HtmlCSS}, State) ->
+    appendToPage(MsgObj, Type, "", "", {Html, _HtmlCSS}, State).
+
+appendToPage(MsgObj, Type, From, To, {Html, _HtmlCSS}, State) ->
     case evalShow(Type, State#guiState.msgCfg) of
         true ->
             wxHtmlWindow:appendToPage(MsgObj, Html);
         false ->
-            ok
+            increaseMsgCounter(State)
     end,
-    eTodoDB:appendToPage(State#guiState.user, Type, Html),
+    eTodoDB:appendToPage(State#guiState.user, Type, From, To, Html),
     setScrollBar(MsgObj).
 
 evalShow(msgEntry,    {Chat, _, _})   -> Chat;
@@ -1612,31 +1620,23 @@ smartSplit([Char|Rest], SoFar) ->
 %% @spec
 %% @end
 %%--------------------------------------------------------------------
-saveMsg(UserName, User, Users, Text, State) ->
+saveMsg(UserName, State) ->
     UserCfg  = eTodoDB:readUserCfg(UserName),
-    Unread   = default(UserCfg#userCfg.unreadMsgs, []),
+    Unread   = default(UserCfg#userCfg.unreadMsgs, 0),
     Notebook = obj("mainNotebook",  State),
     CurrPage = wxNotebook:getCurrentPage(Notebook),
     MsgPage  = wxNotebook:getPage(Notebook, 1),
     UserCfg2 = case CurrPage of
                    MsgPage ->
-                       UserCfg#userCfg{unreadMsgs = []};
-                   _ ->
-                       Unread2 = [{User, Users, Text} | Unread],
+                       UserCfg#userCfg{unreadMsgs = 0};
+                   _ when is_integer(Unread) ->
+                       Unread2 = Unread + 1,
+                       UserCfg#userCfg{unreadMsgs = Unread2};
+                   _ when is_list(Unread) ->
+                       Unread2 = length(Unread) + 1,
                        UserCfg#userCfg{unreadMsgs = Unread2}
                end,
     eTodoDB:saveUserCfg(UserCfg2).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @spec
-%% @end
-%%--------------------------------------------------------------------
-resendUnreadMsgs(UserName) ->
-    UserCfg   = eTodoDB:readUserCfg(UserName),
-    Unread    = UserCfg#userCfg.unreadMsgs,
-    RevUnread = lists:reverse(Unread),
-    [eTodo:msgEntry(User, Users, Text) || {User, Users, Text} <- RevUnread].
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -1673,5 +1673,91 @@ toClipboard(Text, State) ->
             State;
         false ->
             State
+    end.
+
+%%======================================================================
+%% Function : updateMsgWindow(State, User) -> NewState
+%% Purpose  : Update msg window.
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+updateMsgWindow(State, User) ->
+    HtmlWin  = obj("msgTextWin", State),
+    HtmlPage = getMessages(User, State),
+    wxHtmlWindow:setPage(HtmlWin, HtmlPage),
+    setScrollBar(HtmlWin),
+    State.
+
+getMessages(User, State = #guiState{msgCfg = {true, true, true}}) ->
+    clearMsgCounter(State#guiState{user = User}),
+    eTodoDB:getMessages(User);
+getMessages(User, #guiState{msgCfg = {Chat, Alarm, System}}) ->
+    eTodoDB:getMessages(User, addType(Chat, msgEntry,
+        addType(Alarm, alarmEntry,
+            addType(System, systemEntry, [])))).
+
+addType(true,  Type,  Acc) -> [Type|Acc];
+addType(false, _Type, Acc) -> Acc.
+
+clearMsgCounter(State = #guiState{user = User}) ->
+    Notebook = obj("mainNotebook",  State),
+    wxNotebook:setPageText(Notebook, 1, ?tr("messagePanel")),
+    UserCfg = eTodoDB:readUserCfg(User),
+    eTodoDB:saveUserCfg(UserCfg#userCfg{unreadMsgs = 0}),
+    State#guiState{unreadMsgs = 0}.
+
+%%======================================================================
+%% Function : chatMsgStatusBar(Msg, State) -> ok
+%% Purpose  : Add message to status bar if "Messages" isn't active.
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+chatMsgStatusBar(Msg, State) ->
+    Notebook = obj("mainNotebook",  State),
+    CurrPage = wxNotebook:getCurrentPage(Notebook),
+    MsgPage  = wxNotebook:getPage(Notebook, 1),
+    case CurrPage of
+        MsgPage ->
+            clearStatusBar(State);
+        _ ->
+            State2 = increaseMsgCounter(State),
+            StatusBarObj = obj("mainStatusBar", State2),
+            wxStatusBar:setStatusText(StatusBarObj, Msg, [{number, 2}]),
+            State2
+    end.
+
+increaseMsgCounter(State = #guiState{unreadMsgs = Before}) ->
+    Num = Before + 1,
+    Notebook = obj("mainNotebook",  State),
+    wxNotebook:setPageText(Notebook, 1,
+        "Messages(" ++ integer_to_list(Num) ++ ")"),
+    State#guiState{unreadMsgs = Num}.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+setUnreadMsgs(UserName, State) ->
+    Notebook = obj("mainNotebook",  State),
+    CurrPage = wxNotebook:getCurrentPage(Notebook),
+    MsgPage  = wxNotebook:getPage(Notebook, 1),
+    case CurrPage of
+        MsgPage ->
+            clearStatusBar(State);
+        _ ->
+            UserCfg    = eTodoDB:readUserCfg(UserName),
+            UnreadMsgs = UserCfg#userCfg.unreadMsgs,
+            case  UnreadMsgs > 0 of
+                true ->
+                    Notebook = obj("mainNotebook",  State),
+                    wxNotebook:setPageText(Notebook, 1,
+                        "Messages(" ++ integer_to_list(UnreadMsgs) ++ ")");
+                false ->
+                    ok
+            end,
+            State#guiState{unreadMsgs = UnreadMsgs}
     end.
 

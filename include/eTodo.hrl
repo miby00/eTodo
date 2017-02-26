@@ -234,7 +234,7 @@
 
 -record(logTime,   {uid, timeEstimate = 0, timeRemaining = 0}).
 
--record(messages,  {key, userName, timestamp, type, message}).
+-record(messages,  {key, userName, timestamp, type, from , to, message}).
 
 %%====================================================================
 %% Diff record used to send updates to other nodes.

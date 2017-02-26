@@ -16,9 +16,12 @@
 
          addReminder/1,
          addTodo/2,
-         appendToPage/3,
+         appendToPage/5,
+         getMessages/1,
+         getMessages/2,
          assignLists/3,
          clearUndo/0,
+         delMessages/2,
          delTodo/2,
          delTodo/3,
          delTodo/4,
@@ -133,11 +136,20 @@ addReminder(AlarmCfg) ->
 addTodo(UserInfo, Todo) when Todo#todo.uid =/= undefined ->
     gen_server:call(?MODULE, {addTodo, toList(UserInfo), Todo}).
 
-appendToPage(User, Type, Html) ->
-    gen_server:cast(?MODULE, {appendToPage, User, Type, Html}).
+appendToPage(User, Type, From, To, Html) ->
+    gen_server:cast(?MODULE, {appendToPage, User, Type, From, To, Html}).
+
+getMessages(User) ->
+    gen_server:call(?MODULE, {getMessages, User}).
+
+getMessages(User, FromOrToOrType) ->
+    gen_server:call(?MODULE, {getMessages, User, FromOrToOrType}).
 
 assignLists(User, Uid, Lists) ->
     gen_server:call(?MODULE, {assignLists, User, Uid, Lists}).
+
+delMessages(User, Type) ->
+    gen_server:call(?MODULE, {delMessages, User, Type}).
 
 delReminder(AlarmCfg) ->
     gen_server:call(?MODULE, {delReminder, AlarmCfg}).
@@ -568,6 +580,13 @@ handle_call(Event = {assignLists, User, Uid, Lists}, _From, State) ->
     {Result, UndoInfo} = doAssignLists(User, Uid, Lists),
     State2 = addToUndo({Event, {undoAssignLists, User, Uid, UndoInfo}}, State),
     {reply, Result, State2};
+handle_call({delMessages, User, Type}, _From, State) ->
+    Messages = match(#messages{userName = User, type = Type, _ = '_'}),
+    DelFun   = fun() ->
+                       [mnesia:delete_object(Message) || Message <- Messages]
+               end,
+    Result   = mnesia:transaction(DelFun),
+    {reply, Result, State};
 handle_call({delReminder, Reminder}, _From, State) ->
     Result = mnesia:transaction(fun() -> delete_object(Reminder) end),
     {reply, Result, State};
@@ -594,9 +613,9 @@ handle_call(getConnections, _From, State) ->
     SortFun =
         fun (ConCfg) ->
                 Dist = ConCfg#conCfg.distance,
-                ((Dist ==  undefined) or (Dist == 1))  and
-                                                         (ConCfg#conCfg.host     =/= undefined) and
-                                                                                                  (ConCfg#conCfg.port     =/= undefined)
+                ((Dist ==  undefined) or (Dist == 1)) and
+                                                        (ConCfg#conCfg.host =/= undefined)   and
+                                                                                               (ConCfg#conCfg.port =/= undefined)
         end,
     Result2 = lists:filter(SortFun, Result),
     {reply, Result2, State};
@@ -681,6 +700,23 @@ handle_call({getTime, Uid}, _From, State) ->
     Result = default(matchOne(#logTime{uid = Uid, _ = '_'}), #logTime{}),
     {reply, {default(Result#logTime.timeEstimate, 0),
              default(Result#logTime.timeRemaining, 0)}, State};
+handle_call({getMessages, User}, _From, State) ->
+    Result1 = match(#messages{userName = User, _ = '_'}),
+    Result2 = lists:keysort(#messages.timestamp, Result1),
+    Result3 = [zlib:unzip(Msg#messages.message) || Msg <- Result2],
+    {reply, Result3, State};
+handle_call({getMessages, User, Types}, _From, State) ->
+    Result1 = match(#messages{userName = User, _ = '_'}),
+    Result2 = lists:keysort(#messages.timestamp, Result1),
+    Result3 = filterMessagesWithType(Types, Result2),
+    Result4 = [zlib:unzip(Msg#messages.message) || Msg <- Result3],
+    {reply, Result4, State};
+handle_call({getMessagesFromOrTo, User, FromOrTo}, _From, State) ->
+    Result1 = match(#messages{userName = User, type = msgEntry, _ = '_'}),
+    Result2 = lists:keysort(#messages.timestamp, Result1),
+    Result3 = filterMessages(FromOrTo, Result2),
+    Result4 = [zlib:unzip(Msg#messages.message) || Msg <- Result3],
+    {reply, Result4, State};
 handle_call({saveWorkDesc, Uid, WorkDesc, ShowInWorkLog, ShowInTimeLog},
             _From, State) ->
     TS = fun() ->
@@ -877,12 +913,14 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({appendToPage, User, Type, Html}, State) ->
+handle_cast({appendToPage, User, Type, From, To, Html}, State) ->
     TS = fun() ->
                  mnesia:write(#messages{key       = make_ref(),
                                         timestamp = erlang:timestamp(),
                                         userName  = User,
                                         type      = Type,
+                                        from      = From,
+                                        to        = To,
                                         message   = zlib:zip(Html)})
          end,
     mnesia:transaction(TS),
@@ -1994,3 +2032,37 @@ updateEmptyLW([], SoFar) ->
     SoFar;
 updateEmptyLW([LW|Rest], SoFar) ->
     updateEmptyLW(Rest, lists:keystore(LW#logWork.uid, #logWork.uid, SoFar, LW)).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Filter messages, keep the ones that From or To FromOrTo.
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+filterMessages(FromOrTo, Messages) ->
+    filterMessages(FromOrTo, Messages, []).
+
+filterMessages(_FromOrTo, [], Acc) ->
+    lists:reverse(Acc);
+filterMessages(FromOrTo, [Message|Rest], Acc) ->
+    To   = lists:member(FromOrTo, Message#messages.to),
+    From = (FromOrTo == Message#messages.from),
+    case (From or To) of
+        true ->
+            filterMessages(FromOrTo, Rest, [Message|Acc]);
+        false ->
+            filterMessages(FromOrTo, Rest, Acc)
+    end.
+
+filterMessagesWithType(Types, Messages) ->
+    filterMessagesWithType(Types, Messages, []).
+
+filterMessagesWithType(_Types, [], Acc) ->
+    lists:reverse(Acc);
+filterMessagesWithType(Types, [Message|Rest], Acc) ->
+    case lists:member(Message#messages.type, Types) of
+        true ->
+            filterMessagesWithType(Types, Rest, [Message|Acc]);
+        false ->
+            filterMessagesWithType(Types, Rest, Acc)
+    end.
