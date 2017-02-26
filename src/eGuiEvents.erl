@@ -1677,46 +1677,62 @@ proxyLinkMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
 linkViewMenuEvent(_Type, _Id, _Frame, State = #guiState{searchCfg = Cfg,
                                                         filter    = Flt,
                                                         user      = User}) ->
-    PortStr   = toStr(eWeb:getPort()),
-    List      = toStr(getTaskList(State)),
-    Search    = wxComboBox:getValue(obj("searchText", State)),
-    SearchCfg = makeStr(Cfg),
-    Filter    = makeStr(useFilter(getTaskList(State), Flt, State)),
-    Args      =
-        "?list="      ++ http_uri:encode(List)      ++
-        "&search="    ++ http_uri:encode(Search)    ++
-        "&searchCfg=" ++ http_uri:encode(SearchCfg) ++
-        "&filter="    ++ http_uri:encode(Filter),
+    case toStr(eWeb:getPort()) of
+        "-1" ->
+            eTodo:systemEntry(system, "Failed to link view, "
+                              "web server not running"),
+            State;
+        PortStr ->
+            List      = toStr(getTaskList(State)),
+            Search    = wxComboBox:getValue(obj("searchText", State)),
+            SearchCfg = makeStr(Cfg),
+            Filter    = makeStr(useFilter(getTaskList(State), Flt, State)),
+            Args      =
+                "?list="      ++ http_uri:encode(List)      ++
+                "&search="    ++ http_uri:encode(Search)    ++
+                "&searchCfg=" ++ http_uri:encode(SearchCfg) ++
+                "&filter="    ++ http_uri:encode(Filter),
 
-    ConCfg = default(eTodoDB:getConnection(User), #conCfg{host = "localhost"}),
-    Host   = default(ConCfg#conCfg.host, "localhost"),
-    Link   = "https://" ++ Host ++ ":" ++ PortStr ++ "/eTodo/eWeb:show" ++ Args,
+            ConCfg = default(eTodoDB:getConnection(User),
+                             #conCfg{host = "localhost"}),
+            Host   = default(ConCfg#conCfg.host, "localhost"),
+            Link   = "https://" ++ Host ++ ":" ++ PortStr ++
+                "/eTodo/eWeb:show" ++ Args,
 
-    eTodo:systemEntry(system, Link ++ " shows configured view in a browser."
-                      " Link added to clipboard."),
-    toClipboard(Link, State).
+            eTodo:systemEntry(system, Link ++ " shows configured view "
+                              "in a browser. Link added to clipboard."),
+            toClipboard(Link, State)
+    end.
 
 linkTimeReportMenuEvent(_Type, _Id, _Frame, State = #guiState{searchCfg = Cfg,
                                                               filter    = Flt,
                                                               user      = User}) ->
-    PortStr   = toStr(eWeb:getPort()),
-    List      = toStr(getTaskList(State)),
-    Search    = wxComboBox:getValue(obj("searchText", State)),
-    SearchCfg = makeStr(Cfg),
-    Filter    = makeStr(useFilter(getTaskList(State), Flt, State)),
-    Args      =
-        "?list="      ++ http_uri:encode(List)      ++
-        "&search="    ++ http_uri:encode(Search)    ++
-        "&searchCfg=" ++ http_uri:encode(SearchCfg) ++
-        "&filter="    ++ http_uri:encode(Filter),
+    case toStr(eWeb:getPort()) of
+        "-1" ->
+            eTodo:systemEntry(system, "Failed to link time report, "
+                              "web server not running"),
+            State;
+        PortStr ->
+            List      = toStr(getTaskList(State)),
+            Search    = wxComboBox:getValue(obj("searchText", State)),
+            SearchCfg = makeStr(Cfg),
+            Filter    = makeStr(useFilter(getTaskList(State), Flt, State)),
+            Args      =
+                "?list="      ++ http_uri:encode(List)      ++
+                "&search="    ++ http_uri:encode(Search)    ++
+                "&searchCfg=" ++ http_uri:encode(SearchCfg) ++
+                "&filter="    ++ http_uri:encode(Filter),
 
-    ConCfg = default(eTodoDB:getConnection(User), #conCfg{host = "localhost"}),
-    Host   = default(ConCfg#conCfg.host, "localhost"),
-    Link   = "https://" ++ Host ++ ":" ++ PortStr ++ "/eTodo/eWeb:showTimeReport" ++ Args,
+            ConCfg = default(eTodoDB:getConnection(User),
+                             #conCfg{host = "localhost"}),
+            Host   = default(ConCfg#conCfg.host, "localhost"),
+            Link   = "https://" ++ Host ++ ":" ++ PortStr ++
+                "/eTodo/eWeb:showTimeReport" ++ Args,
 
-    eTodo:systemEntry(system, Link ++ " shows configured time report in a browser."
-                      " Link added to clipboard."),
-    toClipboard(Link, State).
+            eTodo:systemEntry(system, Link ++ " shows configured time "
+                              "report in a browser. Link added to clipboard."),
+            toClipboard(Link, State)
+    end.
 
 checkBoxUseFilterEvent(_Type, _Id, _Frame, State) ->
     updateTodoWindow(State).
@@ -1724,8 +1740,8 @@ checkBoxUseFilterEvent(_Type, _Id, _Frame, State) ->
 linkFileMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
     PortStr = toStr(eWeb:getPort()),
 
-    case getFileToLink(State) of
-        {?wxID_OK, Path, File} ->
+    case {getFileToLink(State), PortStr} of
+        {{?wxID_OK, Path, File}, PortStr} when PortStr =/= "-1" ->
             Reference    = toStr(makeRef()),
             Args         =
                 "?filename="  ++ http_uri:encode(File) ++
@@ -1748,6 +1764,8 @@ linkFileMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
                                   " link to file added to clipboard."),
             toClipboard(Link, State);
         _->
+            eTodo:systemEntry(system, "Failed to link file, "
+                              "web server not running"),
             State
     end.
 

@@ -131,7 +131,12 @@ evalRemove(Pid) ->
     gen_server:cast(?MODULE, {evalRemove, Pid}).
 
 getPort() ->
-    gen_server:call(?MODULE, getPort).
+    case whereis(eWeb) of
+        undefined ->
+            -1;
+        _ ->
+            gen_server:call(?MODULE, getPort)
+    end.
 
 appendToPage(Html) ->
     gen_server:cast(?MODULE, {appendToPage, Html}).
