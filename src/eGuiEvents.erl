@@ -2349,8 +2349,6 @@ msgSettingsButtonEvent(_Type, _Id, _Frame,
             wxRadioBox:setSelection(FilterType, 1)
     end,
 
-    wxChoice:setStringSelection(UserChoice, UserName),
-
     wxCheckBox:setValue(Chat,   C),
     wxCheckBox:setValue(Alarm,  A),
     wxCheckBox:setValue(System, S),
@@ -2359,6 +2357,7 @@ msgSettingsButtonEvent(_Type, _Id, _Frame,
     Choice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxChoice),
     wxChoice:clear(Choice),
     wxChoice:appendStrings(Choice, Users),
+    wxChoice:setStringSelection(UserChoice, UserName),
 
     wxDialog:setSize(Settings, {270, 325}),
     wxDialog:show(Settings),
