@@ -211,7 +211,9 @@
                    webProxyPort,
                    smtpEnabled     = false,
                    smtpServer,
-                   smtpPort}).
+                   smtpPort,
+                   smtpUser,
+                   smtpPwd}).
 
 -record(listCfg,  {key,
                    userName,
