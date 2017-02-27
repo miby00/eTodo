@@ -208,7 +208,10 @@
                    lastTimer       = {0,25,0},
                    webProxyEnabled = false,
                    webProxyHost,
-                   webProxyPort}).
+                   webProxyPort,
+                   smtpEnabled     = false,
+                   smtpServer,
+                   smtpPort}).
 
 -record(listCfg,  {key,
                    userName,
