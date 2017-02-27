@@ -936,7 +936,7 @@ cancelTimer(recvTimer, State = #state{recvPingTimer = Reference}) ->
     erlang:cancel_timer(Reference),
     State#state{recvPingTimer = undefined}.
 
-tokenOK({link, _SessionId, _Env, Input}, User, Password) ->
+tokenOK({link, _SessionId, _Env, _Input}, _User, _Password) ->
     true;
 tokenOK({_Name, _SessionId, _Env, Input}, User, Password) ->
     KeyValueList = httpd:parse_query(Input),
