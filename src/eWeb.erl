@@ -1369,7 +1369,7 @@ splitHdr(Html) ->
 splitHdr(<<>>, SoFar) ->
     {<<>>, SoFar};
 splitHdr(<<"\r\n\r\n", Rest/binary>>, SoFar) ->
-    {<<SoFar/binary, "\r\n">>, <<"\r\n", Rest/binary>>};
+    {<<SoFar/binary, "\r\n">>, Rest};
 splitHdr(<<Char:8, Rest/binary>>, SoFar) ->
     splitHdr(Rest, <<SoFar/binary, Char>>).
 
