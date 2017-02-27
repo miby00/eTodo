@@ -384,6 +384,7 @@ initGUI(Arg) ->
     Dict50 = connectDlg(LogWork,  "logWorkOk",            Dict49),
     Dict51 = connectDlg(LogWork,  "logWorkCancel",        Dict50),
     Dict52 = connectDlg(LogWork,  "workDate",             Event2, Dict51),
+    Dict53 = connectDlg(Settings, "webProxyEnabled",      Event1, Dict52),
 
 
     connectModalDialog(Conflict, "useLocalButton",  ?useLocal),
@@ -392,7 +393,7 @@ initGUI(Arg) ->
 
     Print = wxHtmlEasyPrinting:new(),
 
-    State = #guiState{dict        = Dict52,
+    State = #guiState{dict        = Dict53,
                       rows        = eRows:new(),
                       startup     = Arg,
                       user        = DefUser,

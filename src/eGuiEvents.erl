@@ -145,6 +145,7 @@
          userStatusChoiceEvent/4,
          userStatusMsgEvent/4,
          webUIEnabledEvent/4,
+         webProxyEnabledEvent/4,
          workDateEvent/4,
          workLogReportEvent/4,
          workLogStartDateEvent/4]).
@@ -1219,14 +1220,26 @@ linkFileButtonEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
                              #conCfg{host = "localhost"}),
             Host   = default(ConCfg#conCfg.host, "localhost"),
 
+            UserCfg  = eTodoDB:readUserCfg(State#guiState.user),
+
+            {Host2, Port2, ProxyArg} =
+                case UserCfg#userCfg.webProxyEnabled of
+                    true ->
+                        {UserCfg#userCfg.webProxyHost,
+                         toStr(UserCfg#userCfg.webProxyPort),
+                         "&proxy=" ++ User};
+                    false ->
+                        {Host, PortStr, ""}
+                end,
+
             {ok, Bin} = file:read_file(Path),
             ZBin      = zlib:gzip(Bin),
             FileName  = filename:join([getRootDir(), "www", "linkedFiles",
                                        Reference ++ "_" ++ File]),
             filelib:ensure_dir(FileName),
             file:write_file(FileName, ZBin),
-            Link = "https://" ++ Host ++ ":" ++ PortStr ++
-                "/eTodo/eWeb:link" ++ Args,
+            Link = "https://" ++ Host2 ++ ":" ++ Port2 ++
+                "/eTodo/eWeb:link" ++ Args ++ ProxyArg,
 
             Obj  = obj("msgTextCtrl", State),
             wxTextCtrl:appendText(Obj, Link),
@@ -1663,10 +1676,18 @@ proxyLinkMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
     UserCfg  = eTodoDB:readUserCfg(State#guiState.user),
     WebPwd   = default(UserCfg#userCfg.webPassword, ""),
     Token    = base64:encode_to_string(crypto:hash(sha, User ++ "@" ++ WebPwd)),
+    {Host, Port} =
+        case UserCfg#userCfg.webProxyEnabled of
+            true ->
+                {UserCfg#userCfg.webProxyHost,
+                 toStr(UserCfg#userCfg.webProxyPort)};
+            false ->
+                {"ServerNameHere", "PortHere"}
+        end,
     Args     =
         "?proxy="    ++ http_uri:encode(User)   ++
         "&token="    ++ http_uri:encode(Token),
-    Link = "https://ServerNameHere:PortHere/eTodo/eWeb:index" ++ Args,
+    Link = "https://" ++ Host ++ ":" ++ Port ++ "/eTodo/eWeb:index" ++ Args,
     eTodo:systemEntry(system, Link ++ " Can be used to access web gui through "
                       "a proxy host. Link added to clipboard."),
     toClipboard(Link, State).
@@ -1747,9 +1768,20 @@ linkFileMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
                 "?filename="  ++ http_uri:encode(File) ++
                 "&reference=" ++ http_uri:encode(Reference),
 
-            ConCfg = default(eTodoDB:getConnection(User),
-                             #conCfg{host = "localhost"}),
-            Host   = default(ConCfg#conCfg.host, "localhost"),
+            ConCfg   = default(eTodoDB:getConnection(User),
+                               #conCfg{host = "localhost"}),
+            Host     = default(ConCfg#conCfg.host, "localhost"),
+            UserCfg  = eTodoDB:readUserCfg(State#guiState.user),
+
+            {Host2, Port2, ProxyArg} =
+                case UserCfg#userCfg.webProxyEnabled of
+                    true ->
+                        {UserCfg#userCfg.webProxyHost,
+                         toStr(UserCfg#userCfg.webProxyPort),
+                         "&proxy=" ++ User};
+                    false ->
+                        {Host, PortStr, ""}
+                end,
 
             {ok, Bin} = file:read_file(Path),
             ZBin      = zlib:gzip(Bin),
@@ -1757,8 +1789,8 @@ linkFileMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
                                        Reference ++ "_" ++ File]),
             filelib:ensure_dir(FileName),
             file:write_file(FileName, ZBin),
-            Link = "https://" ++ Host ++ ":" ++ PortStr ++
-                "/eTodo/eWeb:link" ++ Args,
+            Link = "https://" ++ Host2 ++ ":" ++ Port2 ++
+                "/eTodo/eWeb:link" ++ Args ++ ProxyArg,
 
             eTodo:systemEntry(system, Link ++
                                   " link to file added to clipboard."),
@@ -2198,30 +2230,56 @@ webUIEnabledEvent(_Type, _Id, _Frame,
     end,
     State.
 
+webProxyEnabledEvent(_Type, _Id, _Frame,
+                     State = #guiState{settingsDlg = Settings}) ->
+    WPOnObj   = wxXmlResource:xrcctrl(Settings, "webProxyEnabled",  wxCheckBox),
+    WPHostObj = wxXmlResource:xrcctrl(Settings, "webProxyHost",     wxTextCtrl),
+    WPPortObj = wxXmlResource:xrcctrl(Settings, "webProxyPort",     wxTextCtrl),
+
+    case wxCheckBox:isChecked(WPOnObj) of
+        true ->
+            wxTextCtrl:enable(WPHostObj),
+            wxTextCtrl:enable(WPPortObj);
+        false ->
+            wxTextCtrl:disable(WPHostObj),
+            wxTextCtrl:disable(WPPortObj)
+    end,
+    State.
+
 setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
-    WPwdObj  = wxXmlResource:xrcctrl(Settings, "webPassword",  wxTextCtrl),
-    WPortObj = wxXmlResource:xrcctrl(Settings, "webPort",      wxTextCtrl),
-    EPortObj = wxXmlResource:xrcctrl(Settings, "eTodoPort",    wxTextCtrl),
-    WOnObj   = wxXmlResource:xrcctrl(Settings, "webUIEnabled", wxCheckBox),
-    EHostObj = wxXmlResource:xrcctrl(Settings, "eTodoHostName", wxTextCtrl),
-    ThemeObj = wxXmlResource:xrcctrl(Settings, "themeRadioBox", wxRadioBox),
+    WPwdObj   = wxXmlResource:xrcctrl(Settings, "webPassword",     wxTextCtrl),
+    WPortObj  = wxXmlResource:xrcctrl(Settings, "webPort",         wxTextCtrl),
+    EPortObj  = wxXmlResource:xrcctrl(Settings, "eTodoPort",       wxTextCtrl),
+    WOnObj    = wxXmlResource:xrcctrl(Settings, "webUIEnabled",    wxCheckBox),
+    WPOnObj   = wxXmlResource:xrcctrl(Settings, "webProxyEnabled", wxCheckBox),
+    WPHostObj = wxXmlResource:xrcctrl(Settings, "webProxyHost",    wxTextCtrl),
+    WPPortObj = wxXmlResource:xrcctrl(Settings, "webProxyPort",    wxTextCtrl),
+    EHostObj  = wxXmlResource:xrcctrl(Settings, "eTodoHostName",   wxTextCtrl),
+    ThemeObj  = wxXmlResource:xrcctrl(Settings, "themeRadioBox",   wxRadioBox),
 
     IPAddr   = eTodoUtils:getIp(),
     UConCfg  = default(eTodoDB:getConnection(User), #conCfg{}),
 
     wxTextCtrl:setValue(EHostObj, default(UConCfg#conCfg.host,    IPAddr)),
 
-    #userCfg{webEnabled  = WEnabled,
-             webPort     = WPort,
-             webPassword = WPasswd,
-             conPort     = EPort,
-             theme       = Selected} = eTodoDB:readUserCfg(User),
-    wxTextCtrl:setValue(WPortObj, toStr(default(WPort, 8099))),
-    wxTextCtrl:setValue(EPortObj, toStr(default(EPort, 19000))),
-    wxTextCtrl:setValue(WPwdObj,  default(WPasswd, "")),
-    wxCheckBox:setValue(WOnObj,   default(WEnabled, false)),
+    #userCfg{webEnabled      = WEnabled,
+             webPort         = WPort,
+             webPassword     = WPasswd,
+             webProxyEnabled = WPEnabled,
+             webProxyHost    = WPHost,
+             webProxyPort    = WPPort,
+             conPort         = EPort,
+             theme           = Selected} = eTodoDB:readUserCfg(User),
+    wxTextCtrl:setValue(WPortObj,  toStr(default(WPort,  8099))),
+    wxTextCtrl:setValue(WPPortObj, toStr(default(WPPort, 8099))),
+    wxTextCtrl:setValue(EPortObj,  toStr(default(EPort,  19000))),
+    wxTextCtrl:setValue(WPwdObj,   default(WPasswd, "")),
+    wxTextCtrl:setValue(WPHostObj, default(WPHost,  "")),
+    wxCheckBox:setValue(WOnObj,    default(WEnabled,  false)),
+    wxCheckBox:setValue(WPOnObj,   default(WPEnabled, false)),
     wxRadioBox:setSelection(ThemeObj, default(Selected, 0)),
-    webUIEnabledEvent(undefined, undefined, undefined, State).
+    webUIEnabledEvent(undefined, undefined, undefined, State),
+    webProxyEnabledEvent(undefined, undefined, undefined, State).
 
 setDefaultValues(ConCfg, #guiState{user = User, settingsDlg = Settings}) ->
     PeerObj  = wxXmlResource:xrcctrl(Settings, "peerUserName",  wxTextCtrl),
@@ -2239,15 +2297,18 @@ setDefaultValues(ConCfg, #guiState{user = User, settingsDlg = Settings}) ->
 
 settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
                                                       user        = User}) ->
-    PeerObj  = wxXmlResource:xrcctrl(Settings, "peerUserName",  wxTextCtrl),
-    HostObj  = wxXmlResource:xrcctrl(Settings, "hostName",      wxTextCtrl),
-    PortObj  = wxXmlResource:xrcctrl(Settings, "peerPort",      wxTextCtrl),
-    WPwdObj  = wxXmlResource:xrcctrl(Settings, "webPassword",   wxTextCtrl),
-    WPortObj = wxXmlResource:xrcctrl(Settings, "webPort",       wxTextCtrl),
-    EPortObj = wxXmlResource:xrcctrl(Settings, "eTodoPort",     wxTextCtrl),
-    EHostObj = wxXmlResource:xrcctrl(Settings, "eTodoHostName", wxTextCtrl),
-    WOnObj   = wxXmlResource:xrcctrl(Settings, "webUIEnabled",  wxCheckBox),
-    ThemeObj = wxXmlResource:xrcctrl(Settings, "themeRadioBox", wxRadioBox),
+    PeerObj   = wxXmlResource:xrcctrl(Settings, "peerUserName",    wxTextCtrl),
+    HostObj   = wxXmlResource:xrcctrl(Settings, "hostName",        wxTextCtrl),
+    PortObj   = wxXmlResource:xrcctrl(Settings, "peerPort",        wxTextCtrl),
+    WPwdObj   = wxXmlResource:xrcctrl(Settings, "webPassword",     wxTextCtrl),
+    WPortObj  = wxXmlResource:xrcctrl(Settings, "webPort",         wxTextCtrl),
+    EPortObj  = wxXmlResource:xrcctrl(Settings, "eTodoPort",       wxTextCtrl),
+    EHostObj  = wxXmlResource:xrcctrl(Settings, "eTodoHostName",   wxTextCtrl),
+    WOnObj    = wxXmlResource:xrcctrl(Settings, "webUIEnabled",    wxCheckBox),
+    ThemeObj  = wxXmlResource:xrcctrl(Settings, "themeRadioBox",   wxRadioBox),
+    WPOnObj   = wxXmlResource:xrcctrl(Settings, "webProxyEnabled", wxCheckBox),
+    WPHostObj = wxXmlResource:xrcctrl(Settings, "webProxyHost",    wxTextCtrl),
+    WPPortObj = wxXmlResource:xrcctrl(Settings, "webProxyPort",    wxTextCtrl),
 
     FileName   = lists:concat(["styles_", User, ".css"]),
     DestFile   = filename:join([getRootDir(), "www", "priv", "css", FileName]),
@@ -2265,16 +2326,20 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
                         1
                 end,
 
-    PeerUser = wxTextCtrl:getValue(PeerObj),
-    PeerHost = wxTextCtrl:getValue(HostObj),
-    PeerPort = wxTextCtrl:getValue(PortObj),
+    PeerUser  = wxTextCtrl:getValue(PeerObj),
+    PeerHost  = wxTextCtrl:getValue(HostObj),
+    PeerPort  = wxTextCtrl:getValue(PortObj),
 
-    WEnabled = wxCheckBox:isChecked(WOnObj),
-    WPwd     = wxTextCtrl:getValue(WPwdObj),
-    WebPort  = wxTextCtrl:getValue(WPortObj),
+    WEnabled  = wxCheckBox:isChecked(WOnObj),
+    WPwd      = wxTextCtrl:getValue(WPwdObj),
+    WebPort   = wxTextCtrl:getValue(WPortObj),
 
-    EPort    = wxTextCtrl:getValue(EPortObj),
-    EHost    = wxTextCtrl:getValue(EHostObj),
+    WPEnabled = wxCheckBox:isChecked(WPOnObj),
+    WPHost    = wxTextCtrl:getValue(WPHostObj),
+    WPPort    = wxTextCtrl:getValue(WPPortObj),
+
+    EPort     = wxTextCtrl:getValue(EPortObj),
+    EHost     = wxTextCtrl:getValue(EHostObj),
 
     eTodoDB:updateConnection(#conCfg{userName   = PeerUser,
                                      host       = PeerHost,
@@ -2287,12 +2352,15 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
                                      updateTime = configured}),
 
     UserCfg  = eTodoDB:readUserCfg(User),
-    UserCfg2 = UserCfg#userCfg{peerUser    = PeerUser,
-                               webEnabled  = WEnabled,
-                               webPassword = WPwd,
-                               webPort     = toInt(WebPort),
-                               conPort     = toInt(EPort),
-                               theme       = Selection},
+    UserCfg2 = UserCfg#userCfg{peerUser        = PeerUser,
+                               webEnabled      = WEnabled,
+                               webPassword     = WPwd,
+                               webPort         = toInt(WebPort),
+                               webProxyEnabled = WPEnabled,
+                               webProxyHost    = WPHost,
+                               webProxyPort    = toInt(WPPort),
+                               conPort         = toInt(EPort),
+                               theme           = Selection},
     eTodoDB:saveUserCfg(UserCfg2),
     executeChanges(UserCfg, UserCfg2),
     wxDialog:hide(Settings),

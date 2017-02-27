@@ -205,7 +205,10 @@
                    lastTaskList,
                    webSettings     = [],
                    unreadMsgs      = [],
-                   lastTimer       = {0,25,0}}).
+                   lastTimer       = {0,25,0},
+                   webProxyEnabled = false,
+                   webProxyHost,
+                   webProxyPort}).
 
 -record(listCfg,  {key,
                    userName,
