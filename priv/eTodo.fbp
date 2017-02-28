@@ -13137,7 +13137,7 @@
             <property name="size">270,325</property>
             <property name="style">wxDEFAULT_DIALOG_STYLE</property>
             <property name="subclass"></property>
-            <property name="title">Show messages settings</property>
+            <property name="title">Message filter</property>
             <property name="tooltip"></property>
             <property name="validator_data_type"></property>
             <property name="validator_style">wxFILTER_NONE</property>

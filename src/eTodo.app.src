@@ -46,7 +46,7 @@
 		ePluginServer
 	       ]},
   {applications, [kernel, stdlib, compiler, sasl, mnesia, inets, crypto, asn1, public_key, ssl, wx, jsx, eLog, ePort]},
-  {included_applications, []},
+  {included_applications, [eper]},
   {env, []},
   {mod, {eTodoApp, []}
   }

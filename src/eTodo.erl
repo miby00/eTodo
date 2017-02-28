@@ -331,6 +331,7 @@ initGUI(Arg) ->
     Event2 = date_changed,
     Event3 = command_checklistbox_toggled,
     Event4 = command_listbox_selected,
+    Event5 = command_radiobox_selected,
 
     %% Listen to events from GUI
     Dict2  = connectMainFrame(Frame, Dict),
@@ -386,6 +387,7 @@ initGUI(Arg) ->
     Dict52 = connectDlg(LogWork,  "workDate",             Event2, Dict51),
     Dict53 = connectDlg(Settings, "webProxyEnabled",      Event1, Dict52),
     Dict54 = connectDlg(Settings, "smtpEnabled",          Event1, Dict53),
+    Dict55 = connectDlg(MsgCfg,   "msgFilter",            Event5, Dict54),
 
 
     connectModalDialog(Conflict, "useLocalButton",  ?useLocal),
@@ -394,7 +396,7 @@ initGUI(Arg) ->
 
     Print = wxHtmlEasyPrinting:new(),
 
-    State = #guiState{dict        = Dict54,
+    State = #guiState{dict        = Dict55,
                       rows        = eRows:new(),
                       startup     = Arg,
                       user        = DefUser,

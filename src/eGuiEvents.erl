@@ -81,6 +81,7 @@
          moveUpToolEvent/4,
          msgTextCtrlEvent/4,
          msgTextWinEvent/4,
+         msgFilterEvent/4,
          msgSettingsButtonEvent/4,
          msgSettingsCancelEvent/4,
          msgSettingsOkEvent/4,
@@ -2269,6 +2270,28 @@ smtpEnabledEvent(_Type, _Id, _Frame,
     end,
     State.
 
+msgFilterEvent(_Type, _Id, _Frame,
+               State = #guiState{msgCfgDlg = Settings}) ->
+    FilterObj  = wxXmlResource:xrcctrl(Settings, "msgFilter",      wxRadioBox),
+    SChatObj   = wxXmlResource:xrcctrl(Settings, "showChat",       wxCheckBox),
+    SAlarmObj  = wxXmlResource:xrcctrl(Settings, "showAlarm",      wxCheckBox),
+    SSystemObj = wxXmlResource:xrcctrl(Settings, "showSystem",     wxCheckBox),
+    AChoiceObj = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxChoice),
+
+    case wxRadioBox:getSelection(FilterObj) of
+        0 ->
+            wxCheckBox:enable(SChatObj),
+            wxCheckBox:enable(SAlarmObj),
+            wxCheckBox:enable(SSystemObj),
+            wxChoice:disable(AChoiceObj);
+        1 ->
+            wxCheckBox:disable(SChatObj),
+            wxCheckBox:disable(SAlarmObj),
+            wxCheckBox:disable(SSystemObj),
+            wxChoice:enable(AChoiceObj)
+    end,
+    State.
+
 setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
     WPwdObj     = wxXmlResource:xrcctrl(Settings, "webPassword",     wxTextCtrl),
     WPortObj    = wxXmlResource:xrcctrl(Settings, "webPort",         wxTextCtrl),
@@ -2484,7 +2507,7 @@ msgSettingsButtonEvent(_Type, _Id, _Frame,
 
     wxDialog:setSize(Settings, {270, 325}),
     wxDialog:show(Settings),
-    State.
+    msgFilterEvent(undefined, undefined, undefined, State).
 
 msgSettingsCancelEvent(_Type, _Id, _Frame,
                        State = #guiState{msgCfgDlg = Settings}) ->
