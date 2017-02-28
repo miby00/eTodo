@@ -572,12 +572,20 @@ startDateChangedEvent(State) ->
 %% Toolbar show/hide msg window.
 %%====================================================================
 msgTextCtrlEvent(command_text_updated, _Id, _Frame,
-                 State = #guiState{user = User, msgStatusSent = SentStatus}) ->
+                 State = #guiState{user          = User,
+                                   msgStatusSent = SentStatus,
+                                   menuBar       = MenuBar}) ->
     MsgTextCtrl = obj("msgTextCtrl",  State),
+    SMChatObj   = xrcId("sendChatMenu"),
+
     Empty       = wxTextCtrl:getValue(MsgTextCtrl) == "",
     if
-        Empty -> wxBitmapButton:disable(obj("sendChatMsg", State));
-        true ->  wxBitmapButton:enable(obj("sendChatMsg",  State))
+        Empty ->
+            wxMenuBar:enable(MenuBar, SMChatObj, false),
+            wxBitmapButton:disable(obj("sendChatMsg", State));
+        true ->
+            wxMenuBar:enable(MenuBar, SMChatObj, true),
+            wxBitmapButton:enable(obj("sendChatMsg",  State))
     end,
     case getCheckedItems(obj("userCheckBox", State)) of
         [] ->
