@@ -389,7 +389,6 @@ initGUI(Arg) ->
     Dict54 = connectDlg(Settings, "smtpEnabled",          Event1, Dict53),
     Dict55 = connectDlg(MsgCfg,   "msgFilter",            Event5, Dict54),
 
-
     connectModalDialog(Conflict, "useLocalButton",  ?useLocal),
     connectModalDialog(Conflict, "useRemoteButton", ?useRemote),
     connectModalDialog(About,    "aboutButton",     ?about),
@@ -1162,13 +1161,14 @@ connectMsgFrame(Frame, Dict) ->
     WorkLogObj = wxXmlResource:xrcctrl(Frame, "workLogReport", wxHtmlWindow),
     wxHtmlWindow:connect(AllMsgObj,  right_down),
     wxHtmlWindow:connect(WorkLogObj, right_down),
-    Dict2  = connectItems(["msgTextCtrl"],
-                          [command_text_enter, command_text_updated],
-                          Frame,   Dict),
+    Dict2 = connectItems(["msgTextCtrl"],
+                         [command_text_updated],
+                         Frame,   Dict),
+    Dict3  = connectItems(["sendChatMsg"], command_button_clicked, Frame, Dict2),
     connectItems(["msgTextWin", "workLogReport",
                   "timeLogReport", "scheduleReport",
                   "descAreaPreview", "commentAreaPreview"],
-                 command_html_link_clicked, Frame, Dict2).
+                 command_html_link_clicked, Frame, Dict3).
 
 connectMainFrame(Frame, Dict) ->
     ok = wxFrame:connect(Frame, close_window),
@@ -1186,7 +1186,8 @@ connectMainFrame(Frame, Dict) ->
                  "moveFirstMenu", "moveLastMenu", "proxyLinkMenu",
                  "moveUpMenu", "moveDownMenu", "addTaskMenu", "helpMenu1",
                  "replyMenu", "replyAllMenu", "setAvatarMenuItem",
-                 "backupMenuItem", "restoreMenuItem", "pluginMenuItem"],
+                 "backupMenuItem", "restoreMenuItem", "pluginMenuItem",
+                 "sendChatMenu"],
 
     MenuChoice = ["userStatusChoice", "statusChoice", "priorityChoice",
                   "taskListChoice", "ownerChoice"],

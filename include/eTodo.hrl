@@ -121,6 +121,7 @@
         "schedulePanel"      => wxPanel,
         "scheduleReport"     => wxHtmlWindow,
         "searchText"         => wxComboBox,
+        "sendChatMsg"        => wxBitmapButton,
         "sendTaskButton"     => wxBitmapButton,
         "setAvatarMenuItem"  => wxMenuItem,
         "setReminderButton"  => wxBitmapButton,

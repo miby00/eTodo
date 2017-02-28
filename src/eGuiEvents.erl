@@ -103,10 +103,12 @@
          removeOwnerButtonEvent/4,
          restoreMenuItemEvent/4,
          replyAllMenuEvent/4,
+         sendChatMenuEvent/4,
          replyMenuEvent/4,
          searchCancelEvent/4,
          searchOkEvent/4,
          searchTextEvent/4,
+         sendChatMsgEvent/4,
          sendTaskButtonEvent/4,
          setAvatarMenuItemEvent/4,
          setReminderButtonEvent/4,
@@ -571,12 +573,16 @@ startDateChangedEvent(State) ->
 %%====================================================================
 msgTextCtrlEvent(command_text_updated, _Id, _Frame,
                  State = #guiState{user = User, msgStatusSent = SentStatus}) ->
+    MsgTextCtrl = obj("msgTextCtrl",  State),
+    Empty       = wxTextCtrl:getValue(MsgTextCtrl) == "",
+    if
+        Empty -> wxBitmapButton:disable(obj("sendChatMsg", State));
+        true ->  wxBitmapButton:enable(obj("sendChatMsg",  State))
+    end,
     case getCheckedItems(obj("userCheckBox", State)) of
         [] ->
             State;
         Users ->
-            MsgTextCtrl = obj("msgTextCtrl",  State),
-            Empty       = wxTextCtrl:getValue(MsgTextCtrl) == "",
             case {SentStatus, Empty} of
                 {false, false} ->
                     ePeerEM:sendMsg(User, Users, statusEntry, writing),
@@ -584,8 +590,9 @@ msgTextCtrlEvent(command_text_updated, _Id, _Frame,
                 _ ->
                     State
             end
-    end;
-msgTextCtrlEvent(command_text_enter, _Id, _Frame, State) ->
+    end.
+
+sendChatMsgEvent(_Event, _Id, _Frame, State) ->
     UserObj = obj("userCheckBox", State),
     MsgObj  = obj("msgTextWin",   State),
     Users   = getCheckedItems(UserObj),
@@ -2149,6 +2156,9 @@ replyAllMenuEvent(_Type, _Id, _Frame, State = #guiState{reply    = Sender,
     checkItemsInListWithClear(Obj1, [Sender|ReplyAll]),
     wxTextCtrl:setFocus(Obj2),
     State.
+
+sendChatMenuEvent(Type, Id, Frame, State) ->
+    sendChatMsgEvent(Type, Id, Frame, State).
 
 %%====================================================================
 %% Print
