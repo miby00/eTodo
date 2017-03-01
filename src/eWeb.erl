@@ -1328,8 +1328,8 @@ find(Key, Dict) ->
     case maps:get(Key, Dict, undefined) of
         Value when is_list(Value) ->
             BinValue = list_to_binary(Value),
-            Bin = unicode:characters_to_binary(BinValue, utf8, latin1),
-            {ok, binary_to_list(Bin)};
+            Unicode  = unicode:characters_to_list(BinValue, utf8),
+            {ok, Unicode};
         _ ->
             {ok, undefined}
     end.
