@@ -633,6 +633,7 @@ sendMsg(Users, State = #guiState{user = User}) ->
     MsgTextCtrl = obj("msgTextCtrl",  State),
     MsgObj      = obj("msgTextWin",   State),
     MsgText     = wxTextCtrl:getValue(MsgTextCtrl),
+
     wxTextCtrl:clear(MsgTextCtrl),
     appendToPage(MsgObj, msgEntry, User, Users,
                  eHtml:generateMsg(User, User, Users, MsgText), State),

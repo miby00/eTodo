@@ -64,6 +64,9 @@
 
 -define(DodgerBlue, "#1e90ff").
 
+-define(ValidURLChars, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+                       "0123456789-._~:/?#[]@!$&'()*+,;=`.)").
+
 -import(eTodoUtils, [toStr/1, toStr/2, tryInt/1, getWeekDay/1,
                      makeStr/1, getRootDir/0, dateTime/0,
                      convertUid/1, convertUid/2, default/2]).
@@ -1504,17 +1507,77 @@ makeHtml(Text, Dir) ->
     unicode:characters_to_binary(checkForLinks(Text, Dir), utf8).
 
 checkForLinks(Text, Dir) ->
-    case catch re:run(Text, "https?://[^\s\t\r\n]*") of
-        nomatch ->
-            html(Text, Dir, []);
-        {match, [{Begining, Length}]} ->
-            Link = string:substr(Text, Begining + 1, Length),
-            html(string:sub_string(Text, 1, Begining), Dir, []) ++
-                "<a href='" ++ Link ++ "'>" ++ Link ++ "</a>" ++
-                checkForLinks(string:substr(Text, Begining + Length + 1), Dir);
+    checkForLinks(Text, Dir, [], text, []).
+
+checkForLinks("", Dir, _Token, text, Acc) ->
+    html(lists:flatten(Acc), Dir, []);
+checkForLinks("", Dir, Token, link, Acc) ->
+    case checkToken(Token, 32) of
+        {true, Link} ->
+            html(lists:flatten(Acc), Dir, []) ++ Link;
+        false ->
+            html(lists:flatten([Acc, Token]), Dir, [])
+    end;
+
+checkForLinks("https://" ++ Rest, Dir, _Token, text, Acc) ->
+    checkForLinks(Rest, Dir, "https://", link, Acc);
+checkForLinks("HTTPS://" ++ Rest, Dir, _Token, text, Acc) ->
+    checkForLinks(Rest, Dir, "HTTPS://", link, Acc);
+checkForLinks("Https://" ++ Rest, Dir, _Token, text, Acc) ->
+    checkForLinks(Rest, Dir, "Https://", link, Acc);
+checkForLinks("http://" ++ Rest, Dir, _Token, text, Acc) ->
+    checkForLinks(Rest, Dir, "http://", link, Acc);
+checkForLinks("HTTP://" ++ Rest, Dir, _Token, text, Acc) ->
+    checkForLinks(Rest, Dir, "HTTP://", link, Acc);
+checkForLinks("Http://" ++ Rest, Dir, _Token, text, Acc) ->
+    checkForLinks(Rest, Dir, "Http://", link, Acc);
+
+checkForLinks([Char|Rest], Dir, Token, link, Acc) ->
+    case lists:member(Char, ?ValidURLChars) of
+        true ->
+            checkForLinks(Rest, Dir, [Token, Char], link, Acc);
+        false ->
+            case checkToken(Token, Char) of
+                {true, Link} ->
+                    html(lists:flatten(Acc), Dir, []) ++ Link ++
+                        checkForLinks(Rest, Dir, "", text, [Char]);
+                false ->
+                    checkForLinks(Rest, Dir, "", text, [Acc, [Token, Char]])
+            end
+    end;
+
+checkForLinks([Char|Rest], Dir, _Token, text, Acc) ->
+    checkForLinks(Rest, Dir, "", text, [Acc, Char]).
+
+
+checkToken(Token, Char) when (Char == 9)     or
+                             (Char == 10)    or
+                             (Char == 11)    or
+                             (Char == 12)    or
+                             (Char == 13)    or
+                             (Char == 32)    or
+                             (Char == 133)   or
+                             (Char == 160)   or
+                             (Char == 5760)  or
+                             (Char == 8232)  or
+                             (Char == 8233)  or
+                             (Char == 8239)  or
+                             (Char == 8287)  or
+                             (Char == 12288) or
+                             ((Char > 8191) and (Char < 8203)) ->
+    Link = lists:flatten(Token),
+    case catch http_uri:parse(Link) of
+        {'EXIT', _} ->
+            false;
+        {error, _} ->
+            false;
+        {ok, Result} when element(3, Result) == [] ->
+            false;
         _ ->
-            html(Text, Dir, [])
-    end.
+            {true, "<a href='" ++ Link ++ "'>" ++ Link ++ "</a>"}
+    end;
+checkToken(_Token, _Char) ->
+    false.
 
 %% Base case
 html("", _Dir, SoFar) -> lists:flatten(SoFar);

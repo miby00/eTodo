@@ -84,6 +84,9 @@ parse(<<$<, Rest/binary>>, PState, PL, CL, Acc) ->
 
 parse(<<$>, Rest/binary>>, [{url, CT}| St], PL, CL, Acc) ->
     case catch http_uri:parse(binary_to_list(CT)) of
+        {'EXIT', _} ->
+            convert(<<CT/binary, $>, Rest/binary>>,
+                    addCT(<<"<">>, St), PL, CL, Acc);
         {error, _} ->
             convert(<<CT/binary, $>, Rest/binary>>,
                     addCT(<<"<">>, St), PL, CL, Acc);

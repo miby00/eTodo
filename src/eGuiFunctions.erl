@@ -1046,6 +1046,9 @@ userStatusUpdate(State = #guiState{userStatus = UserList,
             ePeerEM:sendMsg(User, Users, statusEntry,
                             {statusUpdate, StatusUpdate, getPortrait(User)}),
             setScrollBar(MsgTextWin),
+            MsgTop = obj("msgTopPanel", State),
+            wxPanel:layout(MsgTop),
+            wxPanel:refresh(MsgTop),
             State
     end.
 
