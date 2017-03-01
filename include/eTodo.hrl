@@ -91,6 +91,7 @@
         "moveUpMenu"         => wxMenuItem,
         "msgTextCtrl"        => wxTextCtrl,
         "msgTextWin"         => wxHtmlWindow,
+        "msgTopPanel"        => wxPanel,
         "ownerChoice"        => wxChoice,
         "ownerChoice1"       => wxChoice,
         "ownerChoice2"       => wxChoice,
@@ -135,7 +136,8 @@
         "splitter"           => wxSplitterWindow,
         "splitterMain"       => wxSplitterWindow,
         "splitterComment"    => wxSplitterWindow,
-        "splitterMsg"        => wxSplitterWindow,
+        "splitVerMsg"        => wxSplitterWindow,
+        "splitHorizMsg"      => wxSplitterWindow,
         "startDate"          => wxDatePickerCtrl,
         "statusChoice"       => wxChoice,
         "statusChoice1"      => wxChoice,
@@ -214,7 +216,8 @@
                    smtpServer,
                    smtpPort,
                    smtpUser,
-                   smtpPwd}).
+                   smtpPwd,
+                   splitHorizMsg   = 150}).
 
 -record(listCfg,  {key,
                    userName,

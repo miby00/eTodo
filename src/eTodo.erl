@@ -523,12 +523,22 @@ setSplitterPos(UserCfg, Frame) ->
             ok
     end,
 
-    %% Set size comment splitter
-    SplitterMsg = obj("splitterMsg", Frame),
+    %% Set size message splitter
+    SplitterMsg = obj("splitVerMsg", Frame),
 
     case UserCfg#userCfg.splitterMsg of
         MsgPos when is_integer(MsgPos) ->
             wxSplitterWindow:setSashPosition(SplitterMsg, MsgPos);
+        _ ->
+            ok
+    end,
+
+    %% Set size message splitter
+    SplitterMsg2 = obj("splitHorizMsg", Frame),
+
+    case UserCfg#userCfg.splitHorizMsg of
+        MsgPos2 when is_integer(MsgPos2) ->
+            wxSplitterWindow:setSashPosition(SplitterMsg2, MsgPos2);
         _ ->
             ok
     end.
@@ -930,6 +940,11 @@ handle_event(#wx{id = Id, event = #wxNotebook{type = Type}},
     Name = getFromDict(Id, Dict),
     handle_cmd(Name, Type, Id, Frame, State);
 
+handle_event(#wx{id = Id, event = Event = #wxKey{}},
+             State = #guiState{frame = Frame, dict  = Dict}) ->
+    Name = getFromDict(Id, Dict),
+    handle_cmd(Name, Event, Id, Frame, State);
+
 handle_event(#wx{id = Id, event = #wxMouse{type = Type}},
              State = #guiState{frame = Frame, dict  = Dict}) ->
     Name = getFromDict(Id, Dict),
@@ -1157,13 +1172,14 @@ handle_cmd(Name, Type, Index, Id, Frame, State) ->
 %% Notes    :
 %%======================================================================
 connectMsgFrame(Frame, Dict) ->
-    AllMsgObj  = wxXmlResource:xrcctrl(Frame, "msgTextWin",    wxHtmlWindow),
-    WorkLogObj = wxXmlResource:xrcctrl(Frame, "workLogReport", wxHtmlWindow),
+    AllMsgObj   = wxXmlResource:xrcctrl(Frame, "msgTextWin",    wxHtmlWindow),
+    WorkLogObj  = wxXmlResource:xrcctrl(Frame, "workLogReport", wxHtmlWindow),
+    MsgTextObj  = wxXmlResource:xrcctrl(Frame, "msgTextCtrl",   wxTextCtrl),
     wxHtmlWindow:connect(AllMsgObj,  right_down),
     wxHtmlWindow:connect(WorkLogObj, right_down),
-    Dict2 = connectItems(["msgTextCtrl"],
-                         [command_text_updated],
-                         Frame,   Dict),
+    wxTextCtrl:connect(MsgTextObj, key_down, [{skip, true}]),
+
+    Dict2  = connectItems(["msgTextCtrl"], [command_text_updated], Frame, Dict),
     Dict3  = connectItems(["sendChatMsg"], command_button_clicked, Frame, Dict2),
     connectItems(["msgTextWin", "workLogReport",
                   "timeLogReport", "scheduleReport",
@@ -1319,8 +1335,10 @@ saveEtodoSettings(#guiState{frame = Frame, user = User, filter = Filter}) ->
     MainPos         = wxSplitterWindow:getSashPosition(SplitterMain),
     SplitterComment = obj("splitterComment", Frame),
     CommentPos      = wxSplitterWindow:getSashPosition(SplitterComment),
-    SplitterMsg     = obj("splitterMsg", Frame),
+    SplitterMsg     = obj("splitVerMsg", Frame),
     MsgPos          = wxSplitterWindow:getSashPosition(SplitterMsg),
+    SplitterMsg2    = obj("splitHorizMsg", Frame),
+    MsgPos2         = wxSplitterWindow:getSashPosition(SplitterMsg2),
     Plugins         = ePluginServer:getConfiguredPlugins(),
     UserCfg         = eTodoDB:readUserCfg(User),
 
@@ -1328,6 +1346,7 @@ saveEtodoSettings(#guiState{frame = Frame, user = User, filter = Filter}) ->
                                         splitterMain    = MainPos,
                                         splitterComment = CommentPos,
                                         splitterMsg     = MsgPos,
+                                        splitHorizMsg   = MsgPos2,
                                         filter          = Filter,
                                         plugins         = Plugins}).
 

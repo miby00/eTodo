@@ -571,6 +571,20 @@ startDateChangedEvent(State) ->
 %%====================================================================
 %% Toolbar show/hide msg window.
 %%====================================================================
+msgTextCtrlEvent(Event = #wxKey{}, Id, Frame, State) ->
+    MsgTextCtrl = obj("msgTextCtrl",  State),
+    Empty       = wxTextCtrl:getValue(MsgTextCtrl) == "",
+
+    case {Empty, Event} of
+        {false, #wxKey{keyCode = 13, controlDown = true}} ->
+            sendChatMenuEvent(Event, Id, Frame, State),
+            State;
+        {false, #wxKey{keyCode = 13, metaDown = true}} ->
+            sendChatMenuEvent(Event, Id, Frame, State),
+            State;
+        _ ->
+            State
+    end;
 msgTextCtrlEvent(command_text_updated, _Id, _Frame,
                  State = #guiState{user          = User,
                                    msgStatusSent = SentStatus,

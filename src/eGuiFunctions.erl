@@ -1686,10 +1686,13 @@ toClipboard(Text, State) ->
 %% Notes    :
 %%======================================================================
 updateMsgWindow(State, User) ->
-    HtmlWin  = obj("msgTextWin", State),
+    HtmlWin  = obj("msgTextWin",  State),
+    MsgTop   = obj("msgTopPanel", State),
     HtmlPage = getMessages(User, State),
     wxHtmlWindow:setPage(HtmlWin, HtmlPage),
     setScrollBar(HtmlWin),
+    wxPanel:layout(MsgTop),
+    wxPanel:refresh(MsgTop),
     State.
 
 getMessages(User, State = #guiState{msgCfg = {type, {true, true, true}, _}}) ->
