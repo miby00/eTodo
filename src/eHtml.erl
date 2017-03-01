@@ -1584,7 +1584,7 @@ html("", _Dir, SoFar) -> lists:flatten(SoFar);
 
 %% Row
 html([13, 10 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "<br />"]);
-html([13, 10 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "<br />"]);
+html([10     | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "<br />"]);
 html([8232   | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "<br />"]);
 
 %% -
