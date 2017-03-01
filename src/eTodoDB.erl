@@ -709,19 +709,22 @@ handle_call({getMessages, User}, _From, State) ->
     Result1 = match(#messages{userName = User, _ = '_'}),
     Result2 = lists:keysort(#messages.timestamp, Result1),
     Result3 = [zlib:unzip(Msg#messages.message) || Msg <- Result2],
-    {reply, binary_to_list(iolist_to_binary(Result3)), State};
+    Result4 = unicode:characters_to_list(Result3),
+    {reply, Result4, State};
 handle_call({getMessages, User, Types}, _From, State) ->
     Result1 = match(#messages{userName = User, _ = '_'}),
     Result2 = lists:keysort(#messages.timestamp, Result1),
     Result3 = filterMessagesWithType(Types, Result2),
     Result4 = [zlib:unzip(Msg#messages.message) || Msg <- Result3],
-    {reply, binary_to_list(iolist_to_binary(Result4)), State};
+    Result5 = unicode:characters_to_list(Result4),
+    {reply, Result5, State};
 handle_call({getMessagesFromOrTo, User, FromOrTo}, _From, State) ->
     Result1 = match(#messages{userName = User, type = msgEntry, _ = '_'}),
     Result2 = lists:keysort(#messages.timestamp, Result1),
     Result3 = filterMessages(FromOrTo, Result2),
     Result4 = [zlib:unzip(Msg#messages.message) || Msg <- Result3],
-    {reply, binary_to_list(iolist_to_binary(Result4)), State};
+    Result5 = unicode:characters_to_list(Result4),
+    {reply, Result5, State};
 handle_call({saveWorkDesc, Uid, WorkDesc, ShowInWorkLog, ShowInTimeLog},
             _From, State) ->
     TS = fun() ->

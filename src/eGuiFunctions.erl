@@ -1045,10 +1045,10 @@ userStatusUpdate(State = #guiState{userStatus = UserList,
             Users = [UserStatus#userStatus.userName || UserStatus <- UserList],
             ePeerEM:sendMsg(User, Users, statusEntry,
                             {statusUpdate, StatusUpdate, getPortrait(User)}),
-            setScrollBar(MsgTextWin),
             MsgTop = obj("msgTopPanel", State),
             wxPanel:layout(MsgTop),
             wxPanel:refresh(MsgTop),
+            setScrollBar(MsgTextWin),
             State
     end.
 
@@ -1693,9 +1693,9 @@ updateMsgWindow(State, User) ->
     MsgTop   = obj("msgTopPanel", State),
     HtmlPage = getMessages(User, State),
     wxHtmlWindow:setPage(HtmlWin, HtmlPage),
-    setScrollBar(HtmlWin),
     wxPanel:layout(MsgTop),
     wxPanel:refresh(MsgTop),
+    setScrollBar(HtmlWin),
     State.
 
 getMessages(User, State = #guiState{msgCfg = {type, {true, true, true}, _}}) ->

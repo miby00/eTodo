@@ -1734,8 +1734,6 @@ makeText([$"|Rest], alt, Alt, SoFar) ->
 makeText([Char|Rest], alt, Alt, SoFar) ->
     makeText(Rest, alt, [Char|Alt], SoFar).
 
-
-
 %%======================================================================
 %% Function :
 %% Purpose  :
