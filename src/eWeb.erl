@@ -1396,6 +1396,8 @@ flattenMsg(HtmlIOList) ->
 %% @spec userOK(User, Message) -> true | false.
 %% @end
 %%--------------------------------------------------------------------
+userOK(_User, {checkStatus, _SessionId, _Env, _Input}, _WUser)    -> true;
+userOK(_User, {showStatus, _SessionId, _Env, _Input}, _WUser)     -> true;
 userOK(_User, {link, _SessionId, _Env, _Input}, _WUser)           -> true;
 userOK(_User, _Message, "")                                       -> false;
 userOK(_User, {show, _SessionId, _Env, _Input}, _WUser)           -> true;
