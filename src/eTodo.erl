@@ -950,6 +950,11 @@ handle_event(#wx{id = Id, event = #wxMouse{type = Type}},
     Name = getFromDict(Id, Dict),
     handle_cmd(Name, Type, Id, Frame, State);
 
+handle_event(#wx{id = Id, event = #wxFocus{type = Type}},
+             State = #guiState{frame = Frame, dict  = Dict}) ->
+    Name = getFromDict(Id, Dict),
+    handle_cmd(Name, Type, Id, Frame, State);
+
 handle_event(#wx{id = Id, event = #wxList{type = Type,
                                           col  = Col}},
              State = #guiState{frame = Frame, dict  = Dict})
@@ -1177,7 +1182,9 @@ connectMsgFrame(Frame, Dict) ->
     MsgTextObj  = wxXmlResource:xrcctrl(Frame, "msgTextCtrl",   wxTextCtrl),
     wxHtmlWindow:connect(AllMsgObj,  right_down),
     wxHtmlWindow:connect(WorkLogObj, right_down),
-    wxTextCtrl:connect(MsgTextObj, key_down, [{skip, true}]),
+    wxTextCtrl:connect(MsgTextObj, key_down,   [{skip, true}]),
+    wxTextCtrl:connect(MsgTextObj, kill_focus, [{skip, true}]),
+    wxTextCtrl:connect(MsgTextObj, set_focus,  [{skip, true}]),
 
     Dict2  = connectItems(["msgTextCtrl"], [command_text_updated], Frame, Dict),
     Dict3  = connectItems(["sendChatMsg"], command_button_clicked, Frame, Dict2),

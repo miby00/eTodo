@@ -576,10 +576,11 @@ msgTextCtrlEvent(Event = #wxKey{}, Id, Frame, State) ->
     Empty       = wxTextCtrl:getValue(MsgTextCtrl) == "",
 
     case {Empty, Event} of
-        {false, #wxKey{keyCode = 13, controlDown = true}} ->
-            sendChatMenuEvent(Event, Id, Frame, State),
-            State;
-        {false, #wxKey{keyCode = 13, metaDown = true}} ->
+        {false, #wxKey{keyCode     = 13,
+                       controlDown = false,
+                       altDown     = false,
+                       metaDown    = false,
+                       shiftDown   = false}} ->
             sendChatMenuEvent(Event, Id, Frame, State),
             State;
         _ ->
@@ -612,7 +613,20 @@ msgTextCtrlEvent(command_text_updated, _Id, _Frame,
                 _ ->
                     State
             end
-    end.
+    end;
+msgTextCtrlEvent(kill_focus, _Id, _Frame,
+                 State = #guiState{menuBar = MenuBar}) ->
+    SMChatObj = xrcId("sendChatMenu"),
+    wxMenuBar:enable(MenuBar, SMChatObj, false),
+    State;
+msgTextCtrlEvent(set_focus, _Id, _Frame,
+                 State = #guiState{menuBar = MenuBar}) ->
+    MsgTextCtrl = obj("msgTextCtrl",  State),
+    SMChatObj   = xrcId("sendChatMenu"),
+    NotEmpty    = wxTextCtrl:getValue(MsgTextCtrl) =/= "",
+    wxMenuBar:enable(MenuBar, SMChatObj, NotEmpty),
+    State.
+
 
 sendChatMsgEvent(_Event, _Id, _Frame, State) ->
     UserObj = obj("userCheckBox", State),
