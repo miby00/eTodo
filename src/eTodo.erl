@@ -1190,7 +1190,7 @@ connectMsgFrame(Frame, Dict) ->
     Dict3  = connectItems(["sendChatMsg"], command_button_clicked, Frame, Dict2),
     connectItems(["msgTextWin", "workLogReport",
                   "timeLogReport", "scheduleReport",
-                  "descAreaPreview", "commentAreaPreview"],
+                  "descAreaPreview", "commentAreaPreview", "msgAreaPreview"],
                  command_html_link_clicked, Frame, Dict3).
 
 connectMainFrame(Frame, Dict) ->
@@ -1246,13 +1246,15 @@ connectMainFrame(Frame, Dict) ->
                           command_checkbox_clicked,             Frame, Dict9),
     Dict11 = connectItems(["mainNotebook",
                            "descNotebook",
-                           "commentNotebook"],
+                           "commentNotebook",
+                           "msgNotebook"],
                           command_notebook_page_changed,        Frame, Dict10),
     Dict12 = connectItems(["userCheckBox"],
                           command_listbox_selected,             Frame, Dict11),
     Dict13 = connectItems(["progressInfo"],
                           command_spinctrl_updated,             Frame, Dict12),
-    Dict14 = connectItems(["bookmarkBtn"], context_menu,        Frame, Dict13),
+    Dict14 = connectItems(["bookmarkBtn",
+                           "sendTaskButton"], context_menu,     Frame, Dict13),
     Dict15 = connectItems(["workLogStartDate"], date_changed,   Frame, Dict14),
     connectItems(MenuItems, command_menu_selected,              Frame, Dict15).
 

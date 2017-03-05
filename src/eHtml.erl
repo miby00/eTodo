@@ -1284,7 +1284,7 @@ generateMsg(Sender, Sender, Users, Text) ->
                         imgTag([{src, getRootDir() ++ "/Icons/" ++ Icon}]))]),
                trTag(
                  [tdTag(),
-                  tdTag([{align, "left"}, {bgcolor, "#e6f2ff"}], makeHtml(Text)),
+                  tdTag([{align, "left"}, {bgcolor, "#e6f2ff"}], eMd2Html:convert(Text)),
                   tdTag([{valign, "top"}, {align, center}, {bgcolor, "#e6f2ff"}],
                         imgTag([{src, Portrait}, {height, "45"}, {width, "45"}])),
                   tdTag()])]),

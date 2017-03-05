@@ -79,6 +79,7 @@
          moveFirstMenuEvent/4,
          moveUpMenuEvent/4,
          moveUpToolEvent/4,
+         msgNotebookEvent/4,
          msgTextCtrlEvent/4,
          msgTextWinEvent/4,
          msgFilterEvent/4,
@@ -1211,46 +1212,25 @@ sortColumnsBoxEvent(_Type, _Id, _Frame,
 %% Smiley buttons
 %%====================================================================
 smileyHappyEvent(_Type, _Id, _Frame, State) ->
-    Obj  = obj("msgTextCtrl", State),
-    wxTextCtrl:appendText(Obj, ":-)"),
-    wxTextCtrl:setFocus(Obj),
-    State.
+    insertMsgText(":-)", State).
 
 smileyLOLEvent(_Type, _Id, _Frame, State) ->
-    Obj  = obj("msgTextCtrl", State),
-    wxTextCtrl:appendText(Obj, ":D"),
-    wxTextCtrl:setFocus(Obj),
-    State.
+    insertMsgText(":D", State).
 
 smileyMischiefEvent(_Type, _Id, _Frame, State) ->
-    Obj  = obj("msgTextCtrl", State),
-    wxTextCtrl:appendText(Obj, ":P"),
-    wxTextCtrl:setFocus(Obj),
-    State.
+    insertMsgText(":P", State).
 
 smileyShockedEvent(_Type, _Id, _Frame, State) ->
-    Obj  = obj("msgTextCtrl", State),
-    wxTextCtrl:appendText(Obj, ":O"),
-    wxTextCtrl:setFocus(Obj),
-    State.
+    insertMsgText(":O", State).
 
 smileyCryingEvent(_Type, _Id, _Frame, State) ->
-    Obj  = obj("msgTextCtrl", State),
-    wxTextCtrl:appendText(Obj, ":,("),
-    wxTextCtrl:setFocus(Obj),
-    State.
+    insertMsgText(":,(", State).
 
 smileyWinkEvent(_Type, _Id, _Frame, State) ->
-    Obj  = obj("msgTextCtrl", State),
-    wxTextCtrl:appendText(Obj, ";-)"),
-    wxTextCtrl:setFocus(Obj),
-    State.
+    insertMsgText(";-)", State).
 
 smileyHeartEvent(_Type, _Id, _Frame, State) ->
-    Obj  = obj("msgTextCtrl", State),
-    wxTextCtrl:appendText(Obj, "<3"),
-    wxTextCtrl:setFocus(Obj),
-    State.
+    insertMsgText("<3", State).
 
 linkFileButtonEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
     PortStr = toStr(eWeb:getPort()),
@@ -1287,15 +1267,20 @@ linkFileButtonEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
             Link = "https://" ++ Host2 ++ ":" ++ Port2 ++
                 "/eTodo/eWeb:link" ++ Args ++ ProxyArg,
 
-            Obj  = obj("msgTextCtrl", State),
-            wxTextCtrl:appendText(Obj, Link),
-            wxTextCtrl:setFocus(Obj),
-            State;
+            insertMsgText(Link, State);
         _->
             eTodo:systemEntry(system, "Failed to link file, "
                               "web server not running"),
             State
     end.
+
+insertMsgText(Text, State) ->
+    Obj1 = obj("msgTextCtrl", State),
+    Obj2 = obj("msgNotebook", State),
+    wxNotebook:changeSelection(Obj2, 0),
+    wxTextCtrl:appendText(Obj1, Text),
+    wxTextCtrl:setFocus(Obj1),
+    State.
 
 %%====================================================================
 %% Manage task owners.
@@ -1450,7 +1435,7 @@ createListButtonEvent(_Type, _Id, _Frame,
 
 removeListButtonEvent(_Type, _Id, _Frame,
                       State = #guiState{manListsDlg = Manage}) ->
-    Obj = wxXmlResource:xrcctrl(Manage, "manageListBox", wxListBox),
+    Obj  = wxXmlResource:xrcctrl(Manage, "manageListBox", wxListBox),
     Obj2 = wxXmlResource:xrcctrl(Manage, "createListTxt", wxTextCtrl),
     case wxListBox:getSelections(Obj) of
         {_, [Index]} ->
@@ -1588,13 +1573,19 @@ commentButtonEvent(_Type, _Id, _Frame, State) ->
     wxNotebook:changeSelection(obj("commentNotebook", State), 0),
     State.
 
-sendTaskButtonEvent(_Type, _Id, _Frame,
+sendTaskButtonEvent(command_button_clicked, _Id, _Frame,
                     State = #guiState{activeTodo = {ETodo, _}, user = User}) ->
-    Text = "Updated: " ++ ETodo#etodo.description,
+    Text  = ETodo#etodo.description,
     Users = ETodo#etodo.sharedWithDB,
     eTodo:systemEntry(ETodo#etodo.uidDB, Text),
     ePeerEM:sendMsg(User, Users, {systemEntry, ETodo#etodo.uidDB}, Text),
-    State.
+    State;
+sendTaskButtonEvent(context_menu, _Id, _Frame,
+    State = #guiState{activeTodo = {ETodo, _}, user = User}) ->
+    Users = ETodo#etodo.sharedWithDB,
+    UidStr = eTodoUtils:convertUid(ETodo#etodo.uidDB),
+    Link   = eHtml:aTag([{href, UidStr}], "eTodo"),
+    toClipboard(Link, State).
 
 %%====================================================================
 %% Log work button
@@ -2891,7 +2882,6 @@ descNotebookEvent(_Type, _Id, _Frame, State) ->
             DescObj  = obj("descriptionArea", State),
             Descript = wxTextCtrl:getValue(DescObj),
             Page     = eMd2Html:convert(Descript),
-            file:write_file("desc.html", Page),
             wxHtmlWindow:setPage(Obj, unicode:characters_to_list(Page, utf8));
         _ ->
             ok
@@ -2908,7 +2898,22 @@ commentNotebookEvent(_Type, _Id, _Frame, State) ->
             CommentObj = obj("commentArea",     State),
             Comment    = wxTextCtrl:getValue(CommentObj),
             Page       = eMd2Html:convert(Comment),
-            file:write_file("comment.html", Page),
+            wxHtmlWindow:setPage(Obj, unicode:characters_to_list(Page, utf8));
+        _ ->
+            ok
+    end,
+    State.
+
+msgNotebookEvent(_Type, _Id, _Frame, State) ->
+    Notebook     = obj("msgNotebook", State),
+    CurrPage     = wxNotebook:getCurrentPage(Notebook),
+    PreviewPage  = wxNotebook:getPage(Notebook, 1),
+    case CurrPage of
+        PreviewPage ->
+            Obj        = obj("msgTextPreview", State),
+            CommentObj = obj("msgTextCtrl",    State),
+            Comment    = wxTextCtrl:getValue(CommentObj),
+            Page       = eMd2Html:convert(Comment),
             wxHtmlWindow:setPage(Obj, unicode:characters_to_list(Page, utf8));
         _ ->
             ok
