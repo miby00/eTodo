@@ -228,10 +228,14 @@ parse(<<>>, PState = [{Tag, _, CT}| _], _PL, _CL, Acc)
     BTag       = makeTag(li, CT),
     <<Acc/binary, BTag/binary, CTags/binary>>;
 
-parse(<<>>, [{url, CT}| St], _PL, _CL, Acc) ->
-    {CTags, _} = closeTags(St),
-    BTag       = makeTag(p, <<$<, CT/binary>>),
-    <<Acc/binary, BTag/binary, CTags/binary>>;
+parse(<<>>, [{url, CT}| St], PL, CL, Acc) ->
+    {Tag, Num, Bef, TL} = getCT(St),
+    case Num of
+        undefined ->
+            parse(CT, [{Tag, <<Bef/binary,  $<>>}|TL], PL, CL, Acc);
+        Num ->
+            parse(CT, [{Tag, Num, <<Bef/binary,  $<>>}|TL], PL, CL, Acc)
+    end;
 
 parse(<<>>, [{Tag, CT}| St], _PL, _CL, Acc) ->
     {CTags, _} = closeTags(St),
@@ -337,7 +341,7 @@ makeTag(Tag, Content) ->
         {<<>>, _} ->
             <<>>;
         {Cont3, _} ->
-            Cont4 = smiley(Cont3),
+            Cont4 = smiley(Tag, Cont3),
             <<$<, BTag/binary, $>, Cont4/binary, $<, $/, BTag/binary, $>>>
     end.
 
@@ -524,6 +528,21 @@ addCT(D, [{Tag, CT}|St]) when is_atom(Tag), is_binary(D), is_binary(CT) ->
 addCT(D, [{Tag, Num, CT}|St]) when is_atom(Tag), is_binary(D), is_binary(CT) ->
     [{Tag, Num, <<CT/binary, D/binary>>}|St].
 
+getCT([PState = {Tag, Num, _CT}|TL]) ->
+    {Tag, Num, getCT(PState, <<>>), TL};
+getCT(PState = [{Tag, _CT}|TL]) ->
+    {Tag, undefined, getCT(PState, <<>>), TL};
+getCT([]) ->
+    {p, undefined, <<>>, []}.
+
+getCT([], Acc) ->
+    Acc;
+getCT([{_Tag, CT}|St], Acc) ->
+    getCT(St, <<Acc/binary, CT/binary>>);
+getCT([{_Tag, _, CT}|St], Acc) ->
+    getCT(St, <<Acc/binary, CT/binary>>).
+
+
 calcIndent(CurrentLine, Content, Rest) ->
     {_, Count} = remWS(CurrentLine),
     Count + byte_size(Content) - byte_size(Rest).
@@ -567,137 +586,114 @@ evalRemWS(Content, _PState) ->
             Content
     end.
 
-smiley(Text) ->
-    smiley(Text, list_to_binary(eTodoUtils:getRootDir()), <<>>).
+smiley(Tag, Text) ->
+    smiley(Tag, Text, list_to_binary(eTodoUtils:getRootDir()), <<>>).
 
-smiley(<<>>, _Dir, SoFar) ->
+smiley(_Tag, <<>>, _Dir, SoFar) ->
     SoFar;
 
 %% <3
-smiley(<<"<3", Rest/binary>>, Dir, SoFar) ->
-    Heart = smileyIcon(Dir, <<"heart.png">>, <<"<3">>),
-    smiley(Rest, Dir, <<SoFar/binary, Heart/binary>>);
+smiley(Tag, <<"<3", Rest/binary>>, Dir, SoFar) ->
+    Heart = smileyIcon(Tag, Dir, <<"heart.png">>, <<"<3">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Heart/binary>>);
 
-%% :-) :) =) :] :> C: (: (-: (= [: <:
-smiley(<<":-)", Rest/binary>>, Dir, SoFar) ->
-    Happy = smileyIcon(Dir, <<"happy.png">>, <<":-)">>),
-    smiley(Rest, Dir, <<SoFar/binary, Happy/binary>>);
-smiley(<<":)", Rest/binary>>, Dir, SoFar) ->
-    Happy = smileyIcon(Dir, <<"happy.png">>, <<":)">>),
-    smiley(Rest, Dir, <<SoFar/binary, Happy/binary>>);
-smiley(<<"=)", Rest/binary>>, Dir, SoFar) ->
-    Happy = smileyIcon(Dir, <<"happy.png">>, <<"=)">>),
-    smiley(Rest, Dir, <<SoFar/binary, Happy/binary>>);
-smiley(<<":]", Rest/binary>>, Dir, SoFar) ->
-    Happy = smileyIcon(Dir, <<"happy.png">>, <<":]">>),
-    smiley(Rest, Dir, <<SoFar/binary, Happy/binary>>);
-smiley(<<":>", Rest/binary>>, Dir, SoFar) ->
-    Happy = smileyIcon(Dir, <<"happy.png">>, <<":>">>),
-    smiley(Rest, Dir, <<SoFar/binary, Happy/binary>>);
-smiley(<<"C:", Rest/binary>>, Dir, SoFar) ->
-    Happy = smileyIcon(Dir, <<"happy.png">>, <<"C:">>),
-    smiley(Rest, Dir, <<SoFar/binary, Happy/binary>>);
-smiley(<<"(:", Rest/binary>>, Dir, SoFar) ->
-    Happy = smileyIcon(Dir, <<"happy.png">>, <<"(:">>),
-    smiley(Rest, Dir, <<SoFar/binary, Happy/binary>>);
-smiley(<<"(-:", Rest/binary>>, Dir, SoFar) ->
-    Happy = smileyIcon(Dir, <<"happy.png">>, <<"(-:">>),
-    smiley(Rest, Dir, <<SoFar/binary, Happy/binary>>);
-smiley(<<"(=", Rest/binary>>, Dir, SoFar) ->
-    Happy = smileyIcon(Dir, <<"happy.png">>, <<"(=">>),
-    smiley(Rest, Dir, <<SoFar/binary, Happy/binary>>);
-smiley(<<"[:", Rest/binary>>, Dir, SoFar) ->
-    Happy = smileyIcon(Dir, <<"happy.png">>, <<"[:">>),
-    smiley(Rest, Dir, <<SoFar/binary, Happy/binary>>);
-smiley(<<"<:", Rest/binary>>, Dir, SoFar) ->
-    Happy = smileyIcon(Dir, <<"happy.png">>, <<"<:">>),
-    smiley(Rest, Dir, <<SoFar/binary, Happy/binary>>);
+%% :-) :) =) :] :>
+smiley(Tag, <<":-)", Rest/binary>>, Dir, SoFar) ->
+    Happy = smileyIcon(Tag, Dir, <<"happy.png">>, <<":-)">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Happy/binary>>);
+smiley(Tag, <<":)", Rest/binary>>, Dir, SoFar) ->
+    Happy = smileyIcon(Tag, Dir, <<"happy.png">>, <<":)">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Happy/binary>>);
+smiley(Tag, <<"=)", Rest/binary>>, Dir, SoFar) ->
+    Happy = smileyIcon(Tag, Dir, <<"happy.png">>, <<"=)">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Happy/binary>>);
+smiley(Tag, <<":]", Rest/binary>>, Dir, SoFar) ->
+    Happy = smileyIcon(Tag, Dir, <<"happy.png">>, <<":]">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Happy/binary>>);
+smiley(Tag, <<":>", Rest/binary>>, Dir, SoFar) ->
+    Happy = smileyIcon(Tag, Dir, <<"happy.png">>, <<":>">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Happy/binary>>);
 
-%% :-(  :(  =(  :< :[ )-: ): )= >: ]:
-smiley(<<":-(", Rest/binary>>, Dir, SoFar) ->
-    Sad = smileyIcon(Dir, <<"sad.png">>, <<":-(">>),
-    smiley(Rest, Dir, <<SoFar/binary, Sad/binary>>);
-smiley(<<":(", Rest/binary>>, Dir, SoFar) ->
-    Sad = smileyIcon(Dir, <<"sad.png">>, <<":(">>),
-    smiley(Rest, Dir, <<SoFar/binary, Sad/binary>>);
-smiley(<<"=(", Rest/binary>>, Dir, SoFar) ->
-    Sad = smileyIcon(Dir, <<"sad.png">>, <<"=(">>),
-    smiley(Rest, Dir, <<SoFar/binary, Sad/binary>>);
-smiley(<<")-:", Rest/binary>>, Dir, SoFar) ->
-    Sad = smileyIcon(Dir, <<"sad.png">>, <<")-:">>),
-    smiley(Rest, Dir, <<SoFar/binary, Sad/binary>>);
-smiley(<<"):", Rest/binary>>, Dir, SoFar) ->
-    Sad = smileyIcon(Dir, <<"sad.png">>, <<"):">>),
-    smiley(Rest, Dir, <<SoFar/binary, Sad/binary>>);
-smiley(<<")=", Rest/binary>>, Dir, SoFar) ->
-    Sad = smileyIcon(Dir, <<"sad.png">>, <<")=">>),
-    smiley(Rest, Dir, <<SoFar/binary, Sad/binary>>);
-smiley(<<":<", Rest/binary>>, Dir, SoFar) ->
-    Sad = smileyIcon(Dir, <<"sad.png">>, <<":<">>),
-    smiley(Rest, Dir, <<SoFar/binary, Sad/binary>>);
-smiley(<<":[", Rest/binary>>, Dir, SoFar) ->
-    Sad = smileyIcon(Dir, <<"sad.png">>, <<":[">>),
-    smiley(Rest, Dir, <<SoFar/binary, Sad/binary>>);
-smiley(<<">:", Rest/binary>>, Dir, SoFar) ->
-    Sad = smileyIcon(Dir, <<"sad.png">>, <<">:">>),
-    smiley(Rest, Dir, <<SoFar/binary, Sad/binary>>);
-smiley(<<"]:", Rest/binary>>, Dir, SoFar) ->
-    Sad = smileyIcon(Dir, <<"sad.png">>, <<"]:">>),
-    smiley(Rest, Dir, <<SoFar/binary, Sad/binary>>);
+%% :-(  :(  =(  :< :[ :C
+smiley(Tag, <<":-(", Rest/binary>>, Dir, SoFar) ->
+    Sad = smileyIcon(Tag, Dir, <<"sad.png">>, <<":-(">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Sad/binary>>);
+smiley(Tag, <<":(", Rest/binary>>, Dir, SoFar) ->
+    Sad = smileyIcon(Tag, Dir, <<"sad.png">>, <<":(">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Sad/binary>>);
+smiley(Tag, <<"=(", Rest/binary>>, Dir, SoFar) ->
+    Sad = smileyIcon(Tag, Dir, <<"sad.png">>, <<"=(">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Sad/binary>>);
+smiley(Tag, <<":<", Rest/binary>>, Dir, SoFar) ->
+    Sad = smileyIcon(Tag, Dir, <<"sad.png">>, <<":<">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Sad/binary>>);
+smiley(Tag, <<":[", Rest/binary>>, Dir, SoFar) ->
+    Sad = smileyIcon(Tag, Dir, <<"sad.png">>, <<":[">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Sad/binary>>);
+smiley(Tag, <<":C", Rest/binary>>, Dir, SoFar) ->
+    Sad = smileyIcon(Tag, Dir, <<"sad.png">>, <<":C">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Sad/binary>>);
 
 %% ;-)  ;)  ^.~
-smiley(<<";-)", Rest/binary>>, Dir, SoFar) ->
-    Wink = smileyIcon(Dir, <<"wink.png">>, <<";-)">>),
-    smiley(Rest, Dir, <<SoFar/binary, Wink/binary>>);
-smiley(<<";)", Rest/binary>>, Dir, SoFar) ->
-    Wink = smileyIcon(Dir, <<"wink.png">>, <<";)">>),
-    smiley(Rest, Dir, <<SoFar/binary, Wink/binary>>);
-smiley(<<"^.~", Rest/binary>>, Dir, SoFar) ->
-    Wink = smileyIcon(Dir, <<"wink.png">>, <<"^.~">>),
-    smiley(Rest, Dir, <<SoFar/binary, Wink/binary>>);
+smiley(Tag, <<";-)", Rest/binary>>, Dir, SoFar) ->
+    Wink = smileyIcon(Tag, Dir, <<"wink.png">>, <<";-)">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Wink/binary>>);
+smiley(Tag, <<";)", Rest/binary>>, Dir, SoFar) ->
+    Wink = smileyIcon(Tag, Dir, <<"wink.png">>, <<";)">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Wink/binary>>);
+smiley(Tag, <<"^.~", Rest/binary>>, Dir, SoFar) ->
+    Wink = smileyIcon(Tag, Dir, <<"wink.png">>, <<"^.~">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Wink/binary>>);
 
 %% =D :D
-smiley(<<"=D", Rest/binary>>, Dir, SoFar) ->
-    LOL = smileyIcon(Dir, <<"lol.png">>, <<"=D">>),
-    smiley(Rest, Dir, <<SoFar/binary, LOL/binary>>);
-smiley(<<":D", Rest/binary>>, Dir, SoFar) ->
-    LOL = smileyIcon(Dir, <<"lol.png">>, <<":D">>),
-    smiley(Rest, Dir, <<SoFar/binary, LOL/binary>>);
+smiley(Tag, <<"=D", Rest/binary>>, Dir, SoFar) ->
+    LOL = smileyIcon(Tag, Dir, <<"lol.png">>, <<"=D">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, LOL/binary>>);
+smiley(Tag, <<":D", Rest/binary>>, Dir, SoFar) ->
+    LOL = smileyIcon(Tag, Dir, <<"lol.png">>, <<":D">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, LOL/binary>>);
 
-%% =O :O O: :-O
-smiley(<<"=O", Rest/binary>>, Dir, SoFar) ->
-    Shock = smileyIcon(Dir, <<"shocked.png">>, <<"=O">>),
-    smiley(Rest, Dir, <<SoFar/binary, Shock/binary>>);
-smiley(<<":O", Rest/binary>>, Dir, SoFar) ->
-    Shock = smileyIcon(Dir, <<"shocked.png">>, <<":O">>),
-    smiley(Rest, Dir, <<SoFar/binary, Shock/binary>>);
-smiley(<<"O:", Rest/binary>>, Dir, SoFar) ->
-    Shock = smileyIcon(Dir, <<"shocked.png">>, <<"O:">>),
-    smiley(Rest, Dir, <<SoFar/binary, Shock/binary>>);
-smiley(<<":-O", Rest/binary>>, Dir, SoFar) ->
-    Shock = smileyIcon(Dir, <<"shocked.png">>, <<":-O">>),
-    smiley(Rest, Dir, <<SoFar/binary, Shock/binary>>);
+%% =O :O :-O
+smiley(Tag, <<"=O", Rest/binary>>, Dir, SoFar) ->
+    Shock = smileyIcon(Tag, Dir, <<"shocked.png">>, <<"=O">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Shock/binary>>);
+smiley(Tag, <<":O", Rest/binary>>, Dir, SoFar) ->
+    Shock = smileyIcon(Tag, Dir, <<"shocked.png">>, <<":O">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Shock/binary>>);
+smiley(Tag, <<":-O", Rest/binary>>, Dir, SoFar) ->
+    Shock = smileyIcon(Tag, Dir, <<"shocked.png">>, <<":-O">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Shock/binary>>);
 
 %% =P :P
-smiley(<<"=P", Rest/binary>>, Dir, SoFar) ->
-    Mischief = smileyIcon(Dir, <<"mischief.png">>, <<"=P">>),
-    smiley(Rest, Dir, <<SoFar/binary, Mischief/binary>>);
-smiley(<<":P", Rest/binary>>, Dir, SoFar) ->
-    Mischief = smileyIcon(Dir, <<"mischief.png">>, <<":P">>),
-    smiley(Rest, Dir, <<SoFar/binary, Mischief/binary>>);
+smiley(Tag, <<"=P", Rest/binary>>, Dir, SoFar) ->
+    Mischief = smileyIcon(Tag, Dir, <<"mischief.png">>, <<"=P">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Mischief/binary>>);
+smiley(Tag, <<":P", Rest/binary>>, Dir, SoFar) ->
+    Mischief = smileyIcon(Tag, Dir, <<"mischief.png">>, <<":P">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Mischief/binary>>);
 
 %% :,(
-smiley(<<":,(", Rest/binary>>, Dir, SoFar) ->
-    Cry = smileyIcon(Dir, <<"crying.png">>, <<":,(">>),
-    smiley(Rest, Dir, <<SoFar/binary, Cry/binary>>);
+smiley(Tag, <<":,(", Rest/binary>>, Dir, SoFar) ->
+    Cry = smileyIcon(Tag, Dir, <<"crying.png">>, <<":,(">>),
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Cry/binary>>);
 
-smiley(<<Char:8, Rest/binary>>, Dir, SoFar) ->
-    smiley(Rest, Dir, <<SoFar/binary, Char:8>>).
+smiley(Tag, <<Char:8, Rest/binary>>, Dir, SoFar) ->
+    smiley(Tag, Rest, Dir, <<SoFar/binary, Char:8>>).
 
-smileyIcon(Dir, Icon, Txt) ->
-   <<"&nbsp;<img class='emote' alt='",
-       Txt/binary, "' src='", Dir/binary, "/Icons/", Icon/binary,
-       "' align=middle>&nbsp;">>.
+smileyIcon(Tag, Dir, Icon, Txt) ->
+    Options = setOptions(Tag),
+    <<"&nbsp;<img class='emote' alt='",
+        Txt/binary, "' src='", Dir/binary, "/Icons/", Icon/binary, "' ",
+        Options/binary, ">&nbsp;">>.
+
+setOptions(h1) ->
+    <<"align=bottom height='25' width='25'">>;
+setOptions(h2) ->
+    <<"align=bottom height='22' width='22'">>;
+setOptions(h3) ->
+    <<"align=bottom height='19' width='19'">>;
+setOptions(_Tag) ->
+    <<"align=bottom">>.
 
 %%%-------------------------------------------------------------------
 %%% Debug info

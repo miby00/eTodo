@@ -1590,7 +1590,11 @@ html([8232   | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "<br />"]);
 %% -
 html([8211 | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, "-"]);
 
-%% :-) :) =) :] :> C: (:
+%% <3
+html([$<, $3 | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, heart(Dir, [$<, $3])]);
+
+%% :-) :) =) :] :>
 html([$:, $-, $) | Rest], Dir, SoFar) ->
     html(Rest, Dir, [SoFar, happy(Dir, [$:, $-, $)])]);
 html([$:, $) | Rest], Dir, SoFar) ->
@@ -1601,12 +1605,8 @@ html([$:, $] | Rest], Dir, SoFar) ->
     html(Rest, Dir, [SoFar, happy(Dir, [$:, $]])]);
 html([$:, $> | Rest], Dir, SoFar) ->
     html(Rest, Dir, [SoFar, happy(Dir, [$:, $>])]);
-html([$C, $: | Rest], Dir, SoFar) ->
-    html(Rest, Dir, [SoFar, happy(Dir, [$C, $:])]);
-html([$(, $: | Rest], Dir, SoFar) ->
-    html(Rest, Dir, [SoFar, happy(Dir, [$(, $:])]);
 
-%% :-(  :(  =(  :< :[
+%% :-(  :(  =(  :< :[ :C
 html([$:, $-, $( | Rest], Dir, SoFar) ->
     html(Rest, Dir, [SoFar, sad(Dir, [$:, $-, $(])]);
 html([$:, $( | Rest], Dir, SoFar) ->
@@ -1616,6 +1616,8 @@ html([$=, $( | Rest], Dir, SoFar) ->
 html([$:, $< | Rest], Dir, SoFar) ->
     html(Rest, Dir, [SoFar, sad(Dir, [$:, $<])]);
 html([$:, $[ | Rest], Dir, SoFar) ->
+    html(Rest, Dir, [SoFar, sad(Dir, [$:, $[])]);
+html([$:, $C | Rest], Dir, SoFar) ->
     html(Rest, Dir, [SoFar, sad(Dir, [$:, $[])]);
 
 %% ;-)  ;)  ^.~
@@ -1632,13 +1634,11 @@ html([$=, $D | Rest], Dir, SoFar) ->
 html([$:, $D | Rest], Dir, SoFar) ->
     html(Rest, Dir, [SoFar, lol(Dir, [$:, $D])]);
 
-%% =O   :O   O:
+%% =O   :O :-O
 html([$=, $O | Rest], Dir, SoFar) ->
     html(Rest, Dir, [SoFar, shocked(Dir, [$=, $O])]);
 html([$:, $O | Rest], Dir, SoFar) ->
     html(Rest, Dir, [SoFar, shocked(Dir, [$:, $O])]);
-html([$O, $: | Rest], Dir, SoFar) ->
-    html(Rest, Dir, [SoFar, shocked(Dir, [$O, $:])]);
 html([$:, $-, $O | Rest], Dir, SoFar) ->
     html(Rest, Dir, [SoFar, shocked(Dir, [$:, $-, $O])]);
 
@@ -1652,10 +1652,6 @@ html([$:, $P | Rest], Dir, SoFar) ->
 html([$:, $,, $( | Rest], Dir, SoFar) ->
     html(Rest, Dir, [SoFar, crying(Dir, [$:, $,, $(])]);
 
-%% <3
-html([$<, $3 | Rest], Dir, SoFar) ->
-    html(Rest, Dir, [SoFar, heart(Dir, [$<, $3])]);
-
 html([229 | Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&aring;"]);
 html([228 | Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&auml;"]);
 html([246 | Rest], Dir, SoFar)  -> html(Rest, Dir, [SoFar, "&ouml;"]);
@@ -1668,14 +1664,14 @@ html([$& | Rest], Dir, SoFar)   -> html(Rest, Dir, [SoFar, "&amp;"]);
 html([$" | Rest], Dir, SoFar)   -> html(Rest, Dir, [SoFar, "&quot;"]);
 html([Char | Rest], Dir, SoFar) -> html(Rest, Dir, [SoFar, Char]).
 
-heart(Dir, Txt)    -> smileHdr(Dir, Txt) ++ "heart.png' align=middle>&nbsp;".
-happy(Dir, Txt)    -> smileHdr(Dir, Txt) ++ "happy.png' align=middle>&nbsp;".
-sad(Dir, Txt)      -> smileHdr(Dir, Txt) ++ "sad.png' align=middle>&nbsp;".
-wink(Dir, Txt)     -> smileHdr(Dir, Txt) ++ "wink.png' align=middle>&nbsp;".
-lol(Dir, Txt)      -> smileHdr(Dir, Txt) ++ "lol.png' align=middle>&nbsp;".
-shocked(Dir, Txt)  -> smileHdr(Dir, Txt) ++ "shocked.png' align=middle>&nbsp;".
-crying(Dir, Txt)   -> smileHdr(Dir, Txt) ++ "crying.png' align=middle>&nbsp;".
-mischief(Dir, Txt) -> smileHdr(Dir, Txt) ++ "mischief.png' align=middle>&nbsp;".
+heart(Dir, Txt)    -> smileHdr(Dir, Txt) ++ "heart.png' align=bottom>&nbsp;".
+happy(Dir, Txt)    -> smileHdr(Dir, Txt) ++ "happy.png' align=bottom>&nbsp;".
+sad(Dir, Txt)      -> smileHdr(Dir, Txt) ++ "sad.png' align=bottom>&nbsp;".
+wink(Dir, Txt)     -> smileHdr(Dir, Txt) ++ "wink.png' align=bottom>&nbsp;".
+lol(Dir, Txt)      -> smileHdr(Dir, Txt) ++ "lol.png' align=bottom>&nbsp;".
+shocked(Dir, Txt)  -> smileHdr(Dir, Txt) ++ "shocked.png' align=bottom>&nbsp;".
+crying(Dir, Txt)   -> smileHdr(Dir, Txt) ++ "crying.png' align=bottom>&nbsp;".
+mischief(Dir, Txt) -> smileHdr(Dir, Txt) ++ "mischief.png' align=bottom>&nbsp;".
 
 smileHdr(Dir, Txt) ->
     "&nbsp;<img class='emote' alt='" ++ Txt ++ "' src='" ++ Dir ++ "/Icons/".
