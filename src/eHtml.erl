@@ -1326,7 +1326,7 @@ generateMsg(_User, Sender, Users, Text) ->
                  [tdTag(),
                   tdTag([{valign, "top"}, {align, center}, {bgcolor, "#e6f2ff"}],
                         imgTag([{src, Portrait}, {height, "45"}, {width, "45"}])),
-                  tdTag([{bgcolor, "#e6f2ff"}], makeHtml(Text)), tdTag()])]),
+                  tdTag([{bgcolor, "#e6f2ff"}], eMd2Html:convert(Text)), tdTag()])]),
      tableTag([{class, "msgReceived"}],
               [trTag(
                  [tdTag([{class, "msgImg"}],
@@ -1387,7 +1387,7 @@ generateSystemMsg(system, Text) ->
                  imgTag([{src, "/priv/Icons/etodoChat.png"}])),
            tdTag([{class, "msgTime"}], toStr(time(), time)),
            tdTag([{class, "msgText"}], "eTodo")]),
-        trTag([tdTag(), tdTag([{colspan, 2}], makeHtml(Text, "/priv"))])])};
+        trTag([tdTag(), tdTag([{colspan, 2}], eMd2Html:convert(Text))])])};
 generateSystemMsg(Uid, Text) ->
     UidStr = eTodoUtils:convertUid(Uid),
     {tableTag([{cellspacing, "0"}, {cellpadding, "10"}],
@@ -1402,7 +1402,7 @@ generateSystemMsg(Uid, Text) ->
                  fontTag([{color, "Red"}],
                          aTag([{href, UidStr}], "eTodo")))]),
         trTag([tdTag(), tdTag([{bgcolor, "#f5f5f5"}], []),
-               tdTag([{bgcolor, "#f5f5f5"}], makeHtml(Text))])]),
+               tdTag([{bgcolor, "#f5f5f5"}], eMd2Html:convert(Text))])]),
      tableTag(
        [trTag(
           [tdTag([{class, "msgImg"}],
@@ -1432,7 +1432,7 @@ generateAlarmMsg(timer, Text) ->
            tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
                  fontTag([{color, "Red"}], "Timer expired"))]),
         trTag([tdTag(), tdTag([{bgcolor, "#f5f5f5"}], []),
-               tdTag([{bgcolor, "#f5f5f5"}], makeHtml(Text))])]),
+               tdTag([{bgcolor, "#f5f5f5"}], eMd2Html:convert(Text))])]),
      tableTag(
        [trTag(
           [tdTag([{class, "msgImg"}],
@@ -1454,7 +1454,7 @@ generateAlarmMsg(Uid, Text) ->
                  fontTag([{color, "Red"}],
                          aTag([{href, UidStr}], "eTodo")))]),
         trTag([tdTag(), tdTag([{bgcolor, "#f5f5f5"}], []),
-               tdTag([{bgcolor, "#f5f5f5"}], makeHtml(Text))])]),
+               tdTag([{bgcolor, "#f5f5f5"}], eMd2Html:convert(Text))])]),
      tableTag([{class, "msgAlarm"}],
               [trTag(
                  [tdTag([{class, "msgImg"}],

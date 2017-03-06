@@ -228,3 +228,13 @@ fcode_3_test() ->
     Result = eMd2Html:convert(<<"~~~\r\nTest\r\n~~~">>),
     Expect = <<"<pre><code>Test\r\n</code></pre>">>,
     ?assertEqual(Expect, Result).
+
+smiley_1_test() ->
+    Result = eMd2Html:convert(<<":-):(">>),
+    {match, Matches} = re:run(Result, "img class='emote'", [global]),
+    ?assertEqual(2, length(Matches)).
+
+smiley_2_test() ->
+    Result = eMd2Html:convert(<<":-)<3">>),
+    {match, Matches} = re:run(Result, "img class='emote'", [global]),
+    ?assertEqual(2, length(Matches)).
