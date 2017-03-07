@@ -738,13 +738,14 @@ input.rounded {
     }
 
     #taskSelect {
-        width: 100%;
+        width: 83%;
     }
 
+    /*
     #searchButton {
         display: none;
     }
-
+    */
     #searchField {
         display: none;
     }
