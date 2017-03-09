@@ -1270,9 +1270,9 @@ linkFileButtonEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
                 "/eTodo/eWeb:link" ++ Args ++ ProxyArg,
             Link = case Disposition of
                        "inline" ->
-                            "![](" ++ Url ++ ")";
+                            "![" ++ File ++ "](" ++ Url ++ ")";
                        _ ->
-                           Url
+                            "[" ++ File ++ "](" ++ Url ++ ")"
                    end,
             insertMsgText(Link, State);
         _->
