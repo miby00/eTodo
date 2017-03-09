@@ -2229,7 +2229,7 @@ setAvatarMenuItemEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
                               Y = round(64/Width * Height),
                               wxBitmap:new(wxImage:scale(Image, 64, Y, Options));
                           false ->
-                              X = round(64/Width * Height),
+                              X = round(64/Height * Width),
                               wxBitmap:new(wxImage:scale(Image, X, 64, Options))
                       end,
             CustomPortrait = getRootDir() ++
