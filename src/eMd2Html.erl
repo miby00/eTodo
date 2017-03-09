@@ -775,7 +775,7 @@ smileyIcon(Tag, Dir, Icon, Txt) ->
     Options = setOptions(Tag),
     <<"&nbsp;<img class='emote' alt='",
         Txt/binary, "' src='", Dir/binary, "/Icons/", Icon/binary, "' ",
-        Options/binary, ">&nbsp;">>.
+        Options/binary, " />&nbsp;">>.
 
 setOptions(h1) ->
     <<"align=bottom height='25' width='25'">>;
