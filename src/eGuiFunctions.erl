@@ -23,6 +23,7 @@
          clearAndInitiate/2,
          clearMsgCounter/1,
          clearStatusBar/1,
+         convertToLocal/1,
          deleteAndUpdate/3,
          doLogout/2,
          findSelected/1,
@@ -1772,3 +1773,53 @@ setUnreadMsgs(UserName, State) ->
             State#guiState{unreadMsgs = UnreadMsgs}
     end.
 
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+convertToLocal(CT) ->
+    case catch wx:get_env() of
+        {'EXIT', _} -> %% Should only convert images when wx is available.
+            CT;
+        _ ->
+            case httpc:request(binary_to_list(CT)) of
+                {ok, {{_, 200, _}, Headers, Body}} ->
+                    CType = proplists:get_value("content-type", Headers, undef),
+                    convertToLocal(CType, Body, CT);
+                _ ->
+                    CT
+            end
+    end.
+
+convertToLocal(CType, Img, CT) when (CType == "image/jpeg") or
+    (CType == "image/png")  or
+    (CType == "image/bmp")  or
+    (CType == "image/gif")  ->
+    FileName = filename:join([eTodoUtils:getRootDir(),
+        "www", "linkedFiles",
+            integer_to_list(erlang:phash2(CT)) ++ ".png"]),
+    saveFile(FileName, Img, CT);
+convertToLocal(_ContentType, _Img, CT) ->
+    CT.
+
+saveFile(FileName, Img, CT) ->
+    file:write_file(FileName, Img),
+    wx:get_env(),
+    Image   = wxImage:new(FileName),
+    Width   = wxImage:getWidth(Image),
+    Height  = wxImage:getHeight(Image),
+    Options = [{quality, ?wxIMAGE_QUALITY_HIGH}],
+    Bitmap = case Width > 1024 of
+                 true ->
+                     NewHeight = round(1024/Width * Height),
+                     wxBitmap:new(wxImage:scale(Image, 1024, NewHeight, Options));
+                 false ->
+                     wxBitmap:new(Image)
+             end,
+    case wxBitmap:saveFile(Bitmap, FileName, ?wxBITMAP_TYPE_PNG) of
+        true ->
+            list_to_binary(FileName);
+        false ->
+            CT
+    end.

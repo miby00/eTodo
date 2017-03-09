@@ -2215,7 +2215,16 @@ setAvatarMenuItemEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
         {?wxID_OK, AbsFileName} ->
             Image   = wxImage:new(AbsFileName),
             Options = [{quality, ?wxIMAGE_QUALITY_HIGH}],
-            Bitmap  = wxBitmap:new(wxImage:scale(Image, 64, 64, Options)),
+            Width   = wxImage:getWidth(Image),
+            Height  = wxImage:getHeight(Image),
+            Bitmap  = case Width > Height of
+                          true ->
+                              Y = round(64/Width * Height),
+                              wxBitmap:new(wxImage:scale(Image, 64, Y, Options));
+                          false ->
+                              X = round(64/Width * Height),
+                              wxBitmap:new(wxImage:scale(Image, X, 64, Options))
+                      end,
             CustomPortrait = getRootDir() ++
                 "/Icons/portrait_" ++ User ++ ".png",
             wxBitmap:saveFile(Bitmap, CustomPortrait, ?wxBITMAP_TYPE_PNG),

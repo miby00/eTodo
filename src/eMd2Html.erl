@@ -105,12 +105,13 @@ parse(<<$), Rest/binary>>, [{ilink, 1, CT}, {ilDesc, PT}|St], PL, CL, Acc) ->
     case catch http_uri:parse(binary_to_list(removeParam(CT))) of
         {'EXIT', _} ->
             convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
-                addCT(<<"![">>, St), PL, CL, Acc);
+                    addCT(<<"![">>, St), PL, CL, Acc);
         {error, _} ->
             convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
-                addCT(<<"![">>, St), PL, CL, Acc);
+                    addCT(<<"![">>, St), PL, CL, Acc);
         _ ->
-            Url = <<"<img src='", CT/binary, "' alt='", PT/binary, "' />">>,
+            LUrl = eGuiFunctions:convertToLocal(CT),
+            Url  = <<"<img src='", LUrl/binary, "' alt='", PT/binary, "' />">>,
             convert(Rest, addCT(Url, St), PL, CL, Acc)
     end;
 
@@ -143,10 +144,10 @@ parse(<<$), Rest/binary>>, [{link, 1, CT}, {lDesc, PT}|St], PL, CL, Acc) ->
     case catch http_uri:parse(binary_to_list(removeParam(CT))) of
         {'EXIT', _} ->
             convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
-                addCT(<<"[">>, St), PL, CL, Acc);
+                    addCT(<<"[">>, St), PL, CL, Acc);
         {error, _} ->
             convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
-                addCT(<<"[">>, St), PL, CL, Acc);
+                    addCT(<<"[">>, St), PL, CL, Acc);
         _ ->
             Url = <<"<a href='", CT/binary, "'>", PT/binary, "</a>">>,
             convert(Rest, addCT(Url, St), PL, CL, Acc)
@@ -326,7 +327,7 @@ parse(<<>>, [{ilDesc, _Num, CT}| St], PL, CL, Acc) ->
 
 parse(<<>>, [{ilink, _Num, CT}, {ilDesc, PT}| St], PL, CL, Acc) ->
     convert(<<PT/binary, $], $(, CT/binary>>,
-        addCT(<<"![">>, St), PL, CL, Acc);
+            addCT(<<"![">>, St), PL, CL, Acc);
 
 parse(<<>>, [{Tag, CT}| St], _PL, _CL, Acc) ->
     {CTags, _} = closeTags(St),
@@ -774,8 +775,8 @@ smiley(Tag, <<Char:8, Rest/binary>>, Dir, SoFar) ->
 smileyIcon(Tag, Dir, Icon, Txt) ->
     Options = setOptions(Tag),
     <<"&nbsp;<img class='emote' alt='",
-        Txt/binary, "' src='", Dir/binary, "/Icons/", Icon/binary, "' ",
-        Options/binary, " />&nbsp;">>.
+      Txt/binary, "' src='", Dir/binary, "/Icons/", Icon/binary, "' ",
+      Options/binary, " />&nbsp;">>.
 
 setOptions(h1) ->
     <<"align=bottom height='25' width='25'">>;
@@ -799,6 +800,7 @@ removeParam(<<>>, _NotModified, 0, SoFar) ->
     SoFar;
 removeParam(<<>>, NotModified, _Num, _SoFar) ->
     NotModified.
+
 
 %%%-------------------------------------------------------------------
 %%% Debug info
