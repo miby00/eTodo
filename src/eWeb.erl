@@ -89,7 +89,7 @@
 
 -import(eTodoUtils, [makeRef/0, toDB/1, toDB/2, dateTime/0, toStr/1,
                      getRootDir/0, apply/4, default/2, addDateTime/2,
-                     tryInt/1]).
+                     tryInt/1, mime_type/1, getDisposition/2]).
 
 -import(eHtml, [htmlTag/0,   htmlTag/1,   htmlTag/2,
                 headTag/0,   headTag/1,   headTag/2,
@@ -1797,31 +1797,3 @@ removeWS(Value) ->
         _:_ -> "0"
     end.
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Get mime type from extension.
-%% @spec doShowSchedule(User) -> Html
-%% @end
-%%--------------------------------------------------------------------
-mime_type(FileName) ->
-        "." ++ Extension = filename:extension(FileName),
-    MimeTypes = mime_types(),
-    proplists:get_value(string:to_lower(Extension), MimeTypes,
-                        "application/octet-stream").
-
-mime_types() ->
-    MimeTypesFile   = filename:join(code:priv_dir(eTodo), "mime.types"),
-    {ok, MimeTypes} = httpd_conf:load_mime_types(MimeTypesFile),
-    MimeTypes.
-
-getDisposition("image/jpeg", _File) ->
-    "inline";
-getDisposition("image/png", _File) ->
-    "inline";
-getDisposition("image/gif", _File) ->
-    "inline";
-getDisposition("image/bmp", _File) ->
-    "inline";
-getDisposition(_MimeType, File) ->
-    "attachment; filename=" ++ File.

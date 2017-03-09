@@ -18,7 +18,8 @@
          taskInternal/1, taskExternal/1, convertUid/1, convertUid/2,
          col/2, default/2, doneTime/2, dateTime/0, makeETodo/3,
          makeRef/0, getRootDir/0, apply/4, toColumn/1, toStatusDB/1,
-         addDateTime/2, tryInt/1, cancelTimer/1, getIp/0, getWeekDay/1]).
+         addDateTime/2, tryInt/1, cancelTimer/1, getIp/0, getWeekDay/1,
+         mime_type/1, getDisposition/2]).
 
 %%%===================================================================
 %%% API
@@ -403,6 +404,43 @@ getWeekDay(Date) ->
     DayNum = calendar:day_of_the_week(Date),
     lists:nth(DayNum, ["Monday", "Tuesday", "Wednesday",
                        "Thursday", "Friday", "Saturday", "Sunday"]).
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Get mime type from extension.
+%% @spec doShowSchedule(User) -> Html
+%% @end
+%%--------------------------------------------------------------------
+mime_type(FileName) ->
+        "." ++ Extension = filename:extension(FileName),
+    MimeTypes = mime_types(),
+    proplists:get_value(string:to_lower(Extension), MimeTypes,
+        "application/octet-stream").
+
+mime_types() ->
+    MimeTypesFile   = filename:join(code:priv_dir(eTodo), "mime.types"),
+    {ok, MimeTypes} = httpd_conf:load_mime_types(MimeTypesFile),
+    MimeTypes.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Get disposition from linked file.
+%% @spec doShowSchedule(User) -> Html
+%% @end
+%%--------------------------------------------------------------------
+getDisposition("image/jpeg", _File) ->
+    "inline";
+getDisposition("image/png", _File) ->
+    "inline";
+getDisposition("image/gif", _File) ->
+    "inline";
+getDisposition("image/bmp", _File) ->
+    "inline";
+getDisposition(_MimeType, File) ->
+    "attachment; filename=" ++ File.
+
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================

@@ -1264,9 +1264,16 @@ linkFileButtonEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
                                        Reference ++ "_" ++ File]),
             filelib:ensure_dir(FileName),
             file:write_file(FileName, ZBin),
-            Link = "https://" ++ Host2 ++ ":" ++ Port2 ++
+            MimeType    = eTodoUtils:mime_type(File),
+            Disposition = eTodoUtils:getDisposition(MimeType, File),
+            Url  = "https://" ++ Host2 ++ ":" ++ Port2 ++
                 "/eTodo/eWeb:link" ++ Args ++ ProxyArg,
-
+            Link = case Disposition of
+                       "inline" ->
+                            "![](" ++ Url ++ ")";
+                       _ ->
+                           Url
+                   end,
             insertMsgText(Link, State);
         _->
             eTodo:systemEntry(system, "Failed to link file, "
