@@ -1380,14 +1380,14 @@ generateSystemMsg(system, Text) ->
            tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
                  fontTag([{color, "Blue"}], "eTodo"))]),
         trTag([tdTag(), tdTag([{bgcolor, "#f5f5f5"}], []),
-               tdTag([{bgcolor, "#f5f5f5"}], makeHtml(Text))])]),
+               tdTag([{bgcolor, "#f5f5f5"}], eMd2Html:convert(Text))])]),
      tableTag(
        [trTag(
           [tdTag([{class, "msgImg"}],
                  imgTag([{src, "/priv/Icons/etodoChat.png"}])),
            tdTag([{class, "msgTime"}], toStr(time(), time)),
            tdTag([{class, "msgText"}], "eTodo")]),
-        trTag([tdTag(), tdTag([{colspan, 2}], eMd2Html:convert(Text))])])};
+        trTag([tdTag(), tdTag([{colspan, 2}], makeHtml(Text, "/priv"))])])};
 generateSystemMsg(Uid, Text) ->
     UidStr = eTodoUtils:convertUid(Uid),
     {tableTag([{cellspacing, "0"}, {cellpadding, "10"}],

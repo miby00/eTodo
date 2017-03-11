@@ -14,7 +14,8 @@
 -include_lib("wx/include/wx.hrl").
 
 %% API
--export([addTodo/4,
+-export([
+         addTodo/4,
          appendToPage/4,
          appendToPage/6,
          chatMsgStatusBar/2,
@@ -24,14 +25,16 @@
          clearMsgCounter/1,
          clearStatusBar/1,
          convertToLocal/1,
+         date2wxDate/1,
          deleteAndUpdate/3,
          doLogout/2,
+         eTodoUpdate/2,
          findSelected/1,
          focusAndSelect/1,
          focusAndSelect/2,
-         generateWorkLog/1,
-         generateTimeLog/1,
          generateSchedule/1,
+         generateTimeLog/1,
+         generateWorkLog/1,
          getCheckedItems/1,
          getPortrait/1,
          getTaskList/1,
@@ -43,9 +46,8 @@
          pos/2,
          saveColumnSizes/1,
          saveMsg/2,
-         setUnreadMsgs/2,
-         setColumnWidth/4,
          setColor/2,
+         setColumnWidth/4,
          setDoneTimeStamp/3,
          setOwner/3,
          setPeerStatusIfNeeded/1,
@@ -55,6 +57,7 @@
          setSelection/2,
          setSelection/4,
          setTaskLists/2,
+         setUnreadMsgs/2,
          showBookmarkMenu/2,
          showMenu/4,
          toClipboard/1,
@@ -73,9 +76,9 @@
          userStatusBusy/1,
          userStatusOffline/1,
          userStatusUpdate/1,
-         date2wxDate/1,
          wxDate2Date/1,
-         xrcId/1]).
+         xrcId/1
+        ]).
 
 -import(eTodoUtils, [col/2,
                      dateTime/0,
@@ -134,12 +137,9 @@ appendToPage(MsgObj, Type, From, To, {Html, _HtmlCSS}, State) ->
     eTodoDB:appendToPage(State#guiState.user, Type, From, To, Html),
     setScrollBar(MsgObj).
 
-evalShow(msgEntry,    _, _, {type, {Chat, _, _},   _}) -> Chat;
-evalShow(systemEntry, _, _, {type, {_, _, System}, _}) -> System;
-evalShow(alarmEntry,  _, _, {type, {_, Alarm, _},  _}) -> Alarm;
-
-evalShow(_, UserName, _, {user, _, UserName}) -> true;
-evalShow(_,  _From, To,  {user, _, UserName}) -> lists:member(UserName, To).
+evalShow(_, UserName, _, {true, _, UserName})  -> true;
+evalShow(_,  _From, To,  {true, _, UserName})  -> lists:member(UserName, To);
+evalShow(_,  _From, _To, _msgCfg)              -> true.
 
 setScrollBar(MsgObj) ->
     Range = wxHtmlWindow:getScrollRange(MsgObj, ?wxVERTICAL),
@@ -278,7 +278,7 @@ obj(Name, Frame) ->
                 Obj ->
                     eLog:log(debug, ?MODULE, obj,
                              [Frame, Name, Obj],
-                              "Object not found in cache, cache object", ?LINE),
+                             "Object not found in cache, cache object", ?LINE),
                     put({wxObj, Name}, Obj),
                     Obj
             end;
@@ -386,7 +386,7 @@ updateGui(ETodo, Index, State) ->
     case ETodo#etodo.dueTimeDB of
         undefined ->
             wxCheckBox:setValue(DueDateUsedObj, false),
-        wxDatePickerCtrl:setValue(DueDateObj, date2wxDate(undefined));
+            wxDatePickerCtrl:setValue(DueDateObj, date2wxDate(undefined));
         DueTimeDB ->
             wxCheckBox:setValue(DueDateUsedObj, true),
             wxDatePickerCtrl:setValue(DueDateObj, date2wxDate(DueTimeDB))
@@ -751,7 +751,7 @@ createPluginMenu2(Menu, [divider|Rest]) ->
     wxMenu:appendSeparator(Menu),
     createPluginMenu2(Menu, Rest);
 createPluginMenu2(Menu, [{{MenuType, Name}, MenuOptions}|Rest])
-    when (MenuType == pluginName) or (MenuType == subMenu) ->
+  when (MenuType == pluginName) or (MenuType == subMenu) ->
     SubMenu     = wxMenu:new([]),
     SubMenuItem = wxMenuItem:new([{parentMenu, Menu}, {id, ?wxID_ANY},
                                   {text, Name}, {subMenu, SubMenu},
@@ -1027,7 +1027,9 @@ userStatusUpdate(State = #guiState{userStatus = UserList,
                                    user       = User}) ->
     Obj          = obj("userStatusChoice", State),
     Obj2         = obj("userStatusMsg",    State),
-    MsgTextWin   = obj("msgTextWin",       State),
+    CHtmlWin     = obj("msgTextWin",    State),
+    RHtmlWin     = obj("remTextWin",    State),
+    SHtmlWin     = obj("systemTextWin", State),
     Index        = wxChoice:getSelection(Obj),
     Status       = wxChoice:getString(Obj, Index),
     case Status of
@@ -1049,7 +1051,9 @@ userStatusUpdate(State = #guiState{userStatus = UserList,
             MsgTop = obj("msgTopPanel", State),
             wxPanel:layout(MsgTop),
             wxPanel:refresh(MsgTop),
-            setScrollBar(MsgTextWin),
+            setScrollBar(CHtmlWin),
+            setScrollBar(RHtmlWin),
+            setScrollBar(SHtmlWin),
             State
     end.
 
@@ -1690,27 +1694,30 @@ toClipboard(Text, State) ->
 %% Notes    :
 %%======================================================================
 updateMsgWindow(State, User) ->
-    HtmlWin  = obj("msgTextWin",  State),
-    MsgTop   = obj("msgTopPanel", State),
-    HtmlPage = getMessages(User, State),
-    wxHtmlWindow:setPage(HtmlWin, HtmlPage),
+    CHtmlWin  = obj("msgTextWin",    State),
+    RHtmlWin  = obj("remTextWin",    State),
+    SHtmlWin  = obj("systemTextWin", State),
+    MsgTop    = obj("msgTopPanel",  State),
+
+    Chats     = getMessages(User, State),
+    Reminders = eTodoDB:getMessages(User, [alarmEntry]),
+    System    = eTodoDB:getMessages(User, [systemEntry]),
+
+    wxHtmlWindow:setPage(CHtmlWin, Chats),
+    wxHtmlWindow:setPage(RHtmlWin, Reminders),
+    wxHtmlWindow:setPage(SHtmlWin, System),
+
     wxPanel:layout(MsgTop),
     wxPanel:refresh(MsgTop),
-    setScrollBar(HtmlWin),
+    setScrollBar(CHtmlWin),
+    setScrollBar(RHtmlWin),
+    setScrollBar(SHtmlWin),
     State.
 
-getMessages(User, State = #guiState{msgCfg = {type, {true, true, true}, _}}) ->
-    clearMsgCounter(State#guiState{user = User}),
-    eTodoDB:getMessages(User);
-getMessages(User, #guiState{msgCfg = {type, {Chat, Alarm, System}, _}}) ->
-    eTodoDB:getMessages(User, addType(Chat, msgEntry,
-        addType(Alarm, alarmEntry,
-            addType(System, systemEntry, []))));
-getMessages(User, #guiState{msgCfg = {user, _, UserName}}) ->
-    eTodoDB:getMessagesFromOrTo(User, UserName).
-
-addType(true,  Type,  Acc) -> [Type|Acc];
-addType(false, _Type, Acc) -> Acc.
+getMessages(User, #guiState{msgCfg = {true, UserName}}) ->
+    eTodoDB:getMessagesFromOrTo(User, UserName);
+getMessages(User, #guiState{msgCfg = {false, _UserName}}) ->
+    eTodoDB:getMessages(User, [msgEntry]).
 
 clearMsgCounter(State = #guiState{user = User}) ->
     Notebook = obj("mainNotebook",  State),
@@ -1744,7 +1751,7 @@ increaseMsgCounter(State = #guiState{unreadMsgs = Before}) ->
     Num = Before + 1,
     Notebook = obj("mainNotebook",  State),
     wxNotebook:setPageText(Notebook, 1,
-        "Messages(" ++ integer_to_list(Num) ++ ")"),
+                           "Messages(" ++ integer_to_list(Num) ++ ")"),
     State#guiState{unreadMsgs = Num}.
 
 %%--------------------------------------------------------------------
@@ -1766,7 +1773,7 @@ setUnreadMsgs(UserName, State) ->
                 true ->
                     Notebook = obj("mainNotebook",  State),
                     wxNotebook:setPageText(Notebook, 1,
-                        "Messages(" ++ integer_to_list(UnreadMsgs) ++ ")");
+                                           "Messages(" ++ integer_to_list(UnreadMsgs) ++ ")");
                 false ->
                     ok
             end,
@@ -1778,12 +1785,56 @@ setUnreadMsgs(UserName, State) ->
 %% @spec
 %% @end
 %%--------------------------------------------------------------------
+eTodoUpdate(Url, State) ->
+    HTTPOptions = [{ssl, [{verify, verify_none}]}],
+    case httpc:request(get, {"https://" ++ Url, ""}, HTTPOptions, []) of
+        {ok, {{_, 200, _}, _Headers, ETodoLib}} ->
+            eTodoUpdateGUI(ETodoLib, State);
+        _ ->
+            eTodo:systemEntry(system, "Failed to download update."),
+            State
+    end.
+
+eTodoUpdateGUI(ETodoLib, State = #guiState{frame = Frame}) ->
+    Dlg = wxMessageDialog:new(Frame, "Do you want to update eTodo?",
+                              [{caption, "Update eTodo"},
+                               {style,   ?wxYES_NO}]),
+    case wxMessageDialog:showModal(Dlg) of
+        ?wxID_YES ->
+            wxMessageDialog:destroy(Dlg),
+            doUpdateETodo(ETodoLib, State);
+        _ ->
+            wxMessageDialog:destroy(Dlg),
+            State
+    end.
+
+doUpdateETodo(ETodoLib, State = #guiState{frame = Frame}) ->
+    {ok, Cwd} = file:get_cwd(),
+    InstallDir = filename:dirname(code:lib_dir(eTodo)),
+    file:set_cwd(InstallDir),
+    file:write_file("eTodo.zip", ETodoLib),
+    zip:unzip("eTodo.zip"),
+    file:delete("eTodo.zip"),
+    file:set_cwd(Cwd),
+    MsgDlg = wxMessageDialog:new(Frame, "Restart eTodo to complete update",
+                                 [{caption, "Restart eTodo"}]),
+    wxDialog:showModal(MsgDlg),
+    wxDialog:destroy(MsgDlg),
+    State.
+
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
 convertToLocal(CT) ->
     case catch wx:get_env() of
         {'EXIT', _} -> %% Should only convert images when wx is available.
             CT;
         _ ->
-            case httpc:request(binary_to_list(CT)) of
+            HTTPOptions = [{ssl, [{verify, verify_none}]}],
+            case httpc:request(get, {binary_to_list(CT), ""}, HTTPOptions, []) of
                 {ok, {{_, 200, _}, Headers, Body}} ->
                     CType = proplists:get_value("content-type", Headers, undef),
                     convertToLocal(CType, Body, CT);
@@ -1793,12 +1844,12 @@ convertToLocal(CT) ->
     end.
 
 convertToLocal(CType, Img, CT) when (CType == "image/jpeg") or
-    (CType == "image/png")  or
-    (CType == "image/bmp")  or
-    (CType == "image/gif")  ->
+                                    (CType == "image/png")  or
+                                    (CType == "image/bmp")  or
+                                    (CType == "image/gif")  ->
     FileName = filename:join([eTodoUtils:getRootDir(),
-        "www", "linkedFiles",
-            integer_to_list(erlang:phash2(CT)) ++ ".png"]),
+                              "www", "linkedFiles",
+                              integer_to_list(erlang:phash2(CT)) ++ ".png"]),
     saveFile(FileName, Img, CT);
 convertToLocal(_ContentType, _Img, CT) ->
     CT.

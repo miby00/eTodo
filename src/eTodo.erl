@@ -70,6 +70,7 @@
                         clearStatusBar/1,
                         deleteAndUpdate/3,
                         doLogout/2,
+                        eTodoUpdate/2,
                         focusAndSelect/2,
                         getPortrait/1,
                         getTaskList/1,
@@ -721,7 +722,7 @@ handle_cast({acceptingIncCon, User, Circle, Port}, State) ->
     wxStatusBar:setStatusText(StatusBarObj, ConnectionInfo, [{number, 1}]),
     {noreply, State};
 handle_cast({appendToPage, Html}, State) ->
-    MsgObj = obj("msgTextWin", State),
+    MsgObj = obj("systemTextWin", State),
     appendToPage(MsgObj, systemEntry, {Html, ""}, State),
     {noreply, State};
 handle_cast({msgEntry, User, Users, Text},
@@ -737,19 +738,19 @@ handle_cast({msgEntry, User, Users, Text},
     saveMsg(UserName, State),
     {noreply, State2#guiState{reply = User, replyAll = ReplyAll}};
 handle_cast({systemEntry, system, Text}, State) ->
-    MsgObj       = obj("msgTextWin",    State),
+    MsgObj       = obj("systemTextWin",    State),
     appendToPage(MsgObj, systemEntry,
                  eHtml:generateSystemMsg(system, Text), State),
     State2 = chatMsgStatusBar("System message received.", State),
     {noreply, State2};
 handle_cast({systemEntry, Uid, Text}, State) ->
-    MsgObj       = obj("msgTextWin",    State),
+    MsgObj       = obj("systemTextWin",    State),
     appendToPage(MsgObj, systemEntry,
                  eHtml:generateSystemMsg(Uid, Text), State),
     chatMsgStatusBar("System message received.", State),
     {noreply, State};
 handle_cast({alarmEntry, Uid, Text}, State) ->
-    MsgObj       = obj("msgTextWin",    State),
+    MsgObj       = obj("remTextWin",    State),
     appendToPage(MsgObj, alarmEntry,
                  eHtml:generateAlarmMsg(Uid, Text), State),
 
@@ -1005,8 +1006,13 @@ handle_event(#wx{event = #wxHtmlLink{linkInfo = LinkInfo}}, State) ->
     State4 =
         case catch convertUid(LinkInfo#wxHtmlLinkInfo.href) of
             {'EXIT', _Reason} ->
-                wx_misc:launchDefaultBrowser(LinkInfo#wxHtmlLinkInfo.href),
-                State2;
+                case LinkInfo#wxHtmlLinkInfo.href of
+                    "etodo-update://" ++ Url ->
+                        eTodoUpdate(Url, State2);
+                    _ ->
+                        wx_misc:launchDefaultBrowser(LinkInfo#wxHtmlLinkInfo.href),
+                        State2
+                end;
             {uid, Uid} ->
                 %% ETodo link clicked, select correct task in task list.
                 case eTodoDB:getTodo(Uid) of
@@ -1177,10 +1183,14 @@ handle_cmd(Name, Type, Index, Id, Frame, State) ->
 %% Notes    :
 %%======================================================================
 connectMsgFrame(Frame, Dict) ->
-    AllMsgObj   = wxXmlResource:xrcctrl(Frame, "msgTextWin",    wxHtmlWindow),
+    ChatMsgObj  = wxXmlResource:xrcctrl(Frame, "msgTextWin",    wxHtmlWindow),
+    RemMsgObj   = wxXmlResource:xrcctrl(Frame, "remTextWin",    wxHtmlWindow),
+    SysMsgObj   = wxXmlResource:xrcctrl(Frame, "systemTextWin", wxHtmlWindow),
     WorkLogObj  = wxXmlResource:xrcctrl(Frame, "workLogReport", wxHtmlWindow),
     MsgTextObj  = wxXmlResource:xrcctrl(Frame, "msgTextCtrl",   wxTextCtrl),
-    wxHtmlWindow:connect(AllMsgObj,  right_down),
+    wxHtmlWindow:connect(ChatMsgObj, right_down),
+    wxHtmlWindow:connect(RemMsgObj,  right_down),
+    wxHtmlWindow:connect(SysMsgObj,  right_down),
     wxHtmlWindow:connect(WorkLogObj, right_down),
     wxTextCtrl:connect(MsgTextObj, key_down,   [{skip, true}]),
     wxTextCtrl:connect(MsgTextObj, kill_focus, [{skip, true}]),
@@ -1188,8 +1198,8 @@ connectMsgFrame(Frame, Dict) ->
 
     Dict2  = connectItems(["msgTextCtrl"], [command_text_updated], Frame, Dict),
     Dict3  = connectItems(["sendChatMsg"], command_button_clicked, Frame, Dict2),
-    connectItems(["msgTextWin", "workLogReport",
-                  "timeLogReport", "scheduleReport",
+    connectItems(["msgTextWin", "remTextWin", "systemTextWin",
+                  "timeLogReport", "scheduleReport", "workLogReport",
                   "descAreaPreview", "commentAreaPreview", "msgAreaPreview"],
                  command_html_link_clicked, Frame, Dict3).
 
@@ -1207,10 +1217,10 @@ connectMainFrame(Frame, Dict) ->
                  "linkTimeReportMenu", "addTaskInboxMenu",
                  "linkFileMenu", "settingsMenu", "printMenuItem",
                  "moveFirstMenu", "moveLastMenu", "proxyLinkMenu",
-                 "moveUpMenu", "moveDownMenu", "addTaskMenu", "helpMenu1",
+                 "moveUpMenu", "moveDownMenu", "addTaskMenu",
+                 "helpMenu1", "updateMenu", "sendChatMenu",
                  "replyMenu", "replyAllMenu", "setAvatarMenuItem",
-                 "backupMenuItem", "restoreMenuItem", "pluginMenuItem",
-                 "sendChatMenu"],
+                 "backupMenuItem", "restoreMenuItem", "pluginMenuItem"],
 
     MenuChoice = ["userStatusChoice", "statusChoice", "priorityChoice",
                   "taskListChoice", "ownerChoice"],

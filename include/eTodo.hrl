@@ -16,7 +16,7 @@
                    clipBoard, startup, columns, rows = [], popUpMenu,
                    popUpCol, filter = [], usersDlg, addListDlg, manListsDlg,
                    settingsDlg,
-                   msgCfgDlg, msgCfg = {type, {true, true, true}, ""},
+                   msgCfgDlg, msgCfg = {false, ""},
                    drillDown = [], drillFromList, mode,
                    print, conflictDlg, msgMenu, msgStatusSent = false,
                    aboutDlg, manOwnerDlg, helpFrame, userStatus = [],
@@ -24,7 +24,7 @@
                    reply = [], replyAll = [], toolBar, menuBar,
                    manBookmDlg, popupBookmMenu, bookmCfg = [],
                    sortColsDlg, timerDlg, timerRef, pluginDlg, logWorkDlg,
-                   timerDlgOpen = false}).
+                   timerDlgOpen = false, updateFile}).
 
 -define(wxTypes, #{
         "aboutMenu"          => wxMenuItem,
@@ -70,6 +70,7 @@
         "fileMenu"           => wxMenu,
         "helpMenu"           => wxMenu,
         "helpMenu1"          => wxMenuItem,
+        "updateMenu"         => wxMenuItem,
         "infoIcon"           => wxStaticBitmap,
         "linkFileMenu"       => wxMenuItem,
         "linkTimeReportMenu" => wxMenuItem,
@@ -94,6 +95,7 @@
         "msgTextCtrl"        => wxTextCtrl,
         "msgTextWin"         => wxHtmlWindow,
         "msgTopPanel"        => wxPanel,
+        "msgWinNotebook"     => wxNotebook,
         "ownerChoice"        => wxChoice,
         "ownerChoice1"       => wxChoice,
         "ownerChoice2"       => wxChoice,
@@ -118,6 +120,7 @@
         "recurrence"         => wxRadioBox,
         "themeRadioBox"      => wxRadioBox,
         "redoMenu"           => wxMenuItem,
+        "remTextWin"         => wxHtmlWindow,
         "replyAllMenu"       => wxMenuItem,
         "replyMenu"          => wxMenuItem,
         "restoreMenuItem"    => wxMenuItem,
@@ -145,6 +148,7 @@
         "statusChoice1"      => wxChoice,
         "statusChoice2"      => wxChoice,
         "statusLang"         => wxStaticText,
+        "systemTextWin"      => wxHtmlWindow,
         "taskEditPanel"      => wxPanel,
         "taskListChoice"     => wxChoice,
         "timeLogPanel"       => wxPanel,

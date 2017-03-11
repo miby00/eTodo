@@ -14,12 +14,13 @@
 -include_lib("wx/include/wx.hrl").
 
 %% API
--export([aboutMenuEvent/4,
-         addListButtonEvent/4,
+-export([
+         aboutMenuEvent/4,
          addBookmarkButtonEvent/4,
+         addListButtonEvent/4,
          addOwnerButtonEvent/4,
-         addTaskMenuEvent/4,
          addTaskInboxMenuEvent/4,
+         addTaskMenuEvent/4,
          backToolEvent/4,
          backupMenuItemEvent/4,
          bookmarkBtnEvent/4,
@@ -45,10 +46,10 @@
          forwardToolEvent/4,
          guiEvent/4,
          helpMenu1Event/4,
+         linkFileButtonEvent/4,
          linkFileMenuEvent/4,
-         linkViewMenuEvent/4,
          linkTimeReportMenuEvent/4,
-         proxyLinkMenuEvent/4,
+         linkViewMenuEvent/4,
          listCancelEvent/4,
          listCheckListBoxEvent/4,
          listOkEvent/4,
@@ -71,30 +72,31 @@
          manageOwnerBoxEvent/4,
          manageOwnerCancelEvent/4,
          manageOwnerOkEvent/4,
-         moveColUpButtonEvent/4,
          moveColDownButtonEvent/4,
+         moveColUpButtonEvent/4,
          moveDownMenuEvent/4,
-         moveLastMenuEvent/4,
          moveDownToolEvent/4,
          moveFirstMenuEvent/4,
+         moveLastMenuEvent/4,
          moveUpMenuEvent/4,
          moveUpToolEvent/4,
-         msgNotebookEvent/4,
-         msgTextCtrlEvent/4,
-         msgTextWinEvent/4,
          msgFilterEvent/4,
+         msgNotebookEvent/4,
          msgSettingsButtonEvent/4,
          msgSettingsCancelEvent/4,
          msgSettingsOkEvent/4,
+         msgTextCtrlEvent/4,
+         msgTextWinEvent/4,
          ownerChoiceEvent/4,
          pasteMenuEvent/4,
          pasteToolEvent/4,
          pluginCancelEvent/4,
-         pluginOkEvent/4,
          pluginMenuItemEvent/4,
+         pluginOkEvent/4,
          printMenuItemEvent/4,
          priorityChoiceEvent/4,
          progressInfoEvent/4,
+         proxyLinkMenuEvent/4,
          redoMenuEvent/4,
          redoToolEvent/4,
          reminderCancelEvent/4,
@@ -102,13 +104,14 @@
          removeBookmarkButtonEvent/4,
          removeListButtonEvent/4,
          removeOwnerButtonEvent/4,
-         restoreMenuItemEvent/4,
+         remTextWinEvent/4,
          replyAllMenuEvent/4,
-         sendChatMenuEvent/4,
          replyMenuEvent/4,
+         restoreMenuItemEvent/4,
          searchCancelEvent/4,
          searchOkEvent/4,
          searchTextEvent/4,
+         sendChatMenuEvent/4,
          sendChatMsgEvent/4,
          sendTaskButtonEvent/4,
          setAvatarMenuItemEvent/4,
@@ -117,45 +120,48 @@
          settingsMenuEvent/4,
          settingsOkEvent/4,
          shareButtonEvent/4,
-         startDateChangedEvent/1,
-         statusChoiceEvent/4,
+         smileyCryingEvent/4,
+         smileyHappyEvent/4,
+         smileyHeartEvent/4,
+         smileyLOLEvent/4,
+         smileyMischiefEvent/4,
+         smileyShockedEvent/4,
+         smileyWinkEvent/4,
+         smtpEnabledEvent/4,
          sortColumnsBoxEvent/4,
          sortColumnsCancelEvent/4,
          sortColumnsOkEvent/4,
-         smileyHappyEvent/4,
-         smileyMischiefEvent/4,
-         smileyLOLEvent/4,
-         smileyShockedEvent/4,
-         smileyCryingEvent/4,
-         smileyWinkEvent/4,
-         smileyHeartEvent/4,
-         linkFileButtonEvent/4,
-         timerOkEvent/4,
-         timerCancelEvent/4,
-         timerToolEvent/4,
+         startDateChangedEvent/1,
+         statusChoiceEvent/4,
+         systemTextWinEvent/4,
          taskListChoiceEvent/4,
+         timerCancelEvent/4,
+         timerOkEvent/4,
+         timerToolEvent/4,
          todoDownToolEvent/4,
          todoUpToolEvent/4,
          undoMenuEvent/4,
          undoToolEvent/4,
          updateBookmarkButtonEvent/4,
          updateListButtonEvent/4,
+         updateMenuEvent/4,
          updateOwnerButtonEvent/4,
          usePluginsEvent/4,
-         useReminderEvent/4,
          userCancelEvent/4,
          userCheckBoxEvent/4,
+         useReminderEvent/4,
          userOkEvent/4,
          userStatusChoiceEvent/4,
          userStatusMsgEvent/4,
-         webUIEnabledEvent/4,
          webProxyEnabledEvent/4,
-         smtpEnabledEvent/4,
+         webUIEnabledEvent/4,
          workDateEvent/4,
          workLogReportEvent/4,
-         workLogStartDateEvent/4]).
+         workLogStartDateEvent/4
+        ]).
 
--import(eGuiFunctions, [addTodo/4,
+-import(eGuiFunctions, [
+                        addTodo/4,
                         appendToPage/4,
                         appendToPage/6,
                         checkStatus/1,
@@ -163,6 +169,7 @@
                         clearAndInitiate/2,
                         clearMsgCounter/1,
                         clearStatusBar/1,
+                        date2wxDate/1,
                         deleteAndUpdate/3,
                         doLogout/2,
                         focusAndSelect/1,
@@ -176,9 +183,8 @@
                         obj/2,
                         pos/2,
                         saveColumnSizes/1,
-                        setUnreadMsgs/2,
-                        setColumnWidth/4,
                         setColor/2,
+                        setColumnWidth/4,
                         setOwner/3,
                         setPeerStatusIfNeeded/1,
                         setPortrait/2,
@@ -186,38 +192,43 @@
                         setSelection/1,
                         setSelection/2,
                         setTaskLists/2,
+                        setUnreadMsgs/2,
                         showBookmarkMenu/2,
                         showMenu/4,
                         toClipboard/2,
                         updateGui/3,
                         updateGui/4,
-                        updateTodo/4,
                         updateMsgWindow/2,
+                        updateTodo/4,
                         updateTodoInDB/2,
                         updateTodoWindow/1,
                         useFilter/3,
                         userStatusAvailable/1,
                         userStatusUpdate/1,
                         wxDate2Date/1,
-                        date2wxDate/1,
-                        xrcId/1]).
+                        xrcId/1
+                       ]).
 
--import(eTodoUtils, [cancelTimer/1,
+-import(eTodoUtils, [
+                     cancelTimer/1,
                      default/2,
                      getRootDir/0,
+                     getWeekDay/1,
                      makeRef/0,
                      makeStr/1,
                      taskExternal/1,
                      taskInternal/1,
                      toStatusDB/1,
                      toStr/1,
-                     tryInt/1,
-                     getWeekDay/1]).
+                     tryInt/1
+                    ]).
 
--import(eRows, [findIndex/2,
+-import(eRows, [
+                findIndex/2,
                 getETodoAtIndex/2,
                 swapRows/3,
-                updateRows/2]).
+                updateRows/2
+               ]).
 
 %%====================================================================
 %% Component callbacks, don't forget to add them to export list
@@ -659,6 +670,14 @@ sendMsg(Users, State = #guiState{user = User}) ->
 %% Show right click menu on message window.
 %%====================================================================
 msgTextWinEvent(_Type, _Id, Frame, State = #guiState{msgMenu = MsgMenu}) ->
+    wxWindow:popupMenu(Frame, MsgMenu),
+    State.
+
+remTextWinEvent(_Type, _Id, Frame, State = #guiState{msgMenu = MsgMenu}) ->
+    wxWindow:popupMenu(Frame, MsgMenu),
+    State.
+
+systemTextWinEvent(_Type, _Id, Frame, State = #guiState{msgMenu = MsgMenu}) ->
     wxWindow:popupMenu(Frame, MsgMenu),
     State.
 
@@ -1270,9 +1289,9 @@ linkFileButtonEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
                 "/eTodo/eWeb:link" ++ Args ++ ProxyArg,
             Link = case Disposition of
                        "inline" ->
-                            "![" ++ File ++ "](" ++ Url ++ ")";
+                           "![" ++ File ++ "](" ++ Url ++ ")";
                        _ ->
-                            "[" ++ File ++ "](" ++ Url ++ ")"
+                           "[" ++ File ++ "](" ++ Url ++ ")"
                    end,
             insertMsgText(Link, State);
         _->
@@ -1588,8 +1607,7 @@ sendTaskButtonEvent(command_button_clicked, _Id, _Frame,
     ePeerEM:sendMsg(User, Users, {systemEntry, ETodo#etodo.uidDB}, Text),
     State;
 sendTaskButtonEvent(context_menu, _Id, _Frame,
-    State = #guiState{activeTodo = {ETodo, _}, user = User}) ->
-    Users = ETodo#etodo.sharedWithDB,
+                    State = #guiState{activeTodo = {ETodo, _}}) ->
     UidStr = eTodoUtils:convertUid(ETodo#etodo.uidDB),
     Link   = eHtml:aTag([{href, UidStr}], "eTodo"),
     toClipboard(Link, State).
@@ -1701,6 +1719,30 @@ helpMenu1Event(_Type, _Id, _Frame, State) ->
     wx_misc:launchDefaultBrowser(re:replace(Dir, " ", "%20", [{return, list}])),
     State.
 
+updateMenuEvent(_Type, _Id, _Frame, State) ->
+    {ok, Cwd} = file:get_cwd(),
+    ETodoDir  = code:lib_dir(eTodo),
+    BaseDir   = filename:basename(code:lib_dir(eTodo)),
+    WorkDir   = filename:join([ETodoDir, ".."]),
+    LinkedDir = filename:join([BaseDir, "priv", "www", "linkedFiles"]),
+    file:set_cwd(WorkDir),
+    FileList = filelib:fold_files(BaseDir, ".*", true,
+        fun (File, Acc) ->
+            case string:str(File, LinkedDir) of
+                1 ->
+                    Acc;
+                _ ->
+                    [File|Acc]
+            end
+        end, []),
+    zip:zip("eTodo.zip", FileList),
+    Zip = filename:join([WorkDir, "eTodo.zip"]),
+    file:set_cwd(Cwd),
+    State2 = linkFileMenuEvent(undefined, undefined, undefined,
+                               State#guiState{updateFile = Zip}),
+    file:delete(Zip),
+    State2.
+
 aboutMenuEvent(_Type, _Id, _Frame, State = #guiState{aboutDlg = About}) ->
     wxDialog:showModal(About),
     State.
@@ -1732,8 +1774,8 @@ proxyLinkMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
         "?proxy="    ++ http_uri:encode(User)   ++
         "&token="    ++ http_uri:encode(Token),
     Link = "https://" ++ Host ++ ":" ++ Port ++ "/eTodo/eWeb:index" ++ Args,
-    eTodo:systemEntry(system, Link ++ " Can be used to access web gui through "
-                      "a proxy host. Link added to clipboard."),
+    eTodo:systemEntry(system, "<" ++ Link ++ "> Can be used to access web gui"
+                      " through a proxy host. Link added to clipboard."),
     toClipboard(Link, State).
 
 %%====================================================================
@@ -1764,7 +1806,7 @@ linkViewMenuEvent(_Type, _Id, _Frame, State = #guiState{searchCfg = Cfg,
             Link   = "https://" ++ Host ++ ":" ++ PortStr ++
                 "/eTodo/eWeb:show" ++ Args,
 
-            eTodo:systemEntry(system, Link ++ " shows configured view "
+            eTodo:systemEntry(system, "<" ++ Link ++ "> shows configured view "
                               "in a browser. Link added to clipboard."),
             toClipboard(Link, State)
     end.
@@ -1794,7 +1836,7 @@ linkTimeReportMenuEvent(_Type, _Id, _Frame, State = #guiState{searchCfg = Cfg,
             Link   = "https://" ++ Host ++ ":" ++ PortStr ++
                 "/eTodo/eWeb:showTimeReport" ++ Args,
 
-            eTodo:systemEntry(system, Link ++ " shows configured time "
+            eTodo:systemEntry(system, "<" ++ Link ++ "> shows configured time "
                               "report in a browser. Link added to clipboard."),
             toClipboard(Link, State)
     end.
@@ -1833,24 +1875,32 @@ linkFileMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
                                        Reference ++ "_" ++ File]),
             filelib:ensure_dir(FileName),
             file:write_file(FileName, ZBin),
-            Link = "https://" ++ Host2 ++ ":" ++ Port2 ++
+            Scheme = case State#guiState.updateFile of
+                         undefined ->
+                             "https://";
+                         _ ->
+                             "etodo-update://"
+                     end,
+            Link = Scheme ++ Host2 ++ ":" ++ Port2 ++
                 "/eTodo/eWeb:link" ++ Args ++ ProxyArg,
 
-            eTodo:systemEntry(system, Link ++
-                                  " link to file added to clipboard."),
-            toClipboard(Link, State);
+            eTodo:systemEntry(system, "<" ++ Link ++
+                                  "> link to file added to clipboard."),
+            toClipboard(Link, State#guiState{updateFile = undefined});
         _->
             eTodo:systemEntry(system, "Failed to link file, "
                               "web server not running"),
             State
     end.
 
-getFileToLink(#guiState{frame = Frame}) ->
+getFileToLink(#guiState{frame = Frame, updateFile = undefined}) ->
     FileDlg = wxFileDialog:new(Frame, [{message, "Select file to link"}]),
     Result  = wxDialog:showModal(FileDlg),
     {Result,
      wxFileDialog:getPath(FileDlg),
-     wxFileDialog:getFilename(FileDlg)}.
+     wxFileDialog:getFilename(FileDlg)};
+getFileToLink(#guiState{updateFile = FileName}) ->
+    {?wxID_OK, FileName, filename:basename(FileName)}.
 
 %%====================================================================
 %% Copy
@@ -2308,7 +2358,7 @@ webProxyEnabledEvent(_Type, _Id, _Frame,
     State.
 
 smtpEnabledEvent(_Type, _Id, _Frame,
-    State = #guiState{settingsDlg = Settings}) ->
+                 State = #guiState{settingsDlg = Settings}) ->
     SMTPOnObj   = wxXmlResource:xrcctrl(Settings, "smtpEnabled", wxCheckBox),
     SMTPSrvObj  = wxXmlResource:xrcctrl(Settings, "smtpServer",  wxTextCtrl),
     SMTPPortObj = wxXmlResource:xrcctrl(Settings, "smtpPort",    wxTextCtrl),
@@ -2537,34 +2587,20 @@ settingsCancelEvent(_Type, _Id, _Frame,
 
 msgSettingsButtonEvent(_Type, _Id, _Frame,
                        State = #guiState{msgCfgDlg = Settings,
-                                         msgCfg    = {Flt, {C, A, S}, UserName},
+                                         msgCfg    = {FilterUsed, UserName},
                                          user      = User}) ->
 
-    Alarm  = wxXmlResource:xrcctrl(Settings, "showAlarm",  wxCheckBox),
-    Chat   = wxXmlResource:xrcctrl(Settings, "showChat",   wxCheckBox),
-    System = wxXmlResource:xrcctrl(Settings, "showSystem", wxCheckBox),
-
-    FilterType = wxXmlResource:xrcctrl(Settings, "msgFilter",      wxRadioBox),
+    UseFilter  = wxXmlResource:xrcctrl(Settings, "filterMsgCBox",  wxCheckBox),
     UserChoice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxChoice),
 
-    case Flt of
-        type ->
-            wxRadioBox:setSelection(FilterType, 0);
-        user ->
-            wxRadioBox:setSelection(FilterType, 1)
-    end,
-
-    wxCheckBox:setValue(Chat,   C),
-    wxCheckBox:setValue(Alarm,  A),
-    wxCheckBox:setValue(System, S),
-
+    wxCheckBox:setValue(UseFilter, FilterUsed),
     Users  = lists:delete(User, eTodoDB:getUsers()),
     Choice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxChoice),
     wxChoice:clear(Choice),
     wxChoice:appendStrings(Choice, Users),
     wxChoice:setStringSelection(UserChoice, UserName),
 
-    wxDialog:setSize(Settings, {270, 325}),
+    wxDialog:setSize(Settings, {270, 200}),
     wxDialog:show(Settings),
     msgFilterEvent(undefined, undefined, undefined, State).
 
@@ -2575,27 +2611,12 @@ msgSettingsCancelEvent(_Type, _Id, _Frame,
 
 msgSettingsOkEvent(_Type, _Id, _Frame,
                    State  = #guiState{msgCfgDlg = Settings, user = User}) ->
-    Chat    = wxXmlResource:xrcctrl(Settings, "showChat",   wxCheckBox),
-    Alarm   = wxXmlResource:xrcctrl(Settings, "showAlarm",  wxCheckBox),
-    System  = wxXmlResource:xrcctrl(Settings, "showSystem", wxCheckBox),
-    ChatB   = wxCheckBox:isChecked(Chat),
-    AlarmB  = wxCheckBox:isChecked(Alarm),
-    SysB    = wxCheckBox:isChecked(System),
-
-    FilterType = wxXmlResource:xrcctrl(Settings, "msgFilter",      wxRadioBox),
+    UseFilter  = wxXmlResource:xrcctrl(Settings, "filterMsgCBox",  wxCheckBox),
     UserChoice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxChoice),
     UserName   = wxChoice:getStringSelection(UserChoice),
-
-    State2 = case wxRadioBox:getSelection(FilterType) of
-                 0 ->
-                     Cfg = {type, {ChatB, AlarmB, SysB}, UserName},
-                     State#guiState{msgCfg = Cfg};
-                 1 ->
-                     Cfg = {user, {ChatB, AlarmB, SysB}, UserName},
-                     State#guiState{msgCfg = Cfg}
-             end,
+    Cfg        = {wxCheckBox:isChecked(UseFilter), UserName},
     wxDialog:hide(Settings),
-    updateMsgWindow(State2, User).
+    updateMsgWindow(State#guiState{msgCfg = Cfg}, User).
 
 bookmarkBtnEvent(context_menu, _Id, _Frame,
                  State = #guiState{bookmCfg = BookmCfg}) ->

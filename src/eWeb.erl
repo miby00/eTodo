@@ -1081,11 +1081,11 @@ startWebServer(User, GuestUsers) ->
                              #conCfg{host = "localhost"}),
             Host   = default(ConCfg#conCfg.host, "localhost"),
             ePeerEM:sendMsg(system,  [User], systemEntry,
-                            "https://"++ Host ++ ":" ++ PortStr ++ "/eTodo"
-                            "/eWeb:index shows your todos in a browser."),
+                            "<https://"++ Host ++ ":" ++ PortStr ++ "/eTodo"
+                            "/eWeb:index> shows your todos in a browser."),
             ePeerEM:sendMsg(system,  [User], systemEntry,
-                            "https://"++ Host ++ ":" ++ PortStr ++ "/eTodo"
-                            "/eWeb:mobile for an alternative web gui for "
+                            "<https://"++ Host ++ ":" ++ PortStr ++ "/eTodo"
+                            "/eWeb:mobile> for an alternative web gui for "
                             "the phone."),
             Port;
         _ ->

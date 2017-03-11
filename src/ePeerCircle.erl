@@ -196,7 +196,7 @@ init([]) ->
     process_flag(trap_exit, true),
     erlang:start_timer(1000 * 60 * 5, self(), tryReconnect),
     ePeerEM:add_handler(ePeerCircleEH, []),
-    {ok, #state{tsHandle  = random:uniform(100000000),
+    {ok, #state{tsHandle  = rand:uniform(100000000),
                 stateName = idle}}.
 
 %%--------------------------------------------------------------------
