@@ -20,7 +20,7 @@
                    drillDown = [], drillFromList, mode,
                    print, conflictDlg, msgMenu, msgStatusSent = false,
                    aboutDlg, manOwnerDlg, helpFrame, userStatus = [],
-                   unreadMsgs = 0, unreadSysMsgs = 0, delayedUpdate,
+                   unreadMsgs = 0, unreadMsgs2 = {0, 0, 0}, delayedUpdate,
                    reply = [], replyAll = [], toolBar, menuBar,
                    manBookmDlg, popupBookmMenu, bookmCfg = [],
                    sortColsDlg, timerDlg, timerRef, pluginDlg, logWorkDlg,
@@ -213,7 +213,7 @@
                    theme           = 0,
                    lastTaskList,
                    webSettings     = [],
-                   unreadMsgs      = [],
+                   unreadMsgs      = 0,
                    lastTimer       = {0,25,0},
                    webProxyEnabled = false,
                    webProxyHost,
@@ -223,7 +223,8 @@
                    smtpPort,
                    smtpUser,
                    smtpPwd,
-                   splitHorizMsg   = 150}).
+                   splitHorizMsg   = 150,
+                   unreadMsgs2     = {0, 0, 0}}).
 
 -record(listCfg,  {key,
                    userName,

@@ -64,7 +64,7 @@
 -import(eGuiFunctions, [addTodo/4,
                         appendToPage/4,
                         appendToPage/6,
-                        chatMsgStatusBar/2,
+                        chatMsgStatusBar/3,
                         checkStatus/1,
                         checkUndoStatus/1,
                         clearStatusBar/1,
@@ -723,39 +723,38 @@ handle_cast({acceptingIncCon, User, Circle, Port}, State) ->
     {noreply, State};
 handle_cast({appendToPage, Html}, State) ->
     MsgObj = obj("systemTextWin", State),
-    appendToPage(MsgObj, systemEntry, {Html, ""}, State),
-    {noreply, State};
+    State2 = appendToPage(MsgObj, systemEntry, {Html, ""}, State),
+    {noreply, State2};
 handle_cast({msgEntry, User, Users, Text},
             State = #guiState{frame = Frame,
                               user  = UserName}) ->
     MsgObj = obj("msgTextWin", State),
-    appendToPage(MsgObj, msgEntry, User, Users,
-                 eHtml:generateMsg(UserName, User, Users, Text), State),
+    State2 = appendToPage(MsgObj, msgEntry, User, Users,
+                          eHtml:generateMsg(UserName, User, Users, Text), State),
     Msg = "Received message from " ++ User,
-    State2 = chatMsgStatusBar(Msg, State),
+    State3 = chatMsgStatusBar(msgEntry, Msg, State2),
     raiseIfIconified(Frame),
     ReplyAll = lists:delete(UserName, Users),
-    saveMsg(UserName, State),
-    {noreply, State2#guiState{reply = User, replyAll = ReplyAll}};
+    saveMsg(UserName, State3),
+    {noreply, State3#guiState{reply = User, replyAll = ReplyAll}};
 handle_cast({systemEntry, system, Text}, State) ->
     MsgObj       = obj("systemTextWin",    State),
-    appendToPage(MsgObj, systemEntry,
-                 eHtml:generateSystemMsg(system, Text), State),
-    State2 = chatMsgStatusBar("System message received.", State),
-    {noreply, State2};
+    State2 = appendToPage(MsgObj, systemEntry,
+                          eHtml:generateSystemMsg(system, Text), State),
+    State3 = chatMsgStatusBar(systemEntry, "System message received.", State2),
+    {noreply, State3};
 handle_cast({systemEntry, Uid, Text}, State) ->
     MsgObj       = obj("systemTextWin",    State),
-    appendToPage(MsgObj, systemEntry,
-                 eHtml:generateSystemMsg(Uid, Text), State),
-    chatMsgStatusBar("System message received.", State),
-    {noreply, State};
+    State2 = appendToPage(MsgObj, systemEntry,
+                          eHtml:generateSystemMsg(Uid, Text), State),
+    State3 = chatMsgStatusBar(systemEntry, "System message received.", State2),
+    {noreply, State3};
 handle_cast({alarmEntry, Uid, Text}, State) ->
     MsgObj       = obj("remTextWin",    State),
-    appendToPage(MsgObj, alarmEntry,
-                 eHtml:generateAlarmMsg(Uid, Text), State),
-
-    chatMsgStatusBar("Alarm message received.", State),
-    {noreply, State};
+    State2 = appendToPage(MsgObj, alarmEntry,
+                          eHtml:generateAlarmMsg(Uid, Text), State),
+    State3 = chatMsgStatusBar(alarmEntry, "Alarm message received.", State2),
+    {noreply, State3};
 handle_cast({loggedIn, User}, State = #guiState{userStatus = Users}) ->
     UserObj      = obj("userCheckBox",  State),
     StatusBarObj = obj("mainStatusBar", State),
@@ -1257,6 +1256,7 @@ connectMainFrame(Frame, Dict) ->
     Dict11 = connectItems(["mainNotebook",
                            "descNotebook",
                            "commentNotebook",
+                           "msgWinNotebook",
                            "msgNotebook"],
                           command_notebook_page_changed,        Frame, Dict10),
     Dict12 = connectItems(["userCheckBox"],

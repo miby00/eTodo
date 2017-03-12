@@ -87,6 +87,7 @@
          msgSettingsOkEvent/4,
          msgTextCtrlEvent/4,
          msgTextWinEvent/4,
+         msgWinNotebookEvent/4,
          ownerChoiceEvent/4,
          pasteMenuEvent/4,
          pasteToolEvent/4,
@@ -1728,8 +1729,15 @@ updateMenuEvent(_Type, _Id, _Frame, State) ->
     file:set_cwd(WorkDir),
     FileList = filelib:fold_files(BaseDir, ".*", true,
         fun (File, Acc) ->
-            case string:str(File, LinkedDir) of
-                1 ->
+            Pos1 = string:str(File, LinkedDir),
+            Pos2 = string:str(File, ".git"),
+            Pos3 = string:str(File, ".rebar"),
+            Pos4 = string:str(File, ".DS_Store"),
+
+            case {Pos1, Pos2 + Pos3 + Pos4} of
+                {1, _} ->
+                    Acc;
+                {_Pos1, Pos} when Pos > 0 ->
                     Acc;
                 _ ->
                     [File|Acc]
@@ -2984,6 +2992,8 @@ mainNotebookEvent(_Type, _Id, _Frame, State) ->
             State
     end.
 
+msgWinNotebookEvent(_Type, _Id, _Frame, State) ->
+    clearMsgCounter(State).
 
 %%======================================================================
 %% Function :

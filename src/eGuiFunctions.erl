@@ -18,7 +18,7 @@
          addTodo/4,
          appendToPage/4,
          appendToPage/6,
-         chatMsgStatusBar/2,
+         chatMsgStatusBar/3,
          checkStatus/1,
          checkUndoStatus/1,
          clearAndInitiate/2,
@@ -128,18 +128,23 @@ appendToPage(MsgObj, Type, {Html, _HtmlCSS}, State) ->
     appendToPage(MsgObj, Type, "", "", {Html, _HtmlCSS}, State).
 
 appendToPage(MsgObj, Type, From, To, {Html, _HtmlCSS}, State) ->
-    case evalShow(Type, From, To, State#guiState.msgCfg) of
-        true ->
-            wxHtmlWindow:appendToPage(MsgObj, Html);
-        false ->
-            increaseMsgCounter(State)
-    end,
-    eTodoDB:appendToPage(State#guiState.user, Type, From, To, Html),
-    setScrollBar(MsgObj).
+    State3 = case evalShow(Type, From, To, State#guiState.msgCfg) of
+                 true ->
+                     wxHtmlWindow:appendToPage(MsgObj, Html),
+                     State;
+                 false ->
+                     Notebook1 = obj("mainNotebook",   State),
+                     Notebook2 = obj("msgWinNotebook", State),
+                     State2 = increaseMsgCounter(State, Notebook1),
+                     increaseMsgCounter(Type, State2, Notebook2)
+             end,
+    eTodoDB:appendToPage(State3#guiState.user, Type, From, To, Html),
+    setScrollBar(MsgObj),
+    State3.
 
-evalShow(_, UserName, _, {true, _, UserName})  -> true;
-evalShow(_,  _From, To,  {true, _, UserName})  -> lists:member(UserName, To);
-evalShow(_,  _From, _To, _msgCfg)              -> true.
+evalShow(_, UserName, _, {true, UserName})  -> true;
+evalShow(_,  _From, To,  {true, UserName})  -> lists:member(UserName, To);
+evalShow(_,  _From, _To, _msgCfg)           -> true.
 
 setScrollBar(MsgObj) ->
     Range = wxHtmlWindow:getScrollRange(MsgObj, ?wxVERTICAL),
@@ -1719,40 +1724,109 @@ getMessages(User, #guiState{msgCfg = {true, UserName}}) ->
 getMessages(User, #guiState{msgCfg = {false, _UserName}}) ->
     eTodoDB:getMessages(User, [msgEntry]).
 
-clearMsgCounter(State = #guiState{user = User}) ->
-    Notebook = obj("mainNotebook",  State),
-    wxNotebook:setPageText(Notebook, 1, ?tr("messagePanel")),
+clearMsgCounter(State = #guiState{user = User,
+                                  unreadMsgs2 = {C1, C2, C3}}) ->
+    Notebook1 = obj("mainNotebook",  State),
+    Notebook2 = obj("msgWinNotebook", State),
+    ChatPanel = wxNotebook:getPage(Notebook2, 0),
+    RemPanel  = wxNotebook:getPage(Notebook2, 1),
+    SysPanel  = wxNotebook:getPage(Notebook2, 2),
+
+    State2 =
+        case wxNotebook:getCurrentPage(Notebook2) of
+            ChatPanel ->
+                CTot2 = C2 + C3,
+                setMsgCounter(Notebook1, CTot2),
+                wxNotebook:setPageText(Notebook2, 0, "Chat"),
+                State#guiState{unreadMsgs = CTot2, unreadMsgs2 = {0, C2, C3}};
+            RemPanel ->
+                CTot2 = C1 + C3,
+                setMsgCounter(Notebook1, CTot2),
+                wxNotebook:setPageText(Notebook2, 1, "Reminder"),
+                State#guiState{unreadMsgs = CTot2, unreadMsgs2 = {C1, 0, C3}};
+            SysPanel ->
+                CTot2 = C1 + C2,
+                setMsgCounter(Notebook1, CTot2),
+                wxNotebook:setPageText(Notebook2, 2, "System"),
+                State#guiState{unreadMsgs = CTot2, unreadMsgs2 = {C1, C2, 0}}
+        end,
+
     UserCfg = eTodoDB:readUserCfg(User),
-    eTodoDB:saveUserCfg(UserCfg#userCfg{unreadMsgs = 0}),
-    State#guiState{unreadMsgs = 0}.
+    {NC1, NC2, NC3} = State2#guiState.unreadMsgs2,
+    eTodoDB:saveUserCfg(UserCfg#userCfg{unreadMsgs = NC1 + NC2 + NC3,
+                                        unreadMsgs2 = {NC1, NC2, NC3}}),
+
+    State2.
+
+setMsgCounter(Notebook, 0) ->
+    wxNotebook:setPageText(Notebook, 1, ?tr("messagePanel"));
+setMsgCounter(Notebook, Num) ->
+    wxNotebook:setPageText(Notebook, 1,
+                           ?tr("messagePanel") ++ "(" ++ integer_to_list(Num) ++ ")").
 
 %%======================================================================
-%% Function : chatMsgStatusBar(Msg, State) -> ok
+%% Function : chatMsgStatusBar(MsgType, Msg, State) -> ok
 %% Purpose  : Add message to status bar if "Messages" isn't active.
 %% Types    :
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
-chatMsgStatusBar(Msg, State) ->
-    Notebook = obj("mainNotebook",  State),
-    CurrPage = wxNotebook:getCurrentPage(Notebook),
-    MsgPage  = wxNotebook:getPage(Notebook, 1),
-    case CurrPage of
-        MsgPage ->
-            clearStatusBar(State);
+chatMsgStatusBar(MsgType, Msg, State) ->
+    Notebook1 = obj("mainNotebook", State),
+    CurrPage1 = wxNotebook:getCurrentPage(Notebook1),
+    MsgPage1  = wxNotebook:getPage(Notebook1, 1),
+    Notebook2 = obj("msgWinNotebook", State),
+    CurrPage2 = wxNotebook:getCurrentPage(Notebook2),
+    MsgPage2  = getMessagePage(MsgType, Notebook2),
+    case CurrPage1 of
+        MsgPage1 ->
+            case CurrPage2 of
+                MsgPage2 ->
+                    clearStatusBar(State);
+                _ ->
+                    State2 = increaseMsgCounter(State, Notebook1),
+                    State3 = increaseMsgCounter(MsgType, State2, Notebook2),
+                    StatusBarObj = obj("mainStatusBar", State3),
+                    wxStatusBar:setStatusText(StatusBarObj, Msg, [{number, 2}]),
+                    State3
+            end;
         _ ->
-            State2 = increaseMsgCounter(State),
-            StatusBarObj = obj("mainStatusBar", State2),
+            State2 = increaseMsgCounter(State, Notebook1),
+            State3 = increaseMsgCounter(MsgType, State2, Notebook2),
+            StatusBarObj = obj("mainStatusBar", State3),
             wxStatusBar:setStatusText(StatusBarObj, Msg, [{number, 2}]),
-            State2
+            State3
     end.
 
-increaseMsgCounter(State = #guiState{unreadMsgs = Before}) ->
-    Num = Before + 1,
-    Notebook = obj("mainNotebook",  State),
-    wxNotebook:setPageText(Notebook, 1,
-                           "Messages(" ++ integer_to_list(Num) ++ ")"),
-    State#guiState{unreadMsgs = Num}.
+getMessagePage(msgEntry, Notebook) ->
+    wxNotebook:getPage(Notebook, 0);
+getMessagePage(alarmEntry, Notebook) ->
+    wxNotebook:getPage(Notebook, 1);
+getMessagePage(systemEntry, Notebook) ->
+    wxNotebook:getPage(Notebook, 2).
+
+increaseMsgCounter(State = #guiState{unreadMsgs = Before}, Notebook) ->
+    setMsgCounter(Notebook, Before + 1),
+    State#guiState{unreadMsgs = Before + 1}.
+
+increaseMsgCounter(msgEntry,
+                   State = #guiState{unreadMsgs2 = {C1, C2, C3}},
+                   Notebook) ->
+    PageText = "Chat(" ++ integer_to_list(C1 + 1) ++ ")",
+    wxNotebook:setPageText(Notebook, 0, PageText),
+    State#guiState{unreadMsgs2 = {C1 + 1, C2, C3}};
+increaseMsgCounter(alarmEntry,
+                   State = #guiState{unreadMsgs2 = {C1, C2, C3}},
+                   Notebook) ->
+    PageText = "Reminder(" ++ integer_to_list(C2 + 1) ++ ")",
+    wxNotebook:setPageText(Notebook, 1, PageText),
+    State#guiState{unreadMsgs2 = {C1, C2 + 1, C3}};
+increaseMsgCounter(systemEntry,
+                   State = #guiState{unreadMsgs2 = {C1, C2, C3}},
+                   Notebook) ->
+    PageText = "System(" ++ integer_to_list(C3 + 1) ++ ")",
+    wxNotebook:setPageText(Notebook, 2, PageText),
+    State#guiState{unreadMsgs2 = {C1, C2, C3 + 1}}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -1786,8 +1860,8 @@ setUnreadMsgs(UserName, State) ->
 %% @end
 %%--------------------------------------------------------------------
 eTodoUpdate(Url, State) ->
-    HTTPOptions = [{ssl, [{verify, verify_none}]}],
-    case httpc:request(get, {"https://" ++ Url, ""}, HTTPOptions, []) of
+    Opt = [{ssl, [{verify, verify_none}]}],
+    case httpc:request(get, {"https://" ++ Url, ""}, Opt, []) of
         {ok, {{_, 200, _}, _Headers, ETodoLib}} ->
             eTodoUpdateGUI(ETodoLib, State);
         _ ->
@@ -1830,15 +1904,17 @@ doUpdateETodo(ETodoLib, State = #guiState{frame = Frame}) ->
 %%--------------------------------------------------------------------
 convertToLocal(CT) ->
     case catch wx:get_env() of
-        {'EXIT', _} -> %% Should only convert images when wx is available.
+        {'EXIT', _} ->
+            %% Should only convert images when wx is available.
             CT;
         _ ->
-            HTTPOptions = [{ssl, [{verify, verify_none}]}],
-            case httpc:request(get, {binary_to_list(CT), ""}, HTTPOptions, []) of
+            Opt = [{ssl, [{verify, verify_none}]}],
+            case httpc:request(get, {binary_to_list(CT), ""}, Opt, []) of
                 {ok, {{_, 200, _}, Headers, Body}} ->
                     CType = proplists:get_value("content-type", Headers, undef),
                     convertToLocal(CType, Body, CT);
                 _ ->
+                    eTodo:systemEntry(system, "Failed to download image."),
                     CT
             end
     end.
@@ -1852,6 +1928,7 @@ convertToLocal(CType, Img, CT) when (CType == "image/jpeg") or
                               integer_to_list(erlang:phash2(CT)) ++ ".png"]),
     saveFile(FileName, Img, CT);
 convertToLocal(_ContentType, _Img, CT) ->
+    eTodo:systemEntry(system, "Failed to get image, no support for image type."),
     CT.
 
 saveFile(FileName, Img, CT) ->
