@@ -109,7 +109,7 @@ parse(<<$), Rest/binary>>, [{ilink, 1, CT}, {ilDesc, PT}|St], PL, CL, Acc) ->
         {error, _} ->
             convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
                     addCT(<<"![">>, St), PL, CL, Acc);
-        {Scheme, _UserInfo, _Host, _Port, _Path, _Query}
+        {ok, {Scheme, _UserInfo, _Host, _Port, _Path, _Query}}
             when (Scheme == http) or (Scheme == https) ->
             LUrl = eGuiFunctions:convertToLocal(CT),
             Url  = <<"<img src='", LUrl/binary, "' alt='", PT/binary, "' />">>,
