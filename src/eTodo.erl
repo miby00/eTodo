@@ -320,9 +320,15 @@ initGUI(Arg) ->
     SingleBmp  = wxBitmap:new(SinglePng),
     CheckedPng = wxImage:new("./Icons/task-complete.png"),
     CheckedBmp = wxBitmap:new(CheckedPng),
+    MsgReadPng = wxImage:new("./Icons/message-read.png"),
+    MsgReadBmp = wxBitmap:new(MsgReadPng),
+    MsgUnrPng  = wxImage:new("./Icons/message-unread.png"),
+    MsgUnrBmp  = wxBitmap:new(MsgUnrPng),
     wxImageList:add(IL, SingleBmp),
     wxImageList:add(IL, MultiBmp),
     wxImageList:add(IL, CheckedBmp),
+    wxImageList:add(IL, MsgReadBmp),
+    wxImageList:add(IL, MsgUnrBmp),
 
     DefUserCfg = eTodoDB:readUserCfg(default),
     DefUser    = setUserNameAndFocus(Login, DefUserCfg),
@@ -428,6 +434,10 @@ initGUI(Arg) ->
 
     TodoList = getTodoList(?defTaskList, State),
     wxListCtrl:assignImageList(TodoList, IL, ?wxIMAGE_LIST_SMALL),
+
+    MainNotebook = obj("mainNotebook", State),
+    wxNotebook:assignImageList(MainNotebook, IL),
+    wxNotebook:setPageImage(MainNotebook, 1, 3),
 
     Columns  = eTodoDB:getColumns(DefUser),
     [wxListCtrl:insertColumn(TodoList, Col, Desc) || {Col, Desc} <- Columns],

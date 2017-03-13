@@ -1759,8 +1759,10 @@ clearMsgCounter(State = #guiState{user = User,
     State2.
 
 setMsgCounter(Notebook, 0) ->
+    wxNotebook:setPageImage(Notebook, 1, 3),
     wxNotebook:setPageText(Notebook, 1, ?tr("messagePanel"));
 setMsgCounter(Notebook, Num) ->
+    wxNotebook:setPageImage(Notebook, 1, 4),
     wxNotebook:setPageText(Notebook, 1,
                            ?tr("messagePanel") ++ "(" ++ integer_to_list(Num) ++ ")").
 
@@ -1807,6 +1809,7 @@ getMessagePage(systemEntry, Notebook) ->
 
 increaseMsgCounter(State = #guiState{unreadMsgs = Before}, Notebook) ->
     setMsgCounter(Notebook, Before + 1),
+    wxNotebook:setPageImage(Notebook, 1, 4),
     State#guiState{unreadMsgs = Before + 1}.
 
 increaseMsgCounter(msgEntry,
