@@ -15,7 +15,7 @@
                    loginDlg, timeDlg, activeTodo = {undefined, -1},
                    clipBoard, startup, columns, rows = [], popUpMenu,
                    popUpCol, filter = [], usersDlg, addListDlg, manListsDlg,
-                   settingsDlg,
+                   settingsDlg, taskList,
                    msgCfgDlg, msgCfg = {false, ""},
                    drillDown = [], drillFromList, mode,
                    print, conflictDlg, msgMenu, msgStatusSent = false,

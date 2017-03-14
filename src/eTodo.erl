@@ -72,7 +72,6 @@
                         doLogout/2,
                         eTodoUpdate/2,
                         focusAndSelect/2,
-                        getPortrait/1,
                         getTaskList/1,
                         getTodoList/2,
                         getTodoLists/1,
@@ -211,27 +210,12 @@ init([Arg]) ->
     eLog:log(debug, ?MODULE, init, [Arg],
              "##### eTodo started #####", ?LINE),
 
-    case application:get_env(eTodo, mode) of
-        {ok, "noGui"} ->
-            {ok, User}   = application:get_env(eTodo, user),
-            {ok, Pwd}    = application:get_env(eTodo, pwd),
-            {ok, Circle} = application:get_env(eTodo, circle),
-            %% Add handler to receive events
-            ePeerEM:add_handler(eTodoEH, {User, noGui}),
-            ePeerEM:connectToCircle(User, Circle, Pwd),
-            eTodoAlarm:loggedIn(User),
-            %% Start wx so eTodo can receive events.
-            wx:new(),
-            {wxFrame:new(), #guiState{mode = noGui,
-                                      user = User}};
-        _ ->
-            %% Change dir while building GUI to allow wx to find icons.
-            file:set_cwd(code:priv_dir(?MODULE)),
-            {WXFrame, State} = initGUI(Arg),
-            eLang:initiateGUI(State),
-            file:set_cwd(WorkDir),
-            {WXFrame, State}
-    end.
+    %% Change dir while building GUI to allow wx to find icons.
+    file:set_cwd(code:priv_dir(?MODULE)),
+    {WXFrame, State} = initGUI(Arg),
+    eLang:initiateGUI(State),
+    file:set_cwd(WorkDir),
+    {WXFrame, State}.
 
 initGUI(Arg) ->
     Dict = #{},
@@ -666,62 +650,6 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({todoUpdated, _Sender, Todo = #todo{}},
-            State = #guiState{mode = noGui,
-                              user = User}) ->
-    NewTodo = eTodoDB:newTodo(Todo),
-    eTodoDB:updateTodoNoLocks(Todo),
-    case NewTodo of
-        true ->
-            Row = eTodoDB:getRow(User, ?defTaskList),
-            eTodoDB:addTodo(#userInfo{userName = User,
-                                      uid      = Todo#todo.uid,
-                                      row      = Row,
-                                      parent   = ?defTaskList}, Todo);
-        false ->
-            ok
-    end,
-    {noreply, State};
-handle_cast({todoUpdated, _Sender, Todo = #diff{}},
-            State = #guiState{mode = noGui}) ->
-    case eTodoDB:newTodo(Todo) of
-        true ->
-            %% Shouldn't be a diff, this is a removed eTodo, ignore.
-            ok;
-        false ->
-            eTodoDB:updateTodoNoLocks(Todo)
-    end,
-    {noreply, State};
-handle_cast({loggedIn, Peer}, State = #guiState{mode = noGui,
-                                                user = User}) ->
-    case getStatus() of
-        {Status, StatusMsg} when
-              (Status =/= false) and (StatusMsg =/= false) ->
-            StatusUpdate = #userStatus{userName  = User,
-                                       status    = Status,
-                                       statusMsg = StatusMsg},
-            eWeb:setStatusUpdate(User, Status, StatusMsg),
-            ePeerEM:sendMsg(User, [Peer], statusEntry,
-                            {statusUpdate, StatusUpdate, getPortrait(User)});
-        _ ->
-            ok
-    end,
-    {noreply, State};
-handle_cast({todoDeleted, Uid},
-            State = #guiState{user = User, mode = noGui}) ->
-    %% Remove task from database.
-    eTodoDB:delTodo(Uid, User),
-    {noreply, State};
-handle_cast({taskListDeleted, List},
-            State = #guiState{user = User, mode = noGui}) ->
-    TodoLists1 = getTodoLists(User),
-    TodoLists2 = lists:delete(List, TodoLists1),
-    eTodoDB:moveTodosToTaskList(User, ?defTaskList, List),
-    UserCfg = eTodoDB:readUserCfg(User),
-    eTodoDB:saveUserCfg(UserCfg#userCfg{lists = TodoLists2}),
-    {noreply, State};
-handle_cast(_Msg, State = #guiState{mode = noGui}) ->
-    {noreply, State};
 handle_cast({acceptingIncCon, User, Circle, Port}, State) ->
     StatusBarObj = obj("mainStatusBar", State),
     PortStr = integer_to_list(Port),
@@ -1094,9 +1022,6 @@ handle_info(_Info, State) ->
 %% cleaning up. When it returns, the gen_server terminates with Reason.
 %% The return value is ignored.
 %%--------------------------------------------------------------------
-terminate(_Reason, #guiState{mode = noGui}) ->
-    init:stop(),
-    ok;
 terminate(_Reason, State = #guiState{startup = normal}) ->
     saveColumnSizes(State),
     saveEtodoSettings(State),
@@ -1650,22 +1575,6 @@ getTeamPomodoroClock() ->
             {24 - Min, 59 - Seconds};
         _ ->
             {54 - Min, 59 - Seconds}
-    end.
-
-%%====================================================================
-%% Get status configuration
-%%====================================================================
-getStatus() ->
-    case application:get_env(eTodo, status) of
-        {ok, Status} ->
-            case application:get_env(eTodo, statusMsg) of
-                {ok, StatusMsg} ->
-                    {Status, StatusMsg};
-                _ ->
-                    {Status, false}
-            end;
-        _ ->
-            {false, false}
     end.
 
 %%====================================================================

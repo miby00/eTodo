@@ -444,6 +444,7 @@ handle_call({listsTodos, SessionId, _Env, Input}, _From,
             ?defSchedule ->
                 doShowSchedule(User);
             _ ->
+                eTodoNoGui:updateTaskList(List),
                 [eHtml:pageHeader(OnLoad, User),
                  eHtml:makeForm(User, List),
                  eHtml:makeTaskList(User, conv(List), Flt, Text, Cfg),
@@ -471,6 +472,8 @@ handle_call({listTodosJSON, _SessionId, _Env, Input}, _From,
     {ok, Text} = find("search", Dict),
     Flt        = getFilterCfg(List, User),
 
+    eTodoNoGui:updateTaskList(List),
+
     JSONData   = [eJSON:makeTodoList(User, conv(List), Flt, Text, Cfg)],
     {reply, ["Content-Type: application/x-javascript\r\n\r\n",JSONData], State};
 
@@ -478,6 +481,8 @@ handle_call({listListsJSON, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
     Dict = makeDict(Input),
     {ok, List} = find("list",   Dict),
+
+    eTodoNoGui:updateTaskList(List),
 
     HtmlPage   = [eJSON:makeForm(User, List)],
     {reply, ["Content-Type: application/x-javascript\r\n\r\n",HtmlPage], State};
@@ -497,6 +502,8 @@ handle_call({createTodo, _SessionId, _Env, Input}, _From,
     Dict = makeDict(Input),
     {ok, TaskList} = find("list", Dict),
 
+    eTodoNoGui:updateTaskList(TaskList),
+
     HtmlPage   = [eHtml:pageHeader(User),
                   eHtml:makeForm(User, TaskList),
                   eHtml:createTaskForm(User, TaskList),
@@ -508,6 +515,8 @@ handle_call({createTaskList, _SessionId, Env, Input}, _From,
             State = #state{user = User}) ->
     Dict = makeDict(Input),
     {ok, TaskList} = find("listName", Dict),
+
+    eTodoNoGui:updateTaskList(TaskList),
 
     case catch list_to_integer(TaskList) of
         {'EXIT', _} ->
@@ -551,6 +560,8 @@ handle_call({createTask, _SessionId, Env, Input}, _From,
     {ok, Comment}  = find("comment",  Dict),
     {ok, Progress} = find("progress", Dict),
     {ok, DueTime}  = find("dueTime",  Dict),
+
+    eTodoNoGui:updateTaskList(TaskList),
 
     Todo = #todo{uid         = makeRef(),
                  status      = toDB(Status),

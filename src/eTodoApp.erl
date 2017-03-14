@@ -30,8 +30,13 @@
 %%--------------------------------------------------------------------
 start(_Type, _StartArgs) ->
     case eTodoSup:start_link() of
-	{ok, Pid} -> 
-	    eTodo:start(detached),
+	{ok, Pid} ->
+		case application:get_env(eTodo, mode) of
+			{ok, "noGui"} ->
+                eTodoNoGui:start_link();
+			_ ->
+                eTodo:start(detached)
+		end,
 	    {ok, Pid};
 	Error ->
 	    Error
