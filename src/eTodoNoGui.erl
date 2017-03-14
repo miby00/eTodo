@@ -113,7 +113,7 @@ init([]) ->
     ePeerEM:add_handler(eTodoEH, {User, noGui}),
     ePeerEM:connectToCircle(User, Circle, Pwd),
     eTodoAlarm:loggedIn(User),
-    {ok, #guiState{mode = noGui, taskList = ?defTaskList}}.
+    {ok, #guiState{mode = noGui, taskList = ?defTaskList, user = User}}.
 
 %%--------------------------------------------------------------------
 %% @private
