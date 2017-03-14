@@ -1550,7 +1550,8 @@ checkForLinks([Char|Rest], Dir, _Token, text, Acc) ->
     checkForLinks(Rest, Dir, "", text, [Acc, Char]).
 
 
-checkToken(Token, Char) when (Char == 9)     or
+checkToken(Token, Char) when (Char == $>)    or
+                             (Char == 9)     or
                              (Char == 10)    or
                              (Char == 11)    or
                              (Char == 12)    or
