@@ -267,8 +267,8 @@ initGUI(Arg) ->
 
     %% Add menu choice
     wxMenu:append(MsgMenu, ?clearMsg,    ?clearMsgText),
-    wxMenu:append(MsgMenu, ?clearSys,    ?clearSysText),
     wxMenu:append(MsgMenu, ?clearRem,    ?clearRemText),
+    wxMenu:append(MsgMenu, ?clearSys,    ?clearSysText),
     wxMenu:appendSeparator(MsgMenu),
     wxMenu:append(MsgMenu, ?clearLinked, ?clearLinkedText),
     wxMenu:connect(MsgMenu, command_menu_selected),
