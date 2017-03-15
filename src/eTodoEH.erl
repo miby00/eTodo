@@ -200,8 +200,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% @end
 %%--------------------------------------------------------------------
 sendMsg(_Sender, _Users, statusEntry,
-        {statusUpdate, UserStatus, Avatar}, State) ->
-    sendToGui(statusUpdate, [UserStatus, Avatar], State);
+        {statusUpdate, UserStatus, Avatar}, _State) ->
+    eTodo:statusUpdate(UserStatus, Avatar);
 sendMsg(_Sender, _Users, statusEntry, {statusUpdate, UserStatus}, State) ->
     sendToGui(statusUpdate, [UserStatus, undefined], State);
 sendMsg(Sender, _Users, statusEntry, writing, State) ->
