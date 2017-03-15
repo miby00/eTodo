@@ -24,7 +24,8 @@
          taskListDeleted/1,
          todoDeleted/1,
          todoUpdated/2,
-         updateTaskList/1]).
+         updateTaskList/1,
+         statusUpdate/2]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -33,6 +34,8 @@
          handle_info/2,
          terminate/2,
          code_change/3]).
+
+-import(eTodoUtils, [getRootDir/0]).
 
 -define(SERVER, eTodo).
 
@@ -86,6 +89,9 @@ todoDeleted(Uid) ->
 
 taskListDeleted(List) ->
     gen_server:cast(?SERVER, {taskListDeleted, List}), ok.
+
+statusUpdate(UserStatus, Avatar) ->
+    gen_server:cast(?SERVER, {statusUpdate, UserStatus, Avatar}), ok.
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -213,6 +219,9 @@ handle_cast({taskListDeleted, List},
     UserCfg = eTodoDB:readUserCfg(User),
     eTodoDB:saveUserCfg(UserCfg#userCfg{lists = TodoLists2}),
     {noreply, State};
+handle_cast({statusUpdate, UserStatus, Avatar}, State) ->
+    (catch saveAvatar(UserStatus#userStatus.userName, Avatar)),
+    {noreply, State};
 handle_cast({updateTaskList, TaskList}, State = #guiState{mode = noGui}) ->
     {noreply, State#guiState{taskList = TaskList}};
 handle_cast(_Request, State) ->
@@ -288,3 +297,13 @@ getStatus() ->
             {false, false}
     end.
 
+%%====================================================================
+%% Save custom avatar to disk.
+%%====================================================================
+saveAvatar(_Peer, undefined) ->
+    ok;
+saveAvatar(Peer, Icon) ->
+    CustomPortrait1 = getRootDir() ++ "/Icons/portrait_" ++ Peer ++ ".png",
+    CustomPortrait2 = getRootDir() ++ "/www/priv/Icons/portrait_" ++ Peer ++ ".png",
+    file:write_file(CustomPortrait1, Icon),
+    file:write_file(CustomPortrait2, Icon).
