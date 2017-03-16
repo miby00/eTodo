@@ -9,7 +9,8 @@
 -module(eHtml).
 
 %% API
--export([createSendMsg/2,
+-export([checkForLinks/2,
+         createSendMsg/2,
          pageHeader/1,
          pageHeader/2,
          pageFooter/0,
@@ -65,7 +66,7 @@
 -define(DodgerBlue, "#1e90ff").
 
 -define(ValidURLChars, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-                       "0123456789-._~:/?#[]@!$&'()*+,;=`.)").
+                       "0123456789-._~:/?#[]@!$&'*+,;=`.").
 
 -import(eTodoUtils, [toStr/1, toStr/2, tryInt/1, getWeekDay/1,
                      makeStr/1, getRootDir/0, dateTime/0,
@@ -1511,31 +1512,39 @@ checkForLinks(Text, Dir) ->
 
 checkForLinks("", Dir, _Token, text, Acc) ->
     html(lists:flatten(Acc), Dir, []);
-checkForLinks("", Dir, Token, link, Acc) ->
+checkForLinks("", Dir, Token, {link, 0}, Acc) ->
     case checkToken(Token, 32) of
         {true, Link} ->
             html(lists:flatten(Acc), Dir, []) ++ Link;
         false ->
             html(lists:flatten([Acc, Token]), Dir, [])
     end;
+checkForLinks("", Dir, Token, {link, _Num}, Acc) ->
+    html(lists:flatten([Acc, Token]), Dir, []);
 
 checkForLinks("https://" ++ Rest, Dir, _Token, text, Acc) ->
-    checkForLinks(Rest, Dir, "https://", link, Acc);
+    checkForLinks(Rest, Dir, "https://", {link, 0}, Acc);
 checkForLinks("HTTPS://" ++ Rest, Dir, _Token, text, Acc) ->
-    checkForLinks(Rest, Dir, "HTTPS://", link, Acc);
+    checkForLinks(Rest, Dir, "HTTPS://", {link, 0}, Acc);
 checkForLinks("Https://" ++ Rest, Dir, _Token, text, Acc) ->
-    checkForLinks(Rest, Dir, "Https://", link, Acc);
+    checkForLinks(Rest, Dir, "Https://", {link, 0}, Acc);
 checkForLinks("http://" ++ Rest, Dir, _Token, text, Acc) ->
-    checkForLinks(Rest, Dir, "http://", link, Acc);
+    checkForLinks(Rest, Dir, "http://", {link, 0}, Acc);
 checkForLinks("HTTP://" ++ Rest, Dir, _Token, text, Acc) ->
-    checkForLinks(Rest, Dir, "HTTP://", link, Acc);
+    checkForLinks(Rest, Dir, "HTTP://", {link, 0}, Acc);
 checkForLinks("Http://" ++ Rest, Dir, _Token, text, Acc) ->
-    checkForLinks(Rest, Dir, "Http://", link, Acc);
+    checkForLinks(Rest, Dir, "Http://", {link, 0}, Acc);
 
-checkForLinks([Char|Rest], Dir, Token, link, Acc) ->
+checkForLinks([$(|Rest], Dir, Token, {link, Num}, Acc) ->
+    checkForLinks(Rest, Dir, [Token, $(], {link, Num + 1}, Acc);
+
+checkForLinks([$)|Rest], Dir, Token, {link, Num}, Acc) when Num > 0 ->
+    checkForLinks(Rest, Dir, [Token, $)], {link, Num - 1}, Acc);
+
+checkForLinks([Char|Rest], Dir, Token, {link, 0}, Acc) ->
     case lists:member(Char, ?ValidURLChars) of
         true ->
-            checkForLinks(Rest, Dir, [Token, Char], link, Acc);
+            checkForLinks(Rest, Dir, [Token, Char], {link, 0}, Acc);
         false ->
             case checkToken(Token, Char) of
                 {true, Link} ->
@@ -1544,6 +1553,14 @@ checkForLinks([Char|Rest], Dir, Token, link, Acc) ->
                 false ->
                     checkForLinks(Rest, Dir, "", text, [Acc, [Token, Char]])
             end
+    end;
+
+checkForLinks([Char|Rest], Dir, Token, {link, Num}, Acc) ->
+    case lists:member(Char, ?ValidURLChars) of
+        true ->
+            checkForLinks(Rest, Dir, [Token, Char], {link, Num}, Acc);
+        false ->
+            checkForLinks(Rest, Dir, "", text, [Acc, [Token, Char]])
     end;
 
 checkForLinks([Char|Rest], Dir, _Token, text, Acc) ->
