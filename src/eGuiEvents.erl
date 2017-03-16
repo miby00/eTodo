@@ -1728,21 +1728,21 @@ updateMenuEvent(_Type, _Id, _Frame, State) ->
     LinkedDir = filename:join([BaseDir, "priv", "www", "linkedFiles"]),
     file:set_cwd(WorkDir),
     FileList = filelib:fold_files(BaseDir, ".*", true,
-        fun (File, Acc) ->
-            Pos1 = string:str(File, LinkedDir),
-            Pos2 = string:str(File, ".git"),
-            Pos3 = string:str(File, ".rebar"),
-            Pos4 = string:str(File, ".DS_Store"),
+                                  fun (File, Acc) ->
+                                          Pos1 = string:str(File, LinkedDir),
+                                          Pos2 = string:str(File, ".git"),
+                                          Pos3 = string:str(File, ".rebar"),
+                                          Pos4 = string:str(File, ".DS_Store"),
 
-            case {Pos1, Pos2 + Pos3 + Pos4} of
-                {1, _} ->
-                    Acc;
-                {_Pos1, Pos} when Pos > 0 ->
-                    Acc;
-                _ ->
-                    [File|Acc]
-            end
-        end, []),
+                                          case {Pos1, Pos2 + Pos3 + Pos4} of
+                                              {1, _} ->
+                                                  Acc;
+                                              {_Pos1, Pos} when Pos > 0 ->
+                                                  Acc;
+                                              _ ->
+                                                  [File|Acc]
+                                          end
+                                  end, []),
     zip:zip("eTodo.zip", FileList),
     Zip = filename:join([WorkDir, "eTodo.zip"]),
     file:set_cwd(Cwd),
@@ -2322,13 +2322,9 @@ getAvatarFile(#guiState{frame = Frame}) ->
 settingsMenuEvent(_Type, _Id, _Frame,
                   State = #guiState{settingsDlg = Settings}) ->
     DefUserCfg = eTodoDB:readUserCfg(default),
-    case DefUserCfg#userCfg.peerUser of
-        undefined ->
-            ok;
-        PeerUser ->
-            ConCfg = default(eTodoDB:getConnection(PeerUser), #conCfg{}),
-            setDefaultValues(ConCfg, State)
-    end,
+    PeerUser   = eTodoDB:getConnection(DefUserCfg#userCfg.peerUser),
+    ConCfg     = default(PeerUser, #conCfg{}),
+    setDefaultValues(ConCfg, State),
     setDefaultValues(State),
     wxDialog:show(Settings),
     State.
@@ -2367,22 +2363,25 @@ webProxyEnabledEvent(_Type, _Id, _Frame,
 
 smtpEnabledEvent(_Type, _Id, _Frame,
                  State = #guiState{settingsDlg = Settings}) ->
-    SMTPOnObj   = wxXmlResource:xrcctrl(Settings, "smtpEnabled", wxCheckBox),
-    SMTPSrvObj  = wxXmlResource:xrcctrl(Settings, "smtpServer",  wxTextCtrl),
-    SMTPPortObj = wxXmlResource:xrcctrl(Settings, "smtpPort",    wxTextCtrl),
-    SMTPUserObj = wxXmlResource:xrcctrl(Settings, "smtpUser",        wxTextCtrl),
-    SMTPPwdObj  = wxXmlResource:xrcctrl(Settings, "smtpPwd",         wxTextCtrl),
+    SMTPOnObj   = wxXmlResource:xrcctrl(Settings, "smtpEnabled",   wxCheckBox),
+    SMTPSrvObj  = wxXmlResource:xrcctrl(Settings, "smtpServer",    wxTextCtrl),
+    SMTPPortObj = wxXmlResource:xrcctrl(Settings, "smtpPort",      wxTextCtrl),
+    SMTPUserObj = wxXmlResource:xrcctrl(Settings, "smtpUser",      wxTextCtrl),
+    SMTPPwdObj  = wxXmlResource:xrcctrl(Settings, "smtpPwd",       wxTextCtrl),
+    EmailObj    = wxXmlResource:xrcctrl(Settings, "emailAddress",  wxTextCtrl),
 
     case wxCheckBox:isChecked(SMTPOnObj) of
         true ->
             wxTextCtrl:enable(SMTPSrvObj),
             wxTextCtrl:enable(SMTPUserObj),
             wxTextCtrl:enable(SMTPPwdObj),
+            wxTextCtrl:enable(EmailObj),
             wxTextCtrl:enable(SMTPPortObj);
         false ->
             wxTextCtrl:disable(SMTPSrvObj),
             wxTextCtrl:disable(SMTPUserObj),
             wxTextCtrl:disable(SMTPPwdObj),
+            wxTextCtrl:disable(EmailObj),
             wxTextCtrl:disable(SMTPPortObj)
     end,
     State.
@@ -2443,6 +2442,7 @@ setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
              smtpPwd         = SMTPPwd,
              conPort         = EPort,
              theme           = Selected} = eTodoDB:readUserCfg(User),
+
     wxTextCtrl:setValue(SMTPPortObj,  toStr(default(SMTPPort, 25))),
     wxCheckBox:setValue(SMTPOnObj,    default(SMTPOn, false)),
     wxTextCtrl:setValue(SMTPSrvObj,   default(SMTPServer, "")),
@@ -2465,13 +2465,15 @@ setDefaultValues(ConCfg, #guiState{user = User, settingsDlg = Settings}) ->
     HostObj  = wxXmlResource:xrcctrl(Settings, "hostName",      wxTextCtrl),
     PortObj  = wxXmlResource:xrcctrl(Settings, "peerPort",      wxTextCtrl),
     EHostObj = wxXmlResource:xrcctrl(Settings, "eTodoHostName", wxTextCtrl),
+    EmailObj = wxXmlResource:xrcctrl(Settings, "emailAddress",  wxTextCtrl),
 
     UConCfg  = default(eTodoDB:getConnection(User), #conCfg{}),
     IPAddr   = eTodoUtils:getIp(),
 
-    wxTextCtrl:setValue(EHostObj, default(UConCfg#conCfg.host,    IPAddr)),
-    wxTextCtrl:setValue(PeerObj,  default(ConCfg#conCfg.userName, "")),
-    wxTextCtrl:setValue(HostObj,  default(ConCfg#conCfg.host,     "")),
+    wxTextCtrl:setValue(EHostObj, default(UConCfg#conCfg.host,      IPAddr)),
+    wxTextCtrl:setValue(PeerObj,  default(ConCfg#conCfg.userName,   "")),
+    wxTextCtrl:setValue(HostObj,  default(ConCfg#conCfg.host,       "")),
+    wxTextCtrl:setValue(EmailObj, default(UConCfg#conCfg.email,     "")),
     wxTextCtrl:setValue(PortObj,  toStr(default(ConCfg#conCfg.port, 19000))).
 
 settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
@@ -2483,6 +2485,7 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     WPortObj    = wxXmlResource:xrcctrl(Settings, "webPort",         wxTextCtrl),
     EPortObj    = wxXmlResource:xrcctrl(Settings, "eTodoPort",       wxTextCtrl),
     EHostObj    = wxXmlResource:xrcctrl(Settings, "eTodoHostName",   wxTextCtrl),
+    EmailObj    = wxXmlResource:xrcctrl(Settings, "emailAddress",    wxTextCtrl),
     WOnObj      = wxXmlResource:xrcctrl(Settings, "webUIEnabled",    wxCheckBox),
     ThemeObj    = wxXmlResource:xrcctrl(Settings, "themeRadioBox",   wxRadioBox),
     WPOnObj     = wxXmlResource:xrcctrl(Settings, "webProxyEnabled", wxCheckBox),
@@ -2530,6 +2533,7 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
 
     EPort       = wxTextCtrl:getValue(EPortObj),
     EHost       = wxTextCtrl:getValue(EHostObj),
+    EmailAddr   = wxTextCtrl:getValue(EmailObj),
 
     eTodoDB:updateConnection(#conCfg{userName   = PeerUser,
                                      host       = PeerHost,
@@ -2539,6 +2543,7 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     eTodoDB:updateConnection(#conCfg{userName   = User,
                                      host       = EHost,
                                      port       = toInt(EPort),
+                                     email      = EmailAddr,
                                      updateTime = configured}),
 
     UserCfg  = eTodoDB:readUserCfg(User),

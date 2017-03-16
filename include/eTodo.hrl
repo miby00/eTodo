@@ -244,7 +244,7 @@
                    lastAlarm,
                    nextAlarm}).
 
--record(conCfg,    {userName, host, port, owner, distance, updateTime}).
+-record(conCfg,    {userName, host, port, owner, distance, updateTime, email}).
 
 -record(logWork,   {userName, uid, date, hours, minutes}).
 
