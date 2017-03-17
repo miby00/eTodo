@@ -449,8 +449,7 @@ pageHeader(Extra, UserName) ->
     {ok, Styles} = file:read_file(StyleSheet),
     Content = "width=device-width, initial-scale=1.0, "
         "maximum-scale=1.0, user-scalable=0",
-    ManifestFile = filename:join(["priv", "css", "manifest.json"]),
-    Manifest = "<link rel='manifest' href='/" ++ ManifestFile ++ "'>",
+    Manifest = "<link rel='manifest' href='/manifest.json'>",
     IconFile = filename:join(["priv", "Icons", "etodoSuper.png"]),
     Icon = "<link rel='icon' sizes='192x192' href='/" ++ IconFile ++ "'>",
     ["<!DOCTYPE html><html>",
