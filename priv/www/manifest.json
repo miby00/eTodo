@@ -27,6 +27,5 @@
     }
   ],
   "start_url": "eTodo/eWeb:index",
-  "display": "standalone",
-  "orientation": "landscape"
+  "display": "standalone"
 }
