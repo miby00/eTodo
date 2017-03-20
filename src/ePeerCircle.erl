@@ -557,7 +557,16 @@ nextPeer(PeerUser, ConCfg = #conCfg{userName = RemoteUser},
                      [ConCfg, PeerUser, User, State],
                      "inactive peer", ?LINE),
             evalRemoteConnect(ConCfg, PeerUser, State)
-    end.
+    end;
+%% Convert version 1 conCfg records to new format.
+nextPeer(PeerUser,
+         {conCfg, User, Host, Port, Owner, Distance, UpdateTime}, State) ->
+    nextPeer(PeerUser, #conCfg{userName   = User,
+                               host       = Host,
+                               port       = Port,
+                               owner      = Owner,
+                               distance   = Distance,
+                               updateTime = UpdateTime}, State).
 
 %%--------------------------------------------------------------------
 %% @private
