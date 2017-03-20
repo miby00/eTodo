@@ -224,7 +224,8 @@
                    smtpUser,
                    smtpPwd,
                    splitHorizMsg   = 150,
-                   unreadMsgs2     = {0, 0, 0}}).
+                   unreadMsgs2     = {0, 0, 0},
+                   smtpAuth}).
 
 -record(listCfg,  {key,
                    userName,
