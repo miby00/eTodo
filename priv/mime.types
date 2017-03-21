@@ -1,11 +1,11 @@
 # This is a comment. I love comments.
 
-# MIME type			Extension
+# MIME type   Extension
 application/EDI-Consent
 application/EDI-X12
 application/EDIFACT
 application/activemessage
-application/andrew-inset	ez
+application/andrew-inset ez
 application/applefile
 application/atomicmail
 application/batch-SMTP
@@ -29,21 +29,21 @@ application/iotp
 application/ipp
 application/isup
 application/font-tdpfr
-application/mac-binhex40	hqx
-application/mac-compactpro	cpt
+application/mac-binhex40 hqx
+application/mac-compactpro cpt
 application/macwriteii
 application/marc
 application/mathematica
 application/mathematica-old
-application/msword		doc
+application/msword  doc
 application/news-message-id
 application/news-transmission
 application/ocsp-request
 application/ocsp-response
-application/octet-stream	bin dms lha lzh exe class so dll
-application/oda			oda
+application/octet-stream bin dms lha lzh exe class so dll
+application/oda   oda
 application/parityfec
-application/pdf			pdf
+application/pdf   pdf
 application/pgp-encrypted
 application/pgp-keys
 application/pgp-signature
@@ -53,7 +53,7 @@ application/pkcs7-signature
 application/pkix-cert
 application/pkix-crl
 application/pkixcmp
-application/postscript		ai eps ps
+application/postscript  ai eps ps
 application/prs.alvestrand.titrax-sheet
 application/prs.cww
 application/prs.nprend
@@ -70,7 +70,7 @@ application/sgml
 application/sgml-open-catalog
 application/sieve
 application/slate
-application/smil		smi smil
+application/smil  smi smil
 application/timestamp-query
 application/timestamp-reply
 application/vemmi
@@ -174,7 +174,7 @@ application/vnd.lotus-wordpro
 application/vnd.mcd
 application/vnd.mediastation.cdkey
 application/vnd.meridian-slingshot
-application/vnd.mif		mif
+application/vnd.mif  mif
 application/vnd.minisoft-hp3000-save
 application/vnd.mitsubishi.misty-guard.trustweb
 application/vnd.mobius.daf
@@ -192,9 +192,9 @@ application/vnd.motorola.flexsuite.wem
 application/vnd.mozilla.xul+xml
 application/vnd.ms-artgalry
 application/vnd.ms-asf
-application/vnd.ms-excel	xls
+application/vnd.ms-excel xls
 application/vnd.ms-lrm
-application/vnd.ms-powerpoint	ppt
+application/vnd.ms-powerpoint ppt
 application/vnd.ms-project
 application/vnd.ms-tnef
 application/vnd.ms-works
@@ -261,9 +261,9 @@ application/vnd.visio
 application/vnd.vividence.scriptfile
 application/vnd.wap.sic
 application/vnd.wap.slc
-application/vnd.wap.wbxml	wbxml
-application/vnd.wap.wmlc	wmlc
-application/vnd.wap.wmlscriptc	wmlsc
+application/vnd.wap.wbxml wbxml
+application/vnd.wap.wmlc wmlc
+application/vnd.wap.wmlscriptc wmlsc
 application/vnd.webturbo
 application/vnd.wrq-hp3000-labelled
 application/vnd.wt.stf
@@ -274,51 +274,51 @@ application/whoispp-query
 application/whoispp-response
 application/wita
 application/wordperfect5.1
-application/x-bcpio		bcpio
-application/x-cdlink		vcd
-application/x-chess-pgn		pgn
+application/x-bcpio  bcpio
+application/x-cdlink  vcd
+application/x-chess-pgn  pgn
 application/x-compress
-application/x-cpio		cpio
-application/x-csh		csh
-application/x-director		dcr dir dxr
-application/x-dvi		dvi
-application/x-futuresplash	spl
-application/x-gtar		gtar
+application/x-cpio  cpio
+application/x-csh  csh
+application/x-director  dcr dir dxr
+application/x-dvi  dvi
+application/x-futuresplash spl
+application/x-gtar  gtar
 application/x-gzip
-application/x-hdf		hdf
-application/x-javascript	js
-application/x-koan		skp skd skt skm
-application/x-latex		latex
-application/x-netcdf		nc cdf
-application/x-sh		sh
-application/x-shar		shar
-application/x-shockwave-flash	swf
-application/x-stuffit		sit
-application/x-sv4cpio		sv4cpio
-application/x-sv4crc		sv4crc
-application/x-tar		tar
-application/x-tcl		tcl
-application/x-tex		tex
-application/x-texinfo		texinfo texi
-application/x-troff		t tr roff
-application/x-troff-man		man
-application/x-troff-me		me
-application/x-troff-ms		ms
-application/x-ustar		ustar
-application/x-wais-source	src
+application/x-hdf  hdf
+application/x-javascript js
+application/x-koan  skp skd skt skm
+application/x-latex  latex
+application/x-netcdf  nc cdf
+application/x-sh  sh
+application/x-shar  shar
+application/x-shockwave-flash swf
+application/x-stuffit  sit
+application/x-sv4cpio  sv4cpio
+application/x-sv4crc  sv4crc
+application/x-tar  tar
+application/x-tcl  tcl
+application/x-tex  tex
+application/x-texinfo  texinfo texi
+application/x-troff  t tr roff
+application/x-troff-man  man
+application/x-troff-me  me
+application/x-troff-ms  ms
+application/x-ustar  ustar
+application/x-wais-source src
 application/x400-bp
 application/xml
 application/xml-dtd
 application/xml-external-parsed-entity
-application/zip			zip
+application/zip   zip
 audio/32kadpcm
-audio/basic			au snd
+audio/basic   au snd
 audio/g.722.1
 audio/l16
-audio/midi			mid midi kar
+audio/midi   mid midi kar
 audio/mp4a-latm
 audio/mpa-robust
-audio/mpeg			mpga mp2 mp3
+audio/mpeg   mpga mp2 mp3
 audio/parityfec
 audio/prs.sid
 audio/telephone-event
@@ -337,25 +337,25 @@ audio/vnd.octel.sbc
 audio/vnd.qcelp
 audio/vnd.rhetorex.32kadpcm
 audio/vnd.vmx.cvsd
-audio/x-aiff			aif aiff aifc
-audio/x-mpegurl			m3u
-audio/x-pn-realaudio		ram rm
-audio/x-pn-realaudio-plugin	rpm
-audio/x-realaudio		ra
-audio/x-wav			wav
-chemical/x-pdb			pdb
-chemical/x-xyz			xyz
-image/bmp			bmp
+audio/x-aiff   aif aiff aifc
+audio/x-mpegurl   m3u
+audio/x-pn-realaudio  ram rm
+audio/x-pn-realaudio-plugin rpm
+audio/x-realaudio  ra
+audio/x-wav   wav
+chemical/x-pdb   pdb
+chemical/x-xyz   xyz
+image/bmp   bmp
 image/cgm
 image/g3fax
-image/gif			gif
-image/ief			ief
-image/jpeg			jpeg jpg jpe
+image/gif   gif
+image/ief   ief
+image/jpeg   jpeg jpg jpe
 image/naplps
-image/png			png
+image/png   png
 image/prs.btif
 image/prs.pti
-image/tiff			tiff tif
+image/tiff   tiff tif
 image/vnd.cns.inf2
 image/vnd.dwg
 image/vnd.dxf
@@ -367,17 +367,17 @@ image/vnd.fujixerox.edmics-rlc
 image/vnd.mix
 image/vnd.net-fpx
 image/vnd.svf
-image/vnd.wap.wbmp		wbmp
+image/vnd.wap.wbmp  wbmp
 image/vnd.xiff
-image/x-cmu-raster		ras
-image/x-portable-anymap		pnm
-image/x-portable-bitmap		pbm
-image/x-portable-graymap	pgm
-image/x-portable-pixmap		ppm
-image/x-rgb			rgb
-image/x-xbitmap			xbm
-image/x-xpixmap			xpm
-image/x-xwindowdump		xwd
+image/x-cmu-raster  ras
+image/x-portable-anymap  pnm
+image/x-portable-bitmap  pbm
+image/x-portable-graymap pgm
+image/x-portable-pixmap  ppm
+image/x-rgb   rgb
+image/x-xbitmap   xbm
+image/x-xpixmap   xpm
+image/x-xwindowdump  xwd
 message/delivery-status
 message/disposition-notification
 message/external-body
@@ -386,8 +386,8 @@ message/news
 message/partial
 message/rfc822
 message/s-http
-model/iges			igs iges
-model/mesh			msh mesh silo
+model/iges   igs iges
+model/mesh   msh mesh silo
 model/vnd.dwf
 model/vnd.flatland.3dml
 model/vnd.gdl
@@ -395,7 +395,7 @@ model/vnd.gs-gdl
 model/vnd.gtw
 model/vnd.mts
 model/vnd.vtu
-model/vrml			wrl vrml
+model/vrml   wrl vrml
 multipart/alternative
 multipart/appledouble
 multipart/byteranges
@@ -410,18 +410,18 @@ multipart/report
 multipart/signed
 multipart/voice-message
 text/calendar
-text/css			css
+text/css   css
 text/directory
 text/enriched
-text/html			html htm
+text/html   html htm
 text/parityfec
-text/plain			asc txt
+text/plain   asc txt
 text/prs.lines.tag
 text/rfc822-headers
-text/richtext			rtx
-text/rtf			rtf
-text/sgml			sgml sgm
-text/tab-separated-values	tsv
+text/richtext   rtx
+text/rtf   rtf
+text/sgml   sgml sgm
+text/tab-separated-values tsv
 text/t140
 text/uri-list
 text/vnd.DMClientScript
@@ -439,27 +439,27 @@ text/vnd.motorola.reflex
 text/vnd.ms-mediapackage
 text/vnd.wap.si
 text/vnd.wap.sl
-text/vnd.wap.wml		wml
-text/vnd.wap.wmlscript		wmls
-text/x-setext			etx
+text/vnd.wap.wml  wml
+text/vnd.wap.wmlscript  wmls
+text/x-setext   etx
 text/x-server-parsed-html       shtml
-text/xml			xml xsl
+text/xml   xml xsl
 text/xml-external-parsed-entity
 video/mp4v-es
-video/mpeg			mpeg mpg mpe
+video/mpeg   mpeg mpg mpe
 video/parityfec
 video/pointer
-video/quicktime			qt mov
+video/quicktime   qt mov
 video/vnd.fvt
 video/vnd.motorola.video
 video/vnd.motorola.videop
-video/vnd.mpegurl		mxu
+video/vnd.mpegurl  mxu
 video/vnd.mts
 video/vnd.nokia.interleaved-multimedia
 video/vnd.vivo
-video/x-msvideo			avi
-video/x-sgi-movie		movie
-x-conference/x-cooltalk		ice
+video/x-msvideo   avi
+video/x-sgi-movie  movie
+x-conference/x-cooltalk  ice
 
 
 
