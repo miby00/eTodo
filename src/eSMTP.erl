@@ -12,7 +12,10 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/0,
+         updateConfig/0,
+         setUser/1,
+         sendMail/3]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -24,11 +27,13 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {}).
+-record(state, {host, port, auth, smtpUser, smtpPwd, active = false, user}).
 
 -define(StartTLS_Port, 587).
 -define(SSL_TLS_Port,  465).
 -define(SMTP_Port,      25).
+
+-include_lib("eTodo/include/eTodo.hrl").
 
 %%%===================================================================
 %%% API
@@ -44,6 +49,15 @@
              {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+
+updateConfig() ->
+    gen_server:cast(?SERVER, updateConfig).
+
+setUser(User) ->
+    gen_server:cast(?SERVER, {setUser, User}).
+
+sendMail(From, To, Msg) ->
+    gen_server:cast(?SERVER, {setMail, From, To, Msg}).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -64,6 +78,7 @@ start_link() ->
              {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
              {stop, Reason :: term()} | ignore).
 init([]) ->
+    updateConfig(),
     {ok, #state{}}.
 
 %%--------------------------------------------------------------------
@@ -95,6 +110,20 @@ handle_call(_Request, _From, State) ->
              {noreply, NewState :: #state{}} |
              {noreply, NewState :: #state{}, timeout() | hibernate} |
              {stop, Reason :: term(), NewState :: #state{}}).
+handle_cast(updateConfig, State) ->
+    UserCfg = eTodoDB:readUserCfg(State#state.user),
+    {noreply, State#state{host     = UserCfg#userCfg.smtpServer,
+                          port     = UserCfg#userCfg.smtpPort,
+                          smtpUser = UserCfg#userCfg.smtpUser,
+                          smtpPwd  = UserCfg#userCfg.smtpPwd,
+                          auth     = UserCfg#userCfg.smtpAuth,
+                          active   = UserCfg#userCfg.smtpEnabled}};
+handle_cast({setUser, User}, State) ->
+    {noreply, State#state{user = User}};
+handle_cast(_Msg, State = #state{active = false}) ->
+    {noreply, State};
+handle_cast({setMail, _From, _To, _Msg}, State) ->
+    {noreply, State};
 handle_cast(_Request, State) ->
     {noreply, State}.
 

@@ -71,6 +71,8 @@ init([]) ->
                   Restart, Shutdown, Type, [ePeerServer]},
                  {ePeerCircle, {ePeerCircle, start_link, []},
                   Restart, Shutdown, Type, [ePeerCircle]},
+                 {eSMTP, {eSMTP, start_link, []},
+                  Restart, Shutdown, Type, [eSMTP]},
                  {ePeerLock, {ePeerLock, start_link, []},
                   Restart, Shutdown, Type, [ePeerLock]}],
 

@@ -355,6 +355,8 @@ loginToCircle(Default, OldUser, User, Circle, Password, Md5Pwd,
     State4 = userStatusAvailable(State3),
     State5 = setUnreadMsgs(User, State4),
     State6 = updateMsgWindow(State5, User),
+    eSMTP:setUser(User),
+    eSMTP:updateConfig(),
     focusAndSelect(State6#guiState{loggedIn = true}).
 
 loginCancelEvent(_Type, _Id, _Frame,  State = #guiState{loginDlg = Login}) ->
@@ -2571,6 +2573,7 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     eTodoDB:saveUserCfg(UserCfg2),
     executeChanges(UserCfg, UserCfg2),
     wxDialog:hide(Settings),
+    eSMTP:updateConfig(),
     State.
 
 toInt(Value) when is_list(Value) ->
