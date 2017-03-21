@@ -415,9 +415,8 @@ getWeekDay(Date) ->
 mime_type(FileName) ->
         "." ++ Extension = filename:extension(FileName),
     MimeTypes = mime_types(),
-    MimeType  = proplists:get_value(string:to_lower(Extension), MimeTypes,
-                                    "application/octet-stream"),
-    hd(string:tokens(MimeType, "\t ")).
+    proplists:get_value(string:to_lower(Extension), MimeTypes,
+        "application/octet-stream").
 
 mime_types() ->
     MimeTypesFile   = filename:join(code:priv_dir(eTodo), "mime.types"),
