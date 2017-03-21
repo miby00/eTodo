@@ -232,14 +232,14 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
                 ?wxID_OK ->
                     MSel   = wxMultiChoiceDialog:getSelections(MultiDlg),
                     TTLog  = [lists:nth(I - 1, LoggedWork2) || I <- MSel, I > 1],
+                    logTime(TTLog, BAuth, FullUrl, Frame),
                     SetRem = {lists:member(0, MSel), Remaining},
                     SetEst = {lists:member(1, MSel), Estimate},
                     doSetRemaining(SetRem, BAuth,
                                    BaseUrl ++ "/2/issue/" ++ Key, Frame),
                     doSetEstimate(SetEst,  BAuth,
-                                  BaseUrl ++ "/2/issue/" ++ Key, Frame),
-                    logTime(TTLog, BAuth, FullUrl, Frame);
-                ?wxID_CANCEL ->
+                                  BaseUrl ++ "/2/issue/" ++ Key, Frame);
+                    ?wxID_CANCEL ->
                     ok
             end,
             wxMultiChoiceDialog:destroy(MultiDlg),
@@ -469,7 +469,7 @@ httpPost(BAuth, Method, Body, Url, Frame) ->
     Options     = [{body_format,binary}],
     case httpc:request(Method, Request, [{url_encode, false}], Options) of
         {ok, {{_HTTPVersion, Status, _Reason}, _Headers, RBody}}
-            when (Status == 200) or (Status == 201) ->
+            when (Status == 200) or (Status == 201) or (Status == 204) ->
             eLog:log(debug, ?MODULE, init, [Method, Url, Body, RBody],
                      "http success", ?LINE),
             Body;

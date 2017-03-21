@@ -42,7 +42,7 @@
 -import(eTodoUtils, [default/2, getRootDir/0]).
 
 -define(SERVER,         ?MODULE).
--define(ConnectMaxTime, 30 * 1000).
+-define(ConnectMaxTime, 10000).
 
 -record(peer, {user,
                circle,

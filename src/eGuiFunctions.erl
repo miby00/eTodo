@@ -1431,7 +1431,9 @@ setPeerStatus(UserStatus = #userStatus{status = "Away"}, State) ->
     wxStaticBitmap:hide(Obj2),
     wxStaticBitmap:show(Obj3),
 
-    setPeerStatusTextAndLayout(UserStatus, State).
+    setPeerStatusTextAndLayout(UserStatus, State);
+setPeerStatus(_UserStatus, State) ->
+    State.
 
 setPeerStatusTextAndLayout(#userStatus{userName  = UserName,
                                        statusMsg = Message}, State) ->
