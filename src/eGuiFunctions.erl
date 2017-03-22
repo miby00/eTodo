@@ -1740,7 +1740,8 @@ clearMsgCounter(State = #guiState{user = User,
                 CTot2 = C2 + C3,
                 setMsgCounter(Notebook1, CTot2),
                 wxNotebook:setPageText(Notebook2, 0, "Chat"),
-                State#guiState{unreadMsgs = CTot2, unreadMsgs2 = {0, C2, C3}};
+                NState = clearNotificationTimer(State),
+                NState#guiState{unreadMsgs = CTot2, unreadMsgs2 = {0, C2, C3}};
             RemPanel ->
                 CTot2 = C1 + C3,
                 setMsgCounter(Notebook1, CTot2),
@@ -1757,8 +1758,13 @@ clearMsgCounter(State = #guiState{user = User,
     {NC1, NC2, NC3} = State2#guiState.unreadMsgs2,
     eTodoDB:saveUserCfg(UserCfg#userCfg{unreadMsgs = NC1 + NC2 + NC3,
                                         unreadMsgs2 = {NC1, NC2, NC3}}),
-
     State2.
+
+clearNotificationTimer(State = #guiState{notificationTimer = undefined}) ->
+    State;
+clearNotificationTimer(State = #guiState{notificationTimer = TimerRef})  ->
+    erlang:cancel_timer(TimerRef),
+    State#guiState{notificationTimer = undefined}.
 
 setMsgCounter(Notebook, 0) ->
     wxNotebook:setPageImage(Notebook, 1, 3),
@@ -1817,9 +1823,11 @@ increaseMsgCounter(State = #guiState{unreadMsgs = Before}, Notebook) ->
 increaseMsgCounter(msgEntry,
                    State = #guiState{unreadMsgs2 = {C1, C2, C3}},
                    Notebook) ->
+    clearNotificationTimer(State),
+    TimerRef = erlang:send_after(?NotificationTime, self(), sendNotification),
     PageText = "Chat(" ++ integer_to_list(C1 + 1) ++ ")",
     wxNotebook:setPageText(Notebook, 0, PageText),
-    State#guiState{unreadMsgs2 = {C1 + 1, C2, C3}};
+    State#guiState{unreadMsgs2 = {C1 + 1, C2, C3}, notificationTimer = TimerRef};
 increaseMsgCounter(alarmEntry,
                    State = #guiState{unreadMsgs2 = {C1, C2, C3}},
                    Notebook) ->

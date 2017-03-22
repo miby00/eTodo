@@ -70,7 +70,8 @@
 
 -import(eTodoUtils, [toStr/1, toStr/2, tryInt/1, getWeekDay/1,
                      makeStr/1, getRootDir/0, dateTime/0,
-                     convertUid/1, convertUid/2, default/2]).
+                     convertUid/1, convertUid/2, default/2,
+                     getStyleSheet/1]).
 
 %%%=====================================================================
 %%% API
@@ -465,16 +466,6 @@ pageHeader(Extra, UserName) ->
          javascript()
         ]),
       "<body " ++ Extra ++ "><div id='container'>"]].
-
-getStyleSheet(UserName) ->
-    FileName = lists:concat(["styles_", UserName, ".css"]),
-    FullFile = filename:join([getRootDir(), "www", "priv", "css", FileName]),
-    case filelib:is_file(FullFile) of
-        true ->
-            FullFile;
-        false ->
-            filename:join([getRootDir(), "www", "priv", "css", "styles.css"])
-    end.
 
 %%======================================================================
 %% Function :

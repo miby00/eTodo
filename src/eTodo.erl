@@ -1012,8 +1012,21 @@ handle_info(Msg = {setPomodoroClock, Obj1, Obj2, Obj3, Obj4}, State) ->
     end,
     erlang:send_after(1000, self(), Msg),
     {noreply, State};
+handle_info(sendNotification, State = #guiState{user = User, reply = Reply}) ->
+    ConCfg1 = eTodoDB:getConnection(User),
+    ConCfg2 = eTodoDB:getConnection(Reply),
+    case ConCfg1#conCfg.email of
+        undefined ->
+            ok;
+        To ->
+            From = default(ConCfg2#conCfg.email, To),
+            Msg = eMime:constructMail(User, "eTodo notification", From, To),
+            eSMTP:sendMail(From, To, Msg)
+    end,
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
+
 
 %%--------------------------------------------------------------------
 %% Function: terminate(Reason, State) -> void()

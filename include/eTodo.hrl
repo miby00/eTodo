@@ -7,6 +7,9 @@
 %%% Created : 13 Jun 2012 by mikael <mikael.bylund@gmail.com>
 %%%-------------------------------------------------------------------
 
+%% Time before a notification email is sent for unread messages.
+-define(NotificationTime, 30000).
+
 %%====================================================================
 %% guiState for eTodo.
 %%====================================================================
@@ -24,7 +27,7 @@
                    reply = [], replyAll = [], toolBar, menuBar,
                    manBookmDlg, popupBookmMenu, bookmCfg = [],
                    sortColsDlg, timerDlg, timerRef, pluginDlg, logWorkDlg,
-                   timerDlgOpen = false, updateFile}).
+                   timerDlgOpen = false, updateFile, notificationTimer}).
 
 -define(wxTypes, #{
         "aboutMenu"          => wxMenuItem,

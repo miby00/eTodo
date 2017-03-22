@@ -19,7 +19,7 @@
          col/2, default/2, doneTime/2, dateTime/0, makeETodo/3,
          makeRef/0, getRootDir/0, apply/4, toColumn/1, toStatusDB/1,
          addDateTime/2, tryInt/1, cancelTimer/1, getIp/0, getWeekDay/1,
-         mime_type/1, getDisposition/2]).
+         mime_type/1, getDisposition/2, getStyleSheet/1]).
 
 %%%===================================================================
 %%% API
@@ -441,6 +441,22 @@ getDisposition("image/bmp", _File) ->
 getDisposition(_MimeType, File) ->
     "attachment; filename=" ++ File.
 
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Get style sheet
+%% @spec getStyleSheet(UserName) -> FileName
+%% @end
+%%--------------------------------------------------------------------
+getStyleSheet(UserName) ->
+    FileName = lists:concat(["styles_", UserName, ".css"]),
+    FullFile = filename:join([getRootDir(), "www", "priv", "css", FileName]),
+    case filelib:is_file(FullFile) of
+        true ->
+            FullFile;
+        false ->
+            filename:join([getRootDir(), "www", "priv", "css", "styles.css"])
+    end.
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================

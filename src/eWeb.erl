@@ -26,6 +26,7 @@
          deleteTaskList/3,
          evalRemove/1,
          getPort/0,
+         getMessages/0,
          getUsersJSON/3,
          getWebSettingsJSON/3,
          index/3,
@@ -136,6 +137,14 @@ getPort() ->
             -1;
         _ ->
             gen_server:call(?MODULE, getPort)
+    end.
+
+getMessages() ->
+    case whereis(eWeb) of
+        undefined ->
+            "Email notification for eTodo";
+        _ ->
+            gen_server:call(?MODULE, getMessages)
     end.
 
 appendToPage(Html) ->
@@ -342,6 +351,9 @@ getGuestUsers(User) ->
 %%--------------------------------------------------------------------
 handle_call(getPort, _From, State = #state{port = Port}) ->
     {reply, Port, State};
+
+handle_call(getMessages, _From, State = #state{messages = Messages}) ->
+    {reply, Messages, State};
 
 handle_call({login, _SessionId, _Env, _Input}, _From,
             State = #state{user = User}) ->

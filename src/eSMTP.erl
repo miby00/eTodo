@@ -191,7 +191,8 @@ doSendMail(From, To, Msg, State = #state{auth = Auth,
         smtpTransaction(Socket, Type, From, To, State),
         transferMail(Socket, Type, Msg)
     catch
-        throw:{connectFailed, Reason} -> Reason
+        throw:{connectFailed, Reason} -> {connectFailed, Reason};
+        throw:{smtpError, Reason}     -> {smtpError, Reason}
     end.
 
 connect(Host, Port, "SSL/TLS") ->
@@ -201,9 +202,9 @@ connect(Host, Port, _Auth) ->
 
 doConnect(Host, Port, Type) ->
     case Type:connect(Host, Port, [{packet,    raw},
-                                     {reuseaddr, true},
-                                     {active,    false},
-                                     {nodelay,   true}, binary]) of
+                                   {reuseaddr, true},
+                                   {active,    false},
+                                   {nodelay,   true}, binary]) of
         {ok, Socket} ->
             {Socket, Type};
         Reason ->
