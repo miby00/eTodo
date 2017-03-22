@@ -27,9 +27,9 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {host, port, auth, smtpUser, smtpPwd, active = false, user}).
+-record(state, {host, port, auth, smtpUser, smtpPwd,
+                active = false, user, localHost}).
 
--define(StartTLS_Port, 587).
 -define(SSL_TLS_Port,  465).
 -define(SMTP_Port,      25).
 
@@ -57,7 +57,7 @@ setUser(User) ->
     gen_server:cast(?SERVER, {setUser, User}).
 
 sendMail(From, To, Msg) ->
-    gen_server:cast(?SERVER, {setMail, From, To, Msg}).
+    gen_server:cast(?SERVER, {sendMail, From, To, Msg}).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -110,19 +110,24 @@ handle_call(_Request, _From, State) ->
              {noreply, NewState :: #state{}} |
              {noreply, NewState :: #state{}, timeout() | hibernate} |
              {stop, Reason :: term(), NewState :: #state{}}).
+handle_cast(updateConfig, State = #state{user = undefined}) ->
+    {noreply, State};
 handle_cast(updateConfig, State) ->
     UserCfg = eTodoDB:readUserCfg(State#state.user),
-    {noreply, State#state{host     = UserCfg#userCfg.smtpServer,
-                          port     = UserCfg#userCfg.smtpPort,
-                          smtpUser = UserCfg#userCfg.smtpUser,
-                          smtpPwd  = UserCfg#userCfg.smtpPwd,
-                          auth     = UserCfg#userCfg.smtpAuth,
-                          active   = UserCfg#userCfg.smtpEnabled}};
+    ConCfg  = eTodoDB:getConnection(State#state.user),
+    {noreply, State#state{host      = UserCfg#userCfg.smtpServer,
+                          port      = UserCfg#userCfg.smtpPort,
+                          smtpUser  = UserCfg#userCfg.smtpUser,
+                          smtpPwd   = UserCfg#userCfg.smtpPwd,
+                          auth      = UserCfg#userCfg.smtpAuth,
+                          active    = UserCfg#userCfg.smtpEnabled,
+                          localHost = ConCfg#conCfg.host}};
 handle_cast({setUser, User}, State) ->
     {noreply, State#state{user = User}};
 handle_cast(_Msg, State = #state{active = false}) ->
     {noreply, State};
-handle_cast({setMail, _From, _To, _Msg}, State) ->
+handle_cast({sendMail, From, To, Msg}, State) ->
+    doSendMail(From, To, Msg, State),
     {noreply, State};
 handle_cast(_Request, State) ->
     {noreply, State}.
@@ -178,3 +183,152 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
+doSendMail(From, To, Msg, State = #state{auth = Auth,
+                                         host = Host,
+                                         port = Port}) ->
+    try
+        {Socket, Type} = connect(Host, Port, Auth),
+        smtpTransaction(Socket, Type, From, To, State),
+        transferMail(Socket, Type, Msg)
+    catch
+        throw:{connectFailed, Reason} -> Reason
+    end.
+
+connect(Host, Port, "SSL/TLS") ->
+    doConnect(Host, Port, ssl);
+connect(Host, Port, _Auth) ->
+    doConnect(Host, Port, gen_tcp).
+
+doConnect(Host, Port, Type) ->
+    case Type:connect(Host, Port, [{packet,    raw},
+                                     {reuseaddr, true},
+                                     {active,    false},
+                                     {nodelay,   true}, binary]) of
+        {ok, Socket} ->
+            {Socket, Type};
+        Reason ->
+            throw({connectFailed, Reason})
+    end.
+
+smtpTransaction(Socket, Type, From, To, State = #state{auth = "None"}) ->
+    sendAndLog(Socket, Type, ["HELO ", State#state.localHost, "\r\n"]),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    sendAndLog(Socket, Type, ["MAIL FROM: <", From, ">\r\n"]),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    sendAndLog(Socket, Type, ["RCPT TO: <", To, ">\r\n"]),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    sendAndLog(Socket, Type, "DATA\r\n"),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type));
+smtpTransaction(Socket, Type, From, To, State) ->
+    sendAndLog(Socket, Type, ["EHLO ", State#state.localHost, "\r\n"]),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    doAuthentication(Socket, Type, State),
+    sendAndLog(Socket, Type, ["MAIL FROM: <", From, ">\r\n"]),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    sendAndLog(Socket, Type, ["RCPT TO: <", To, ">\r\n"]),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    sendAndLog(Socket, Type, "DATA\r\n"),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)).
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Read one line from smtp server response.
+%%
+%% @spec doRecvLine(Sock) -> Line
+%% @end
+%%--------------------------------------------------------------------
+doRecvLine(Sock, Type) ->
+    doRecvLine(Sock , Type, <<>>).
+
+doRecvLine(Sock, Type, Line) ->
+    case Type:recv(Sock, 1, 5000) of
+        {ok, <<"\n">>} ->
+            <<Line/binary, "\n">>;
+        {ok, Char} ->
+            doRecvLine(Sock, Type, <<Line/binary, Char/binary>>);
+        {error, closed} ->
+            (catch Type:close(Sock)),
+            throw({smtpError, {error, closed}});
+        {error, Reason} ->
+            throw({smtpError, {error, Reason}})
+    end.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Check response code
+%%
+%% @spec checkResponse
+%% @end
+%%--------------------------------------------------------------------
+checkResponse(Sock, Type, Response) ->
+    Result = check(Sock, Type, Response, <<>>),
+    eLog:log(debug, ?MODULE, sendAndLog, [Sock, Type, Result],
+             "Receiving smtp response.", ?LINE),
+    Result.
+
+check(_Sock, _Type, Response, Acc) when byte_size(Response) < 4 ->
+    throw({smtpError, {error, <<Acc/binary, Response/binary>>}});
+check(Sock, Type, CResp = <<Response:4/bytes, _Rest/binary>>, Acc) ->
+    <<Code:3/bytes, Rest/binary>> = Response,
+    case {Code, Rest} of
+        {Code, <<"-">>} ->
+            %% Read next line of response
+            check(Sock, Type,
+                  doRecvLine(Sock, Type),
+                  <<Acc/binary, CResp/binary>>);
+
+        {<<"220">>, _} -> <<Acc/binary, CResp/binary>>;
+        {<<"221">>, _} -> <<Acc/binary, CResp/binary>>;
+        {<<"235">>, _} -> <<Acc/binary, CResp/binary>>;
+        {<<"250">>, _} -> <<Acc/binary, CResp/binary>>;
+        {<<"251">>, _} -> <<Acc/binary, CResp/binary>>;
+        {<<"252">>, _} -> <<Acc/binary, CResp/binary>>;
+        {<<"334">>, _} -> <<Acc/binary, CResp/binary>>;
+        {<<"354">>, _} -> <<Acc/binary, CResp/binary>>;
+
+        _ ->
+            throw({smtpError, {error, <<Acc/binary, CResp/binary>>}})
+    end.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% sendAndLog
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+sendAndLog(Socket, Type, Data) ->
+    eLog:log(debug, ?MODULE, sendAndLog, [Socket, Type, Data],
+             "Sending smtp message.", ?LINE),
+    Type:send(Socket, Data).
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Transfer email
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+transferMail(Socket, Type, Msg) ->
+    sendAndLog(Socket, Type, Msg),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)).
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Authenticate SMTP connection
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+doAuthentication(Socket, Type, #state{smtpUser = User, smtpPwd = Pwd}) ->
+    sendAndLog(Socket, Type, "AUTH LOGIN\r\n"),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    sendAndLog(Socket, Type, base64:encode_to_string(User)++"\r\n"),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    sendAndLog(Socket, Type, base64:encode_to_string(Pwd)++"\r\n"),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)).

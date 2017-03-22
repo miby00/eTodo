@@ -79,6 +79,31 @@ parse(Content, [blockquote| St], PL, CL, Acc) ->
     Acc2 = <<Acc/binary, "</blockquote>">>,
     convert(Content, St, PL, CL, Acc2);
 
+%% Start fenced code block
+parse(<<"~~~", Rest/binary>>, [{p, _CT}], PL, <<"~~~">>, Acc) ->
+
+    convert(Rest, [{f1_code, <<>>}], PL, <<"~~~">>, Acc);
+parse(<<"```", Rest/binary>>, [{p, _CT}], PL, <<"```">>, Acc) ->
+    convert(Rest, [{f2_code, <<>>}], PL, <<"```">>, Acc);
+
+%% Stop fenced code block
+parse(<<"~~~", Rest/binary>>, [{f1_code, CT}], PL, <<"~~~">>, Acc) ->
+    BTag = makeTag(code, CT),
+    Acc2 = <<Acc/binary, BTag/binary>>,
+    convert(Rest, [{p, <<>>}], PL, <<"~~~">>, Acc2);
+parse(<<"```", Rest/binary>>, [{f2_code, CT}], PL, <<"```">>, Acc) ->
+    BTag = makeTag(code, CT),
+    Acc2 = <<Acc/binary, BTag/binary>>,
+    convert(Rest, [{p, <<>>}], PL, <<"~~~">>, Acc2);
+
+%% Parse code block
+parse(<<13, 10, Rest/binary>>, [{Tag, CT}], PL, CL, Acc)
+    when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
+    convert(Rest, [{Tag, <<CT/binary, 13, 10>>}], PL, CL, Acc);
+parse(<<Char:8, Rest/binary>>, [{Tag, CT}], PL, CL, Acc)
+    when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
+    convert(Rest, [{Tag, <<CT/binary, Char:8>>}], PL, CL, Acc);
+
 %% ImgLink
 parse(<<$[, Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Acc) ->
     convert(Rest, [{ilDesc, Num + 1, <<CT/binary, $[>>}|PState], PL, CL, Acc);
@@ -216,31 +241,6 @@ parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, CL, Acc) ->
                     convert(Rest, [{p, <<CT/binary, 13, 10>>}|St], PL, CL, Acc)
             end
     end;
-
-%% Start fenced code block
-parse(<<"~~~", Rest/binary>>, [{p, _CT}], PL, <<"~~~">>, Acc) ->
-
-    convert(Rest, [{f1_code, <<>>}], PL, <<"~~~">>, Acc);
-parse(<<"```", Rest/binary>>, [{p, _CT}], PL, <<"```">>, Acc) ->
-    convert(Rest, [{f2_code, <<>>}], PL, <<"```">>, Acc);
-
-%% Stop fenced code block
-parse(<<"~~~", Rest/binary>>, [{f1_code, CT}], PL, <<"~~~">>, Acc) ->
-    BTag = makeTag(code, CT),
-    Acc2 = <<Acc/binary, BTag/binary>>,
-    convert(Rest, [{p, <<>>}], PL, <<"~~~">>, Acc2);
-parse(<<"```", Rest/binary>>, [{f2_code, CT}], PL, <<"```">>, Acc) ->
-    BTag = makeTag(code, CT),
-    Acc2 = <<Acc/binary, BTag/binary>>,
-    convert(Rest, [{p, <<>>}], PL, <<"~~~">>, Acc2);
-
-%% Parse code block
-parse(<<13, 10, Rest/binary>>, [{Tag, CT}], PL, CL, Acc)
-  when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
-    convert(Rest, [{Tag, <<CT/binary, 13, 10>>}], PL, CL, Acc);
-parse(<<Char:8, Rest/binary>>, [{Tag, CT}], PL, CL, Acc)
-  when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
-    convert(Rest, [{Tag, <<CT/binary, Char:8>>}], PL, CL, Acc);
 
 %% Headers
 parse(<<"#", Rest/binary>>, PState = [{p, CT}| St], PL, CL, Acc) ->

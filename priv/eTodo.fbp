@@ -13832,7 +13832,7 @@
                                                     <property name="proportion">3</property>
                                                     <object class="wxChoice" expanded="0">
                                                         <property name="bg"></property>
-                                                        <property name="choices">&quot;None&quot; &quot;Plain text&quot; &quot;SSL/TLS&quot; &quot;STARTTLS&quot;</property>
+                                                        <property name="choices">&quot;None&quot; &quot;Plain text&quot; &quot;SSL/TLS&quot;</property>
                                                         <property name="context_help"></property>
                                                         <property name="context_menu">1</property>
                                                         <property name="enabled">1</property>
