@@ -30,9 +30,6 @@
 -record(state, {host, port, auth, smtpUser, smtpPwd,
                 active = false, user, localHost}).
 
--define(SSL_TLS_Port,  465).
--define(SMTP_Port,      25).
-
 -include_lib("eTodo/include/eTodo.hrl").
 
 %%%===================================================================

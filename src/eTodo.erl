@@ -1019,9 +1019,9 @@ handle_info(sendNotification, State = #guiState{user = User, reply = Reply}) ->
         undefined ->
             ok;
         To ->
-            From = default(ConCfg2#conCfg.email, To),
-            Msg = eMime:constructMail(User, "eTodo notification", From, To),
-            eSMTP:sendMail(From, To, Msg)
+            ReplyTo = default(ConCfg2#conCfg.email, To),
+            Msg = eMime:constructMail(User, "eTodo notification", ReplyTo, To),
+            eSMTP:sendMail(To, To, Msg)
     end,
     {noreply, State};
 handle_info(_Info, State) ->
