@@ -69,34 +69,61 @@ addMimeParts(Messages) ->
 findParts(<<>>, Acc) ->
     Acc;
 findParts(<<"<img src='", Rest/binary>>, Acc) ->
-    {FileName, Rest2} = getFileName(Rest),
-    case lists:member(FileName, Acc) of
-        false ->
-            findParts(Rest2, [FileName|Acc]);
-        true ->
-            findParts(Rest2, Acc)
-    end;
+    checkUrl(Rest, Acc);
+findParts(<<"' src='", Rest/binary>>, Acc) ->
+    checkUrl(Rest, Acc);
 findParts(<<_:8, Rest/binary>>, Acc) ->
     findParts(Rest, Acc).
+
+checkUrl(Rest, Acc) ->
+    case getFileName(Rest) of
+        {true, FileName, Rest2} ->
+            case lists:member(FileName, Acc) of
+                false ->
+                    findParts(Rest2, [FileName | Acc]);
+                true ->
+                    findParts(Rest2, Acc)
+            end;
+        false ->
+            findParts(Rest, Acc)
+    end.
 
 replaceParts(<<>>, Acc) ->
     Acc;
 replaceParts(<<"<img src='", Rest/binary>>, Acc) ->
-    {FileName, Rest2} = getFileName(Rest),
-    Cid = integer_to_binary(erlang:phash2(FileName)),
-    replaceParts(Rest2, <<Acc/binary, "<img src='cid:", Cid/binary, "'">>);
+    case getFileName(Rest) of
+        {true, FileName, Rest2} ->
+            Cid = integer_to_binary(erlang:phash2(FileName)),
+            replaceParts(Rest2, <<Acc/binary, "<img src='cid:", Cid/binary, "'">>);
+        false ->
+            replaceParts(Rest, <<Acc/binary, "<img src='">>)
+    end;
+replaceParts(<<"' src='", Rest/binary>>, Acc) ->
+    case getFileName(Rest) of
+        {true, FileName, Rest2} ->
+            Cid = integer_to_binary(erlang:phash2(FileName)),
+            replaceParts(Rest2, <<Acc/binary, "' src='cid:", Cid/binary, "'">>);
+        false ->
+            replaceParts(Rest, <<Acc/binary, "' src='">>)
+    end;
 replaceParts(<<Char:8, Rest/binary>>, Acc) ->
     replaceParts(Rest, <<Acc/binary, Char:8>>).
 
 getFileName(Rest) ->
-    getFileName(Rest, Rest, <<>>).
+    getFileName(Rest, <<>>).
 
-getFileName(<<>>, Rest, _Acc) ->
-    Rest;
-getFileName(<<"'", Tail/binary>>, _Rest, Acc) ->
-    {binary_to_list(Acc), Tail};
-getFileName(<<Char:8, Tail/binary>>, Rest, Acc) ->
-    getFileName(Tail, Rest, <<Acc/binary, Char:8>>).
+getFileName(<<>>, _Acc) ->
+    false;
+getFileName(<<"'", Tail/binary>>, Acc) ->
+    FileName = binary_to_list(Acc),
+    case fileExist(FileName) of
+        {true, CompleteFileName} ->
+            {true, CompleteFileName, Tail};
+        false ->
+            false
+    end;
+getFileName(<<Char:8, Tail/binary>>, Acc) ->
+    getFileName(Tail, <<Acc/binary, Char:8>>).
 
 makeMimePart(File) ->
     MimeType = eTodoUtils:mime_type(File),
@@ -109,11 +136,24 @@ makeMimePart(File) ->
         makeBody(File), ?LF
     ].
 
-makeBody(File) ->
-    RD = eTodoUtils:getRootDir(),
-    CompleteFileName = filename:join([RD, "www"]) ++ File,
-    {ok, MimePart} = file:read_file(CompleteFileName),
+makeBody(FileName) ->
+    {ok, MimePart} = file:read_file(FileName),
     encodeBase64(MimePart).
+
+fileExist(FileName) ->
+    case filelib:is_file(FileName) of
+        true ->
+            {true, FileName};
+        false ->
+            RD = eTodoUtils:getRootDir(),
+            CompleteFileName = filename:join([RD, "www"]) ++ FileName,
+            case filelib:is_file(CompleteFileName) of
+                true ->
+                    {true, CompleteFileName};
+                false ->
+                    false
+            end
+    end.
 
 %%--------------------------------------------------------------------
 %% @private
