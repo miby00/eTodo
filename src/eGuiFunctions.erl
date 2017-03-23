@@ -1824,7 +1824,8 @@ increaseMsgCounter(msgEntry,
                    State = #guiState{unreadMsgs2 = {C1, C2, C3}},
                    Notebook) ->
     clearNotificationTimer(State),
-    TimerRef = erlang:send_after(?NotificationTime, self(), sendNotification),
+    NotificationTime = getNotificationTime(State#guiState.user),
+    TimerRef = erlang:send_after(NotificationTime, self(), sendNotification),
     PageText = "Chat(" ++ integer_to_list(C1 + 1) ++ ")",
     wxNotebook:setPageText(Notebook, 0, PageText),
     State#guiState{unreadMsgs2 = {C1 + 1, C2, C3}, notificationTimer = TimerRef};
@@ -1840,6 +1841,10 @@ increaseMsgCounter(systemEntry,
     PageText = "System(" ++ integer_to_list(C3 + 1) ++ ")",
     wxNotebook:setPageText(Notebook, 2, PageText),
     State#guiState{unreadMsgs2 = {C1, C2, C3 + 1}}.
+
+getNotificationTime(User) ->
+    UserCfg = eTodoDB:readUserCfg(User),
+    default(UserCfg#userCfg.notificationTime, ?NotificationTime) * 1000.
 
 %%--------------------------------------------------------------------
 %% @doc

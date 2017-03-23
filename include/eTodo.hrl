@@ -8,7 +8,7 @@
 %%%-------------------------------------------------------------------
 
 %% Time before a notification email is sent for unread messages.
--define(NotificationTime, 30000).
+-define(NotificationTime, 30).
 
 %%====================================================================
 %% guiState for eTodo.
@@ -228,7 +228,8 @@
                    smtpPwd,
                    splitHorizMsg   = 150,
                    unreadMsgs2     = {0, 0, 0},
-                   smtpAuth}).
+                   smtpAuth,
+                   notificationTime}).
 
 -record(listCfg,  {key,
                    userName,
