@@ -2053,8 +2053,8 @@ filterMessages(FromOrTo, Messages) ->
 filterMessages(_FromOrTo, [], Acc) ->
     lists:reverse(Acc);
 filterMessages(FromOrTo, [Message|Rest], Acc) ->
-    To   = lists:member(FromOrTo, Message#messages.to),
-    From = (FromOrTo == Message#messages.from),
+    To   = FromOrTo =/= (FromOrTo -- Message#messages.to),
+    From = lists:member(Message#messages.from, FromOrTo),
     case (From or To) of
         true ->
             filterMessages(FromOrTo, Rest, [Message|Acc]);

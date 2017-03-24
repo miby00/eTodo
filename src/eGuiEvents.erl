@@ -2394,19 +2394,19 @@ msgFilterEvent(_Type, _Id, _Frame,
     SChatObj   = wxXmlResource:xrcctrl(Settings, "showChat",       wxCheckBox),
     SAlarmObj  = wxXmlResource:xrcctrl(Settings, "showAlarm",      wxCheckBox),
     SSystemObj = wxXmlResource:xrcctrl(Settings, "showSystem",     wxCheckBox),
-    AChoiceObj = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxChoice),
+    AChoiceObj = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxCheckListBox),
 
     case wxRadioBox:getSelection(FilterObj) of
         0 ->
             wxCheckBox:enable(SChatObj),
             wxCheckBox:enable(SAlarmObj),
             wxCheckBox:enable(SSystemObj),
-            wxChoice:disable(AChoiceObj);
+            wxCheckListBox:disable(AChoiceObj);
         1 ->
             wxCheckBox:disable(SChatObj),
             wxCheckBox:disable(SAlarmObj),
             wxCheckBox:disable(SSystemObj),
-            wxChoice:enable(AChoiceObj)
+            wxCheckListBox:enable(AChoiceObj)
     end,
     State.
 
@@ -2617,20 +2617,20 @@ settingsCancelEvent(_Type, _Id, _Frame,
 
 msgSettingsButtonEvent(_Type, _Id, _Frame,
                        State = #guiState{msgCfgDlg = Settings,
-                                         msgCfg    = {FilterUsed, UserName},
+                                         msgCfg    = {FilterUsed, CUsers},
                                          user      = User}) ->
 
     UseFilter  = wxXmlResource:xrcctrl(Settings, "filterMsgCBox",  wxCheckBox),
-    UserChoice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxChoice),
+    UserChoice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxCheckListBox),
 
     wxCheckBox:setValue(UseFilter, FilterUsed),
     Users  = lists:delete(User, eTodoDB:getUsers()),
-    Choice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxChoice),
-    wxChoice:clear(Choice),
-    wxChoice:appendStrings(Choice, Users),
-    wxChoice:setStringSelection(UserChoice, UserName),
+    Choice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxCheckListBox),
+    wxCheckListBox:clear(Choice),
+    wxCheckListBox:appendStrings(Choice, Users),
+    checkItemsInList(Choice, CUsers),
 
-    wxDialog:setSize(Settings, {270, 200}),
+    wxDialog:setSize(Settings, {270, 400}),
     wxDialog:show(Settings),
     msgFilterEvent(undefined, undefined, undefined, State).
 
@@ -2641,10 +2641,11 @@ msgSettingsCancelEvent(_Type, _Id, _Frame,
 
 msgSettingsOkEvent(_Type, _Id, _Frame,
                    State  = #guiState{msgCfgDlg = Settings, user = User}) ->
-    UseFilter  = wxXmlResource:xrcctrl(Settings, "filterMsgCBox",  wxCheckBox),
-    UserChoice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxChoice),
-    UserName   = wxChoice:getStringSelection(UserChoice),
-    Cfg        = {wxCheckBox:isChecked(UseFilter), UserName},
+    UseFilter    = wxXmlResource:xrcctrl(Settings, "filterMsgCBox",  wxCheckBox),
+    UserChoice   = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxCheckListBox),
+    Checked      = eGuiFunctions:getCheckedItems(UserChoice),
+
+    Cfg          = {wxCheckBox:isChecked(UseFilter), Checked},
     wxDialog:hide(Settings),
     updateMsgWindow(State#guiState{msgCfg = Cfg}, User).
 
