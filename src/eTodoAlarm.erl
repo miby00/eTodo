@@ -4,8 +4,9 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created :  8 Jul 2012 by mikael <mikael.bylund@gmail.com>
-%%% Changed :  6 sept 2012 by gusv <gunnar@sverredal.se>
+%%% Created :  8 Jul  2012 by mikael <mikael.bylund@gmail.com>
+%%% Changed :  6 sept 2012 by gusv   <gunnar@sverredal.se>
+%%%           24 Mars 2017 by mikael <mikael.bylund@gmail.com>
 %%%-------------------------------------------------------------------
 -module(eTodoAlarm).
 
@@ -16,11 +17,11 @@
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+         terminate/2, code_change/3]).
 
 -include_lib("eTodo/include/eTodo.hrl").
 
--define(SERVER, ?MODULE). 
+-define(SERVER, ?MODULE).
 
 -record(state, {user}).
 
@@ -149,26 +150,27 @@ checkAlarms2([Alarm| Rest], Now) ->
     checkAlarm(Alarm, Now),
     checkAlarms2(Rest, Now).
 
-checkAlarm(#alarmCfg{startDate = undefined}, _Now) -> 
+checkAlarm(#alarmCfg{startDate = undefined}, _Now) ->
     ok;
 checkAlarm(Alarm = #alarmCfg{nextAlarm = undefined}, _Now) ->
     %% This is a new alarm.
     eTodoDB:addReminder( initAlarm(Alarm) );
-checkAlarm(#alarmCfg{nextAlarm = never}, _Now) -> 
+checkAlarm(#alarmCfg{nextAlarm = never}, _Now) ->
     ok;
-checkAlarm(#alarmCfg{nextAlarm = Next}, Now) when (Next > Now) -> 
+checkAlarm(#alarmCfg{nextAlarm = Next}, Now) when (Next > Now) ->
     ok;
 checkAlarm(AlarmCfg = #alarmCfg{uid = Uid, execCmd = Cmd}, Now) ->
     Todo = default(eTodoDB:getTodo(Uid), #todo{status = deleted}),
     case (Todo#todo.status =/= done) and (Todo#todo.status =/= deleted) of
-	true ->
-	    ePeerEM:alarmEntry(Uid, Todo#todo.description),
-	    spawn(?MODULE, runCmd, [Cmd]),
-	    AlarmCfg2 = setNext(AlarmCfg, Now),
-	    eTodoDB:addReminder(AlarmCfg2#alarmCfg{lastAlarm = Now});
-	false ->
-	    %% Remove reminder, task finished or deleted.
-	    eTodoDB:delReminder(AlarmCfg)
+        true ->
+            ePeerEM:alarmEntry(Uid, Todo#todo.description),
+            spawn(?MODULE, runCmd, [Cmd]),
+            sendEmail(AlarmCfg, Todo#todo.description),
+            AlarmCfg2 = setNext(AlarmCfg, Now),
+            eTodoDB:addReminder(AlarmCfg2#alarmCfg{lastAlarm = Now});
+        false ->
+            %% Remove reminder, task finished or deleted.
+            eTodoDB:delReminder(AlarmCfg)
     end.
 
 runCmd(undefined) ->
@@ -176,16 +178,31 @@ runCmd(undefined) ->
 runCmd(Cmd) ->
     os:cmd(Cmd).
 
+sendEmail(#alarmCfg{emailReminder = false}, _Text) ->
+    ok;
+sendEmail(#alarmCfg{emailReminder = true, userName = User, uid = Uid}, Text) ->
+    ConCfg = eTodoDB:getConnection(User),
+    case ConCfg#conCfg.email of
+        undefined ->
+            ok;
+        EmailAddr ->
+            {_, Msg} = eHtml:generateAlarmMsg(Uid, Text),
+            Msg2     = iolist_to_binary(Msg),
+            EmailMsg = eMime:constructMail(User, "eTodo reminder",
+                                           EmailAddr, EmailAddr, Msg2),
+            eSMTP:sendMail(EmailAddr, EmailAddr, EmailMsg)
+    end.
+
 initAlarm(AlarmCfg) ->
-    FirstAlarm = {AlarmCfg#alarmCfg.startDate, 
-		 repairTime(AlarmCfg#alarmCfg.startTime)},
+    FirstAlarm = {AlarmCfg#alarmCfg.startDate,
+                  repairTime(AlarmCfg#alarmCfg.startTime)},
     AlarmCfg#alarmCfg{nextAlarm = FirstAlarm}.
 
 setNext(AlarmCfg = #alarmCfg{nextAlarm = undefined}, _Now) ->
     initAlarm(AlarmCfg);
 setNext(AlarmCfg = #alarmCfg{recurrence = none}, _Now) ->
     AlarmCfg#alarmCfg{nextAlarm = never};
-setNext(AlarmCfg = #alarmCfg{endDate  = EndDate = {_,_,_}}, {Date, _Time}) 
+setNext(AlarmCfg = #alarmCfg{endDate  = EndDate = {_,_,_}}, {Date, _Time})
   when (EndDate < Date) ->
     AlarmCfg#alarmCfg{nextAlarm = never};
 setNext(AlarmCfg = #alarmCfg{nextAlarm = Next}, Now) when (Next > Now) ->

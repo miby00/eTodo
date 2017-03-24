@@ -688,10 +688,10 @@ handle_cast({systemEntry, Uid, Text}, State) ->
     State3 = chatMsgStatusBar(systemEntry, "System message received.", State2),
     {noreply, State3};
 handle_cast({alarmEntry, Uid, Text}, State) ->
-    MsgObj       = obj("remTextWin",    State),
-    State2 = appendToPage(MsgObj, alarmEntry,
-                          eHtml:generateAlarmMsg(Uid, Text), State),
-    State3 = chatMsgStatusBar(alarmEntry, "Alarm message received.", State2),
+    MsgObj   = obj("remTextWin",    State),
+    AlarmMsg = eHtml:generateAlarmMsg(Uid, Text),
+    State2   = appendToPage(MsgObj, alarmEntry, AlarmMsg, State),
+    State3   = chatMsgStatusBar(alarmEntry, "Alarm message received.", State2),
     {noreply, State3};
 handle_cast({loggedIn, User}, State = #guiState{userStatus = Users}) ->
     UserObj      = obj("userCheckBox",  State),

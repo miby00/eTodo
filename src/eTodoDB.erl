@@ -485,6 +485,7 @@ columns([Column|Rest], Values) ->
     columns(Rest, [value(Column)|Values]).
 
 value(showLogin)       -> false;
+value(emailReminder)   -> false;
 value(filter)          -> [];
 value(splitterMain)    -> 85;
 value(splitterComment) -> 250;

@@ -406,16 +406,17 @@ setReminderButtonEvent(Type, Id, Frame,
                                          user       = User,
                                          activeTodo = {ETodo, _Index}}) ->
     case eTodoDB:getReminder(User, ETodo#etodo.uidDB) of
-        #alarmCfg{startDate  = StartDate,
-                  startTime  = StartTime,
-                  recurrence = Recurrence,
-                  execCmd    = Cmd,
-                  endDate    = EndDate} ->
-            setReminderData(StartDate, StartTime,
-                            EndDate, Cmd, Recurrence, State);
+        #alarmCfg{startDate     = StartDate,
+                  startTime     = StartTime,
+                  recurrence    = Recurrence,
+                  execCmd       = Cmd,
+                  endDate       = EndDate,
+                  emailReminder = EmailReminder} ->
+            setReminderData(StartDate, StartTime, EndDate,
+                            Cmd, Recurrence, EmailReminder, State);
         _ ->
-            setReminderData(undefined, undefined,
-                            undefined, undefined, undefined, State)
+            setReminderData(undefined, undefined, undefined,
+                            undefined, undefined, false, State)
     end,
     State2 = useReminderEvent(Type, Id, Frame, State),
     startDateChangedEvent(State2),
@@ -425,7 +426,8 @@ setReminderButtonEvent(Type, Id, Frame,
 dlgObj(Name, Type, #guiState{timeDlg = Time}) ->
     wxXmlResource:xrcctrl(Time, Name, Type).
 
-setReminderData(StartDate, StartTime, EndDate, Cmd, Recurrence, State) ->
+setReminderData(StartDate, StartTime, EndDate,
+                Cmd, Recurrence, EmailReminder, State) ->
     StartDateObj    = dlgObj("startDate",    wxDatePickerCtrl, State),
     EndDateObj      = dlgObj("endDate",      wxDatePickerCtrl, State),
     RecurrenceObj   = dlgObj("recurrence",   wxRadioBox,       State),
@@ -436,10 +438,12 @@ setReminderData(StartDate, StartTime, EndDate, Cmd, Recurrence, State) ->
     HourObj         = dlgObj("hourSpin",     wxSpinCtrl,       State),
     MinObj          = dlgObj("minSpin",      wxSpinCtrl,       State),
     UseEndDateObj   = dlgObj("useEndDate",   wxCheckBox,       State),
+    EmailRemObj     = dlgObj("sendEmailReminder", wxCheckBox,  State),
     setCmd(Cmd, ExecuteCmdObj, ExecCmdObj),
     setDate(StartDate, StartDateObj, UseReminderObj),
     setDate(EndDate,   EndDateObj,   UseEndDateObj),
     setTime(StartTime, HourObj, MinObj, UseStartTimeObj),
+    setEmailReminder(EmailReminder, EmailRemObj, State#guiState.user),
     setRecurrence(Recurrence, RecurrenceObj).
 
 setCmd(undefined, ExecuteCmdObj, _ExecCmdObj) ->
@@ -489,6 +493,17 @@ setRecurrence(Recurrence, Obj) ->
               timeDay, timeWeek, timeMonth, timeYear],
     wxRadioBox:setSelection(Obj, pos(Recurrence, Values)).
 
+setEmailReminder(EmailReminder, EmailRemObj, User) ->
+    UserCfg = eTodoDB:readUserCfg(User),
+    case UserCfg#userCfg.smtpEnabled of
+        true ->
+            wxCheckBox:enable(EmailRemObj),
+            wxCheckBox:setValue(EmailRemObj, EmailReminder);
+        false ->
+            wxCheckBox:setValue(EmailRemObj, false),
+            wxCheckBox:disable(EmailRemObj)
+    end.
+
 getRecurrence(State) ->
     Obj    = dlgObj("recurrence",  wxRadioBox, State),
     Result = wxRadioBox:getSelection(Obj),
@@ -507,17 +522,20 @@ reminderOkEvent(_Type, _Id, _Frame,
     UseEndDateObj   = dlgObj("useEndDate",   wxCheckBox,       State),
     HourObj         = dlgObj("hourSpin",     wxSpinCtrl,       State),
     MinObj          = dlgObj("minSpin",      wxSpinCtrl,       State),
+    EmailRemObj     = dlgObj("sendEmailReminder", wxCheckBox,  State),
     StartDate       = getDate(UseReminderObj, StartDateObj),
     EndDate         = getDate(UseEndDateObj,  EndDateObj),
     StartTime       = getTime(UseStartTimeObj, HourObj, MinObj),
     Recurrence      = getRecurrence(State),
-    eTodoDB:addReminder(#alarmCfg{uid        = ETodo#etodo.uidDB,
-                                  userName   = User,
-                                  startDate  = StartDate,
-                                  startTime  = StartTime,
-                                  endDate    = EndDate,
-                                  execCmd    = getCmd(State),
-                                  recurrence = Recurrence}),
+    EmailReminder   = wxCheckBox:isChecked(EmailRemObj),
+    eTodoDB:addReminder(#alarmCfg{uid           = ETodo#etodo.uidDB,
+                                  userName      = User,
+                                  startDate     = StartDate,
+                                  startTime     = StartTime,
+                                  endDate       = EndDate,
+                                  execCmd       = getCmd(State),
+                                  recurrence    = Recurrence,
+                                  emailReminder = EmailReminder}),
     wxDialog:hide(Time),
     State.
 
@@ -535,7 +553,7 @@ reminderCancelEvent(_Type, _Id, _Frame,  State = #guiState{timeDlg = Time}) ->
     wxDialog:hide(Time),
     State.
 
-useReminderEvent(_Type, _Id, _Frame, State) ->
+useReminderEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
     StartDateObj    = dlgObj("startDate",    wxDatePickerCtrl, State),
     EndDateObj      = dlgObj("endDate",      wxDatePickerCtrl, State),
     UseReminderObj  = dlgObj("useReminder",  wxCheckBox,       State),
@@ -547,6 +565,9 @@ useReminderEvent(_Type, _Id, _Frame, State) ->
     MinObj          = dlgObj("minSpin",      wxSpinCtrl,       State),
     RecurrenceObj   = dlgObj("recurrence",   wxRadioBox,       State),
     OKObj           = dlgObj("reminderOk",   wxButton,         State),
+    EmailRemObj     = dlgObj("sendEmailReminder", wxCheckBox,  State),
+    EmailReminder   = wxCheckBox:isChecked(EmailRemObj),
+
     case wxCheckBox:isChecked(UseReminderObj) of
         true ->
             wxDatePickerCtrl:enable(StartDateObj),
@@ -554,6 +575,7 @@ useReminderEvent(_Type, _Id, _Frame, State) ->
             wxCheckBox:enable(UseEndDateObj),
             wxCheckBox:enable(UseStartTimeObj),
             wxCheckBox:enable(ExecuteCmdObj),
+            setEmailReminder(EmailReminder, EmailRemObj, User),
             wxTextCtrl:enable(ExecCmdObj),
             wxSpinCtrl:enable(HourObj),
             wxSpinCtrl:enable(MinObj),
@@ -563,6 +585,7 @@ useReminderEvent(_Type, _Id, _Frame, State) ->
             wxDatePickerCtrl:disable(EndDateObj),
             wxCheckBox:disable(UseEndDateObj),
             wxCheckBox:disable(ExecuteCmdObj),
+            wxCheckBox:disable(EmailRemObj),
             wxTextCtrl:disable(ExecCmdObj),
             wxCheckBox:disable(UseStartTimeObj),
             wxSpinCtrl:disable(HourObj),

@@ -10,7 +10,7 @@
 -author("mikael.bylund@gmail.com").
 
 %% API
--export([constructMail/4]).
+-export([constructMail/4, constructMail/5]).
 
 -import(eHtml, [aTag/2,    headTag/1,  titleTag/1,
                 metaTag/1, styleTag/2, bodyTag/1]).
@@ -30,6 +30,9 @@
 %%--------------------------------------------------------------------
 constructMail(UserName, Subject, ReplyTo, To) ->
     Messages = iolist_to_binary(eWeb:getMessages()),
+    constructMail(UserName, Subject, ReplyTo, To, Messages).
+
+constructMail(UserName, Subject, ReplyTo, To, Messages) ->
     [
         "From: ", To, ?LF,
         "Reply-To: ", ReplyTo, ?LF,

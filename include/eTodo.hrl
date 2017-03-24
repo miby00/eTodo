@@ -247,7 +247,8 @@
                    recurrence,
                    execCmd,
                    lastAlarm,
-                   nextAlarm}).
+                   nextAlarm,
+                   emailReminder = false}).
 
 -record(conCfg,    {userName, host, port, owner, distance, updateTime, email}).
 
