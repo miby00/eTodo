@@ -107,17 +107,6 @@ table.msgSent {
     text-align: center;
 }
 
-.msgTime {
-    width: 100px;
-    text-align: left;
-    color: white;
-    font-size: 0.8em;
-}
-
-.textCenter {
-    text-align: center;
-}
-
 .portrait {
     width:  45px;
     height: 45px;
@@ -132,11 +121,21 @@ table.msgSent {
     color: white;
 }
 
+.msgTime {
+    font-size: 0.8em;
+    width: 100px;
+    text-align: left;
+    color: white;
+}
+
 .msgText {
     color: white;
     font-size: 0.8em;
 }
 
+.textCenter {
+    text-align: center;
+}
 
 /* Modify stylesheet after size of web window */
 
