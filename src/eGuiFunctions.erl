@@ -142,8 +142,8 @@ appendToPage(MsgObj, Type, From, To, {Html, _HtmlCSS}, State) ->
     setScrollBar(MsgObj),
     State3.
 
-evalShow(_, UserName, _, {true, Users}) -> lists:member(UserName, Users);
-evalShow(_,  _From, To,  {true, Users}) -> Users =/= (Users -- To);
+evalShow(_, UserName, To, {true, Users}) ->
+    lists:member(UserName, Users) or (Users =/= (Users -- To));
 evalShow(_,  _From, _To, _msgCfg)       -> true.
 
 setScrollBar(MsgObj) ->
