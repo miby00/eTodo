@@ -198,11 +198,13 @@ parse(<<$<, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
 parse(<<$>, Rest/binary>>, [{url, CT}| St], PL, CL, Dir, Acc) ->
     case catch http_uri:parse(binary_to_list(CT)) of
         {'EXIT', _} ->
+            %% Convert to &lt to remove html support from markdown
             convert(<<CT/binary, $>, Rest/binary>>,
-                    addCT(<<"<">>, St), PL, CL, Dir, Acc);
+                    addCT(<<"&lt;">>, St), PL, CL, Dir, Acc);
         {error, _} ->
+            %% Convert to &lt to remove html support from markdown
             convert(<<CT/binary, $>, Rest/binary>>,
-                    addCT(<<"<">>, St), PL, CL, Dir, Acc);
+                    addCT(<<"&lt;">>, St), PL, CL, Dir, Acc);
         _ ->
             Url = <<"<a href='", CT/binary, "'>", CT/binary, "</a>">>,
             convert(Rest, addCT(Url, St), PL, CL, Dir, Acc)
