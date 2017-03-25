@@ -2644,8 +2644,6 @@ msgSettingsButtonEvent(_Type, _Id, _Frame,
                                          user      = User}) ->
 
     UseFilter  = wxXmlResource:xrcctrl(Settings, "filterMsgCBox",  wxCheckBox),
-    UserChoice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxCheckListBox),
-
     wxCheckBox:setValue(UseFilter, FilterUsed),
     Users  = lists:delete(User, eTodoDB:getUsers()),
     Choice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxCheckListBox),
