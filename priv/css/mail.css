@@ -114,6 +114,7 @@ table.msgSent {
 
 .portraitCol {
     text-align: center;
+    vertical-align: top;
 }
 
 .msgUser {
