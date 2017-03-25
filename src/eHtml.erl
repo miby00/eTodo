@@ -232,40 +232,45 @@ makePrintTaskList(#etodo{status = Status,
 
     [tableTag([{width, "100%"}, {bgcolor, "#b9c9fe"}],
               [trTag([headerCell(?status),
-                      dataCell(Status, [{width, "20%"}]),
+                      dataCell(Status, [{width, "26%"}]),
                       headerCell(?prio),
-                      dataCell(Priority, [{width, "20%"}]),
+                      dataCell(Priority, [{width, "18%"}]),
                       headerCell("Progress(%)"),
-                      dataCell(toStr(Progress), [{width, "20%"}])]),
+                      dataCell(toStr(Progress), [{width, "10%"}])]),
                trTag([headerCell(?createTime),
-                      dataCell(CreateTime, [{width, "20%"}]),
+                      dataCell(CreateTime, [{width, "26%"}]),
                       headerCell(?dueTime),
-                      dataCell(DueTime, [{width, "20%"}]),
+                      dataCell(DueTime, [{width, "18%"}]),
+                      headerCell("Estimate(h)"),
+                      dataCell(toStr(Estimate), [{width, "10%"}])]),
+               trTag([
                       headerCell(?doneTimestamp),
-                      dataCell(DoneTime, [{width, "20%"}])]),
-               trTag([headerCell("Estimate(h)"),
-                      dataCell(toStr(Estimate), [{width, "20%"}]),
+                      dataCell(DoneTime, [{width, "26%"}]),
                       headerCell("Logged(h)"),
-                      dataCell(AllLoggedWork, [{width, "20%"}]),
+                      dataCell(AllLoggedWork, [{width, "18%"}]),
                       headerCell("Remaining(h)"),
-                      dataCell(toStr(Remaining), [{width, "20%"}])]),
+                      dataCell(toStr(Remaining), [{width, "10%"}])]),
                trTag([headerCell(?owner),
-                      dataCell(Owner, [{width, "20%"}]),
+                      dataCell(Owner, [{width, "26%"}]),
                       headerCell(?sharedWith),
                       dataCell(SharedWith, [{colspan, 3}])]),
                trTag([{nonEmpty, Description}],
                      [headerCell(?description),
-                      dataCell(Description, [{colspan, 5}])]),
+                      dataCell2(Description, [{colspan, 5}])]),
                trTag([{nonEmpty, Comment}],
                      [headerCell(?comment),
-                      dataCell(Comment, [{colspan, 5}])])])].
+                      dataCell2(Comment, [{colspan, 5}])])])].
 
 headerCell(Text) ->
-    tdTag([{width, "13%"}, {bgcolor, "#b9c9fe"}],
+    tdTag([{width, "15%"}, {bgcolor, "#b9c9fe"}],
           fontTag([{size, 1}], bTag([Text, $:]))).
 
 dataCell(Text, Extra) ->
     tdTag([{bgcolor, "#e8edff"} | Extra], fontTag([{size, 1}], makeHtml(Text))).
+
+dataCell2(Text, Extra) ->
+    tdTag([{bgcolor, "#e8edff"} | Extra], fontTag([{size, 1}],
+          eMd2Html:convert(Text))).
 
 %%======================================================================
 %% Function : makeWorkLogReport(User, Date) -> Html
