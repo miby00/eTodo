@@ -10,7 +10,7 @@
 -author("mikael.bylund@gmail.com").
 
 %% API
--export([convert/1, dbg/0, dbg/1, debug/1, remInd/1]).
+-export([convert/1, convert/2, dbg/0, dbg/1, debug/1, remInd/1]).
 
 -define(brTag, "<br />").
 
@@ -27,371 +27,377 @@
 
 convert(MDText) when is_list(MDText) ->
     convert(unicode:characters_to_binary(MDText));
-convert(MDText) ->
-    convert(<<13, 10, MDText/binary>>, [{p, <<>>}], <<>>, <<>>, <<>>).
+convert(MDText) when is_binary(MDText) ->
+    Dir = list_to_binary(eTodoUtils:getRootDir()),
+    convert(<<13, 10, MDText/binary>>, [{p, <<>>}], <<>>, <<>>, Dir, <<>>).
+
+convert(MDText, Dir) when is_list(MDText), is_list(Dir) ->
+    convert(unicode:characters_to_binary(MDText), list_to_binary(Dir));
+convert(MDText, Dir) when is_binary(MDText), is_binary(Dir) ->
+    convert(<<13, 10, MDText/binary>>, [{p, <<>>}], <<>>, <<>>, Dir, <<>>).
 
 %% Handle no state as paragraph (p)
-convert(Content, [], PL, CL, Acc) ->
-    convert(Content, [{p, <<>>}], PL, CL, Acc);
+convert(Content, [], PL, CL, Dir, Acc) ->
+    convert(Content, [{p, <<>>}], PL, CL, Dir, Acc);
 
-convert(<<13, 10, Content/binary>>, PState, _PL, CL, Acc) ->
+convert(<<13, 10, Content/binary>>, PState, _PL, CL, Dir, Acc) ->
     Content2 = evalRemWS(Content, PState),
-    parse(<<13, 10, Content2/binary>>, PState, CL, getCurrentRow(Content), Acc);
+    parse(<<13, 10, Content2/binary>>, PState, CL, getCurrentRow(Content), Dir, Acc);
 
-convert(<<10, Content/binary>>, PState, _PL, CL, Acc) ->
+convert(<<10, Content/binary>>, PState, _PL, CL, Dir, Acc) ->
     Content2 = evalRemWS(Content, PState),
-    parse(<<13, 10, Content2/binary>>, PState, CL, getCurrentRow(Content), Acc);
+    parse(<<13, 10, Content2/binary>>, PState, CL, getCurrentRow(Content), Dir, Acc);
 
-convert(Content, PState, PL, CL, Acc) ->
-    parse(Content, PState, PL, CL, Acc).
+convert(Content, PState, PL, CL, Dir, Acc) ->
+    parse(Content, PState, PL, CL, Dir, Acc).
 
 
 %% Backslash escapes
-parse(<<"\\\\", Rest/binary>>, PState, PL, CL, Acc) ->
-    convert(Rest, addCT(<<"\\">>, PState), PL, CL, Acc);
+parse(<<"\\\\", Rest/binary>>, PState, PL, CL, Dir, Acc) ->
+    convert(Rest, addCT(<<"\\">>, PState), PL, CL, Dir, Acc);
 
-parse(<<"\\", Char:8, Rest/binary>>, PState, PL, CL, Acc) ->
+parse(<<"\\", Char:8, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
     case lists:member(Char, ?punct) of
         true ->
             Entity = entity(<<Char:8>>),
-            convert(Rest, addCT(Entity, PState), PL, CL, Acc);
+            convert(Rest, addCT(Entity, PState), PL, CL, Dir, Acc);
         false ->
-            convert(<<Char:8, Rest/binary>>, addCT(<<"\\">>, PState), PL, CL, Acc)
+            convert(<<Char:8, Rest/binary>>, addCT(<<"\\">>, PState), PL, CL, Dir, Acc)
     end;
 
 %% Block quote
-parse(<<13, 10, $>, Rest/binary>>, PState = [{p, CT}|St], PL, CL, Acc) ->
+parse(<<13, 10, $>, Rest/binary>>, PState = [{p, CT}|St], PL, CL, Dir, Acc) ->
     case lists:member(blockquote, St) of
         false ->
-            BTag = makeTag(p, CT),
+            BTag = makeTag(p, Dir, CT),
             Acc2 = <<Acc/binary, BTag/binary, "<blockquote>">>,
-            convert(Rest, [{p, <<>>}, blockquote|St], PL, CL, Acc2);
+            convert(Rest, [{p, <<>>}, blockquote|St], PL, CL, Dir, Acc2);
         true ->
             BlockQuoteText = element(1, remWS(Rest)),
             convert(<<13, 10, BlockQuoteText/binary>>,
-                    [{p, <<CT/binary>>}|St], PL, CL, Acc);
+                    [{p, <<CT/binary>>}|St], PL, CL, Dir, Acc);
         _ ->
-            convert(Rest, addCT(<<13, 10, $>>>, PState), PL, CL, Acc)
+            convert(Rest, addCT(<<13, 10, $>>>, PState), PL, CL, Dir, Acc)
     end;
 
 %% Close block quote
-parse(Content, [blockquote| St], PL, CL, Acc) ->
+parse(Content, [blockquote| St], PL, CL, Dir, Acc) ->
     Acc2 = <<Acc/binary, "</blockquote>">>,
-    convert(Content, St, PL, CL, Acc2);
+    convert(Content, St, PL, CL, Dir, Acc2);
 
 %% Start fenced code block
-parse(<<"~~~", Rest/binary>>, [{p, _CT}], PL, <<"~~~">>, Acc) ->
+parse(<<"~~~", Rest/binary>>, [{p, _CT}], PL, <<"~~~">>, Dir, Acc) ->
 
-    convert(Rest, [{f1_code, <<>>}], PL, <<"~~~">>, Acc);
-parse(<<"```", Rest/binary>>, [{p, _CT}], PL, <<"```">>, Acc) ->
-    convert(Rest, [{f2_code, <<>>}], PL, <<"```">>, Acc);
+    convert(Rest, [{f1_code, <<>>}], PL, <<"~~~">>, Dir, Acc);
+parse(<<"```", Rest/binary>>, [{p, _CT}], PL, <<"```">>, Dir, Acc) ->
+    convert(Rest, [{f2_code, <<>>}], PL, <<"```">>, Dir, Acc);
 
 %% Stop fenced code block
-parse(<<"~~~", Rest/binary>>, [{f1_code, CT}], PL, <<"~~~">>, Acc) ->
-    BTag = makeTag(code, CT),
+parse(<<"~~~", Rest/binary>>, [{f1_code, CT}], PL, <<"~~~">>, Dir, Acc) ->
+    BTag = makeTag(code, Dir, CT),
     Acc2 = <<Acc/binary, BTag/binary>>,
-    convert(Rest, [{p, <<>>}], PL, <<"~~~">>, Acc2);
-parse(<<"```", Rest/binary>>, [{f2_code, CT}], PL, <<"```">>, Acc) ->
-    BTag = makeTag(code, CT),
+    convert(Rest, [{p, <<>>}], PL, <<"~~~">>, Dir, Acc2);
+parse(<<"```", Rest/binary>>, [{f2_code, CT}], PL, <<"```">>, Dir, Acc) ->
+    BTag = makeTag(code, Dir, CT),
     Acc2 = <<Acc/binary, BTag/binary>>,
-    convert(Rest, [{p, <<>>}], PL, <<"~~~">>, Acc2);
+    convert(Rest, [{p, <<>>}], PL, <<"~~~">>, Dir, Acc2);
 
 %% Parse code block
-parse(<<13, 10, Rest/binary>>, [{Tag, CT}], PL, CL, Acc)
+parse(<<13, 10, Rest/binary>>, [{Tag, CT}], PL, CL, Dir, Acc)
     when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
-    convert(Rest, [{Tag, <<CT/binary, 13, 10>>}], PL, CL, Acc);
-parse(<<Char:8, Rest/binary>>, [{Tag, CT}], PL, CL, Acc)
+    convert(Rest, [{Tag, <<CT/binary, 13, 10>>}], PL, CL, Dir, Acc);
+parse(<<Char:8, Rest/binary>>, [{Tag, CT}], PL, CL, Dir, Acc)
     when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
-    convert(Rest, [{Tag, <<CT/binary, Char:8>>}], PL, CL, Acc);
+    convert(Rest, [{Tag, <<CT/binary, Char:8>>}], PL, CL, Dir, Acc);
 
 %% ImgLink
-parse(<<$[, Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Acc) ->
-    convert(Rest, [{ilDesc, Num + 1, <<CT/binary, $[>>}|PState], PL, CL, Acc);
+parse(<<$[, Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(Rest, [{ilDesc, Num + 1, <<CT/binary, $[>>}|PState], PL, CL, Dir, Acc);
 
-parse(<<$!, $[, Rest/binary>>, PState, PL, CL, Acc) ->
-    convert(Rest, [{ilDesc, 1, <<>>}|PState], PL, CL, Acc);
+parse(<<$!, $[, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
+    convert(Rest, [{ilDesc, 1, <<>>}|PState], PL, CL, Dir, Acc);
 
-parse(<<$], $(, Rest/binary>>, [{ilDesc, 1, CT}| St], PL, CL, Acc) ->
-    convert(Rest, [{ilink, 1, <<>>}, {ilDesc, CT}|St], PL, CL, Acc);
+parse(<<$], $(, Rest/binary>>, [{ilDesc, 1, CT}| St], PL, CL, Dir, Acc) ->
+    convert(Rest, [{ilink, 1, <<>>}, {ilDesc, CT}|St], PL, CL, Dir, Acc);
 
-parse(<<$], Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Acc) ->
-    convert(Rest, [{ilDesc, Num - 1, <<CT/binary, $]>>}|PState], PL, CL, Acc);
+parse(<<$], Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(Rest, [{ilDesc, Num - 1, <<CT/binary, $]>>}|PState], PL, CL, Dir, Acc);
 
-parse(<<Char:8, Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Acc) ->
-    convert(Rest, [{ilDesc, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Acc);
+parse(<<Char:8, Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(Rest, [{ilDesc, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Dir, Acc);
 
-parse(<<$(, Rest/binary>>, [{ilink, 1, CT}|St], PL, CL, Acc) ->
-    convert(Rest, [{ilink, 2, <<CT/binary, $(>>}|St], PL, CL, Acc);
+parse(<<$(, Rest/binary>>, [{ilink, 1, CT}|St], PL, CL, Dir, Acc) ->
+    convert(Rest, [{ilink, 2, <<CT/binary, $(>>}|St], PL, CL, Dir, Acc);
 
-parse(<<$), Rest/binary>>, [{ilink, 2, CT}|St], PL, CL, Acc) ->
-    convert(Rest, [{ilink, 1, <<CT/binary, $)>>}|St], PL, CL, Acc);
+parse(<<$), Rest/binary>>, [{ilink, 2, CT}|St], PL, CL, Dir, Acc) ->
+    convert(Rest, [{ilink, 1, <<CT/binary, $)>>}|St], PL, CL, Dir, Acc);
 
-parse(<<$), Rest/binary>>, [{ilink, 1, CT}, {ilDesc, PT}|St], PL, CL, Acc) ->
+parse(<<$), Rest/binary>>, [{ilink, 1, CT}, {ilDesc, PT}|St], PL, CL, Dir, Acc) ->
     case catch http_uri:parse(binary_to_list(removeParam(CT))) of
         {'EXIT', _} ->
             convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
-                    addCT(<<"![">>, St), PL, CL, Acc);
+                    addCT(<<"![">>, St), PL, CL, Dir, Acc);
         {error, _} ->
             convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
-                    addCT(<<"![">>, St), PL, CL, Acc);
+                    addCT(<<"![">>, St), PL, CL, Dir, Acc);
         {ok, {Scheme, _UserInfo, _Host, _Port, _Path, _Query}}
             when (Scheme == http) or (Scheme == https) ->
             LUrl = eGuiFunctions:convertToLocal(CT),
             Url  = <<"<img src='", LUrl/binary, "' alt='", PT/binary, "' />">>,
-            convert(Rest, addCT(Url, St), PL, CL, Acc);
+            convert(Rest, addCT(Url, St), PL, CL, Dir, Acc);
         _ ->
             convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
-                addCT(<<"![">>, St), PL, CL, Acc)
+                addCT(<<"![">>, St), PL, CL, Dir, Acc)
     end;
 
-parse(<<Char:8, Rest/binary>>, [{ilink, Num, CT}|PState], PL, CL, Acc) ->
-    convert(Rest, [{ilink, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Acc);
+parse(<<Char:8, Rest/binary>>, [{ilink, Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(Rest, [{ilink, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Dir, Acc);
 
 %% Link
-parse(<<$[, Rest/binary>>, [{lDesc, Num, CT}|PState], PL, CL, Acc) ->
-    convert(Rest, [{lDesc, Num + 1, <<CT/binary, $[>>}|PState], PL, CL, Acc);
+parse(<<$[, Rest/binary>>, [{lDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(Rest, [{lDesc, Num + 1, <<CT/binary, $[>>}|PState], PL, CL, Dir, Acc);
 
-parse(<<$[, Rest/binary>>, PState, PL, CL, Acc) ->
-    convert(Rest, [{lDesc, 1, <<>>}|PState], PL, CL, Acc);
+parse(<<$[, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
+    convert(Rest, [{lDesc, 1, <<>>}|PState], PL, CL, Dir, Acc);
 
-parse(<<$], $(, Rest/binary>>, [{lDesc, 1, CT}| St], PL, CL, Acc) ->
-    convert(Rest, [{link, 1, <<>>}, {lDesc, CT}|St], PL, CL, Acc);
+parse(<<$], $(, Rest/binary>>, [{lDesc, 1, CT}| St], PL, CL, Dir, Acc) ->
+    convert(Rest, [{link, 1, <<>>}, {lDesc, CT}|St], PL, CL, Dir, Acc);
 
-parse(<<$], Rest/binary>>, [{lDesc, Num, CT}|PState], PL, CL, Acc) ->
-    convert(Rest, [{lDesc, Num - 1, <<CT/binary, $]>>}|PState], PL, CL, Acc);
+parse(<<$], Rest/binary>>, [{lDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(Rest, [{lDesc, Num - 1, <<CT/binary, $]>>}|PState], PL, CL, Dir, Acc);
 
-parse(<<Char:8, Rest/binary>>, [{lDesc, Num, CT}|PState], PL, CL, Acc) ->
-    convert(Rest, [{lDesc, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Acc);
+parse(<<Char:8, Rest/binary>>, [{lDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(Rest, [{lDesc, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Dir, Acc);
 
-parse(<<$(, Rest/binary>>, [{link, 1, CT}|St], PL, CL, Acc) ->
-    convert(Rest, [{link, 2, <<CT/binary, $(>>}|St], PL, CL, Acc);
+parse(<<$(, Rest/binary>>, [{link, 1, CT}|St], PL, CL, Dir, Acc) ->
+    convert(Rest, [{link, 2, <<CT/binary, $(>>}|St], PL, CL, Dir, Acc);
 
-parse(<<$), Rest/binary>>, [{link, 2, CT}|St], PL, CL, Acc) ->
-    convert(Rest, [{link, 1, <<CT/binary, $)>>}|St], PL, CL, Acc);
+parse(<<$), Rest/binary>>, [{link, 2, CT}|St], PL, CL, Dir, Acc) ->
+    convert(Rest, [{link, 1, <<CT/binary, $)>>}|St], PL, CL, Dir, Acc);
 
-parse(<<$), Rest/binary>>, [{link, 1, CT}, {lDesc, PT}|St], PL, CL, Acc) ->
+parse(<<$), Rest/binary>>, [{link, 1, CT}, {lDesc, PT}|St], PL, CL, Dir, Acc) ->
     case catch http_uri:parse(binary_to_list(removeParam(CT))) of
         {'EXIT', _} ->
             convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
-                    addCT(<<"[">>, St), PL, CL, Acc);
+                    addCT(<<"[">>, St), PL, CL, Dir, Acc);
         {error, _} ->
             convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
-                    addCT(<<"[">>, St), PL, CL, Acc);
+                    addCT(<<"[">>, St), PL, CL, Dir, Acc);
         _ ->
             Url = <<"<a href='", CT/binary, "'>", PT/binary, "</a>">>,
-            convert(Rest, addCT(Url, St), PL, CL, Acc)
+            convert(Rest, addCT(Url, St), PL, CL, Dir, Acc)
     end;
 
-parse(<<Char:8, Rest/binary>>, [{link, Num, CT}|PState], PL, CL, Acc) ->
-    convert(Rest, [{link, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Acc);
+parse(<<Char:8, Rest/binary>>, [{link, Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(Rest, [{link, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Dir, Acc);
 
 %% URL
-parse(<<$<, Rest/binary>>, PState, PL, CL, Acc) ->
-    convert(Rest, [{url, <<>>}|PState], PL, CL, Acc);
+parse(<<$<, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
+    convert(Rest, [{url, <<>>}|PState], PL, CL, Dir, Acc);
 
-parse(<<$>, Rest/binary>>, [{url, CT}| St], PL, CL, Acc) ->
+parse(<<$>, Rest/binary>>, [{url, CT}| St], PL, CL, Dir, Acc) ->
     case catch http_uri:parse(binary_to_list(CT)) of
         {'EXIT', _} ->
             convert(<<CT/binary, $>, Rest/binary>>,
-                    addCT(<<"<">>, St), PL, CL, Acc);
+                    addCT(<<"<">>, St), PL, CL, Dir, Acc);
         {error, _} ->
             convert(<<CT/binary, $>, Rest/binary>>,
-                    addCT(<<"<">>, St), PL, CL, Acc);
+                    addCT(<<"<">>, St), PL, CL, Dir, Acc);
         _ ->
             Url = <<"<a href='", CT/binary, "'>", CT/binary, "</a>">>,
-            convert(Rest, addCT(Url, St), PL, CL, Acc)
+            convert(Rest, addCT(Url, St), PL, CL, Dir, Acc)
     end;
 
 %% Indented code block
-parse(<<13, 10, Rest/binary>>, [{code, CT}], PL, CL, Acc) ->
+parse(<<13, 10, Rest/binary>>, [{code, CT}], PL, CL, Dir, Acc) ->
     case remInd(Rest) of
         {Rest2, Count} when Count >= 4, is_binary(Rest2) ->
-            convert(Rest2, [{code, <<CT/binary, 13, 10>>}], PL, CL, Acc);
+            convert(Rest2, [{code, <<CT/binary, 13, 10>>}], PL, CL, Dir, Acc);
         _ ->
-            BTag = makeTag(code, CT),
+            BTag = makeTag(code, Dir, CT),
             Acc2 = <<Acc/binary, BTag/binary>>,
-            convert(Rest, [{p, <<>>}], PL, CL, Acc2)
+            convert(Rest, [{p, <<>>}], PL, CL, Dir, Acc2)
     end;
 
-parse(<<>>, [{Tag, CT}], _PL, _CL, Acc)
+parse(<<>>, [{Tag, CT}], _PL, _CL, Dir, Acc)
   when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
-    BTag = makeTag(code, CT),
+    BTag = makeTag(code, Dir, CT),
     <<Acc/binary, BTag/binary>>;
 
 %% Paragraph text ending
-parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, <<>>, Acc) ->
-    BTag = makeTag(p, CT),
+parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, <<>>, Dir, Acc) ->
+    BTag = makeTag(p, Dir, CT),
     Acc2 = <<Acc/binary, BTag/binary>>,
-    convert(Rest, St, PL, <<>>, Acc2);
+    convert(Rest, St, PL, <<>>, Dir, Acc2);
 
-parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, CL, Acc) ->
+parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, CL, Dir, Acc) ->
     case header(CL, PL) of
         {true, Tag, Hdr} ->
-            BTag = makeTag(Tag, Hdr),
+            BTag = makeTag(Tag, Dir, Hdr),
             Size = byte_size(CL),
             Acc2 = <<Acc/binary, BTag/binary>>,
             <<CL:Size/bytes, Rest2/binary>> = Rest,
-            convert(Rest2, St, PL, CL, Acc2);
+            convert(Rest2, St, PL, CL, Dir, Acc2);
         false ->
             CodeIndent = getCodeIndent(St),
             case remWS(Rest) of
                 {Rest2, Count} when Count >= CodeIndent ->
-                    convert(Rest2, [{code, <<>>}], PL, CL, Acc);
+                    convert(Rest2, [{code, <<>>}], PL, CL, Dir, Acc);
                 _ ->
-                    convert(Rest, [{p, <<CT/binary, 13, 10>>}|St], PL, CL, Acc)
+                    convert(Rest, [{p, <<CT/binary, 13, 10>>}|St], PL, CL, Dir, Acc)
             end
     end;
 
 %% Headers
-parse(<<"#", Rest/binary>>, PState = [{p, CT}| St], PL, CL, Acc) ->
+parse(<<"#", Rest/binary>>, PState = [{p, CT}| St], PL, CL, Dir, Acc) ->
     case headerStart(<<"#", Rest/binary>>) of
         {true, Tag, Rest2} ->
-            BTag = makeTag(p, CT),
+            BTag = makeTag(p, Dir, CT),
             Acc2 = <<Acc/binary, BTag/binary>>,
-            convert(Rest2, [{Tag, <<>>}|St], PL, CL, Acc2);
+            convert(Rest2, [{Tag, <<>>}|St], PL, CL, Dir, Acc2);
         false ->
-            convert(Rest, addCT(<<"#">>, PState), PL, CL, Acc)
+            convert(Rest, addCT(<<"#">>, PState), PL, CL, Dir, Acc)
     end;
 
 %% Header end by #...
-parse(<<" #", Rest/binary>>, [{Tag, CT}| St], PL, CL, Acc)
+parse(<<" #", Rest/binary>>, [{Tag, CT}| St], PL, CL, Dir, Acc)
   when (Tag == h6) or (Tag == h5) or (Tag == h4) or
        (Tag == h3) or (Tag == h2) or (Tag == h1) ->
     case headerEnd(Rest) of
         {true, Rest2} ->
-            convert(<<Rest2/binary>>, [{Tag, CT}|St], PL, CL, Acc);
+            convert(<<Rest2/binary>>, [{Tag, CT}|St], PL, CL, Dir, Acc);
         false ->
-            convert(Rest, [{Tag, <<CT/binary, " #">>}|St], PL, CL, Acc)
+            convert(Rest, [{Tag, <<CT/binary, " #">>}|St], PL, CL, Dir, Acc)
     end;
 
 %% Header end by line end.
-parse(<<13, 10, Rest/binary>>, [{Tag, CT}| St], PL, CL, Acc)
+parse(<<13, 10, Rest/binary>>, [{Tag, CT}| St], PL, CL, Dir, Acc)
   when (Tag == h6) or (Tag == h5) or (Tag == h4) or
        (Tag == h3) or (Tag == h2) or (Tag == h1) ->
-    BTag = makeTag(Tag, CT),
+    BTag = makeTag(Tag, Dir, CT),
     Acc2 = <<Acc/binary, BTag/binary>>,
-    convert(Rest, St, PL, CL, Acc2);
+    convert(Rest, St, PL, CL, Dir, Acc2);
 
 %% Check for list
-parse(<<Char:8, Rest/binary>>, [{p, CT}| St], PL, CL, Acc) ->
+parse(<<Char:8, Rest/binary>>, [{p, CT}| St], PL, CL, Dir, Acc) ->
     case checkIfList(<<Char:8, Rest/binary>>) of
         {true, Tag} ->
-            BTag = makeTag(p, CT),
+            BTag = makeTag(p, Dir, CT),
             Acc2 = <<Acc/binary, BTag/binary>>,
-            convert(<<Char:8, Rest/binary>>, [Tag|St], PL, CL, Acc2);
+            convert(<<Char:8, Rest/binary>>, [Tag|St], PL, CL, Dir, Acc2);
         false ->
-            convert(Rest, [{p, <<CT/binary, Char:8>>}|St], PL, CL, Acc)
+            convert(Rest, [{p, <<CT/binary, Char:8>>}|St], PL, CL, Dir, Acc)
     end;
 
 %% Parse content
-parse(<<Char:8, Rest/binary>>, [{CTag, CT}| St], PL, CL, Acc) ->
+parse(<<Char:8, Rest/binary>>, [{CTag, CT}| St], PL, CL, Dir, Acc) ->
     PState = [{CTag, <<CT/binary, Char:8>>}|St],
-    convert(Rest, PState, PL, CL, Acc);
+    convert(Rest, PState, PL, CL, Dir, Acc);
 
 %% Text end by end of data
-parse(<<>>, [{_Tag, <<>>}], _PL, _CL, Acc) ->
+parse(<<>>, [{_Tag, <<>>}], _PL, _CL, _Dir, Acc) ->
     Acc;
 
-parse(<<>>, [{p, CT}| St], PL, CL, Acc) ->
+parse(<<>>, [{p, CT}| St], PL, CL, Dir, Acc) ->
     case header(CL, PL) of
         {true, Tag, Hdr} ->
             {CTags, _} = closeTags(St),
-            BTag       = makeTag(Tag, Hdr),
+            BTag       = makeTag(Tag, Dir, Hdr),
             <<Acc/binary, BTag/binary, CTags/binary>>;
         false ->
             {CTags, _} = closeTags(St),
-            BTag       = makeTag(p, <<CT/binary>>),
+            BTag       = makeTag(p, Dir, <<CT/binary>>),
             <<Acc/binary, BTag/binary, CTags/binary>>
     end;
 
-parse(<<>>, PState = [{Tag, _, CT}| _], _PL, _CL, Acc)
+parse(<<>>, PState = [{Tag, _, CT}| _], _PL, _CL, Dir, Acc)
   when (Tag == ul) or (Tag == ol) ->
     {CTags, _} = closeTags(PState),
-    BTag       = makeTag(li, CT),
+    BTag       = makeTag(li, Dir, CT),
     <<Acc/binary, BTag/binary, CTags/binary>>;
 
-parse(<<>>, [{url, CT}| St], PL, CL, Acc) ->
+parse(<<>>, [{url, CT}| St], PL, CL, Dir, Acc) ->
     {Tag, Num, Bef, TL} = getCT(St),
     case Num of
         undefined ->
-            parse(CT, [{Tag, <<Bef/binary,  $<>>}|TL], PL, CL, Acc);
+            parse(CT, [{Tag, <<Bef/binary,  $<>>}|TL], PL, CL, Dir, Acc);
         Num ->
-            parse(CT, [{Tag, Num, <<Bef/binary,  $<>>}|TL], PL, CL, Acc)
+            parse(CT, [{Tag, Num, <<Bef/binary,  $<>>}|TL], PL, CL, Dir, Acc)
     end;
 
-parse(<<>>, [{lDesc, _Num, CT}| St], PL, CL, Acc) ->
-    convert(CT, addCT(<<"[">>, St), PL, CL, Acc);
+parse(<<>>, [{lDesc, _Num, CT}| St], PL, CL, Dir, Acc) ->
+    convert(CT, addCT(<<"[">>, St), PL, CL, Dir, Acc);
 
-parse(<<>>, [{link, _Num, CT}, {lDesc, PT}| St], PL, CL, Acc) ->
+parse(<<>>, [{link, _Num, CT}, {lDesc, PT}| St], PL, CL, Dir, Acc) ->
     convert(<<PT/binary, $], $(, CT/binary>>,
-            addCT(<<"[">>, St), PL, CL, Acc);
+            addCT(<<"[">>, St), PL, CL, Dir, Acc);
 
-parse(<<>>, [{ilDesc, _Num, CT}| St], PL, CL, Acc) ->
-    convert(CT, addCT(<<"![">>, St), PL, CL, Acc);
+parse(<<>>, [{ilDesc, _Num, CT}| St], PL, CL, Dir, Acc) ->
+    convert(CT, addCT(<<"![">>, St), PL, CL, Dir, Acc);
 
-parse(<<>>, [{ilink, _Num, CT}, {ilDesc, PT}| St], PL, CL, Acc) ->
+parse(<<>>, [{ilink, _Num, CT}, {ilDesc, PT}| St], PL, CL, Dir, Acc) ->
     convert(<<PT/binary, $], $(, CT/binary>>,
-            addCT(<<"![">>, St), PL, CL, Acc);
+            addCT(<<"![">>, St), PL, CL, Dir, Acc);
 
-parse(<<>>, [{Tag, CT}| St], _PL, _CL, Acc) ->
+parse(<<>>, [{Tag, CT}| St], _PL, _CL, Dir, Acc) ->
     {CTags, _} = closeTags(St),
-    BTag       = makeTag(Tag, CT),
+    BTag       = makeTag(Tag, Dir, CT),
     <<Acc/binary, BTag/binary, CTags/binary>>;
 
 %% Parse Lists
-parse(Content, [ol_start| St], PL, CL, Acc) ->
+parse(Content, [ol_start| St], PL, CL, Dir, Acc) ->
     {true, NumBin, Rest} = parseOLNum(Content),
     Indent = calcIndent(CL, Content, Rest),
     Acc2   = <<Acc/binary, "<ol start='", NumBin/binary, "'>">>,
-    convert(Rest, [{ol, Indent, <<>>}|St], PL, CL, Acc2);
+    convert(Rest, [{ol, Indent, <<>>}|St], PL, CL, Dir, Acc2);
 
-parse(Content, [ul_start| St], PL, CL, Acc) ->
+parse(Content, [ul_start| St], PL, CL, Dir, Acc) ->
     {true, Rest} = parseULBullet(Content),
     Indent = calcIndent(CL, Content, Rest),
     Acc2   = <<Acc/binary, "<ul>">>,
-    convert(Rest, [{ul, Indent, <<>>}|St], PL, CL, Acc2);
+    convert(Rest, [{ul, Indent, <<>>}|St], PL, CL, Dir, Acc2);
 
-parse(<<13, 10, Rest/binary>>, PState = [{Tag, Ind, CT}| St], PL, CL, Acc)
+parse(<<13, 10, Rest/binary>>, PState = [{Tag, Ind, CT}| St], PL, CL, Dir, Acc)
   when (Tag == ol) or (Tag == ul) ->
-    BTag = makeTag(li, CT),
+    BTag = makeTag(li, Dir, CT),
     case {Tag, parseList(Tag, Rest, Ind)} of
         {_, {true, Rest2}} ->
             Indent2 = calcIndent(CL, Rest, Rest2),
-            checkIndent(ul, Indent2, <<>>, Rest2, BTag, PState, PL, CL, Acc);
+            checkIndent(ul, Indent2, <<>>, Rest2, BTag, PState, PL, CL, Dir, Acc);
         {_, {true, Num, Rest2}} ->
             Indent2 = calcIndent(CL, Rest, Rest2),
-            checkIndent(ol, Indent2, Num, Rest2, BTag, PState, PL, CL, Acc);
+            checkIndent(ol, Indent2, Num, Rest2, BTag, PState, PL, CL, Dir, Acc);
         {ul, false} ->
-            convert(Rest, St, PL, CL, <<Acc/binary, BTag/binary, "</ul>">>);
+            convert(Rest, St, PL, CL, Dir, <<Acc/binary, BTag/binary, "</ul>">>);
         {ol, false} ->
-            convert(Rest, St, PL, CL, <<Acc/binary, BTag/binary, "</ol>">>);
+            convert(Rest, St, PL, CL, Dir, <<Acc/binary, BTag/binary, "</ol>">>);
         {Tag, {cont, Rest2}} ->
-            convert(Rest2, [{Tag, Ind, <<CT/binary, 13, 10>>}|St], PL, CL, Acc)
+            convert(Rest2, [{Tag, Ind, <<CT/binary, 13, 10>>}|St], PL, CL, Dir, Acc)
     end;
-parse(<<Char:8, Rest/binary>>, [{Tag, Ind, CT}| St], PL, CL, Acc)
+parse(<<Char:8, Rest/binary>>, [{Tag, Ind, CT}| St], PL, CL, Dir, Acc)
   when (Tag == ol) or (Tag == ul) ->
-    convert(Rest, [{Tag, Ind, <<CT/binary, Char:8>>}|St], PL, CL, Acc).
+    convert(Rest, [{Tag, Ind, <<CT/binary, Char:8>>}|St], PL, CL, Dir, Acc).
 
 %%%-------------------------------------------------------------------
 %%% Different help functions
 %%%-------------------------------------------------------------------
 
 %% Check indentation of ordered and unorded lists.
-checkIndent(_, Indent, _, Rest, BTag, [{Tag, Indent, CT}|St], PL, CL, Acc) ->
-    BTag = makeTag(li, CT),
-    convert(Rest, [{Tag, Indent, <<>>}|St], PL, CL, <<Acc/binary, BTag/binary>>);
-checkIndent(Tag, Ind1, Num, Rest, BTag, [{PTag, Ind2, CT}|St], PL, CL, Acc) ->
+checkIndent(_, Indent, _, Rest, BTag, [{Tag, Indent, CT}|St], PL, CL, Dir, Acc) ->
+    BTag = makeTag(li, Dir, CT),
+    convert(Rest, [{Tag, Indent, <<>>}|St], PL, CL, Dir, <<Acc/binary, BTag/binary>>);
+checkIndent(Tag, Ind1, Num, Rest, BTag, [{PTag, Ind2, CT}|St], PL, CL, Dir, Acc) ->
     case Ind1 > Ind2 of
         true ->
-            BTag     = makeTag(li, CT),
+            BTag     = makeTag(li, Dir, CT),
             NewState = [{Tag, Ind1, <<>>}, {PTag, Ind2, <<>>}|St],
             StartTag = makeStartTag(Tag, Num),
             Acc2     = <<Acc/binary, BTag/binary, StartTag/binary>>,
-            convert(Rest, NewState, PL, CL, Acc2);
+            convert(Rest, NewState, PL, CL, Dir, Acc2);
         false ->
             {CTags, PState} = closeTags(Ind1, [{PTag, Ind2, CT}|St]),
             Acc2 = <<Acc/binary, BTag/binary, CTags/binary>>,
-            convert(Rest, PState, PL, CL, Acc2)
+            convert(Rest, PState, PL, CL, Dir, Acc2)
     end.
 
 makeStartTag(ol, Num) ->
@@ -422,7 +428,7 @@ closeTags(Ind1, [blockquote|Rest], SoFar) ->
 closeTags(_Ind, PState, SoFar) ->
     {SoFar, PState}.
 
-makeTag(code, Content) ->
+makeTag(code, _Dir, Content) ->
     Content2 = entities(Content),
     case remWS(Content2) of
         {<<>>, _} ->
@@ -430,14 +436,14 @@ makeTag(code, Content) ->
         {Cont3, _} ->
             <<"<pre><code>", Cont3/binary, "</code></pre>">>
     end;
-makeTag(Tag, Content) ->
+makeTag(Tag, Dir, Content) ->
     BTag     = list_to_binary(atom_to_list(Tag)),
     Content2 = insertBR(Content),
     case remWS(Content2) of
         {<<>>, _} ->
             <<>>;
         {Cont3, _} ->
-            Cont4 = smiley(Tag, Cont3),
+            Cont4 = smiley(Tag, Dir, Cont3),
             <<$<, BTag/binary, $>, Cont4/binary, $<, $/, BTag/binary, $>>>
     end.
 
@@ -682,8 +688,8 @@ evalRemWS(Content, _PState) ->
             Content
     end.
 
-smiley(Tag, Text) ->
-    smiley(Tag, Text, list_to_binary(eTodoUtils:getRootDir()), <<>>).
+smiley(Tag, Dir, Text) ->
+    smiley(Tag, Text, Dir, <<>>).
 
 smiley(_Tag, <<>>, _Dir, SoFar) ->
     SoFar;
