@@ -1223,7 +1223,6 @@ proxyCall({Message, SessionId, Env, Input},
   when (Message == index)      or
        (Message == mobile)     or
        (Message == show)       or
-       (Message == link)       or
        (Message == showStatus) or
        (Message == showLoggedWork) ->
     Dict = makeDict(Input),
@@ -1255,6 +1254,28 @@ proxyCall({Message, SessionId, Env, Input},
                 lists:keystore(SessionId, 1,
                                SessionHdrList,
                                {SessionId, Headers2}),
+            {false, State#state{headers = SessionHdrList2}}
+    end;
+proxyCall({Message, SessionId, Env, Input},
+    State = #state{headers = SessionHdrList})
+    when (Message == link) ->
+    Dict = makeDict(Input),
+    case find("proxy", Dict) of
+        {ok, User} when is_list(User) ->
+            case getPeer(User) of
+                undefined ->
+                    {notConnected, State};
+                Pid ->
+                    {true, Pid, State}
+            end;
+        _ ->
+            Headers1 = removeCookieIfPresent("eWebToken", Env),
+            Headers2 = removeCookieIfPresent("eWebProxy", Env, Headers1),
+
+            SessionHdrList2 =
+                lists:keystore(SessionId, 1,
+                    SessionHdrList,
+                    {SessionId, Headers2}),
             {false, State#state{headers = SessionHdrList2}}
     end;
 proxyCall(Msg = {_Msg, SessionId, Env, _Input},
@@ -1517,11 +1538,16 @@ setCookie(Cookie, Value) ->
     ExpDTime = httpd_util:rfc1123_date(EDTime),
     ["Set-Cookie: ", Cookie, "=", Value, "; Expires=", ExpDTime,
      "; httpOnly\r\n\r\n"].
+setCookie(Cookie, Value, "") ->
+    EDTime   = addDateTime(dateTime(), {{0,0,7}, {0,0,0}}),
+    ExpDTime = httpd_util:rfc1123_date(EDTime),
+    ["Set-Cookie: ",  Cookie, "=", Value, "; Expires=", ExpDTime,
+     "; httpOnly\r\n\r\n"];
 setCookie(Cookie, Value, Header) ->
     EDTime   = addDateTime(dateTime(), {{0,0,7}, {0,0,0}}),
     ExpDTime = httpd_util:rfc1123_date(EDTime),
     ["Set-Cookie: ",  Cookie, "=", Value, "; Expires=", ExpDTime,
-     "; httpOnly\r\n"] ++ Header.
+        "; httpOnly\r\n"] ++ Header.
 
 %%--------------------------------------------------------------------
 %% @private
