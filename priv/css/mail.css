@@ -17,6 +17,10 @@ tr {
     page-break-inside: avoid;
 }
 
+img {
+    max-width: 100%;
+}
+
 #message {
     margin: 3%;
 }
