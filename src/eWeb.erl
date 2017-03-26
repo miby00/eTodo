@@ -1388,7 +1388,7 @@ find(Key, Dict) ->
 %%--------------------------------------------------------------------
 webProxyCall(Pid, Headers, Message, Timeout, From) ->
     HtmlPage = apply(ePeer, webProxyCall, [Pid, Message, Timeout], ""),
-    Headers2 = toBinary(Headers),
+    Headers2 = hdrToBinary(Headers),
     case iolist_to_binary(HtmlPage) of
         <<"location:", Rest/binary>> ->
             {Hdr, Bdy} = splitHdr(<<"location:", Rest/binary>>),
@@ -1403,8 +1403,14 @@ webProxyCall(Pid, Headers, Message, Timeout, From) ->
             Reply = toStr(<<Hdr/binary, Headers2/binary, Bdy/binary>>),
             gen_server:reply(From, Reply);
         Html ->
-            Reply = toStr(<<Headers2/binary, Html/binary>>),
-            gen_server:reply(From, Reply)
+            case Headers2 of
+                <<"\r\n">> ->
+                    Reply = toStr(<<Html/binary>>),
+                    gen_server:reply(From, Reply);
+                _ ->
+                    Reply = toStr(<<Headers2/binary, Html/binary>>),
+                    gen_server:reply(From, Reply)
+            end
     end.
 
 splitHdr(Html) ->
@@ -1417,8 +1423,10 @@ splitHdr(<<"\r\n\r\n", Rest/binary>>, SoFar) ->
 splitHdr(<<Char:8, Rest/binary>>, SoFar) ->
     splitHdr(Rest, <<SoFar/binary, Char>>).
 
-toBinary(Value) when is_list(Value)   -> iolist_to_binary(Value);
-toBinary(Value) when is_binary(Value) -> Value.
+hdrToBinary("")                          -> <<"\r\n">>;
+hdrToBinary(<<>>)                        -> <<"\r\n">>;
+hdrToBinary(Value) when is_list(Value)   -> iolist_to_binary(Value);
+hdrToBinary(Value) when is_binary(Value) -> Value.
 
 
 %%--------------------------------------------------------------------
