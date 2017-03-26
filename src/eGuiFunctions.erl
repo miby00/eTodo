@@ -1921,35 +1921,44 @@ doUpdateETodo(ETodoLib, State = #guiState{frame = Frame}) ->
 %% @end
 %%--------------------------------------------------------------------
 convertToLocal(CT) ->
-    case catch wx:get_env() of
-        {'EXIT', _} ->
-            %% Should only convert images when wx is available.
-            CT;
+    WXAvailable =
+        case catch wx:get_env() of
+            {'EXIT', _} ->
+                %% Should only convert images when wx is available.
+                false;
+            _ ->
+                true
+        end,
+    Opt = [{ssl, [{verify, verify_none}]}],
+    case httpc:request(get, {binary_to_list(CT), ""}, Opt, []) of
+        {ok, {{_, 200, _}, Headers, Body}} ->
+            CType = proplists:get_value("content-type", Headers, undef),
+            convertToLocal(CType, Body, CT, WXAvailable);
         _ ->
-            Opt = [{ssl, [{verify, verify_none}]}],
-            case httpc:request(get, {binary_to_list(CT), ""}, Opt, []) of
-                {ok, {{_, 200, _}, Headers, Body}} ->
-                    CType = proplists:get_value("content-type", Headers, undef),
-                    convertToLocal(CType, Body, CT);
-                _ ->
-                    eTodo:systemEntry(system, "Failed to download image."),
-                    CT
-            end
+            if WXAvailable ->
+                    eTodo:systemEntry(system, "Failed to download image.");
+               true ->
+                    ok
+            end,
+            CT
     end.
 
-convertToLocal(CType, Img, CT) when (CType == "image/jpeg") or
-                                    (CType == "image/png")  or
-                                    (CType == "image/bmp")  or
-                                    (CType == "image/gif")  ->
+convertToLocal(CType, Img, CT, WX) when (CType == "image/jpeg") or
+                                        (CType == "image/png")  or
+                                        (CType == "image/bmp")  or
+                                        (CType == "image/gif")  ->
     FileName = filename:join([eTodoUtils:getRootDir(),
                               "www", "linkedFiles",
-                              integer_to_list(erlang:phash2(CT)) ++ ".png"]),
-    saveFile(FileName, Img, CT);
-convertToLocal(_ContentType, _Img, CT) ->
+                              integer_to_list(erlang:phash2(CT))]),
+    saveFile(CType, FileName, Img, CT, WX);
+convertToLocal(_ContentType, _Img, CT, true) ->
     eTodo:systemEntry(system, "Failed to get image, no support for image type."),
+    CT;
+convertToLocal(_ContentType, _Img, CT, false) ->
     CT.
 
-saveFile(FileName, Img, CT) ->
+saveFile(_CType, File, Img, CT, true) ->
+    FileName = File ++ ".png",
     file:write_file(FileName, Img),
     wx:get_env(),
     Image   = wxImage:new(FileName),
@@ -1968,4 +1977,22 @@ saveFile(FileName, Img, CT) ->
             list_to_binary(FileName);
         false ->
             CT
-    end.
+    end;
+saveFile("image/jpeg", File, Img, _CT, false) ->
+    FileName = File ++ ".jpg",
+    file:write_file(FileName, Img),
+    list_to_binary(FileName);
+saveFile("image/png", File, Img, _CT, false) ->
+    FileName = File ++ ".png",
+    file:write_file(FileName, Img),
+    list_to_binary(FileName);
+saveFile("image/bmp", File, Img, _CT, false) ->
+    FileName = File ++ ".bmp",
+    file:write_file(FileName, Img),
+    list_to_binary(FileName);
+saveFile("image/gif", File, Img, _CT, false) ->
+    FileName = File ++ ".gif",
+    file:write_file(FileName, Img),
+    list_to_binary(FileName);
+saveFile(_CType, _File, _Img, CT, _) ->
+    CT.
