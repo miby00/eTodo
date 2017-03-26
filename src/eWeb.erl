@@ -1537,6 +1537,11 @@ removeCookie(Cookie) ->
     ["Set-Cookie: ", Cookie,  "=\"\";",
      "Expires=", ExpDTime, "; httpOnly\r\n\r\n"].
 
+removeCookie(Cookie, "") ->
+    %% The cookie should be removed, set expire to now.
+    ExpDTime = httpd_util:rfc1123_date(dateTime()),
+    ["Set-Cookie: ", Cookie, "=\"\";",
+        "Expires=", ExpDTime, "; httpOnly\r\n\r\n"];
 removeCookie(Cookie, Header) ->
     %% The cookie should be removed, set expire to now.
     ExpDTime = httpd_util:rfc1123_date(dateTime()),
