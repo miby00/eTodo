@@ -414,69 +414,10 @@ var eTodo;
     }
     eTodo.sendOwner = sendOwner;
 
-    function notifyUser() {
-        "use strict";
-        var element = document.getElementById('messageField'),
-            msgType = element.childNodes[0].getAttribute('class'),
-            msgRec,
-            msgText,
-            title,
-            icon,
-            options;
-
-        if ((msgType === 'msgReceived') || (msgType === 'msgAlarm')) {
-            if (window.Notification && eTodoData.getSettings().useNotif) {
-                msgRec =
-                    element.
-                        childNodes[0].
-                        childNodes[0].
-                        childNodes[0].
-                        childNodes[2].textContent;
-
-                msgText =
-                    element.
-                        childNodes[0].
-                        childNodes[0].
-                        childNodes[1].
-                        childNodes[2].textContent;
-
-                title = (msgType === 'msgReceived') ?
-                'eTodo: ' + msgRec.split(' to ')[0] : 'eTodo: alarm';
-
-                icon = '/priv/Icons/etodoBig.png';
-
-                options = {
-                    body: msgText,
-                    tag: 'preset',
-                    icon: icon
-                };
-            }
-            if (eTodoData.getSettings().useNotif) {
-                if (Notification.permission === "default") {
-                    Notification.requestPermission(function () {
-                        new Notification(title, options);
-                    });
-                } else {
-                    if (Notification.permission === "granted") {
-                        new Notification(title, options);
-                    }
-                }
-            }
-
-            if (window.navigator &&
-                window.navigator.vibrate &&
-                eTodoData.getSettings().useVibrate) {
-                // Vibrate mobile device
-                navigator.vibrate(1000);
-            }
-        }
-    }
-
     function handleResult(responseText, status) {
         "use strict";
         if (status === 200 && responseText !== "noMessages") {
             document.getElementById('messageField').innerHTML = responseText;
-            notifyUser();
         }
         setTimeout(checkForMessage, 1000);
     }
@@ -491,10 +432,6 @@ var eTodo;
                 handleResult(AJAX.responseText, AJAX.status);
             }
         });
-
-        if (Notification.permission === "default") {
-            Notification.requestPermission(function () {});
-        }
     }
     eTodo.checkForMessage = checkForMessage;
 
