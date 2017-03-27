@@ -2121,8 +2121,3 @@ compactTable(User) ->
         ?descCompact ->
             true
     end.
-
-checked(true) ->
-    {checked, true};
-checked(false) ->
-    [].
