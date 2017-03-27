@@ -23,6 +23,7 @@
          assignLists/3,
          clearUndo/0,
          delMessages/2,
+         delMessagesFromOrTo/2,
          delTodo/2,
          delTodo/3,
          delTodo/4,
@@ -154,6 +155,9 @@ assignLists(User, Uid, Lists) ->
 
 delMessages(User, Type) ->
     gen_server:call(?MODULE, {delMessages, User, Type}).
+
+delMessagesFromOrTo(User, FromOrTo) ->
+    gen_server:call(?MODULE, {delMessagesFromOrTo, User, FromOrTo}).
 
 delReminder(AlarmCfg) ->
     gen_server:call(?MODULE, {delReminder, AlarmCfg}).
@@ -588,6 +592,14 @@ handle_call(Event = {assignLists, User, Uid, Lists}, _From, State) ->
     {reply, Result, State2};
 handle_call({delMessages, User, Type}, _From, State) ->
     Messages = match(#messages{userName = User, type = Type, _ = '_'}),
+    DelFun   = fun() ->
+                       [mnesia:delete_object(Message) || Message <- Messages]
+               end,
+    Result   = mnesia:transaction(DelFun),
+    {reply, Result, State};
+handle_call({delMessagesFromOrTo, User, FromOrTo}, _From, State) ->
+    Result1  = match(#messages{userName = User, type = msgEntry, _ = '_'}),
+    Messages = filterMessages(FromOrTo, Result1),
     DelFun   = fun() ->
                        [mnesia:delete_object(Message) || Message <- Messages]
                end,

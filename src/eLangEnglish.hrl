@@ -60,6 +60,7 @@
 -define(englishDef, #{
           clearLinkedText => "Clear linked files",
           clearMsgText    => "Clear chat messages",
+          clearShownText  => "Clear shown chat messages",
           clearSysText    => "Clear system messages",
           clearRemText    => "Clear reminders"
          }).

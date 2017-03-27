@@ -221,6 +221,7 @@ doInitiateGUI(Language, Components, GUIState) ->
 
     %% Make message menu update
     wxMenu:setLabel(GUIState#guiState.msgMenu, ?clearMsg,    ?clearMsgText(Language)),
+    wxMenu:setLabel(GUIState#guiState.msgMenu, ?clearShown,  ?clearShownText(Language)),
     wxMenu:setLabel(GUIState#guiState.msgMenu, ?clearSys,    ?clearSysText(Language)),
     wxMenu:setLabel(GUIState#guiState.msgMenu, ?clearRem,    ?clearRemText(Language)),
     wxMenu:setLabel(GUIState#guiState.msgMenu, ?clearLinked, ?clearLinkedText(Language)).

@@ -60,6 +60,7 @@
 -define(swedishDef, #{
           clearLinkedText => "Rensa länkade filer",
           clearMsgText    => "Rensa chat meddelanden",
+          clearShownText  => "Rensa visade chat meddelanden",
           clearSysText    => "Rensa system meddelanden",
           clearRemText    => "Rensa påminnelser"
          }).

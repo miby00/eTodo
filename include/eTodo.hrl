@@ -327,9 +327,10 @@
 -define(useRemote,        1051).
 
 -define(clearMsg,         1060).
--define(clearRem,         1061).
--define(clearLinked,      1062).
--define(clearSys,         1063).
+-define(clearShown,       1061).
+-define(clearRem,         1062).
+-define(clearLinked,      1063).
+-define(clearSys,         1064).
 
 -define(assigned,         1065).
 
@@ -347,11 +348,13 @@
 
 %% Constants for gui
 -define(clearMsgText,       ?tr(clearMsgText)).
+-define(clearShownText,     ?tr(clearShownText)).
 -define(clearSysText,       ?tr(clearSysText)).
 -define(clearRemText,       ?tr(clearRemText)).
 -define(clearLinkedText,    ?tr(clearLinkedText)).
 
 -define(clearMsgText(LANG),    ?tr(LANG, clearMsgText)).
+-define(clearShownText(LANG),  ?tr(LANG, clearShownText)).
 -define(clearSysText(LANG),    ?tr(LANG, clearSysText)).
 -define(clearRemText(LANG),    ?tr(LANG, clearRemText)).
 -define(clearLinkedText(LANG), ?tr(LANG, clearLinkedText)).

@@ -2822,13 +2822,20 @@ confirmRemove(State, Frame, User, Type, GuiDesc) ->
                                {style,   ?wxYES_NO}]),
     case wxMessageDialog:showModal(Dlg) of
         ?wxID_YES ->
-            eTodoDB:delMessages(User, Type),
+            delMessages(User, Type, State),
             wxMessageDialog:destroy(Dlg),
             updateMsgWindow(State, User);
         _ ->
             wxMessageDialog:destroy(Dlg),
             State
     end.
+
+delMessages(User, shown, #guiState{msgCfg = {false, _Users}}) ->
+    eTodoDB:delMessages(User, msgEntry);
+delMessages(User, shown, #guiState{msgCfg = {true, Users}}) ->
+    eTodoDB:delMessagesFromOrTo(User, Users);
+delMessages(User, Type, _State) ->
+    eTodoDB:delMessages(User, Type).
 
 confirmRemoveLinked(State, Frame) ->
     Dlg = wxMessageDialog:new(Frame, "Are you sure you want to remove "
@@ -2854,6 +2861,8 @@ guiEvent(_Type, MenuOption, _Frame,
     State;
 guiEvent(_Type, ?clearMsg, Frame, State = #guiState{user = User}) ->
     confirmRemove(State, Frame, User, msgEntry, "chat messages");
+guiEvent(_Type, ?clearShown, Frame, State = #guiState{user = User}) ->
+    confirmRemove(State, Frame, User, shown, "shown chat messages");
 guiEvent(_Type, ?clearSys, Frame, State = #guiState{user = User}) ->
     confirmRemove(State, Frame, User, systemEntry, "system messages");
 guiEvent(_Type, ?clearRem, Frame, State = #guiState{user = User}) ->
