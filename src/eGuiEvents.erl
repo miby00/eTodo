@@ -324,9 +324,9 @@ checkIfLogin(Frame) ->
     end.
 
 loginToCircle(Default, OldUser, User, Circle, Password, Md5Pwd,
-              State = #guiState{loginDlg = Login,
-                                loggedIn = LoggedIn,
-                                frame    = Frame}) ->
+              State = #guiState{loginDlg    = Login,
+                                loggedIn    = LoggedIn,
+                                frame       = Frame}) ->
     ShowLoginObj = wxXmlResource:xrcctrl(Login, "showLogin",  wxCheckBox),
     ShowLogin    = wxCheckBox:isChecked(ShowLoginObj),
     OldPwd       = {User, Circle, Md5Pwd},
@@ -357,6 +357,7 @@ loginToCircle(Default, OldUser, User, Circle, Password, Md5Pwd,
     State6 = updateMsgWindow(State5, User),
     eSMTP:setUser(User),
     eSMTP:updateConfig(),
+    setStyleSheet(User, UserCfg),
     focusAndSelect(State6#guiState{loggedIn = true}).
 
 loginCancelEvent(_Type, _Id, _Frame,  State = #guiState{loginDlg = Login}) ->
@@ -2519,7 +2520,6 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     EHostObj    = wxXmlResource:xrcctrl(Settings, "eTodoHostName",    wxTextCtrl),
     EmailObj    = wxXmlResource:xrcctrl(Settings, "emailAddress",     wxTextCtrl),
     WOnObj      = wxXmlResource:xrcctrl(Settings, "webUIEnabled",     wxCheckBox),
-    ThemeObj    = wxXmlResource:xrcctrl(Settings, "themeRadioBox",    wxRadioBox),
     WPOnObj     = wxXmlResource:xrcctrl(Settings, "webProxyEnabled",  wxCheckBox),
     WPHostObj   = wxXmlResource:xrcctrl(Settings, "webProxyHost",     wxTextCtrl),
     WPPortObj   = wxXmlResource:xrcctrl(Settings, "webProxyPort",     wxTextCtrl),
@@ -2530,22 +2530,9 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     SMTPPwdObj  = wxXmlResource:xrcctrl(Settings, "smtpPwd",          wxTextCtrl),
     SMTPAuthObj = wxXmlResource:xrcctrl(Settings, "smtpAuth",         wxChoice),
     NotTimeObj  = wxXmlResource:xrcctrl(Settings, "notificationTime", wxSpinCtrl),
+    ThemeObj    = wxXmlResource:xrcctrl(Settings, "themeRadioBox",    wxRadioBox),
 
-    FileName   = lists:concat(["styles_", User, ".css"]),
-    DestFile   = filename:join([getRootDir(), "www", "priv", "css", FileName]),
-    BlueTheme  = filename:join([getRootDir(),
-                                "www", "priv", "css", "styles.css"]),
-    BlackTheme = filename:join([getRootDir(),
-                                "www", "priv", "css", "styles-black.css"]),
-
-    Selection = case wxRadioBox:getSelection(ThemeObj) of
-                    0 ->
-                        file:copy(BlueTheme,  DestFile),
-                        0;
-                    1 ->
-                        file:copy(BlackTheme, DestFile),
-                        1
-                end,
+    Selection   = wxRadioBox:getSelection(ThemeObj),
 
     PeerUser    = wxTextCtrl:getValue(PeerObj),
     PeerHost    = wxTextCtrl:getValue(HostObj),
@@ -2600,11 +2587,26 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
                                conPort          = toInt(EPort),
                                theme            = Selection,
                                notificationTime = NotTime},
+    setStyleSheet(User, UserCfg2),
     eTodoDB:saveUserCfg(UserCfg2),
     executeChanges(UserCfg, UserCfg2),
     wxDialog:hide(Settings),
     eSMTP:updateConfig(),
     State.
+
+setStyleSheet(User, #userCfg{theme = Selection}) ->
+    FileName   = lists:concat(["styles_", User, ".css"]),
+    DestFile   = filename:join([getRootDir(), "www", "priv", "css", FileName]),
+    BlueTheme  = filename:join([getRootDir(),
+                                "www", "priv", "css", "styles.css"]),
+    BlackTheme = filename:join([getRootDir(),
+                                "www", "priv", "css", "styles-black.css"]),
+    case Selection of
+        0 ->
+            file:copy(BlueTheme, DestFile);
+        1 ->
+            file:copy(BlackTheme, DestFile)
+    end.
 
 toInt(Value) when is_list(Value) ->
     case catch list_to_integer(Value) of

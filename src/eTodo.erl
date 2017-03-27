@@ -215,6 +215,11 @@ init([Arg]) ->
     {WXFrame, State} = initGUI(Arg),
     eLang:initiateGUI(State),
     file:set_cwd(WorkDir),
+
+    %% Ensure linked dir exist.
+    LinkedDir = filename:join([getRootDir(), "priv", "www", "linkedFiles"]),
+    filelib:ensure_dir(LinkedDir),
+
     {WXFrame, State}.
 
 initGUI(Arg) ->
