@@ -353,7 +353,8 @@ handle_call(getPort, _From, State = #state{port = Port}) ->
     {reply, Port, State};
 
 handle_call(getMessages, _From, State = #state{messages = Messages}) ->
-    {reply, Messages, State};
+    TopMessages = top(Messages, 5),
+    {reply, TopMessages, State};
 
 handle_call({login, _SessionId, _Env, _Input}, _From,
             State = #state{user = User}) ->
