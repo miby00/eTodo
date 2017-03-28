@@ -1965,7 +1965,7 @@ saveFile(FileName, Img, CT) ->
              end,
     case wxBitmap:saveFile(Bitmap, FileName, ?wxBITMAP_TYPE_PNG) of
         true ->
-            list_to_binary(FileName);
+            {CT, list_to_binary(FileName)};
         false ->
             CT
     end.

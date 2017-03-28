@@ -201,9 +201,15 @@ parse(<<$), Rest/binary>>, [{ilink, 1, CT}, {ilDesc, PT}|St], PL, CL, Dir, Acc) 
                 addCT(<<"![">>, St), PL, CL, Dir, Acc);
         {ok, {Scheme, _UserInfo, _Host, _Port, _Path, _Query}}
             when (Scheme == http) or (Scheme == https) ->
-            LUrl = eGuiFunctions:convertToLocal(CT),
-            Url  = <<"<img src='", LUrl/binary, "' alt='", PT/binary, "' />">>,
-            convert(Rest, addCT(Url, St), PL, CL, Dir, Acc);
+            case eGuiFunctions:convertToLocal(CT) of
+                {Original, LUrl} ->
+                    Url  = <<"<img src='", LUrl/binary, "' alt='", PT/binary, "' />">>,
+                    HRef = <<"<a href='", Original/binary, "'>", Url/binary, "</a>">>,
+                    convert(Rest, addCT(HRef, St), PL, CL, Dir, Acc);
+                CT ->
+                    Url  = <<"<img src='", CT/binary, "' alt='", PT/binary, "' />">>,
+                    convert(Rest, addCT(Url, St), PL, CL, Dir, Acc)
+            end;
         _ ->
             convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
                 addCT(<<"![">>, St), PL, CL, Dir, Acc)
