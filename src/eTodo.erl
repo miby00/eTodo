@@ -217,7 +217,8 @@ init([Arg]) ->
     file:set_cwd(WorkDir),
 
     %% Ensure linked dir exist.
-    LinkedDir = filename:join([getRootDir(), "priv", "www", "linkedFiles"]),
+    LinkedDir = filename:join([getRootDir(), "www", "linkedFiles"]),
+    io:format("~s~n", [LinkedDir]),
     filelib:ensure_dir(LinkedDir),
 
     {WXFrame, State}.
