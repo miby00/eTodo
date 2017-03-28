@@ -218,7 +218,6 @@ init([Arg]) ->
 
     %% Ensure linked dir exist.
     LinkedDir = filename:join([getRootDir(), "www", "linkedFiles"]),
-    io:format("~s~n", [LinkedDir]),
     filelib:ensure_dir(LinkedDir),
 
     {WXFrame, State}.
