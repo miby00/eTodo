@@ -521,11 +521,12 @@ nextPeer(_PeerUser, #conCfg{userName = User,
     end,
     {next, State};
 nextPeer(PeerUser, #conCfg{userName = PeerUser,
-                           port     = Port}, State) ->
+                           port     = Port,
+                           email    = Email}, State) ->
     %% This is data a peer we (got) connected to has about itself.
     %% No need to connect again - but use some of it's data.
     PeerConCfg   = getConnection(PeerUser),
-    eTodoDB:updateConnection(PeerConCfg#conCfg{port = Port}),
+    eTodoDB:updateConnection(PeerConCfg#conCfg{port = Port, email = Email}),
     {next, State};
 nextPeer(PeerUser, ConCfg = #conCfg{userName = RemoteUser},
          State = #state{user = User}) ->
