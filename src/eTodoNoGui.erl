@@ -262,8 +262,8 @@ handle_cast(_Request, State) ->
              {noreply, NewState :: #guiState{}, timeout() | hibernate} |
              {stop, Reason :: term(), NewState :: #guiState{}}).
 handle_info(sendNotification, State = #guiState{user = User, reply = Reply}) ->
-    ConCfg1 = eTodoDB:getConnection(User),
-    ConCfg2 = eTodoDB:getConnection(Reply),
+    ConCfg1 = default(eTodoDB:getConnection(User), #conCfg{}),
+    ConCfg2 = default(eTodoDB:getConnection(Reply), #conCfg{}),
     case ConCfg1#conCfg.email of
         undefined ->
             ok;

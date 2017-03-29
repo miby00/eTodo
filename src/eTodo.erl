@@ -1065,8 +1065,8 @@ handle_info(Msg = {setPomodoroClock, Obj1, Obj2, Obj3, Obj4}, State) ->
     erlang:send_after(1000, self(), Msg),
     {noreply, State};
 handle_info(sendNotification, State = #guiState{user = User, reply = Reply}) ->
-    ConCfg1 = eTodoDB:getConnection(User),
-    ConCfg2 = eTodoDB:getConnection(Reply),
+    ConCfg1 = default(eTodoDB:getConnection(User), #conCfg{}),
+    ConCfg2 = default(eTodoDB:getConnection(Reply), #conCfg{}),
     case ConCfg1#conCfg.email of
         undefined ->
             ok;
