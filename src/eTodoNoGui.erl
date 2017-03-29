@@ -119,6 +119,8 @@ init([]) ->
     ePeerEM:add_handler(eTodoEH, {User, noGui}),
     ePeerEM:connectToCircle(User, Circle, Pwd),
     eTodoAlarm:loggedIn(User),
+    eSMTP:setUser(User),
+    eSMTP:updateConfig(),
     {ok, #guiState{mode = noGui, taskList = ?defTaskList, user = User}}.
 
 %%--------------------------------------------------------------------
