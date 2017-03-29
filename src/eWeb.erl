@@ -353,7 +353,7 @@ handle_call(getPort, _From, State = #state{port = Port}) ->
     {reply, Port, State};
 
 handle_call(getMessages, _From, State = #state{messages = Messages}) ->
-    TopMessages = top(Messages, 5),
+    TopMessages = lists:reverse(top(Messages, 5)),
     {reply, TopMessages, State};
 
 handle_call({login, _SessionId, _Env, _Input}, _From,
@@ -669,6 +669,7 @@ handle_call({message, _SessionId, _Env, Input}, _From,
     Dict = makeDict(Input),
     {ok, List} = find("list",   Dict),
 
+    eTodo:eWebMsgRead(),
     [gen_server:reply(From, "noMessages") || From <- Subs],
     TopMessages = top(Messages, 100),
     HtmlPage    = [eHtml:pageHeader(
@@ -953,6 +954,7 @@ handle_cast({appendToPage, Html}, State = #state{subscribers = [],
 handle_cast({appendToPage, Html}, State = #state{subscribers = Subs,
                                                  messages    = Messages,
                                                  lastMsg     = LastMsg}) ->
+    eTodo:eWebMsgRead(),
     FlatMsg   = flattenMsg(Html),
     Messages2 = [FlatMsg|Messages],
     [gen_server:reply(From, Messages2) || From <- Subs],
@@ -1188,7 +1190,7 @@ top(Messages, Num) ->
 top([], _Num, Acc) ->
     lists:reverse(Acc);
 top(_Messages, 0, Acc) ->
-    Acc;
+    lists:reverse(Acc);
 top([Message|Rest], Num, Acc) ->
     top(Rest, Num - 1, [Message|Acc]).
 

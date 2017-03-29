@@ -15,6 +15,7 @@
 
 %% API
 -export([
+         addIfEmail/3,
          addTodo/4,
          appendToPage/4,
          appendToPage/6,
@@ -23,6 +24,7 @@
          checkUndoStatus/1,
          clearAndInitiate/2,
          clearMsgCounter/1,
+         clearNotificationTimer/1,
          clearStatusBar/1,
          convertToLocal/1,
          date2wxDate/1,
@@ -36,6 +38,7 @@
          generateTimeLog/1,
          generateWorkLog/1,
          getCheckedItems/1,
+         getNotificationTime/1,
          getPortrait/1,
          getTaskList/1,
          getTodoList/2,
@@ -49,6 +52,7 @@
          setColor/2,
          setColumnWidth/4,
          setDoneTimeStamp/3,
+         setMsgCounter/2,
          setOwner/3,
          setPeerStatusIfNeeded/1,
          setPortrait/2,
@@ -65,6 +69,7 @@
          type/1,
          updateGui/3,
          updateGui/4,
+         fillEmailCheckBox/1,
          updateMsgWindow/2,
          updateTodo/4,
          updateTodoInDB/2,
@@ -1694,6 +1699,35 @@ toClipboard(Text, State) ->
     end.
 
 %%======================================================================
+%% Function : fillEmailCheckBox(State) -> void
+%% Purpose  : Fill email check box with all email users.
+%% Types    :
+%%----------------------------------------------------------------------
+%% Notes    :
+%%======================================================================
+fillEmailCheckBox(State = #guiState{user = User}) ->
+    EmailCheckBox = obj("emailCheckBox", State),
+    Filter = fun (#conCfg{email    = undefined}) -> false;
+                 (#conCfg{email    = ""})        -> false;
+                 (#conCfg{})                     -> true
+             end,
+    EmailUsers = lists:filter(Filter, eTodoDB:getConnections()),
+    wxCheckListBox:clear(EmailCheckBox),
+    [wxCheckListBox:append(EmailCheckBox, EmailUser) ||
+        #conCfg{userName = EmailUser} <- EmailUsers, EmailUser =/= User].
+
+addIfEmail(Peer, Checked, State) ->
+    EmailCheckBox = obj("emailCheckBox", State),
+    case eTodoDB:getConnection(Peer) of
+        #conCfg{email = undefined} -> ok;
+        #conCfg{email = ""}        -> ok;
+        #conCfg{email = _Email} ->
+            Index = wxCheckListBox:getCount(EmailCheckBox),
+            wxCheckListBox:append(EmailCheckBox, Peer),
+            wxCheckListBox:check(EmailCheckBox, Index, [{check, Checked}])
+    end.
+
+%%======================================================================
 %% Function : updateMsgWindow(State, User) -> NewState
 %% Purpose  : Update msg window.
 %% Types    :
@@ -1728,7 +1762,7 @@ getMessages(User, #guiState{msgCfg = {false, _Users}}) ->
 
 clearMsgCounter(State = #guiState{user = User,
                                   unreadMsgs2 = {C1, C2, C3}}) ->
-    Notebook1 = obj("mainNotebook",  State),
+    Notebook1 = obj("mainNotebook",   State),
     Notebook2 = obj("msgWinNotebook", State),
     ChatPanel = wxNotebook:getPage(Notebook2, 0),
     RemPanel  = wxNotebook:getPage(Notebook2, 1),

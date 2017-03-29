@@ -20,7 +20,9 @@
          getTimeReportData/0,
          getTaskList/0]).
 
--export([loggedIn/1,
+-export([eWebMsgRead/0,
+         eWebNotification/0,
+         loggedIn/1,
          taskListDeleted/1,
          todoDeleted/1,
          todoUpdated/2,
@@ -35,7 +37,9 @@
          terminate/2,
          code_change/3]).
 
--import(eTodoUtils, [getRootDir/0]).
+-import(eTodoUtils, [getRootDir/0, default/2]).
+
+-import(eGuiFunctions, [getNotificationTime/1, clearNotificationTimer/1]).
 
 -define(SERVER, eTodo).
 
@@ -92,6 +96,12 @@ taskListDeleted(List) ->
 
 statusUpdate(UserStatus, Avatar) ->
     gen_server:cast(?SERVER, {statusUpdate, UserStatus, Avatar}), ok.
+
+eWebNotification() ->
+    gen_server:cast(?SERVER, eWebNotification), ok.
+
+eWebMsgRead() ->
+    gen_server:cast(?SERVER, eWebMsgRead), ok.
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -226,6 +236,14 @@ handle_cast({statusUpdate, UserStatus, Avatar}, State) ->
     {noreply, State};
 handle_cast({updateTaskList, TaskList}, State = #guiState{mode = noGui}) ->
     {noreply, State#guiState{taskList = TaskList}};
+handle_cast(eWebNotification, State = #guiState{mode = noGui}) ->
+    clearNotificationTimer(State),
+    NotificationTime = getNotificationTime(State#guiState.user),
+    TimerRef = erlang:send_after(NotificationTime, self(), sendNotification),
+    {noreply, State#guiState{notificationTimer = TimerRef}};
+handle_cast(eWebMsgRead, State = #guiState{mode = noGui}) ->
+    clearNotificationTimer(State),
+    {noreply, State#guiState{notificationTimer = undefined}};
 handle_cast(_Request, State) ->
     {noreply, State}.
 
@@ -243,6 +261,18 @@ handle_cast(_Request, State) ->
              {noreply, NewState :: #guiState{}} |
              {noreply, NewState :: #guiState{}, timeout() | hibernate} |
              {stop, Reason :: term(), NewState :: #guiState{}}).
+handle_info(sendNotification, State = #guiState{user = User, reply = Reply}) ->
+    ConCfg1 = eTodoDB:getConnection(User),
+    ConCfg2 = eTodoDB:getConnection(Reply),
+    case ConCfg1#conCfg.email of
+        undefined ->
+            ok;
+        To ->
+            ReplyTo = default(ConCfg2#conCfg.email, To),
+            Msg = eMime:constructMail(User, "eTodo notification", ReplyTo, To),
+            eSMTP:sendMail(To, To, Msg)
+    end,
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 

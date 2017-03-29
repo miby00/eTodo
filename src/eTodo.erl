@@ -21,6 +21,8 @@
          alarmEntry/2,
          checkConflict/5,
          delayedUpdateGui/2,
+         eWebMsgRead/0,
+         eWebNotification/0,
          getSearchCfg/0,
          getTaskList/0,
          getFilterCfg/1,
@@ -67,11 +69,13 @@
                         chatMsgStatusBar/3,
                         checkStatus/1,
                         checkUndoStatus/1,
+                        clearNotificationTimer/1,
                         clearStatusBar/1,
                         deleteAndUpdate/3,
                         doLogout/2,
                         eTodoUpdate/2,
                         focusAndSelect/2,
+                        getNotificationTime/1,
                         getTaskList/1,
                         getTodoList/2,
                         getTodoLists/1,
@@ -189,6 +193,12 @@ todoDeleted(Uid) ->
 checkConflict(User, PeerUser, OldLocalConTime, OldRemoteConTime, Diff) ->
     wx_object:cast(?MODULE, {checkConflict, User, PeerUser,
                              OldLocalConTime, OldRemoteConTime, Diff}), ok.
+
+eWebNotification() ->
+    wx_object:cast(?MODULE, eWebNotification), ok.
+
+eWebMsgRead() ->
+    wx_object:cast(?MODULE, eWebMsgRead), ok.
 
 %%====================================================================
 %% gen_server callbacks
@@ -491,6 +501,8 @@ initGUI(Arg) ->
 
     State9 = updateMsgWindow(State8, DefUser),
 
+    eGuiFunctions:fillEmailCheckBox(State9),
+
     {Frame, checkStatus(State9#guiState{columns = Columns})}.
 
 setWindowSize(DefUser, Frame) ->
@@ -540,6 +552,16 @@ setSplitterPos(UserCfg, Frame) ->
     case UserCfg#userCfg.splitHorizMsg of
         MsgPos2 when is_integer(MsgPos2) ->
             wxSplitterWindow:setSashPosition(SplitterMsg2, MsgPos2);
+        _ ->
+            ok
+    end,
+
+    %% Set offline users splitter
+    SplitterUsers = obj("splitHorizUsers", Frame),
+
+    case UserCfg#userCfg.splitHorizUsers of
+        UserPos when is_integer(UserPos) ->
+            wxSplitterWindow:setSashPosition(SplitterUsers, UserPos);
         _ ->
             ok
     end.
@@ -701,22 +723,34 @@ handle_cast({alarmEntry, Uid, Text}, State) ->
     {noreply, State3};
 handle_cast({loggedIn, User}, State = #guiState{userStatus = Users}) ->
     UserObj      = obj("userCheckBox",  State),
+    EmailCBObj   = obj("emailCheckBox", State),
     StatusBarObj = obj("mainStatusBar", State),
     Opt = [{number, 2}],
     wxStatusBar:setStatusText(StatusBarObj, User ++ " logged in.", Opt),
+    UIndex = wxCheckListBox:getCount(UserObj),
     wxCheckListBox:append(UserObj, User),
     Users2     = lists:keydelete(User, #userStatus.userName, Users),
     UserStatus = #userStatus{userName = User},
     State2 = userStatusUpdate(State#guiState{userStatus = [UserStatus|Users2]}),
+    case wxCheckListBox:findString(EmailCBObj, User) of
+        Index when Index >= 0 ->
+            Checked = wxCheckListBox:isChecked(EmailCBObj, Index),
+            wxCheckListBox:delete(EmailCBObj, Index),
+            wxCheckListBox:check(UserObj, UIndex, [{check, Checked}]);
+        _ ->
+            ok
+    end,
     {noreply, State2};
 handle_cast({loggedOut, User}, State = #guiState{userStatus= Users}) ->
-    UserObj = obj("userCheckBox",  State),
-    Count   = wxCheckListBox:getCount(UserObj),
-    State2  =
+    UserObj    = obj("userCheckBox",  State),
+    Count      = wxCheckListBox:getCount(UserObj),
+    State2 =
         case Count > 0 of
             true ->
                 case wxCheckListBox:findString(UserObj, User) of
                     Index when Index >= 0 ->
+                        Checked = wxCheckListBox:isChecked(UserObj, Index),
+                        eGuiFunctions:addIfEmail(User, Checked, State),
                         wxCheckListBox:delete(UserObj, Index);
                     _ ->
                         ok
@@ -854,6 +888,18 @@ handle_cast({delayedUpdateGui, ETodo, Index}, State) ->
 handle_cast({launchBrowser, URL}, State) ->
     wx_misc:launchDefaultBrowser(URL),
     {noreply, State};
+handle_cast(eWebNotification, State) ->
+    {noreply, State};
+handle_cast(eWebMsgRead, State) ->
+    clearNotificationTimer(State),
+    Notebook1 = obj("mainNotebook",   State),
+    Notebook2 = obj("msgWinNotebook", State),
+    eGuiFunctions:setMsgCounter(Notebook1, 0),
+    wxNotebook:setPageText(Notebook2, 0, "Chat"),
+    wxNotebook:setPageText(Notebook2, 1, "Reminder"),
+    wxNotebook:setPageText(Notebook2, 2, "System"),
+    {noreply, State#guiState{notificationTimer = undefined,
+                             unreadMsgs = 0, unreadMsgs2 = {0, 0, 0}}};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -1311,7 +1357,9 @@ saveEtodoSettings(#guiState{frame = Frame, user = User, filter = Filter}) ->
     SplitterMsg     = obj("splitVerMsg", Frame),
     MsgPos          = wxSplitterWindow:getSashPosition(SplitterMsg),
     SplitterMsg2    = obj("splitHorizMsg", Frame),
+    SplitterUsers   = obj("splitHorizUsers", Frame),
     MsgPos2         = wxSplitterWindow:getSashPosition(SplitterMsg2),
+    UserPos         = wxSplitterWindow:getSashPosition(SplitterUsers),
     Plugins         = ePluginServer:getConfiguredPlugins(),
     UserCfg         = eTodoDB:readUserCfg(User),
 
@@ -1320,6 +1368,7 @@ saveEtodoSettings(#guiState{frame = Frame, user = User, filter = Filter}) ->
                                         splitterComment = CommentPos,
                                         splitterMsg     = MsgPos,
                                         splitHorizMsg   = MsgPos2,
+                                        splitHorizUsers = UserPos,
                                         filter          = Filter,
                                         plugins         = Plugins}).
 
@@ -1603,4 +1652,3 @@ mondayThisWeek() ->
     DayNum   = calendar:day_of_the_week(date()), %% Monday = 1, Tuesday = 2, ...
     GregDays = calendar:date_to_gregorian_days(date()) + 1 - DayNum,
     calendar:gregorian_days_to_date(GregDays).
-

@@ -667,31 +667,57 @@ msgTextCtrlEvent(set_focus, _Id, _Frame,
     State.
 
 
-sendChatMsgEvent(_Event, _Id, _Frame, State) ->
-    UserObj = obj("userCheckBox", State),
-    MsgObj  = obj("msgTextWin",   State),
-    Users   = getCheckedItems(UserObj),
-    case getCheckedItems(UserObj) of
-        [] ->
+sendChatMsgEvent(_Event, _Id, _Frame, State = #guiState{user = User}) ->
+    UserObj  = obj("userCheckBox",  State),
+    EmailObj = obj("emailCheckBox", State),
+    MsgObj   = obj("msgTextWin",   State),
+    Users    = getCheckedItems(UserObj),
+    case {getCheckedItems(UserObj), getCheckedItems(EmailObj)} of
+        {[], []} ->
             MsgDlg = wxMessageDialog:new(MsgObj, "Message has no recipient",
                                          [{caption, "Send message failed"}]),
             wxDialog:showModal(MsgDlg),
             wxDialog:destroy(MsgDlg),
             State;
-        Users ->
-            sendMsg(Users, State)
+        {Users, EmailUsers} ->
+            MsgTextCtrl = obj("msgTextCtrl",  State),
+            MsgObj      = obj("msgTextWin",   State),
+            MsgText     = wxTextCtrl:getValue(MsgTextCtrl),
+            AllUsers    = Users ++ EmailUsers,
+
+            appendToPage(MsgObj, msgEntry, User, AllUsers,
+                         eHtml:generateMsg(User, User, AllUsers, MsgText), State),
+
+            wxTextCtrl:clear(MsgTextCtrl),
+
+            State2 = sendMsg(Users, MsgText, State),
+            sendEmails(EmailUsers, MsgText, AllUsers, State2)
     end.
 
-sendMsg(Users, State = #guiState{user = User}) ->
-    MsgTextCtrl = obj("msgTextCtrl",  State),
-    MsgObj      = obj("msgTextWin",   State),
-    MsgText     = wxTextCtrl:getValue(MsgTextCtrl),
-
-    wxTextCtrl:clear(MsgTextCtrl),
-    appendToPage(MsgObj, msgEntry, User, Users,
-                 eHtml:generateMsg(User, User, Users, MsgText), State),
+sendMsg([], _MsgText, State) ->
+    State;
+sendMsg(Users, MsgText, State = #guiState{user = User}) ->
     ePeerEM:sendMsg(User, Users, msgEntry, MsgText),
     State#guiState{msgStatusSent = false}.
+
+sendEmails([], _MsgText, _Users, State) ->
+    State;
+sendEmails([Peer|Rest], MsgText, Users, State = #guiState{user = User}) ->
+    ConCfg1 = eTodoDB:getConnection(User),
+    ConCfg2 = eTodoDB:getConnection(Peer),
+    case {ConCfg1#conCfg.email, ConCfg2#conCfg.email}  of
+        {_, undefined} ->
+            ok;
+        {undefined, undefined} ->
+            ok;
+        {From, To} ->
+            {_, Msg} = eHtml:generateMsg(User, User, Users, MsgText),
+            Msg2     = iolist_to_binary(Msg),
+            EmailMsg = eMime:constructMail(User, "eTodo message",
+                                           From, To, Msg2),
+            eSMTP:sendMail(From, To, EmailMsg)
+    end,
+    sendEmails(Rest, MsgText, Users, State).
 
 %%====================================================================
 %% Show right click menu on message window.
@@ -2272,7 +2298,9 @@ replyAllMenuEvent(_Type, _Id, _Frame, State = #guiState{reply    = Sender,
                                                         replyAll = ReplyAll}) ->
     Obj1 = obj("userCheckBox", State),
     Obj2 = obj("msgTextCtrl",  State),
+    Obj3 = obj("emailCheckBox", State),
     checkItemsInListWithClear(Obj1, [Sender|ReplyAll]),
+    checkItemsInListWithClear(Obj3, [Sender|ReplyAll]),
     wxTextCtrl:setFocus(Obj2),
     State.
 

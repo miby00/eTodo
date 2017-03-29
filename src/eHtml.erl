@@ -1215,10 +1215,10 @@ createOwnerDataCell(Owner, Users, Uid) ->
 %% Notes    :
 %%======================================================================
 generateMsg(Sender, Sender, Users, Text) ->
-    Icon = getIcon(Users),
-    Portrait = getPortrait(Sender),
+    Icon      = getIcon(Users),
+    Portrait  = getPortrait(Sender),
     WPortrait = getWebPortrait(Sender),
-    UserList = case Users of
+    UserList  = case Users of
                    [] ->
                        "";
                    _ ->

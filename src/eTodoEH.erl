@@ -223,7 +223,7 @@ sendMsg(_Sender, _Users, {systemEntry, Uid}, Text, State) ->
     ePluginServer:eReceivedSysMsg(Text).
 
 sendToGui(_Function, _Args, #state{mode = noGui}) ->
-    ok;
+    eTodo:eWebNotification();
 sendToGui(Function, Args, _State) ->
     apply(eTodo, Function, Args).
 

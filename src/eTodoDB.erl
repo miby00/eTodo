@@ -495,6 +495,7 @@ value(splitterMain)    -> 85;
 value(splitterComment) -> 250;
 value(splitterMsg)     -> 100;
 value(splitHorizMsg)   -> 500;
+value(splitHorizOff)   -> 500;
 value(_Column)         -> undefined.
 
 getLists(User) ->
@@ -572,6 +573,12 @@ handle_call({updateConnection, #conCfg{userName = ""}}, _From, State) ->
     {reply, ok, State};
 handle_call({updateConnection, #conCfg{userName = undefined}}, _From, State) ->
     {reply, ok, State};
+handle_call({updateConnection, ConCfg = #conCfg{email = undefined}},
+            _From, State) ->
+    OldCfg = read(conCfg, ConCfg#conCfg.userName),
+    NewCfg = ConCfg#conCfg{email = OldCfg#conCfg.email},
+    Result = mnesia:transaction(fun() -> mnesia:write(NewCfg) end),
+    {reply, Result, State};
 handle_call({updateConnection, ConCfg}, _From, State) ->
     Result = mnesia:transaction(fun() -> mnesia:write(ConCfg) end),
     {reply, Result, State};

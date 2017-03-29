@@ -67,6 +67,7 @@
         "dueDatePicker2"     => wxDatePickerCtrl,
         "dueDateUsed"        => wxCheckBox,
         "editMenu"           => wxMenu,
+        "emailCheckBox"      => wxCheckListBox,
         "endDate"            => wxDatePickerCtrl,
         "eTodoToolbar"       => wxToolBar,
         "exitMenuItem"       => wxMenuItem,
@@ -146,6 +147,7 @@
         "splitterComment"    => wxSplitterWindow,
         "splitVerMsg"        => wxSplitterWindow,
         "splitHorizMsg"      => wxSplitterWindow,
+        "splitHorizUsers"    => wxSplitterWindow,
         "startDate"          => wxDatePickerCtrl,
         "statusChoice"       => wxChoice,
         "statusChoice1"      => wxChoice,
@@ -226,10 +228,11 @@
                    smtpPort,
                    smtpUser,
                    smtpPwd,
-                   splitHorizMsg   = 150,
+                   splitHorizMsg   = 500,
                    unreadMsgs2     = {0, 0, 0},
                    smtpAuth,
-                   notificationTime}).
+                   notificationTime,
+                   splitHorizUsers = 500}).
 
 -record(listCfg,  {key,
                    userName,
