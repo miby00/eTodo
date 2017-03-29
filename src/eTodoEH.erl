@@ -222,8 +222,10 @@ sendMsg(_Sender, _Users, {systemEntry, Uid}, Text, State) ->
     eWeb:appendToPage(HtmlCSS),
     ePluginServer:eReceivedSysMsg(Text).
 
-sendToGui(_Function, _Args, #state{mode = noGui}) ->
+sendToGui(msgEntry, _Args, #state{mode = noGui}) ->
     eTodo:eWebNotification();
+sendToGui(_Function, _Args, #state{mode = noGui}) ->
+    ok;
 sendToGui(Function, Args, _State) ->
     apply(eTodo, Function, Args).
 
