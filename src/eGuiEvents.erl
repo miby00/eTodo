@@ -357,6 +357,11 @@ loginToCircle(Default, OldUser, User, Circle, Password, Md5Pwd,
     State6 = updateMsgWindow(State5, User),
     eSMTP:setUser(User),
     eSMTP:updateConfig(),
+
+    SendEmailCB = obj("emailCheckBox", State6),
+    SMTPEnabled = default(UserCfg#userCfg.smtpEnabled, false),
+    wxCheckListBox:enable(SendEmailCB, [{enable, SMTPEnabled}]),
+
     setStyleSheet(User, UserCfg),
     focusAndSelect(State6#guiState{loggedIn = true}).
 
@@ -2620,6 +2625,9 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     executeChanges(UserCfg, UserCfg2),
     wxDialog:hide(Settings),
     eSMTP:updateConfig(),
+
+    SendEmailCB = obj("emailCheckBox", State),
+    wxCheckListBox:enable(SendEmailCB, [{enable, SMTPEnabled}]),
     State.
 
 setStyleSheet(User, #userCfg{theme = Selection}) ->
