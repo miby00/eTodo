@@ -13765,7 +13765,7 @@
                                                 <property name="font"></property>
                                                 <property name="hidden"></property>
                                                 <property name="id">wxID_ANY</property>
-                                                <property name="label">Activate email notification</property>
+                                                <property name="label">Activate outgoing eTodo emails</property>
                                                 <property name="maximum_size"></property>
                                                 <property name="minimum_size"></property>
                                                 <property name="name">smtpEnabled</property>

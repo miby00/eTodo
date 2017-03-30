@@ -676,6 +676,7 @@ sendChatMsgEvent(_Event, _Id, _Frame, State = #guiState{user = User}) ->
     UserObj  = obj("userCheckBox",  State),
     EmailObj = obj("emailCheckBox", State),
     MsgObj   = obj("msgTextWin",   State),
+    UserCfg  = eTodoDB:readUserCfg(User),
     Users    = getCheckedItems(UserObj),
     case {getCheckedItems(UserObj), getCheckedItems(EmailObj)} of
         {[], []} ->
@@ -688,8 +689,13 @@ sendChatMsgEvent(_Event, _Id, _Frame, State = #guiState{user = User}) ->
             MsgTextCtrl = obj("msgTextCtrl",  State),
             MsgObj      = obj("msgTextWin",   State),
             MsgText     = wxTextCtrl:getValue(MsgTextCtrl),
-            AllUsers    = Users ++ EmailUsers,
 
+            AllUsers    = case UserCfg#userCfg.smtpEnabled of
+                              true ->
+                                  Users ++ EmailUsers;
+                              false ->
+                                  Users
+                          end,
             appendToPage(MsgObj, msgEntry, User, AllUsers,
                          eHtml:generateMsg(User, User, AllUsers, MsgText), State),
 
@@ -2427,20 +2433,17 @@ smtpEnabledEvent(_Type, _Id, _Frame,
     SMTPPortObj = wxXmlResource:xrcctrl(Settings, "smtpPort",      wxTextCtrl),
     SMTPUserObj = wxXmlResource:xrcctrl(Settings, "smtpUser",      wxTextCtrl),
     SMTPPwdObj  = wxXmlResource:xrcctrl(Settings, "smtpPwd",       wxTextCtrl),
-    EmailObj    = wxXmlResource:xrcctrl(Settings, "emailAddress",  wxTextCtrl),
 
     case wxCheckBox:isChecked(SMTPOnObj) of
         true ->
             wxTextCtrl:enable(SMTPSrvObj),
             wxTextCtrl:enable(SMTPUserObj),
             wxTextCtrl:enable(SMTPPwdObj),
-            wxTextCtrl:enable(EmailObj),
             wxTextCtrl:enable(SMTPPortObj);
         false ->
             wxTextCtrl:disable(SMTPSrvObj),
             wxTextCtrl:disable(SMTPUserObj),
             wxTextCtrl:disable(SMTPPwdObj),
-            wxTextCtrl:disable(EmailObj),
             wxTextCtrl:disable(SMTPPortObj)
     end,
     State.
