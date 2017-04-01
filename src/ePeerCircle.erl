@@ -811,8 +811,17 @@ handleConnectData(PeerUser, State = #state{connectData = ConData}) ->
 %% @spec queueAdd(ConOwner, ConList, ConQueue) -> NewConQueue
 %% @end
 %%--------------------------------------------------------------------
+
+%% Sort configured first, newly used second.
 queueAdd(ConOwner, ConList, ConQueue) ->
-    ConList2 = lists:keysort(#conCfg.distance, ConList),
+    SortFun = fun(#conCfg{updateTime = U1}, #conCfg{updateTime = U2}) ->
+                      case {U1, U2} of
+                          {configured, _} -> true;
+                          {_, configured} -> false;
+                          _               -> U1 > U2
+                      end
+              end,
+    ConList2 = lists:sort(SortFun, ConList),
     ConQueue ++ [{ConOwner, ConCfg} || ConCfg <- ConList2].
 
 %%--------------------------------------------------------------------
