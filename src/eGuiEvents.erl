@@ -1113,7 +1113,6 @@ userCheckBoxEvent(_Type, _Id, _Frame, State) ->
     setPeerStatusIfNeeded(State).
 
 emailCheckBoxEvent(_Type, _Id, _Frame, State) ->
-    Obj = obj("userCheckBox", State),
     setPeerStatusIfNeeded(State).
 
 userStatusChoiceEvent(_Type, _Id, _Frame, State) ->
