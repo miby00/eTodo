@@ -1408,10 +1408,12 @@ setPeerStatus(UserStatus = #userStatus{status = "Available"}, State) ->
     Obj1 = obj("peerAvailableIcon", State),
     Obj2 = obj("peerBusyIcon",      State),
     Obj3 = obj("peerAwayIcon",      State),
+    Obj4 = obj("peerOfflineIcon",   State),
 
     %% Set correct icon to show
     wxStaticBitmap:hide(Obj2),
     wxStaticBitmap:hide(Obj3),
+    wxStaticBitmap:hide(Obj4),
     wxStaticBitmap:show(Obj1),
 
     setPeerStatusTextAndLayout(UserStatus, State);
@@ -1419,10 +1421,12 @@ setPeerStatus(UserStatus = #userStatus{status = "Busy"}, State) ->
     Obj1 = obj("peerAvailableIcon", State),
     Obj2 = obj("peerBusyIcon",      State),
     Obj3 = obj("peerAwayIcon",      State),
+    Obj4 = obj("peerOfflineIcon",   State),
 
     %% Set correct icon to show
     wxStaticBitmap:hide(Obj1),
     wxStaticBitmap:hide(Obj3),
+    wxStaticBitmap:hide(Obj4),
     wxStaticBitmap:show(Obj2),
 
     setPeerStatusTextAndLayout(UserStatus, State);
@@ -1430,15 +1434,40 @@ setPeerStatus(UserStatus = #userStatus{status = "Away"}, State) ->
     Obj1 = obj("peerAvailableIcon", State),
     Obj2 = obj("peerBusyIcon",      State),
     Obj3 = obj("peerAwayIcon",      State),
+    Obj4 = obj("peerOfflineIcon",   State),
 
     %% Set correct icon to show
     wxStaticBitmap:hide(Obj1),
     wxStaticBitmap:hide(Obj2),
+    wxStaticBitmap:hide(Obj4),
     wxStaticBitmap:show(Obj3),
 
     setPeerStatusTextAndLayout(UserStatus, State);
-setPeerStatus(_UserStatus, State) ->
-    State.
+setPeerStatus(UserStatus = #userStatus{status = "Offline"}, State) ->
+    Obj1 = obj("peerAvailableIcon", State),
+    Obj2 = obj("peerBusyIcon",      State),
+    Obj3 = obj("peerAwayIcon",      State),
+    Obj4 = obj("peerOfflineIcon",   State),
+
+    %% Set correct icon to show
+    wxStaticBitmap:hide(Obj1),
+    wxStaticBitmap:hide(Obj2),
+    wxStaticBitmap:hide(Obj3),
+    wxStaticBitmap:show(Obj4),
+
+    setPeerStatusTextAndLayout(UserStatus, State);
+setPeerStatus(UserStatus = #userStatus{}, State) ->
+    setPeerStatus(UserStatus#userStatus{status    = "Away",
+                                        statusMsg = ""}, State);
+setPeerStatus(Peer, State) ->
+    case eTodoDB:getConnection(Peer) of
+        #conCfg{email = EmailAddress} ->
+            setPeerStatus(#userStatus{userName  = Peer,
+                                      statusMsg = EmailAddress,
+                                      status    = "Offline"}, State);
+        _ ->
+            State
+    end.
 
 setPeerStatusTextAndLayout(#userStatus{userName  = UserName,
                                        statusMsg = Message}, State) ->
@@ -1456,6 +1485,7 @@ setPeerStatusTextAndLayout(#userStatus{userName  = UserName,
     Obj2 = obj("peerStatusMsg", State),
     wxStaticText:setLabel(Obj2,   PeerMessage),
     wxStaticText:setToolTip(Obj2, PeerMessage),
+
     (catch setPortrait(UserName, State)),
     State.
 
@@ -1489,10 +1519,12 @@ getPortrait(Peer) ->
     end.
 
 setPeerStatusIfNeeded(State = #guiState{userStatus = Users}) ->
-    Obj   = obj("userCheckBox", State),
-    Index = wxCheckListBox:getSelection(Obj),
-    case Index >= 0 of
-        true ->
+    Obj     = obj("userCheckBox", State),
+    Index   = wxCheckListBox:getSelection(Obj),
+    Focus   = wxWindow:findFocus(),
+    UserCB  = wx:equal(Focus, Obj),
+    case {Index >= 0, UserCB} of
+        {true, true} ->
             User  = wxCheckListBox:getString(Obj, Index),
             case lists:keyfind(User, #userStatus.userName, Users) of
                 UserStatus when is_record(UserStatus, userStatus) ->
@@ -1500,8 +1532,19 @@ setPeerStatusIfNeeded(State = #guiState{userStatus = Users}) ->
                 false ->
                     clearPeerStatus(State)
             end;
-        false ->
-            ok
+        {false, true} ->
+            State;
+        _ ->
+            Obj2    = obj("emailCheckBox", State),
+            Index2  = wxCheckListBox:getSelection(Obj2),
+            EmailCB = wx:equal(Focus, Obj2),
+            case {Index2 >= 0, EmailCB} of
+                {true, true} ->
+                    OfflineUser = wxCheckListBox:getString(Obj2, Index2),
+                    setPeerStatus(OfflineUser, State);
+                _ ->
+                    State
+            end
     end,
     State.
 

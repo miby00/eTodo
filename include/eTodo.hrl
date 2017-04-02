@@ -108,6 +108,7 @@
         "peerAvailableIcon"  => wxStaticBitmap,
         "peerAwayIcon"       => wxStaticBitmap,
         "peerBusyIcon"       => wxStaticBitmap,
+        "peerOfflineIcon"    => wxStaticBitmap,
         "peerStatusMsg"      => wxStaticText,
         "pluginMenuItem"     => wxMenuItem,
         "portraitPeerIcon"   => wxStaticBitmap,

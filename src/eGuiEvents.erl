@@ -150,6 +150,7 @@
          usePluginsEvent/4,
          userCancelEvent/4,
          userCheckBoxEvent/4,
+         emailCheckBoxEvent/4,
          useReminderEvent/4,
          userOkEvent/4,
          userStatusChoiceEvent/4,
@@ -1109,6 +1110,10 @@ userCancelEvent(_Type, _Id, _Frame, State = #guiState{usersDlg = Users}) ->
     State.
 
 userCheckBoxEvent(_Type, _Id, _Frame, State) ->
+    setPeerStatusIfNeeded(State).
+
+emailCheckBoxEvent(_Type, _Id, _Frame, State) ->
+    Obj = obj("userCheckBox", State),
     setPeerStatusIfNeeded(State).
 
 userStatusChoiceEvent(_Type, _Id, _Frame, State) ->
