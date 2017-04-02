@@ -233,7 +233,9 @@
                    unreadMsgs2     = {0, 0, 0},
                    smtpAuth,
                    notificationTime,
-                   splitHorizUsers = 500}).
+                   splitHorizUsers  = 500,
+                   notifOrder       = 0,
+                   numOfNotifEmail  = 5}).
 
 -record(listCfg,  {key,
                    userName,

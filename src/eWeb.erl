@@ -352,8 +352,16 @@ getGuestUsers(User) ->
 handle_call(getPort, _From, State = #state{port = Port}) ->
     {reply, Port, State};
 
-handle_call(getMessages, _From, State = #state{messages = Messages}) ->
-    TopMessages = lists:reverse(top(Messages, 5)),
+handle_call(getMessages, _From, State = #state{messages = Messages,
+                                               user     = User}) ->
+    UserCfg     = eTodoDB:readUserCfg(User),
+    NumOfEmails = UserCfg#userCfg.numOfNotifEmail,
+    TopMessages = case UserCfg#userCfg.notifOrder of
+                      0 ->
+                          top(Messages, NumOfEmails);
+                      1 ->
+                          lists:reverse(top(Messages, NumOfEmails))
+                  end,
     {reply, TopMessages, State};
 
 handle_call({login, _SessionId, _Env, _Input}, _From,

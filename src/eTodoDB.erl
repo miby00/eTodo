@@ -496,6 +496,8 @@ value(splitterComment) -> 250;
 value(splitterMsg)     -> 100;
 value(splitHorizMsg)   -> 500;
 value(splitHorizOff)   -> 500;
+value(notifOrder)      -> 0;
+value(numOfNotifEmail) -> 5;
 value(_Column)         -> undefined.
 
 getLists(User) ->
