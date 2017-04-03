@@ -1522,7 +1522,7 @@ setPeerStatusIfNeeded(State = #guiState{userStatus = Users}) ->
     Obj     = obj("userCheckBox", State),
     Index   = wxCheckListBox:getSelection(Obj),
     Focus   = wxWindow:findFocus(),
-    UserCB  = wx:equal(Focus, Obj),
+    UserCB  = equal(Focus, Obj),
     case {Index >= 0, UserCB} of
         {true, true} ->
             User  = wxCheckListBox:getString(Obj, Index),
@@ -1537,7 +1537,7 @@ setPeerStatusIfNeeded(State = #guiState{userStatus = Users}) ->
         _ ->
             Obj2    = obj("emailCheckBox", State),
             Index2  = wxCheckListBox:getSelection(Obj2),
-            EmailCB = wx:equal(Focus, Obj2),
+            EmailCB = equal(Focus, Obj2),
             case {Index2 >= 0, EmailCB} of
                 {true, true} ->
                     OfflineUser = wxCheckListBox:getString(Obj2, Index2),
@@ -1547,6 +1547,14 @@ setPeerStatusIfNeeded(State = #guiState{userStatus = Users}) ->
             end
     end,
     State.
+
+equal(Obj1, Obj2) ->
+    case wx:typeCast(Obj1, wxCheckListBox) of
+        Obj2 ->
+            true;
+        _ ->
+            false
+    end.
 
 clearPeerStatus(State) ->
     Obj1 = obj("peerAvailableIcon", State),
