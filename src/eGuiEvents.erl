@@ -69,9 +69,9 @@
          manageListCancelEvent/4,
          manageListOkEvent/4,
          manageListsButtonEvent/4,
-         manageOwnerBoxEvent/4,
-         manageOwnerCancelEvent/4,
-         manageOwnerOkEvent/4,
+         manageExternalBoxEvent/4,
+         manageExternalCancelEvent/4,
+         manageExternalOkEvent/4,
          moveColDownButtonEvent/4,
          moveColUpButtonEvent/4,
          moveDownMenuEvent/4,
@@ -1112,6 +1112,8 @@ userCancelEvent(_Type, _Id, _Frame, State = #guiState{usersDlg = Users}) ->
 userCheckBoxEvent(_Type, _Id, _Frame, State) ->
     setPeerStatusIfNeeded(State).
 
+emailCheckBoxEvent(right_down, Id, Frame, State) ->
+    addOwnerButtonEvent(right_down, Id, Frame, State);
 emailCheckBoxEvent(_Type, _Id, _Frame, State) ->
     setPeerStatusIfNeeded(State).
 
@@ -1380,20 +1382,20 @@ insertMsgText(Text, State) ->
 %% Manage task owners.
 %%====================================================================
 addOwnerButtonEvent(_Type, _Id, _Frame,
-                    State = #guiState{manOwnerDlg = Manage,
+                    State = #guiState{manExternalDlg = Manage,
                                       user        = User}) ->
-    Obj = wxXmlResource:xrcctrl(Manage, "manageOwnerBox", wxListBox),
+    Obj = wxXmlResource:xrcctrl(Manage, "manageExternalBox", wxListBox),
     #userCfg{ownerCfg = OwnerCfg} = eTodoDB:readUserCfg(User),
     wxListBox:clear(Obj),
     [wxListBox:append(Obj, Owner) || Owner <- default(OwnerCfg, [])],
-    wxDialog:setSize(Manage, {250, 250}),
+    wxDialog:setSize(Manage, {400, 300}),
     wxDialog:show(Manage),
     State.
 
 createOwnerButtonEvent(_Type, _Id, _Frame,
-                       State = #guiState{manOwnerDlg = Manage}) ->
-    Obj1 = wxXmlResource:xrcctrl(Manage, "manageOwnerBox", wxListBox),
-    Obj2 = wxXmlResource:xrcctrl(Manage, "createOwnerTxt", wxTextCtrl),
+                       State = #guiState{manExternalDlg = Manage}) ->
+    Obj1 = wxXmlResource:xrcctrl(Manage, "manageExternalBox", wxListBox),
+    Obj2 = wxXmlResource:xrcctrl(Manage, "createExternalTxt", wxTextCtrl),
     Owns = getItems(Obj1),
     NewOwner = wxTextCtrl:getValue(Obj2),
     wxTextCtrl:setValue(Obj2, ""),
@@ -1412,9 +1414,9 @@ createOwnerButtonEvent(_Type, _Id, _Frame,
 
 
 removeOwnerButtonEvent(_Type, _Id, _Frame,
-                       State = #guiState{manOwnerDlg = Manage}) ->
-    Obj  = wxXmlResource:xrcctrl(Manage, "manageOwnerBox", wxListBox),
-    Obj2 = wxXmlResource:xrcctrl(Manage, "createOwnerTxt", wxTextCtrl),
+                       State = #guiState{manExternalDlg = Manage}) ->
+    Obj  = wxXmlResource:xrcctrl(Manage, "manageExternalBox", wxListBox),
+    Obj2 = wxXmlResource:xrcctrl(Manage, "createExternalTxt", wxTextCtrl),
     case wxListBox:getSelections(Obj) of
         {_, [Index]} ->
             wxListBox:delete(Obj, Index),
@@ -1425,9 +1427,9 @@ removeOwnerButtonEvent(_Type, _Id, _Frame,
     State.
 
 updateOwnerButtonEvent(_Type, _Id, _Frame,
-                       State = #guiState{manOwnerDlg = Manage}) ->
-    Obj  = wxXmlResource:xrcctrl(Manage, "manageOwnerBox", wxListBox),
-    Obj2 = wxXmlResource:xrcctrl(Manage, "createOwnerTxt", wxTextCtrl),
+                       State = #guiState{manExternalDlg = Manage}) ->
+    Obj  = wxXmlResource:xrcctrl(Manage, "manageExternalBox", wxListBox),
+    Obj2 = wxXmlResource:xrcctrl(Manage, "createExternalTxt", wxTextCtrl),
     {_, [Index]} = wxListBox:getSelections(Obj),
     NewValue = wxTextCtrl:getValue(Obj2),
     wxListBox:setString(Obj, Index, NewValue),
@@ -1449,11 +1451,11 @@ manageBookmarkBoxEvent(_Type, _Id, _Frame,
     end,
     State.
 
-manageOwnerBoxEvent(_Type, _Id, _Frame,
-                    State = #guiState{manOwnerDlg = Manage}) ->
-    Obj  = wxXmlResource:xrcctrl(Manage, "manageOwnerBox",    wxListBox),
-    Obj2 = wxXmlResource:xrcctrl(Manage, "createOwnerTxt",    wxTextCtrl),
-    Obj3 = wxXmlResource:xrcctrl(Manage, "updateOwnerButton", wxButton),
+manageExternalBoxEvent(_Type, _Id, _Frame,
+                    State = #guiState{manExternalDlg = Manage}) ->
+    Obj  = wxXmlResource:xrcctrl(Manage, "manageExternalBox",    wxListBox),
+    Obj2 = wxXmlResource:xrcctrl(Manage, "createExternalTxt",    wxTextCtrl),
+    Obj3 = wxXmlResource:xrcctrl(Manage, "updateExternalButton", wxButton),
     case wxListBox:getSelections(Obj) of
         {_, [Index]} ->
             Value = listBoxGet(Obj, Index),
@@ -1464,11 +1466,11 @@ manageOwnerBoxEvent(_Type, _Id, _Frame,
     end,
     State.
 
-manageOwnerOkEvent(_Type, _Id, _Frame,
-                   State = #guiState{manOwnerDlg = Manage,
-                                     user        = User,
-                                     activeTodo = {ETodo, _Index}}) ->
-    Obj      = wxXmlResource:xrcctrl(Manage, "manageOwnerBox", wxListBox),
+manageExternalOkEvent(_Type, _Id, _Frame,
+                   State = #guiState{manExternalDlg = Manage,
+                                     user           = User,
+                                     activeTodo     = {ETodo, _Index}}) ->
+    Obj      = wxXmlResource:xrcctrl(Manage, "manageExternalBox", wxListBox),
     Owners   = getItems(Obj),
     UserCfg  = eTodoDB:readUserCfg(User),
     UserCfg2 = UserCfg#userCfg{ownerCfg = Owners},
@@ -1478,8 +1480,8 @@ manageOwnerOkEvent(_Type, _Id, _Frame,
     setOwner(obj("ownerChoice", State), User, ETodo#etodo.owner),
     State.
 
-manageOwnerCancelEvent(_Type, _Id, _Frame,
-                       State = #guiState{manOwnerDlg = Manage}) ->
+manageExternalCancelEvent(_Type, _Id, _Frame,
+                       State = #guiState{manExternalDlg = Manage}) ->
     wxDialog:hide(Manage),
     State.
 

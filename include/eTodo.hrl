@@ -22,7 +22,7 @@
                    msgCfgDlg, msgCfg = {false, ""},
                    drillDown = [], drillFromList, mode,
                    print, conflictDlg, msgMenu, msgStatusSent = false,
-                   aboutDlg, manOwnerDlg, helpFrame, userStatus = [],
+                   aboutDlg, manExternalDlg, helpFrame, userStatus = [],
                    unreadMsgs = 0, unreadMsgs2 = {0, 0, 0}, delayedUpdate,
                    reply = [], replyAll = [], toolBar, menuBar,
                    manBookmDlg, popupBookmMenu, bookmCfg = [],
