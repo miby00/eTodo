@@ -1765,7 +1765,11 @@ fillEmailCheckBox(State = #guiState{user = User}) ->
     EmailUsers = lists:filter(Filter, eTodoDB:getConnections()),
     wxCheckListBox:clear(EmailCheckBox),
     [wxCheckListBox:append(EmailCheckBox, EmailUser) ||
-        #conCfg{userName = EmailUser} <- EmailUsers, EmailUser =/= User].
+        #conCfg{userName = EmailUser} <- EmailUsers, EmailUser =/= User],
+    UserCfg  = eTodoDB:readUserCfg(User),
+    ExtUsers = getUsersWithEmail(UserCfg#userCfg.ownerCfg),
+    [wxCheckListBox:append(EmailCheckBox, ExtUser) || ExtUser <- ExtUsers].
+
 
 addIfEmail(Peer, Checked, State) ->
     EmailCheckBox = obj("emailCheckBox", State),
@@ -1776,6 +1780,20 @@ addIfEmail(Peer, Checked, State) ->
             Index = wxCheckListBox:getCount(EmailCheckBox),
             wxCheckListBox:append(EmailCheckBox, Peer),
             wxCheckListBox:check(EmailCheckBox, Index, [{check, Checked}])
+    end.
+
+getUsersWithEmail(undefined) -> [];
+getUsersWithEmail(Users) ->
+    getUsersWithEmail(Users, []).
+
+getUsersWithEmail([], Acc) ->
+    lists:reverse(Acc);
+getUsersWithEmail([User|Rest], Acc) ->
+    case {string:tokens(User, "<>"), lists:member($<, User)} of
+        {[UserWithEmail, _Email], true} ->
+            getUsersWithEmail(Rest, [UserWithEmail|Acc]);
+        _ ->
+            getUsersWithEmail(Rest, Acc)
     end.
 
 %%======================================================================
