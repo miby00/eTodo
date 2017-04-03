@@ -33,7 +33,7 @@
          copyToolEvent/4,
          createBookmarkButtonEvent/4,
          createListButtonEvent/4,
-         createOwnerButtonEvent/4,
+         createExternalButtonEvent/4,
          cutMenuEvent/4,
          cutToolEvent/4,
          deleteMenuEvent/4,
@@ -104,7 +104,7 @@
          reminderOkEvent/4,
          removeBookmarkButtonEvent/4,
          removeListButtonEvent/4,
-         removeOwnerButtonEvent/4,
+         removeExternalButtonEvent/4,
          remTextWinEvent/4,
          replyAllMenuEvent/4,
          replyMenuEvent/4,
@@ -146,7 +146,7 @@
          updateBookmarkButtonEvent/4,
          updateListButtonEvent/4,
          updateMenuEvent/4,
-         updateOwnerButtonEvent/4,
+         updateExternalButtonEvent/4,
          usePluginsEvent/4,
          userCancelEvent/4,
          userCheckBoxEvent/4,
@@ -1392,48 +1392,65 @@ addOwnerButtonEvent(_Type, _Id, _Frame,
     wxDialog:show(Manage),
     State.
 
-createOwnerButtonEvent(_Type, _Id, _Frame,
+createExternalButtonEvent(_Type, _Id, _Frame,
                        State = #guiState{manExternalDlg = Manage}) ->
-    Obj1 = wxXmlResource:xrcctrl(Manage, "manageExternalBox", wxListBox),
-    Obj2 = wxXmlResource:xrcctrl(Manage, "createExternalTxt", wxTextCtrl),
+    Obj1 = wxXmlResource:xrcctrl(Manage, "manageExternalBox",   wxListBox),
+    Obj2 = wxXmlResource:xrcctrl(Manage, "createExternalTxt",   wxTextCtrl),
+    Obj3 = wxXmlResource:xrcctrl(Manage, "createExternalEmail", wxTextCtrl),
     Owns = getItems(Obj1),
     NewOwner = wxTextCtrl:getValue(Obj2),
-    wxTextCtrl:setValue(Obj2, ""),
+    NewEmail = wxTextCtrl:getValue(Obj3),
+    IllegalChar = lists:member($<, NewOwner ++ NewEmail) or
+                  lists:member($>, NewOwner ++ NewEmail),
     case NewOwner of
         "" ->
             State;
         NewOwner ->
-            case lists:member(NewOwner, Owns) of
-                false ->
-                    wxListBox:append(Obj1, NewOwner),
+            case {lists:member(NewOwner, Owns), IllegalChar} of
+                {false, false} ->
+                    wxTextCtrl:setValue(Obj2, ""),
+                    wxTextCtrl:setValue(Obj3, ""),
+                    wxListBox:append(Obj1, NewOwner ++ "<" ++ NewEmail ++ ">"),
                     State;
-                true ->
+                _ ->
                     State
             end
     end.
 
 
-removeOwnerButtonEvent(_Type, _Id, _Frame,
+removeExternalButtonEvent(_Type, _Id, _Frame,
                        State = #guiState{manExternalDlg = Manage}) ->
-    Obj  = wxXmlResource:xrcctrl(Manage, "manageExternalBox", wxListBox),
-    Obj2 = wxXmlResource:xrcctrl(Manage, "createExternalTxt", wxTextCtrl),
+    Obj  = wxXmlResource:xrcctrl(Manage, "manageExternalBox",   wxListBox),
+    Obj2 = wxXmlResource:xrcctrl(Manage, "createExternalTxt",   wxTextCtrl),
+    Obj3 = wxXmlResource:xrcctrl(Manage, "createExternalEmail", wxTextCtrl),
     case wxListBox:getSelections(Obj) of
         {_, [Index]} ->
             wxListBox:delete(Obj, Index),
-            wxTextCtrl:setValue(Obj2, "");
+            wxTextCtrl:setValue(Obj2, ""),
+            wxTextCtrl:setValue(Obj3, "");
         _ ->
             ok
     end,
     State.
 
-updateOwnerButtonEvent(_Type, _Id, _Frame,
+updateExternalButtonEvent(_Type, _Id, _Frame,
                        State = #guiState{manExternalDlg = Manage}) ->
-    Obj  = wxXmlResource:xrcctrl(Manage, "manageExternalBox", wxListBox),
-    Obj2 = wxXmlResource:xrcctrl(Manage, "createExternalTxt", wxTextCtrl),
+    Obj  = wxXmlResource:xrcctrl(Manage, "manageExternalBox",   wxListBox),
+    Obj2 = wxXmlResource:xrcctrl(Manage, "createExternalTxt",   wxTextCtrl),
+    Obj3 = wxXmlResource:xrcctrl(Manage, "createExternalEmail", wxTextCtrl),
     {_, [Index]} = wxListBox:getSelections(Obj),
-    NewValue = wxTextCtrl:getValue(Obj2),
-    wxListBox:setString(Obj, Index, NewValue),
-    wxTextCtrl:setValue(Obj2, ""),
+    NewValue    = wxTextCtrl:getValue(Obj2),
+    NewEmail    = wxTextCtrl:getValue(Obj3),
+    IllegalChar = lists:member($<, NewValue ++ NewEmail) or
+                  lists:member($>, NewValue ++ NewEmail),
+    case IllegalChar of
+        false ->
+            wxListBox:setString(Obj, Index, NewValue ++ "<" ++ NewEmail ++ ">"),
+            wxTextCtrl:setValue(Obj2, ""),
+            wxTextCtrl:setValue(Obj3, "");
+        true ->
+            ok
+    end,
     State.
 
 manageBookmarkBoxEvent(_Type, _Id, _Frame,
@@ -1455,14 +1472,23 @@ manageExternalBoxEvent(_Type, _Id, _Frame,
                     State = #guiState{manExternalDlg = Manage}) ->
     Obj  = wxXmlResource:xrcctrl(Manage, "manageExternalBox",    wxListBox),
     Obj2 = wxXmlResource:xrcctrl(Manage, "createExternalTxt",    wxTextCtrl),
-    Obj3 = wxXmlResource:xrcctrl(Manage, "updateExternalButton", wxButton),
+    Obj3 = wxXmlResource:xrcctrl(Manage, "createExternalEmail",  wxTextCtrl),
+    Obj4 = wxXmlResource:xrcctrl(Manage, "updateExternalButton", wxButton),
+
     case wxListBox:getSelections(Obj) of
         {_, [Index]} ->
             Value = listBoxGet(Obj, Index),
-            wxTextCtrl:setValue(Obj2, Value),
-            wxButton:enable(Obj3);
+            case {string:tokens(Value, "<>"), lists:member($<, Value)} of
+                {[User, Email], true} ->
+                    wxTextCtrl:setValue(Obj2, User),
+                    wxTextCtrl:setValue(Obj3, Email),
+                    wxButton:enable(Obj4);
+                {User, false} ->
+                    wxTextCtrl:setValue(Obj2, User),
+                    wxButton:enable(Obj4)
+            end;
         _ ->
-            wxButton:disable(Obj3)
+            wxButton:disable(Obj4)
     end,
     State.
 
@@ -1482,7 +1508,11 @@ manageExternalOkEvent(_Type, _Id, _Frame,
 
 manageExternalCancelEvent(_Type, _Id, _Frame,
                        State = #guiState{manExternalDlg = Manage}) ->
-    wxDialog:hide(Manage),
+    Obj1 = wxXmlResource:xrcctrl(Manage, "createExternalTxt",    wxTextCtrl),
+    Obj2 = wxXmlResource:xrcctrl(Manage, "createExternalEmail",  wxTextCtrl),
+    wxTextCtrl:setValue(Obj1, ""),
+    wxTextCtrl:setValue(Obj2, ""),
+wxDialog:hide(Manage),
     State.
 
 %%====================================================================
