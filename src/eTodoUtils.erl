@@ -14,7 +14,7 @@
 -include_lib("wx/include/wx.hrl").
 
 %% API
--export([makeStr/1, toStr/1, toStr/2, toDB/1, toDB/2,
+-export([makeStr/1, makeUserStr/1, toStr/1, toStr/2, toDB/1, toDB/2,
          taskInternal/1, taskExternal/1, convertUid/1, convertUid/2,
          col/2, default/2, doneTime/2, dateTime/0, makeETodo/3,
          makeRef/0, getRootDir/0, apply/4, toColumn/1, toStatusDB/1,
@@ -37,6 +37,22 @@ makeStr([], SoFar) -> SoFar;
 makeStr([Value | Rest], "")    -> makeStr(Rest, toStr(Value));
 makeStr([Value | Rest], SoFar) -> makeStr(Rest, toStr(Value) ++ ";" ++ SoFar).
 
+makeUserStr(undefined) -> "";
+makeUserStr(List) -> makeStr(lists:reverse(List), "").
+
+makeUserStr([], SoFar) -> SoFar;
+makeUserStr([Value | Rest], "")    ->
+    makeUserStr(Rest, removeEmail(toStr(Value)));
+makeUserStr([Value | Rest], SoFar) ->
+    makeUserStr(Rest, removeEmail(toStr(Value)) ++ ";" ++ SoFar).
+
+removeEmail(Value) ->
+    case string:tokens(Value, "<>") of
+        [User, _Email] ->
+            User;
+        _ ->
+            Value
+    end.
 %%--------------------------------------------------------------------
 %% @doc
 %% @spec

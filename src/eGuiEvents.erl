@@ -218,6 +218,7 @@
                      getWeekDay/1,
                      makeRef/0,
                      makeStr/1,
+                     makeUserStr/1,
                      taskExternal/1,
                      taskInternal/1,
                      toStatusDB/1,
@@ -1116,7 +1117,7 @@ userOkEvent(_Type, _Id, _Frame,
     Obj      = wxXmlResource:xrcctrl(Users, "userCheckListBox", wxCheckListBox),
     UserList = getCheckedItems(Obj),
     ETodo2   = ETodo#etodo{sharedWithDB = UserList,
-                           sharedWith   = makeStr(UserList)},
+                           sharedWith   = makeUserStr(UserList)},
     updateTodoInDB(User, ETodo2),
     SharedObj = obj("sharedWithText", State),
     wxStaticText:setLabel(SharedObj, ETodo2#etodo.sharedWith),
@@ -1416,6 +1417,7 @@ createExternalButtonEvent(_Type, _Id, _Frame,
     Obj1 = wxXmlResource:xrcctrl(Manage, "manageExternalBox",   wxListBox),
     Obj2 = wxXmlResource:xrcctrl(Manage, "createExternalTxt",   wxTextCtrl),
     Obj3 = wxXmlResource:xrcctrl(Manage, "createExternalEmail", wxTextCtrl),
+
     Owns = getItems(Obj1),
     NewOwner = wxTextCtrl:getValue(Obj2),
     NewEmail = wxTextCtrl:getValue(Obj3),
@@ -1736,9 +1738,9 @@ sendTaskButtonEvent(context_menu, _Id, _Frame,
 sendTaskAsEmail(_User, undefined, _Users, _UIDDB, _Text) ->
     ok;
 sendTaskAsEmail(User, From, Users, UIDDB, Text) ->
-    {_, Msg} = eHtml:generateSystemMsg(UIDDB, Text),
-    Msg2     = list_to_binary(Msg),
-    UserCfg  = eTodoDB:readUserCfg(User),
+    Msg     = eHtml:generateSystemMsgEmail(User, UIDDB, Text),
+    Msg2    = iolist_to_binary(Msg),
+    UserCfg = eTodoDB:readUserCfg(User),
     doSendTaskAsEmail(User, UserCfg#userCfg.ownerCfg, From, Users, Msg2).
 
 doSendTaskAsEmail(_User, undefined, _From, _Users, _Msg) ->
