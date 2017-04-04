@@ -1720,16 +1720,48 @@ commentButtonEvent(_Type, _Id, _Frame, State) ->
 
 sendTaskButtonEvent(command_button_clicked, _Id, _Frame,
                     State = #guiState{activeTodo = {ETodo, _}, user = User}) ->
-    Text  = ETodo#etodo.description,
-    Users = ETodo#etodo.sharedWithDB,
-    eTodo:systemEntry(ETodo#etodo.uidDB, Text),
+    Text   = ETodo#etodo.description,
+    Users  = ETodo#etodo.sharedWithDB,
+    ConCfg = default(eTodoDB:getConnection(User), #conCfg{}),
+    From   = ConCfg#conCfg.email,
     ePeerEM:sendMsg(User, Users, {systemEntry, ETodo#etodo.uidDB}, Text),
+    sendTaskAsEmail(User, From, Users, ETodo#etodo.uidDB, Text),
     State;
 sendTaskButtonEvent(context_menu, _Id, _Frame,
                     State = #guiState{activeTodo = {ETodo, _}}) ->
     UidStr = eTodoUtils:convertUid(ETodo#etodo.uidDB),
     Link   = eHtml:aTag([{href, UidStr}], "eTodo"),
     toClipboard(Link, State).
+
+sendTaskAsEmail(_User, undefined, _Users, _UIDDB, _Text) ->
+    ok;
+sendTaskAsEmail(User, From, Users, UIDDB, Text) ->
+    {_, Msg} = eHtml:generateSystemMsg(UIDDB, Text),
+    Msg2     = list_to_binary(Msg),
+    UserCfg  = eTodoDB:readUserCfg(User),
+    doSendTaskAsEmail(User, UserCfg#userCfg.ownerCfg, From, Users, Msg2).
+
+doSendTaskAsEmail(_User, undefined, _From, _Users, _Msg) ->
+    ok;
+doSendTaskAsEmail(_User, _ExternalUsers, _From, [], _Msg) ->
+    ok;
+doSendTaskAsEmail(User, ExternalUsers, From, [ExtUser|Rest], Msg) ->
+    sendIfExternal(User, ExternalUsers, From, ExtUser, Msg),
+    doSendTaskAsEmail(User, ExternalUsers, From, Rest, Msg).
+
+sendIfExternal(_User, [], _From, _ExtUser, _Msg) ->
+    ok;
+sendIfExternal(User, [ExtUser|Rest], From, ExtUser, Msg) ->
+    case string:tokens(ExtUser, "<>") of
+        [_User, Email] ->
+            EmailMsg = eMime:constructMail(User, "eTodo task update",
+                                           From, From, Email, Msg),
+            eSMTP:sendMail(From, Email, EmailMsg);
+        _ ->
+            sendIfExternal(User, Rest, From, ExtUser, Msg)
+    end;
+sendIfExternal(User, [_ExtUser|Rest], From, ExtUser, Msg) ->
+    sendIfExternal(User, Rest, From, ExtUser, Msg).
 
 %%====================================================================
 %% Log work button
