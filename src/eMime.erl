@@ -10,7 +10,7 @@
 -author("mikael.bylund@gmail.com").
 
 %% API
--export([constructMail/4, constructMail/5]).
+-export([constructMail/4, constructMail/6]).
 
 -import(eHtml, [aTag/2,    headTag/1,  titleTag/1,
                 metaTag/1, styleTag/2, bodyTag/1]).
@@ -30,27 +30,38 @@
 %%--------------------------------------------------------------------
 constructMail(UserName, Subject, ReplyTo, To) ->
     Messages = iolist_to_binary(eWeb:getMessages()),
-    constructMail(UserName, Subject, ReplyTo, To, Messages).
+    constructMail(UserName, Subject, To ,ReplyTo, To, Messages).
 
-constructMail(UserName, Subject, ReplyTo, To, Messages) ->
-    [
-        "From: ", To, ?LF,
-        "Reply-To: ", ReplyTo, ?LF,
-        "Content-Type: multipart/related;", ?LF, 9,
-        "boundary=\"", ?BDDef, "\"", ?LF,
-        "Subject: ", Subject, ?LF,
-        "To: ", To, ?LF,
-        "MIME-Version: 1.0", ?LF,
-        ?LF,
-        ?BD, ?LF,
-        "Content-Type: text/html; charset=\"UTF-8\"", ?LF,
-        "Content-Transfer-Encoding: quoted-printable", ?LF,
-        ?LF,
-        body(UserName, Messages), ?LF,
-        addMimeParts(Messages),
-        ?LF, ?BDEnd, ?LF,
-        ?LF, ".", ?LF
-    ].
+constructMail(UserName, Subject, From, From, To, Messages) ->
+    HeaderStart = [
+                   "From: ", From, ?LF
+                  ],
+    doConstructMail(HeaderStart, UserName, Subject, To, Messages);
+constructMail(UserName, Subject, From, ReplyTo, To, Messages) ->
+    HeaderStart = [
+                   "From: ", From, ?LF,
+                   "Reply-To: ", ReplyTo, ?LF
+                  ],
+    doConstructMail(HeaderStart, UserName, Subject, To, Messages).
+
+doConstructMail(HeaderStart, UserName, Subject, To, Messages) ->
+    HeaderStart ++
+        [
+         "Content-Type: multipart/related;", ?LF, 9,
+         "boundary=\"", ?BDDef, "\"", ?LF,
+         "Subject: ", Subject, ?LF,
+         "To: ", To, ?LF,
+         "MIME-Version: 1.0", ?LF,
+         ?LF,
+         ?BD, ?LF,
+         "Content-Type: text/html; charset=\"UTF-8\"", ?LF,
+         "Content-Transfer-Encoding: quoted-printable", ?LF,
+         ?LF,
+         body(UserName, Messages), ?LF,
+         addMimeParts(Messages),
+         ?LF, ?BDEnd, ?LF,
+         ?LF, ".", ?LF
+        ].
 
 body(UserName, Messages) ->
     StyleSheet   = filename:join([getRootDir(), "css", "mail.css"]),
@@ -131,12 +142,12 @@ getFileName(<<Char:8, Tail/binary>>, Acc) ->
 makeMimePart(File) ->
     MimeType = eTodoUtils:mime_type(File),
     [
-        ?LF, ?BD, ?LF,
-        "Content-Type: ", MimeType, ?LF,
-        "Content-Transfer-Encoding: base64", ?LF,
-        "Content-Disposition: inline", ?LF,
-        "Content-ID: <", integer_to_list(erlang:phash2(File)), ">", ?LF, ?LF,
-        makeBody(File), ?LF
+     ?LF, ?BD, ?LF,
+     "Content-Type: ", MimeType, ?LF,
+     "Content-Transfer-Encoding: base64", ?LF,
+     "Content-Disposition: inline", ?LF,
+     "Content-ID: <", integer_to_list(erlang:phash2(File)), ">", ?LF, ?LF,
+     makeBody(File), ?LF
     ].
 
 makeBody(FileName) ->

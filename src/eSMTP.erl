@@ -188,8 +188,8 @@ doSendMail(From, To, Msg, State = #state{auth = Auth,
     try
         {Socket, Type} = connect(Host, Port, Auth),
         checkResponse(Socket, Type, doRecvLine(Socket, Type)),
-        smtpTransaction(Socket, Type, From, To, State),
-        transferMail(Socket, Type, Msg)
+        {Type2, Socket2} = smtpTransaction(Socket, Type, From, To, State),
+        transferMail(Socket2, Type2, Msg)
     catch
         throw:{connectFailed, Reason} -> {connectFailed, Reason};
         throw:{smtpError, Reason}     -> {smtpError, Reason}
@@ -219,7 +219,22 @@ smtpTransaction(Socket, Type, From, To, State = #state{auth = "None"}) ->
     sendAndLog(Socket, Type, ["RCPT TO: <", To, ">\r\n"]),
     checkResponse(Socket, Type, doRecvLine(Socket, Type)),
     sendAndLog(Socket, Type, "DATA\r\n"),
-    checkResponse(Socket, Type, doRecvLine(Socket, Type));
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    {Type, Socket};
+smtpTransaction(Socket, Type, From, To, State = #state{auth = "STARTTLS"}) ->
+    sendAndLog(Socket, Type, ["EHLO ", State#state.localHost, "\r\n"]),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    {Type2, Socket2} = doStartTLS(Socket, Type),
+    sendAndLog(Socket2, Type2, ["EHLO ", State#state.localHost, "\r\n"]),
+    checkResponse(Socket2, Type2, doRecvLine(Socket2, Type2)),
+    doAuthentication(Socket2, Type2, State),
+    sendAndLog(Socket2, Type2, ["MAIL FROM: <", From, ">\r\n"]),
+    checkResponse(Socket2, Type2, doRecvLine(Socket2, Type2)),
+    sendAndLog(Socket2, Type2, ["RCPT TO: <", To, ">\r\n"]),
+    checkResponse(Socket2, Type2, doRecvLine(Socket2, Type2)),
+    sendAndLog(Socket2, Type2, "DATA\r\n"),
+    checkResponse(Socket2, Type2, doRecvLine(Socket2, Type2)),
+    {Type2, Socket2};
 smtpTransaction(Socket, Type, From, To, State) ->
     sendAndLog(Socket, Type, ["EHLO ", State#state.localHost, "\r\n"]),
     checkResponse(Socket, Type, doRecvLine(Socket, Type)),
@@ -229,7 +244,8 @@ smtpTransaction(Socket, Type, From, To, State) ->
     sendAndLog(Socket, Type, ["RCPT TO: <", To, ">\r\n"]),
     checkResponse(Socket, Type, doRecvLine(Socket, Type)),
     sendAndLog(Socket, Type, "DATA\r\n"),
-    checkResponse(Socket, Type, doRecvLine(Socket, Type)).
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    {Type, Socket}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -333,3 +349,22 @@ doAuthentication(Socket, Type, #state{smtpUser = User, smtpPwd = Pwd}) ->
     checkResponse(Socket, Type, doRecvLine(Socket, Type)),
     sendAndLog(Socket, Type, base64:encode_to_string(Pwd)++"\r\n"),
     checkResponse(Socket, Type, doRecvLine(Socket, Type)).
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Do start tls negotiation
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+doStartTLS(Socket, Type) ->
+    try
+        sendAndLog(Socket, Type, "STARTTLS\r\n"),
+        checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+        {ok, SSLSocket} = ssl:connect(Socket, []),
+        {ssl, SSLSocket}
+    catch
+        Reason ->
+            throw({smtpError, {error, Reason}})
+    end.

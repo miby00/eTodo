@@ -728,7 +728,7 @@ sendEmails([Peer|Rest], MsgText, Users, State = #guiState{user = User}) ->
             {_, Msg} = eHtml:generateMsg(User, User, Users, MsgText),
             Msg2     = iolist_to_binary(Msg),
             EmailMsg = eMime:constructMail(User, "eTodo message",
-                                           From, To, Msg2),
+                                           From, From, To, Msg2),
             eSMTP:sendMail(From, To, EmailMsg)
     end,
     sendEmails(Rest, MsgText, Users, State).

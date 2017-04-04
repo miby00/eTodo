@@ -13760,7 +13760,7 @@
                                                             <property name="proportion">3</property>
                                                             <object class="wxChoice" expanded="0">
                                                                 <property name="bg"></property>
-                                                                <property name="choices">&quot;None&quot; &quot;Plain text&quot; &quot;SSL/TLS&quot;</property>
+                                                                <property name="choices">&quot;None&quot; &quot;Plain text&quot; &quot;STARTTLS&quot; &quot;SSL/TLS&quot;</property>
                                                                 <property name="context_help"></property>
                                                                 <property name="context_menu">1</property>
                                                                 <property name="enabled">1</property>
@@ -20598,7 +20598,7 @@
                                                                                 <property name="maximum_size"></property>
                                                                                 <property name="maxlength">0</property>
                                                                                 <property name="minimum_size"></property>
-                                                                                <property name="name">createExternalEmail</property>
+                                                                                <property name="name">m_textCtrl34</property>
                                                                                 <property name="permission">protected</property>
                                                                                 <property name="pos"></property>
                                                                                 <property name="size"></property>
