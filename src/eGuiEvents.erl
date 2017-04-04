@@ -715,12 +715,14 @@ sendMsg(Users, MsgText, State = #guiState{user = User}) ->
 sendEmails([], _MsgText, _Users, State) ->
     State;
 sendEmails([Peer|Rest], MsgText, Users, State = #guiState{user = User}) ->
-    ConCfg1 = eTodoDB:getConnection(User),
-    ConCfg2 = eTodoDB:getConnection(Peer),
-    case {ConCfg1#conCfg.email, ConCfg2#conCfg.email}  of
+    ConCfg1   = eTodoDB:getConnection(User),
+    ConCfg2   = eTodoDB:getConnection(Peer),
+    UserCfg   = eTodoDB:readUserCfg(User),
+    ToAddress = getTo(UserCfg, Peer, ConCfg2),
+    case {ConCfg1#conCfg.email, ToAddress}  of
         {_, undefined} ->
             ok;
-        {undefined, undefined} ->
+        {undefined, _} ->
             ok;
         {From, To} ->
             {_, Msg} = eHtml:generateMsg(User, User, Users, MsgText),
@@ -730,6 +732,23 @@ sendEmails([Peer|Rest], MsgText, Users, State = #guiState{user = User}) ->
             eSMTP:sendMail(From, To, EmailMsg)
     end,
     sendEmails(Rest, MsgText, Users, State).
+
+getTo(_UserCfg, _Peer, #conCfg{email = Email}) when Email =/= undefined ->
+    Email;
+getTo(#userCfg{ownerCfg = undefined}, _Peer, _ConCfg) ->
+    undefined;
+getTo(#userCfg{ownerCfg = ExternalUsers}, Peer, _ConCfg) ->
+    getPeerEmail(Peer, ExternalUsers).
+
+getPeerEmail(_Peer, []) ->
+    undefined;
+getPeerEmail(Peer, [PeerInfo|Rest]) ->
+    case string:tokens(PeerInfo, "<>") of
+        [Peer, Email] ->
+            Email;
+        _ ->
+            getPeerEmail(Peer, Rest)
+    end.
 
 %%====================================================================
 %% Show right click menu on message window.
@@ -1502,8 +1521,8 @@ manageExternalOkEvent(_Type, _Id, _Frame,
     UserCfg2 = UserCfg#userCfg{ownerCfg = Owners},
     eTodoDB:saveUserCfg(UserCfg2),
     wxDialog:hide(Manage),
-
     setOwner(obj("ownerChoice", State), User, ETodo#etodo.owner),
+    eGuiFunctions:fillEmailCheckBox(State),
     State.
 
 manageExternalCancelEvent(_Type, _Id, _Frame,

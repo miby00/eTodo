@@ -124,7 +124,9 @@ handle_cast({setUser, User}, State) ->
 handle_cast(_Msg, State = #state{active = false}) ->
     {noreply, State};
 handle_cast({sendMail, From, To, Msg}, State) ->
-    doSendMail(From, To, Msg, State),
+    Result = doSendMail(From, To, Msg, State),
+    eLog:log(debug, ?MODULE, sendAndLog, [From, To, Result],
+             "doSendMail result", ?LINE),
     {noreply, State};
 handle_cast(_Request, State) ->
     {noreply, State}.
@@ -185,6 +187,7 @@ doSendMail(From, To, Msg, State = #state{auth = Auth,
                                          port = Port}) ->
     try
         {Socket, Type} = connect(Host, Port, Auth),
+        checkResponse(Socket, Type, doRecvLine(Socket, Type)),
         smtpTransaction(Socket, Type, From, To, State),
         transferMail(Socket, Type, Msg)
     catch
@@ -240,7 +243,7 @@ doRecvLine(Sock, Type) ->
     doRecvLine(Sock , Type, <<>>).
 
 doRecvLine(Sock, Type, Line) ->
-    case Type:recv(Sock, 1, 5000) of
+    case Type:recv(Sock, 1, 30000) of
         {ok, <<"\n">>} ->
             <<Line/binary, "\n">>;
         {ok, Char} ->
