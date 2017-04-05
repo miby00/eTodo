@@ -52,19 +52,6 @@ convert(Content, PState, PL, CL, Dir, Acc) ->
     parse(Content, PState, PL, CL, Dir, Acc).
 
 
-%% Backslash escapes
-parse(<<"\\\\", Rest/binary>>, PState, PL, CL, Dir, Acc) ->
-    convert(Rest, addCT(<<"\\">>, PState), PL, CL, Dir, Acc);
-
-parse(<<"\\", Char:8, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
-    case lists:member(Char, ?punct) of
-        true ->
-            Entity = entity(<<Char:8>>),
-            convert(Rest, addCT(Entity, PState), PL, CL, Dir, Acc);
-        false ->
-            convert(<<Char:8, Rest/binary>>, addCT(<<"\\">>, PState), PL, CL, Dir, Acc)
-    end;
-
 %% Block quote
 parse(<<13, 10, $>, Rest/binary>>, PState = [{p, CT}|St], PL, CL, Dir, Acc) ->
     case lists:member(blockquote, St) of
@@ -85,25 +72,6 @@ parse(Content, [blockquote| St], PL, CL, Dir, Acc) ->
     Acc2 = <<Acc/binary, "</blockquote>">>,
     convert(Content, St, PL, CL, Dir, Acc2);
 
-%% URL
-parse(<<$<, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
-    convert(Rest, [{url, <<>>}|PState], PL, CL, Dir, Acc);
-
-parse(<<$>, Rest/binary>>, [{url, CT}| St], PL, CL, Dir, Acc) ->
-    case catch http_uri:parse(binary_to_list(CT)) of
-        {'EXIT', _} ->
-            %% Convert to &lt to remove html support from markdown
-            convert(<<CT/binary, $>, Rest/binary>>,
-                    addCT(<<"&lt;">>, St), PL, CL, Dir, Acc);
-        {error, _} ->
-            %% Convert to &lt to remove html support from markdown
-            convert(<<CT/binary, $>, Rest/binary>>,
-                    addCT(<<"&lt;">>, St), PL, CL, Dir, Acc);
-        _ ->
-            Url = <<"<a href='", CT/binary, "'>", CT/binary, "</a>">>,
-            convert(Rest, addCT(Url, St), PL, CL, Dir, Acc)
-    end;
-
 %% Indented code block
 parse(<<13, 10, Rest/binary>>, [{code, CT}], PL, CL, Dir, Acc) ->
     case remInd(Rest) of
@@ -119,30 +87,6 @@ parse(<<>>, [{Tag, CT}], _PL, _CL, Dir, Acc)
   when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
     BTag = makeTag(code, Dir, CT),
     <<Acc/binary, BTag/binary>>;
-
-%% Paragraph text ending
-parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, <<>>, Dir, Acc) ->
-    BTag = makeTag(p, Dir, CT),
-    Acc2 = <<Acc/binary, BTag/binary>>,
-    convert(Rest, St, PL, <<>>, Dir, Acc2);
-
-parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, CL, Dir, Acc) ->
-    case header(CL, PL) of
-        {true, Tag, Hdr} ->
-            BTag = makeTag(Tag, Dir, Hdr),
-            Size = byte_size(CL),
-            Acc2 = <<Acc/binary, BTag/binary>>,
-            <<CL:Size/bytes, Rest2/binary>> = Rest,
-            convert(Rest2, St, PL, CL, Dir, Acc2);
-        false ->
-            CodeIndent = getCodeIndent(St),
-            case remWS(Rest) of
-                {Rest2, Count} when Count >= CodeIndent ->
-                    convert(Rest2, [{code, <<>>}], PL, CL, Dir, Acc);
-                _ ->
-                    convert(Rest, [{p, <<CT/binary, 13, 10>>}|St], PL, CL, Dir, Acc)
-            end
-    end;
 
 %% Start fenced code block
 parse(<<"~~~", Rest/binary>>, [{p, _CT}], PL, <<"~~~">>, Dir, Acc) ->
@@ -168,6 +112,62 @@ parse(<<13, 10, Rest/binary>>, [{Tag, CT}], PL, CL, Dir, Acc)
 parse(<<Char:8, Rest/binary>>, [{Tag, CT}], PL, CL, Dir, Acc)
     when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
     convert(Rest, [{Tag, <<CT/binary, Char:8>>}], PL, CL, Dir, Acc);
+
+%% Backslash escapes
+parse(<<"\\\\", Rest/binary>>, PState, PL, CL, Dir, Acc) ->
+    convert(Rest, addCT(<<"\\">>, PState), PL, CL, Dir, Acc);
+
+parse(<<"\\", Char:8, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
+    case lists:member(Char, ?punct) of
+        true ->
+            Entity = entity(<<Char:8>>),
+            convert(Rest, addCT(Entity, PState), PL, CL, Dir, Acc);
+        false ->
+            convert(<<Char:8, Rest/binary>>, addCT(<<"\\">>, PState), PL, CL, Dir, Acc)
+    end;
+
+%% Paragraph text ending
+parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, <<>>, Dir, Acc) ->
+    BTag = makeTag(p, Dir, CT),
+    Acc2 = <<Acc/binary, BTag/binary>>,
+    convert(Rest, St, PL, <<>>, Dir, Acc2);
+
+parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, CL, Dir, Acc) ->
+    case header(CL, PL) of
+        {true, Tag, Hdr} ->
+            BTag = makeTag(Tag, Dir, Hdr),
+            Size = byte_size(CL),
+            Acc2 = <<Acc/binary, BTag/binary>>,
+            <<CL:Size/bytes, Rest2/binary>> = Rest,
+            convert(Rest2, St, PL, CL, Dir, Acc2);
+        false ->
+            CodeIndent = getCodeIndent(St),
+            case remWS(Rest) of
+                {Rest2, Count} when Count >= CodeIndent ->
+                    convert(Rest2, [{code, <<>>}], PL, CL, Dir, Acc);
+                _ ->
+                    convert(Rest, [{p, <<CT/binary, 13, 10>>}|St], PL, CL, Dir, Acc)
+            end
+    end;
+
+%% URL
+parse(<<$<, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
+    convert(Rest, [{url, <<>>}|PState], PL, CL, Dir, Acc);
+
+parse(<<$>, Rest/binary>>, [{url, CT}| St], PL, CL, Dir, Acc) ->
+    case catch http_uri:parse(binary_to_list(CT)) of
+        {'EXIT', _} ->
+            %% Convert to &lt to remove html support from markdown
+            convert(<<CT/binary, $>, Rest/binary>>,
+                    addCT(<<"&lt;">>, St), PL, CL, Dir, Acc);
+        {error, _} ->
+            %% Convert to &lt to remove html support from markdown
+            convert(<<CT/binary, $>, Rest/binary>>,
+                    addCT(<<"&lt;">>, St), PL, CL, Dir, Acc);
+        _ ->
+            Url = <<"<a href='", CT/binary, "'>", CT/binary, "</a>">>,
+            convert(Rest, addCT(Url, St), PL, CL, Dir, Acc)
+    end;
 
 %% ImgLink
 parse(<<$[, Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->

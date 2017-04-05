@@ -125,8 +125,16 @@ handle_cast(_Msg, State = #state{active = false}) ->
     {noreply, State};
 handle_cast({sendMail, From, To, Msg}, State) ->
     Result = doSendMail(From, To, Msg, State),
-    eLog:log(debug, ?MODULE, sendAndLog, [From, To, Result],
-             "doSendMail result", ?LINE),
+    case Result of
+        {error, {Type, Reason}} ->
+            eLog:log(debug, ?MODULE, sendAndLog, [From, To, Result],
+                     "doSendMail result", ?LINE),
+            ErrorTxt = io_lib:format("Failed to send mail: ~p~n~n```~n~p~n```~n",
+                                    [Type, Reason]),
+            eTodo:systemEntry(system, ErrorTxt);
+        _ ->
+            ok
+    end,
     {noreply, State};
 handle_cast(_Request, State) ->
     {noreply, State}.
@@ -191,8 +199,8 @@ doSendMail(From, To, Msg, State = #state{auth = Auth,
         {Type2, Socket2} = smtpTransaction(Socket, Type, From, To, State),
         transferMail(Socket2, Type2, Msg)
     catch
-        throw:{connectFailed, Reason} -> {connectFailed, Reason};
-        throw:{smtpError, Reason}     -> {smtpError, Reason}
+        throw:{connectFailed, Reason} -> {error, {connectFailed, Reason}};
+        throw:{smtpError, Reason}     -> {error, {smtpError, Reason}}
     end.
 
 connect(Host, Port, "SSL/TLS") ->
