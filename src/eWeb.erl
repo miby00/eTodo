@@ -337,7 +337,7 @@ getGuestUsers(User) ->
                              ExternalUser
                      end
              end,
-    Owner2 = lists:map(Modify, OwnerCfg),
+    Owner2 = lists:map(Modify, default(OwnerCfg, [])),
     Users  = (eTodoDB:getUsers() ++ default(Owner2, [])) -- [User],
     Filter = fun(WUser) ->
                      case eTodoDB:getTodosSharedWith(User, WUser) of
