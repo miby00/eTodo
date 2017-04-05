@@ -1484,8 +1484,8 @@ getPeerEmail(User, Peer) ->
 doGetPeerEmail(_Peer, []) ->
     undefined;
 doGetPeerEmail(Peer, [PeerInfo|Rest]) ->
-    case string:tokens(PeerInfo, "<>") of
-        [Peer, Email] ->
+    case eTodoUtils:getPeerInfo(PeerInfo) of
+        {Peer, Email} ->
             Email;
         _ ->
             doGetPeerEmail(Peer, Rest)
@@ -1819,8 +1819,8 @@ getUsersWithEmail(Users) ->
 getUsersWithEmail([], Acc) ->
     lists:reverse(Acc);
 getUsersWithEmail([User|Rest], Acc) ->
-    case {string:tokens(User, "<>"), lists:member($<, User)} of
-        {[UserWithEmail, _Email], true} ->
+    case eTodoUtils:getPeerInfo(User) of
+        {UserWithEmail, _Email} ->
             getUsersWithEmail(Rest, [UserWithEmail|Acc]);
         _ ->
             getUsersWithEmail(Rest, Acc)

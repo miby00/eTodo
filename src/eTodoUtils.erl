@@ -14,12 +14,38 @@
 -include_lib("wx/include/wx.hrl").
 
 %% API
--export([makeStr/1, makeUserStr/1, toStr/1, toStr/2, toDB/1, toDB/2,
-         taskInternal/1, taskExternal/1, convertUid/1, convertUid/2,
-         col/2, default/2, doneTime/2, dateTime/0, makeETodo/3,
-         makeRef/0, getRootDir/0, apply/4, toColumn/1, toStatusDB/1,
-         addDateTime/2, tryInt/1, cancelTimer/1, getIp/0, getWeekDay/1,
-         mime_type/1, getDisposition/2, getStyleSheet/1]).
+-export([addDateTime/2,
+         apply/4,
+         cancelTimer/1,
+         col/2,
+         containsIllegalChars/1,
+         convertUid/1,
+         convertUid/2,
+         dateTime/0,
+         default/2,
+         doneTime/2,
+         getDisposition/2,
+         getIp/0,
+         getPeerInfo/1,
+         getRootDir/0,
+         getStyleSheet/1,
+         getWeekDay/1,
+         makeETodo/3,
+         makeRef/0,
+         makeStr/1,
+         makeUserStr/1,
+         mime_type/1,
+         taskExternal/1,
+         taskInternal/1,
+         toColumn/1,
+         toDB/1,
+         toDB/2,
+         toStatusDB/1,
+         toStr/1,
+         toStr/2,
+         tryInt/1]).
+
+-define(IllegalChars, "<>").
 
 %%%===================================================================
 %%% API
@@ -38,7 +64,7 @@ makeStr([Value | Rest], "")    -> makeStr(Rest, toStr(Value));
 makeStr([Value | Rest], SoFar) -> makeStr(Rest, toStr(Value) ++ ";" ++ SoFar).
 
 makeUserStr(undefined) -> "";
-makeUserStr(List) -> makeStr(lists:reverse(List), "").
+makeUserStr(List) -> makeUserStr(lists:reverse(List), "").
 
 makeUserStr([], SoFar) -> SoFar;
 makeUserStr([Value | Rest], "")    ->
@@ -47,8 +73,8 @@ makeUserStr([Value | Rest], SoFar) ->
     makeUserStr(Rest, removeEmail(toStr(Value)) ++ ";" ++ SoFar).
 
 removeEmail(Value) ->
-    case string:tokens(Value, "<>") of
-        [User, _Email] ->
+    case eTodoUtils:getPeerInfo(Value) of
+        {User, _Email} ->
             User;
         _ ->
             Value
@@ -429,15 +455,55 @@ getWeekDay(Date) ->
 %% @end
 %%--------------------------------------------------------------------
 mime_type(FileName) ->
-        "." ++ Extension = filename:extension(FileName),
+    "." ++ Extension = filename:extension(FileName),
     MimeTypes = mime_types(),
     proplists:get_value(string:to_lower(Extension), MimeTypes,
-        "application/octet-stream").
+                        "application/octet-stream").
 
 mime_types() ->
     MimeTypesFile   = filename:join(code:priv_dir(eTodo), "mime.types"),
     {ok, MimeTypes} = httpd_conf:load_mime_types(MimeTypesFile),
     MimeTypes.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Check for illegal chars
+%% @spec containsIllegalChars(Value) -> true | false
+%% @end
+%%--------------------------------------------------------------------
+containsIllegalChars([]) ->
+    false;
+containsIllegalChars([Char|Rest]) ->
+    case lists:member(Char, ?IllegalChars) of
+        false ->
+            containsIllegalChars(Rest);
+        true ->
+            true
+    end.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Get email address if present, otherwise return user only
+%% @spec getPeerInfo(User) -> {User, Email} | User
+%% @end
+%%--------------------------------------------------------------------
+getPeerInfo(User) ->
+    getPeerInfo(User, User, user, [], []).
+
+getPeerInfo([], _User, user, UserData, _EmailData) ->
+    lists:reverse(UserData);
+getPeerInfo([], User, email, _UserData, _EmailData) ->
+    User;
+getPeerInfo("<" ++ Rest, User, user, UserData, EmailData) ->
+    getPeerInfo(Rest, User, email, UserData, EmailData);
+getPeerInfo([Char|Rest], User, user, UserData, EmailData) ->
+    getPeerInfo(Rest, User, user, [Char|UserData], EmailData);
+getPeerInfo(">", _User, email, UserData, EmailData) ->
+    {lists:reverse(UserData), lists:reverse(EmailData)};
+getPeerInfo([Char|Rest], User, email, UserData, EmailData) ->
+    getPeerInfo(Rest, User, email, UserData, [Char|EmailData]).
 
 %%--------------------------------------------------------------------
 %% @private

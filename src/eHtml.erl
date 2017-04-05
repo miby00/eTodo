@@ -1370,7 +1370,7 @@ generateSystemMsg(Uid, Text) ->
         trTag([tdTag(), tdTag([{colspan, 2}], eMd2Html:convert(Text, "/priv"))])])}.
 
 generateSystemMsgEmail(User, Uid, Text) ->
-    ExtUrl = constructExternalUrl(User, integer_to_list(Uid)),
+    ExtUrl = constructExternalUrl(User, Uid),
 
     tableTag(
       [trTag(
@@ -1381,13 +1381,14 @@ generateSystemMsgEmail(User, Uid, Text) ->
        trTag([tdTag(), tdTag([{colspan, 2}], eMd2Html:convert(Text, "/priv"))])]).
 
 constructExternalUrl(User, Uid) ->
+    UidStr   = eTodoUtils:convertUid(Uid),
     PortStr  = toStr(eWeb:getPort()),
     ConCfg   = default(eTodoDB:getConnection(User),
                        #conCfg{host = "localhost"}),
     Host     = default(ConCfg#conCfg.host, "localhost"),
 
     "https://" ++ Host ++ ":" ++ PortStr ++
-        "/eTodo/eWeb:show?list=All tasks&search=" ++ Uid ++ "&searchCfg=id".
+        "/eTodo/eWeb:showTask?uid=" ++ http_uri:encode(UidStr).
 
 %%======================================================================
 %% Function :

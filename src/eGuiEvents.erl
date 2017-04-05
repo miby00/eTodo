@@ -744,8 +744,8 @@ getTo(#userCfg{ownerCfg = ExternalUsers}, Peer, _ConCfg) ->
 getPeerEmail(_Peer, []) ->
     undefined;
 getPeerEmail(Peer, [PeerInfo|Rest]) ->
-    case string:tokens(PeerInfo, "<>") of
-        [Peer, Email] ->
+    case eTodoUtils:getPeerInfo(PeerInfo) of
+        {Peer, Email} ->
             Email;
         _ ->
             getPeerEmail(Peer, Rest)
@@ -1421,8 +1421,7 @@ createExternalButtonEvent(_Type, _Id, _Frame,
     Owns = getItems(Obj1),
     NewOwner = wxTextCtrl:getValue(Obj2),
     NewEmail = wxTextCtrl:getValue(Obj3),
-    IllegalChar = lists:member($<, NewOwner ++ NewEmail) or
-                  lists:member($>, NewOwner ++ NewEmail),
+    IllegalChar = eTodoUtils:containsIllegalChars(NewOwner ++ NewEmail),
     case NewOwner of
         "" ->
             State;
@@ -1462,8 +1461,7 @@ updateExternalButtonEvent(_Type, _Id, _Frame,
     {_, [Index]} = wxListBox:getSelections(Obj),
     NewValue    = wxTextCtrl:getValue(Obj2),
     NewEmail    = wxTextCtrl:getValue(Obj3),
-    IllegalChar = lists:member($<, NewValue ++ NewEmail) or
-                  lists:member($>, NewValue ++ NewEmail),
+    IllegalChar = eTodoUtils:containsIllegalChars(NewValue ++ NewEmail),
     case IllegalChar of
         false ->
             wxListBox:setString(Obj, Index, NewValue ++ "<" ++ NewEmail ++ ">"),
@@ -1499,12 +1497,12 @@ manageExternalBoxEvent(_Type, _Id, _Frame,
     case wxListBox:getSelections(Obj) of
         {_, [Index]} ->
             Value = listBoxGet(Obj, Index),
-            case {string:tokens(Value, "<>"), lists:member($<, Value)} of
-                {[User, Email], true} ->
+            case eTodoUtils:getPeerInfo(Value) of
+                {User, Email} ->
                     wxTextCtrl:setValue(Obj2, User),
                     wxTextCtrl:setValue(Obj3, Email),
                     wxButton:enable(Obj4);
-                {User, false} ->
+                User ->
                     wxTextCtrl:setValue(Obj2, User),
                     wxButton:enable(Obj4)
             end;
@@ -1557,12 +1555,15 @@ createListButtonEvent(_Type, _Id, _Frame,
     Lists = getItems(Obj1),
     NewList = wxTextCtrl:getValue(Obj2),
     wxTextCtrl:setValue(Obj2, ""),
-    case NewList of
-        "" ->
+    IllegalChars = eTodoUtils:containsIllegalChars(NewList),
+    case {NewList, IllegalChars} of
+        {"", _} ->
             State;
-        ?defTaskList ->
+        {?defTaskList, _} ->
             State;
-        NewList ->
+        {_, true} ->
+            State;
+        {NewList, false} ->
             case catch list_to_integer(NewList) of
                 {'EXIT', _} ->
                     case lists:member(NewList, [?defInbox,
@@ -1753,17 +1754,15 @@ doSendTaskAsEmail(User, ExternalUsers, From, [ExtUser|Rest], Msg) ->
 
 sendIfExternal(_User, [], _From, _ExtUser, _Msg) ->
     ok;
-sendIfExternal(User, [ExtUser|Rest], From, ExtUser, Msg) ->
-    case string:tokens(ExtUser, "<>") of
-        [_User, Email] ->
+sendIfExternal(User, [ExtUser|Rest], From, Peer, Msg) ->
+    case eTodoUtils:getPeerInfo(ExtUser) of
+        {Peer, Email} ->
             EmailMsg = eMime:constructMail(User, "eTodo task update",
                                            From, From, Email, Msg),
             eSMTP:sendMail(From, Email, EmailMsg);
         _ ->
             sendIfExternal(User, Rest, From, ExtUser, Msg)
-    end;
-sendIfExternal(User, [_ExtUser|Rest], From, ExtUser, Msg) ->
-    sendIfExternal(User, Rest, From, ExtUser, Msg).
+    end.
 
 %%====================================================================
 %% Log work button
@@ -3222,13 +3221,25 @@ checkItemsInList(_Obj, -1, _List) ->
     ok;
 checkItemsInList(Obj, Index, List) ->
     Item = wxCheckListBox:getString(Obj, Index),
-    case lists:member(Item, List) of
+    case member(Item, List) of
         true ->
             wxCheckListBox:check(Obj, Index);
         false ->
             ok
     end,
     checkItemsInList(Obj, Index - 1, List).
+
+member(_Item, []) ->
+    false;
+member(Item, [Item|_Rest]) ->
+    true;
+member(Item, [User|Rest]) ->
+    case string:tokens(Item, "<>") of
+        [User, _Email] ->
+            true;
+        _ ->
+            member(Item, Rest)
+    end.
 
 checkItemsInListWithClear(Obj, List) ->
     Count = wxCheckListBox:getCount(Obj),
@@ -3238,7 +3249,7 @@ checkItemsInListWithClear(_Obj, -1, _List) ->
     ok;
 checkItemsInListWithClear(Obj, Index, List) ->
     Item = wxCheckListBox:getString(Obj, Index),
-    case lists:member(Item, List) of
+    case member(Item, List) of
         true ->
             wxCheckListBox:check(Obj, Index);
         false ->

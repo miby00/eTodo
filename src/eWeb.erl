@@ -54,6 +54,7 @@
          showLoggedWork/3,
          showStatus/3,
          showTimeReport/3,
+         showTask/3,
          showTodo/3,
          webProxyCall/2,
          webProxyCall/5]).
@@ -236,6 +237,10 @@ show(SessionId, Env, Input) ->
     HtmlPage = call({show, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, HtmlPage).
 
+showTask(SessionId, Env, Input) ->
+    HtmlPage = call({showTask, SessionId, Env, Input}),
+    mod_esi:deliver(SessionId, HtmlPage).
+
 message(SessionId, Env, Input) ->
     HtmlPage = call({message, SessionId, Env, Input}),
     mod_esi:deliver(SessionId, HtmlPage).
@@ -324,7 +329,16 @@ init([User]) ->
 getGuestUsers(User) ->
     %% Minimize guests to those users which the peer has shared todos with.
     #userCfg{ownerCfg = OwnerCfg} = eTodoDB:readUserCfg(User),
-    Users  = (eTodoDB:getUsers() ++ default(OwnerCfg, [])) -- [User],
+    Modify = fun (ExternalUser) ->
+                     case eTodoUtils:getPeerInfo(ExternalUser) of
+                         {ExtUser, _} ->
+                             ExtUser;
+                         _ ->
+                             ExternalUser
+                     end
+             end,
+    Owner2 = lists:map(Modify, OwnerCfg),
+    Users  = (eTodoDB:getUsers() ++ default(Owner2, [])) -- [User],
     Filter = fun(WUser) ->
                      case eTodoDB:getTodosSharedWith(User, WUser) of
                          [] ->
@@ -423,7 +437,7 @@ handle_call({link, _SessionId, _Env, Input}, _From, State) ->
     {ok, File} = find("filename",  Dict),
     {ok, Ref}  = find("reference", Dict),
     FileName   = filename:join([getRootDir(), "www", "linkedFiles",
-            Ref ++ "_" ++ File]),
+                                Ref ++ "_" ++ File]),
 
     FileData =
         case file:read_file(FileName) of
@@ -431,8 +445,8 @@ handle_call({link, _SessionId, _Env, Input}, _From, State) ->
                 MimeType    = mime_type(FileName),
                 Disposition = getDisposition(MimeType, File),
                 ["Content-Type: ", MimeType,
-                    "\r\nContent-Disposition: ", Disposition,
-                    "\r\n\r\n", zlib:gunzip(Bin)];
+                 "\r\nContent-Disposition: ", Disposition,
+                 "\r\n\r\n", zlib:gunzip(Bin)];
             Error ->
                 Error
         end,
@@ -555,7 +569,7 @@ handle_call({createTaskList, _SessionId, Env, Input}, _From,
     end,
 
     HtmlPage = redirect("listTodos?list=" ++ http_uri:encode(TaskList) ++
-                        "&search=", Env),
+                            "&search=", Env),
     {reply, HtmlPage, State};
 handle_call({deleteTask, _SessionId, _Env, Input}, _From, State) ->
     Dict = makeDict(Input),
@@ -601,7 +615,7 @@ handle_call({createTask, _SessionId, Env, Input}, _From,
 
     eTodo:todoCreated(TaskList, Row, Todo),
     HtmlPage = redirect("listTodos?list=" ++ http_uri:encode(TaskList) ++
-                        "&search=", Env),
+                            "&search=", Env),
     {reply, HtmlPage, State};
 handle_call({showTodo, _SessionId, _Env, Input}, _From,
             State = #state{user = User}) ->
@@ -616,6 +630,26 @@ handle_call({showTodo, _SessionId, _Env, Input}, _From,
                    eHtml:makeHtmlTaskCSS(ETodo, User),
                    eHtml:pageFooter()],
     {reply, HtmlPage, State};
+handle_call({showTask, SessionId, Env, Input}, _From,
+            State = #state{user = User, headers = SessionHdrList, key = Key}) ->
+    Headers     = getHeaders(SessionId, State),
+    WUser       = getUser(Env, Key),
+    Dict        = makeDict(Input),
+    {ok, Uid}   = find("uid", Dict),
+    {uid, Uid2} = eTodoUtils:convertUid(Uid),
+    Todo        = eTodoDB:getTodo(Uid2),
+    Columns     = eTodoDB:getColumns(User),
+    ETodo       = eTodoUtils:makeETodo(Todo, User, Columns),
+    HtmlPage    = case lists:member(WUser, Todo#todo.sharedWith) of
+                      true ->
+                          [eHtml:pageHeader(User),
+                           eHtml:makeHtmlTaskCSS2(ETodo, User),
+                           eHtml:pageFooter()];
+                      false ->
+                          removeCookie("eSession", redirect("login", Env))
+                  end,
+    SessionHdrList2 = keepAliveSessions(SessionHdrList),
+    {reply, Headers ++ HtmlPage, State#state{headers = SessionHdrList2}};
 handle_call({show, SessionId, Env, Input}, _From,
             State = #state{user    = User,
                            headers = SessionHdrList,
@@ -1234,6 +1268,7 @@ proxyCall({Message, SessionId, Env, Input},
   when (Message == index)      or
        (Message == mobile)     or
        (Message == show)       or
+       (Message == showTask)   or
        (Message == showStatus) or
        (Message == showLoggedWork) ->
     Dict = makeDict(Input),
@@ -1268,8 +1303,8 @@ proxyCall({Message, SessionId, Env, Input},
             {false, State#state{headers = SessionHdrList2}}
     end;
 proxyCall({Message, SessionId, Env, Input},
-    State = #state{headers = SessionHdrList})
-    when (Message == link) ->
+          State = #state{headers = SessionHdrList})
+  when (Message == link) ->
     Dict = makeDict(Input),
     case find("proxy", Dict) of
         {ok, User} when is_list(User) ->
@@ -1285,8 +1320,8 @@ proxyCall({Message, SessionId, Env, Input},
 
             SessionHdrList2 =
                 lists:keystore(SessionId, 1,
-                    SessionHdrList,
-                    {SessionId, Headers2}),
+                               SessionHdrList,
+                               {SessionId, Headers2}),
             {false, State#state{headers = SessionHdrList2}}
     end;
 proxyCall(Msg = {_Msg, SessionId, Env, _Input},
@@ -1464,8 +1499,9 @@ userOK(_User, {showStatus, _SessionId, _Env, _Input}, _WUser)     -> true;
 userOK(_User, {link, _SessionId, _Env, _Input}, _WUser)           -> true;
 userOK(_User, _Message, "")                                       -> false;
 userOK(_User, {show, _SessionId, _Env, _Input}, _WUser)           -> true;
+userOK(_User, {showTask, _SessionId, _Env, _Input}, _WUser)       -> true;
 userOK(_User, {showTimeReport, _SessionId, _Env, _Input}, _WUser) -> true;
-userOK(User, {_Msg, _SessionId, _Env, _Input}, User)              -> true;
+userOK(User,  {_Msg, _SessionId, _Env, _Input}, User)             -> true;
 userOK(_User, {_Msg, _SessionId, _Env, _Input}, _WUser)           -> false.
 
 %%--------------------------------------------------------------------
@@ -1566,7 +1602,7 @@ setCookie(Cookie, Value, Header) ->
     EDTime   = addDateTime(dateTime(), {{0,0,7}, {0,0,0}}),
     ExpDTime = httpd_util:rfc1123_date(EDTime),
     ["Set-Cookie: ",  Cookie, "=", Value, "; Expires=", ExpDTime,
-        "; httpOnly\r\n"] ++ Header.
+     "; httpOnly\r\n"] ++ Header.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -1586,7 +1622,7 @@ removeCookie(Cookie, "") ->
     %% The cookie should be removed, set expire to now.
     ExpDTime = httpd_util:rfc1123_date(dateTime()),
     ["Set-Cookie: ", Cookie, "=\"\";",
-        "Expires=", ExpDTime, "; httpOnly\r\n\r\n"];
+     "Expires=", ExpDTime, "; httpOnly\r\n\r\n"];
 removeCookie(Cookie, Header) ->
     %% The cookie should be removed, set expire to now.
     ExpDTime = httpd_util:rfc1123_date(dateTime()),
