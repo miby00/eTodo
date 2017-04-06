@@ -50,7 +50,7 @@ doConstructMail(HeaderStart, UserName, Subject, To, Messages) ->
          "Content-Type: multipart/related;", ?LF, 9,
          "boundary=\"", ?BDDef, "\"", ?LF,
          "Subject: ", Subject, ?LF,
-         "To: ", To, ?LF,
+         "To: ", makeAddressHeader(To), ?LF,
          "MIME-Version: 1.0", ?LF,
          ?LF,
          ?BD, ?LF,
@@ -255,3 +255,25 @@ encode(Char) ->
     [[A, B]] = io_lib:format("~2.16.0B", [Char]),
     <<$=, A, B>>.
 
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Make address header
+%%
+%% @end
+%%--------------------------------------------------------------------
+makeAddressHeader(Addresses) ->
+    makeAddressHeader(Addresses, <<>>).
+
+makeAddressHeader([Address], <<>>) ->
+    Address;
+makeAddressHeader([Address], Acc) ->
+    BinAddr = list_to_binary(Address),
+    <<Acc/binary, ",\r\n\t", BinAddr/binary>>;
+makeAddressHeader([Address|Rest], <<>>) ->
+    BinAddr = list_to_binary(Address),
+    makeAddressHeader(Rest, BinAddr);
+makeAddressHeader([Address|Rest], Acc) ->
+    BinAddr = list_to_binary(Address),
+    Acc2    = <<Acc/binary, ",\r\n\t", BinAddr/binary>>,
+    makeAddressHeader(Rest, Acc2).

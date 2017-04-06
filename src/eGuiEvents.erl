@@ -713,26 +713,29 @@ sendMsg(Users, MsgText, State = #guiState{user = User}) ->
     ePeerEM:sendMsg(User, Users, msgEntry, MsgText),
     State#guiState{msgStatusSent = false}.
 
-sendEmails([], _MsgText, _Users, State) ->
+sendEmails(EmailUsers, MsgText, AllUsers, State) ->
+    ConCfg = eTodoDB:getConnection(State#guiState.user),
+    sendEmails(EmailUsers, MsgText, AllUsers, State, ConCfg#conCfg.email, []).
+
+sendEmails(_EmailUsers, _MsgText, _Users, State, undefined, _AccTo) ->
     State;
-sendEmails([Peer|Rest], MsgText, Users, State = #guiState{user = User}) ->
-    ConCfg1   = eTodoDB:getConnection(User),
-    ConCfg2   = eTodoDB:getConnection(Peer),
-    UserCfg   = eTodoDB:readUserCfg(User),
-    ToAddress = getTo(UserCfg, Peer, ConCfg2),
-    case {ConCfg1#conCfg.email, ToAddress}  of
-        {_, undefined} ->
-            ok;
-        {undefined, _} ->
-            ok;
-        {From, To} ->
-            {_, Msg} = eHtml:generateMsg(User, User, Users, MsgText),
-            Msg2     = iolist_to_binary(Msg),
-            EmailMsg = eMime:constructMail(User, "eTodo message",
-                                           From, From, To, Msg2),
-            eSMTP:sendMail(From, To, EmailMsg)
-    end,
-    sendEmails(Rest, MsgText, Users, State).
+sendEmails([], MsgText, Users, State=#guiState{user = User}, From, AccTo) ->
+    {_, Msg} = eHtml:generateMsg(User, User, Users, MsgText),
+    Msg2     = iolist_to_binary(Msg),
+    EmailMsg = eMime:constructMail(User, "eTodo message",
+                                   From, From, AccTo, Msg2),
+    eSMTP:sendMail(From, AccTo, EmailMsg),
+    State;
+sendEmails([Peer|Rest], MsgText, Users, State, From, AccTo) ->
+    ConCfg  = eTodoDB:getConnection(Peer),
+    UserCfg = eTodoDB:readUserCfg(State#guiState.user),
+    ToAddress = getTo(UserCfg, Peer, ConCfg),
+    case ToAddress of
+        undefined ->
+            sendEmails(Rest, MsgText, Users, State, From, AccTo);
+        ToAddress ->
+            sendEmails(Rest, MsgText, Users, State, From, [ToAddress|AccTo])
+    end.
 
 getTo(_UserCfg, _Peer, #conCfg{email = Email}) when Email =/= undefined ->
     Email;
@@ -1758,8 +1761,8 @@ sendIfExternal(User, [ExtUser|Rest], From, Peer, Msg) ->
     case eTodoUtils:getPeerInfo(ExtUser) of
         {Peer, Email} ->
             EmailMsg = eMime:constructMail(User, "eTodo task update",
-                                           From, From, Email, Msg),
-            eSMTP:sendMail(From, Email, EmailMsg);
+                                           From, From, [Email], Msg),
+            eSMTP:sendMail(From, [Email], EmailMsg);
         _ ->
             sendIfExternal(User, Rest, From, ExtUser, Msg)
     end.

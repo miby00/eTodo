@@ -224,8 +224,7 @@ smtpTransaction(Socket, Type, From, To, State = #state{auth = "None"}) ->
     checkResponse(Socket, Type, doRecvLine(Socket, Type)),
     sendAndLog(Socket, Type, ["MAIL FROM: <", From, ">\r\n"]),
     checkResponse(Socket, Type, doRecvLine(Socket, Type)),
-    sendAndLog(Socket, Type, ["RCPT TO: <", To, ">\r\n"]),
-    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    doRcptTo(Socket, Type, To),
     sendAndLog(Socket, Type, "DATA\r\n"),
     checkResponse(Socket, Type, doRecvLine(Socket, Type)),
     {Type, Socket};
@@ -238,8 +237,7 @@ smtpTransaction(Socket, Type, From, To, State = #state{auth = "STARTTLS"}) ->
     doAuthentication(Socket2, Type2, State),
     sendAndLog(Socket2, Type2, ["MAIL FROM: <", From, ">\r\n"]),
     checkResponse(Socket2, Type2, doRecvLine(Socket2, Type2)),
-    sendAndLog(Socket2, Type2, ["RCPT TO: <", To, ">\r\n"]),
-    checkResponse(Socket2, Type2, doRecvLine(Socket2, Type2)),
+    doRcptTo(Socket2, Type2, To),
     sendAndLog(Socket2, Type2, "DATA\r\n"),
     checkResponse(Socket2, Type2, doRecvLine(Socket2, Type2)),
     {Type2, Socket2};
@@ -249,8 +247,7 @@ smtpTransaction(Socket, Type, From, To, State) ->
     doAuthentication(Socket, Type, State),
     sendAndLog(Socket, Type, ["MAIL FROM: <", From, ">\r\n"]),
     checkResponse(Socket, Type, doRecvLine(Socket, Type)),
-    sendAndLog(Socket, Type, ["RCPT TO: <", To, ">\r\n"]),
-    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    doRcptTo(Socket, Type, To),
     sendAndLog(Socket, Type, "DATA\r\n"),
     checkResponse(Socket, Type, doRecvLine(Socket, Type)),
     {Type, Socket}.
@@ -357,6 +354,21 @@ doAuthentication(Socket, Type, #state{smtpUser = User, smtpPwd = Pwd}) ->
     checkResponse(Socket, Type, doRecvLine(Socket, Type)),
     sendAndLog(Socket, Type, base64:encode_to_string(Pwd)++"\r\n"),
     checkResponse(Socket, Type, doRecvLine(Socket, Type)).
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Send mail to multiple receipients
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+doRcptTo(_Socket, _Type, []) ->
+    ok;
+doRcptTo(Socket, Type, [To|Rest]) ->
+    sendAndLog(Socket, Type, ["RCPT TO: <", To, ">\r\n"]),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    doRcptTo(Socket, Type, Rest).
 
 %%--------------------------------------------------------------------
 %% @private

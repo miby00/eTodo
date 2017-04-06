@@ -298,25 +298,38 @@ saveTime(Uid, Estimate, Remaining) ->
 
 updateTodoNoDiff(User, Todo = #todo{sharedWith = Users}) ->
     Users2 = default(Users, []),
-    ePeerLock:getLocks(Todo#todo.uid, User, Users2),
-    gen_server:call(?MODULE, {updateTodo, Todo}),
-    ePeerEM:todoUpdated(User, Users2, Todo),
-    ePeerLock:releaseLocks(Todo#todo.uid, User, Users2).
+    case catch ePeerLock:getLocks(Todo#todo.uid, User, Users2) of
+        {'EXIT', _} ->
+            ErrorTxt = io_lib:format("Failed to get lock for task: ~p~n",
+                                     [Todo#todo.uid]),
+            eTodo:systemEntry(system, ErrorTxt);
+        _ ->
+            gen_server:call(?MODULE, {updateTodo, Todo}),
+            ePeerEM:todoUpdated(User, Users2, Todo),
+            ePeerLock:releaseLocks(Todo#todo.uid, User, Users2)
+    end.
 
 updateTodo(User, Todo = #todo{sharedWith = Users})
   when Todo#todo.uid =/= undefined ->
     Users2 = default(Users, []),
-    ePeerLock:getLocks(Todo#todo.uid, User, Users2),
-    Diff = gen_server:call(?MODULE, {updateTodo, Todo}),
-    case Diff of
-        #diff{diff = []} ->
-            %% No difference, do not send todoUpdated signal.
-            ok;
+    case catch ePeerLock:getLocks(Todo#todo.uid, User, Users2) of
+        {'EXIT', _} ->
+            ErrorTxt = io_lib:format("Failed to get lock for task: ~p~n",
+                                     [Todo#todo.uid]),
+            eTodo:systemEntry(system, ErrorTxt);
         _ ->
-            %% Calculated diff, send to other peer.
-            ePeerEM:todoUpdated(User, Users2, Diff)
-    end,
-    ePeerLock:releaseLocks(Todo#todo.uid, User, Users2).
+            ePeerLock:getLocks(Todo#todo.uid, User, Users2),
+            Diff = gen_server:call(?MODULE, {updateTodo, Todo}),
+            case Diff of
+                #diff{diff = []} ->
+                    %% No difference, do not send todoUpdated signal.
+                    ok;
+                _ ->
+                    %% Calculated diff, send to other peer.
+                    ePeerEM:todoUpdated(User, Users2, Diff)
+            end,
+            ePeerLock:releaseLocks(Todo#todo.uid, User, Users2)
+    end.
 
 updateTodoNoLocks(Todo) when Todo#todo.uid =/= undefined ->
     gen_server:call(?MODULE, {updateTodo, Todo});
@@ -639,11 +652,11 @@ handle_call(getConnections, _From, State) ->
     Result  = match(#conCfg{_ = '_'}),
 
     SortFun = fun(#conCfg{updateTime = U1}, #conCfg{updateTime = U2}) ->
-        case {U1, U2} of
-            {configured, _} -> true;
-            {_, configured} -> false;
-            _               -> U1 > U2
-        end
+                      case {U1, U2} of
+                          {configured, _} -> true;
+                          {_, configured} -> false;
+                          _               -> U1 > U2
+                      end
               end,
     FilterFun =
         fun (ConCfg) ->
