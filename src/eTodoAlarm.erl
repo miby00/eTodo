@@ -186,7 +186,7 @@ sendEmail(#alarmCfg{emailReminder = true, userName = User, uid = Uid}, Text) ->
         undefined ->
             ok;
         EmailAddr ->
-            {_, Msg} = eHtml:generateAlarmMsg(Uid, Text),
+            Msg      = eHtml:generateAlarmMsgEmail(User, Uid, Text),
             Msg2     = iolist_to_binary(Msg),
             EmailMsg = eMime:constructMail(User, "eTodo reminder",
                                            EmailAddr, EmailAddr, [EmailAddr],

@@ -18,6 +18,7 @@
          generateSystemMsg/2,
          generateSystemMsgEmail/3,
          generateAlarmMsg/2,
+         generateAlarmMsgEmail/3,
          printTaskList/5,
          makeTaskList/5,
          makeHtmlTaskCSS/2,
@@ -1441,6 +1442,17 @@ generateAlarmMsg(Uid, Text) ->
                         aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
                                    http_uri:encode(UidStr)}], "eTodo"))]),
                trTag([tdTag(), tdTag([{colspan, 2}], eMd2Html:convert(Text, "/priv"))])])}.
+
+generateAlarmMsgEmail(User, Uid, Text) ->
+    ExtUrl = constructExternalUrl(User, Uid),
+    tableTag([{class, "msgAlarm"}],
+             [trTag(
+                [tdTag([{class, "msgImg"}],
+                       imgTag([{src, "/priv/Icons/clockChat.png"}])),
+                 tdTag([{class, "msgTime"}], toStr(time(), time)),
+                 tdTag([{class, "msgText"}],
+                       aTag([{href, ExtUrl}], "eTodo"))]),
+              trTag([tdTag(), tdTag([{colspan, 2}], eMd2Html:convert(Text, "/priv"))])]).
 
 %%======================================================================
 %% Function :
