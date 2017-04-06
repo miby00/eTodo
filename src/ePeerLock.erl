@@ -251,10 +251,10 @@ doGetLocks(Uid, Owner, Users, From) ->
 %%--------------------------------------------------------------------
 doReleaseLocks(_User, []) ->
     ok;
-doReleaseLocks(User, [{Uid, User}|Locks]) ->
+doReleaseLocks(User, [{Uid, User, _TS}|Locks]) ->
     releaseLock(Uid, User),
     doReleaseLocks(User, Locks);
-doReleaseLocks(User, [{_Uid, _Owner}|Locks]) ->
+doReleaseLocks(User, [{_Uid, _Owner, _TS}|Locks]) ->
     doReleaseLocks(User, Locks).
 
 %%--------------------------------------------------------------------
@@ -267,16 +267,23 @@ doReleaseLocks(User, [{_Uid, _Owner}|Locks]) ->
 %% @end
 %%--------------------------------------------------------------------
 doGetLock(Uid, Owner, From, State = #state{locks = Locks, queue = Queue}) ->
-    case lists:keyfind(Uid, 1, Locks) of
-        {Uid, Owner} ->
+    TStamp = erlang:timestamp(),
+    Locks2 = removeOldLocks(Locks, TStamp),
+    Queue2 = removeOldLocks(Queue, TStamp),
+    case lists:keyfind(Uid, 1, Locks2) of
+        {Uid, Owner, _TS} ->
             %% Already have a lock, write on...
-            {reply, ok, State};
-        {Uid, _} ->
+            {reply, ok, State#state{locks = Locks2,
+                                    queue = Queue2}};
+        {Uid, _, _TS} ->
             %% Someone else have a lock, queue...
-            {noreply, State#state{queue = Queue ++ [{Uid, From, Owner}]}};
+            LockRequest = [{Uid, From, Owner, TStamp}],
+            {noreply, State#state{locks = Locks2,
+                                  queue = Queue2 ++ LockRequest}};
         false ->
             %% No one have a lock, register lock.
-            {reply, ok, State#state{locks = [{Uid, Owner}|Locks]}}
+            {reply, ok, State#state{locks = [{Uid, Owner, TStamp}|Locks2],
+                                    queue = Queue2}}
     end.
 
 %%--------------------------------------------------------------------
@@ -291,8 +298,50 @@ doReleaseLock(Uid, State = #state{locks = Locks, queue = Queue}) ->
     case lists:keyfind(Uid, 1, Queue) of
         false ->
             {noreply, State#state{locks = lists:keydelete(Uid, 1, Locks)}};
-        {Uid, From, _} ->
+        {Uid, From, _, _TS} ->
             gen_server:reply(From, ok),
             Queue2 = lists:keydelete(Uid, 1, Queue),
             {noreply, State#state{queue = Queue2}}
     end.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Remove old locks
+%%
+%% @spec removeOldLocks(Locks, TimeStamp) -> Locks2
+%% @end
+%%--------------------------------------------------------------------
+removeOldLocks(Locks, TimeStamp) ->
+    removeLocks(Locks, TimeStamp, []).
+
+removeLocks([], _TimeStamp, Acc) ->
+    lists:reverse(Acc);
+removeLocks([{Uid, Owner, LT}|Rest], TS, Acc) ->
+    case timeDiff(LT, TS) > 5000000 of
+        true ->
+            errorMsg(Owner, Uid),
+            %% Lock older than 5 sec, remove it from lock list.
+            removeLocks(Rest, TS, Acc);
+        false ->
+            removeLocks(Rest, TS, [{Uid, Owner, LT}|Acc])
+    end;
+removeLocks([{Uid, From, Owner, LT}|Rest], TS, Acc) ->
+    case timeDiff(LT, TS) > 5000000 of
+        true ->
+            errorMsg(Owner, Uid),
+            %% Lock older than 5 sec, remove it from lock list.
+            removeLocks(Rest, TS, Acc);
+        false ->
+            removeLocks(Rest, TS, [{Uid, From, Owner, LT}|Acc])
+    end.
+
+timeDiff({LT1, LT2, LT3}, {TS1, TS2, TS3}) ->
+    MegaSec  = (TS1 - LT1) * 1000000,
+    Seconds  = TS2 - LT2,
+    TS3 - LT3 + (MegaSec + Seconds) * 1000000.
+
+errorMsg(Owner, Uid) ->
+    ErrorTxt = io_lib:format("Lock from ~p release for task ~p, to old!~n",
+                             [Owner, Uid]),
+    eTodo:systemEntry(system, ErrorTxt).
