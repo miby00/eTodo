@@ -163,19 +163,34 @@ delReminder(AlarmCfg) ->
     gen_server:call(?MODULE, {delReminder, AlarmCfg}).
 
 delTodo(Uid, User) ->
-    ePeerLock:getLock(Uid, User),
-    gen_server:call(?MODULE, {delTodo, Uid}),
-    ePeerLock:releaseLock(Uid, User).
+    case catch ePeerLock:getLock(Uid, User) of
+        {'EXIT', _} ->
+            ErrorTxt = io_lib:format("Failed to get lock for task: ~p~n", [Uid]),
+            eTodo:systemEntry(system, ErrorTxt);
+        _ ->
+            gen_server:call(?MODULE, {delTodo, Uid}),
+            ePeerLock:releaseLock(Uid, User)
+    end.
 
 delTodo(Uid, Parent, User) ->
-    ePeerLock:getLock(Uid, User),
-    gen_server:call(?MODULE, {delTodo, Uid, toList(Parent)}),
-    ePeerLock:releaseLock(Uid, User).
+    case catch ePeerLock:getLock(Uid, User) of
+        {'EXIT', _} ->
+            ErrorTxt = io_lib:format("Failed to get lock for task: ~p~n", [Uid]),
+            eTodo:systemEntry(system, ErrorTxt);
+        _ ->
+            gen_server:call(?MODULE, {delTodo, Uid, toList(Parent)}),
+            ePeerLock:releaseLock(Uid, User)
+    end.
 
 delTodo(Uid, Parent, User, RemoveAll) ->
-    ePeerLock:getLock(Uid, User),
-    gen_server:call(?MODULE, {delTodo, Uid, toList(Parent), RemoveAll}),
-    ePeerLock:releaseLock(Uid, User).
+    case catch ePeerLock:getLock(Uid, User) of
+        {'EXIT', _} ->
+            ErrorTxt = io_lib:format("Failed to get lock for task: ~p~n", [Uid]),
+            eTodo:systemEntry(system, ErrorTxt);
+        _ ->
+            gen_server:call(?MODULE, {delTodo, Uid, toList(Parent), RemoveAll}),
+            ePeerLock:releaseLock(Uid, User)
+    end.
 
 getAllTodos() ->
     gen_server:call(?MODULE, getAllTodos).
