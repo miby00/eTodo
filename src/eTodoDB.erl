@@ -333,7 +333,6 @@ updateTodo(User, Todo = #todo{sharedWith = Users})
                                      [Todo#todo.uid]),
             eTodo:systemEntry(system, ErrorTxt);
         _ ->
-            ePeerLock:getLocks(Todo#todo.uid, User, Users2),
             Diff = gen_server:call(?MODULE, {updateTodo, Todo}),
             case Diff of
                 #diff{diff = []} ->
