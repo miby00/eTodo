@@ -29,6 +29,7 @@
          getPeerInfo/1,
          getRootDir/0,
          getStyleSheet/1,
+         getUserCfgDir/0,
          getWeekDay/1,
          makeETodo/3,
          makeRef/0,
@@ -95,6 +96,19 @@ doneTime(DoneTime, _)                            -> DoneTime.
 %%--------------------------------------------------------------------
 dateTime() ->
     {date(), time()}.
+
+%%--------------------------------------------------------------------
+%% @doc  Return current local time.
+%% @spec getUserCfgDir() -> dir
+%% @end
+%%--------------------------------------------------------------------
+getUserCfgDir() ->
+    case application:get_env(mnesia, dir) of
+        undefined ->
+            filename:join([code:priv_dir(eTodo), "www"]);
+        {ok, Dir} ->
+            Dir
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc

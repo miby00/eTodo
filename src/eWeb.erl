@@ -436,7 +436,7 @@ handle_call({link, _SessionId, _Env, Input}, _From, State) ->
     Dict       = makeDict(Input),
     {ok, File} = find("filename",  Dict),
     {ok, Ref}  = find("reference", Dict),
-    FileName   = filename:join([getRootDir(), "www", "linkedFiles",
+    FileName   = filename:join([eTodoUtils:getUserCfgDir(), "linkedFiles",
                                 Ref ++ "_" ++ File]),
 
     FileData =

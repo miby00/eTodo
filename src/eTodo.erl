@@ -227,7 +227,7 @@ init([Arg]) ->
     file:set_cwd(WorkDir),
 
     %% Ensure linked dir exist.
-    LinkedDir = filename:join([getRootDir(), "www", "linkedFiles", "temp"]),
+    LinkedDir = filename:join([eTodoUtils:getUserCfgDir(), "linkedFiles", "temp"]),
     filelib:ensure_dir(LinkedDir),
 
     {WXFrame, State}.

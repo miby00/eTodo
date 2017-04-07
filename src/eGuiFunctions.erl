@@ -2075,8 +2075,7 @@ convertToLocal(CType, Img, CT) when (CType == "image/jpeg") or
                                     (CType == "image/png")  or
                                     (CType == "image/bmp")  or
                                     (CType == "image/gif")  ->
-    FileName = filename:join([eTodoUtils:getRootDir(),
-                              "www", "linkedFiles",
+    FileName = filename:join([eTodoUtils:getUserCfgDir(), "linkedFiles",
                               integer_to_list(erlang:phash2(CT)) ++ ".png"]),
     saveFile(FileName, Img, CT);
 convertToLocal(_ContentType, _Img, CT) ->

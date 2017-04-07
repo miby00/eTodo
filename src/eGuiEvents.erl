@@ -1372,7 +1372,7 @@ linkFileButtonEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
 
             {ok, Bin} = file:read_file(Path),
             ZBin      = zlib:gzip(Bin),
-            FileName  = filename:join([getRootDir(), "www", "linkedFiles",
+            FileName  = filename:join([eTodoUtils:getUserCfgDir(), "linkedFiles",
                                        Reference ++ "_" ++ File]),
             filelib:ensure_dir(FileName),
             file:write_file(FileName, ZBin),
@@ -2033,7 +2033,7 @@ linkFileMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
 
             {ok, Bin} = file:read_file(Path),
             ZBin      = zlib:gzip(Bin),
-            FileName  = filename:join([getRootDir(), "www", "linkedFiles",
+            FileName  = filename:join([eTodoUtils:getUserCfgDir(), "linkedFiles",
                                        Reference ++ "_" ++ File]),
             filelib:ensure_dir(FileName),
             file:write_file(FileName, ZBin),
@@ -2987,10 +2987,10 @@ confirmRemoveLinked(State, Frame) ->
                                {style,   ?wxYES_NO}]),
     case wxMessageDialog:showModal(Dlg) of
         ?wxID_YES ->
-            FileDir = filename:join([getRootDir(), "www", "linkedFiles"]),
+            FileDir = filename:join([eTodoUtils:getUserCfgDir(), "linkedFiles"]),
             {ok, FileList} = file:list_dir(FileDir),
-            [file:delete(filename:join([getRootDir(),
-                                        "www", "linkedFiles", File])) ||
+            [file:delete(filename:join([eTodoUtils:getUserCfgDir(),
+                                        "linkedFiles", File])) ||
                 File <- FileList],
             State;
         _ ->
