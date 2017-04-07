@@ -2786,13 +2786,14 @@ msgSettingsButtonEvent(_Type, _Id, _Frame,
                        State = #guiState{msgCfgDlg = Settings,
                                          msgCfg    = {FilterUsed, CUsers},
                                          user      = User}) ->
-
+    UserCfg    = default(eTodoDB:readUserCfg(User), []),
     UseFilter  = wxXmlResource:xrcctrl(Settings, "filterMsgCBox",  wxCheckBox),
     wxCheckBox:setValue(UseFilter, FilterUsed),
-    Users  = lists:delete(User, eTodoDB:getUsers()),
+    Users      = lists:delete(User, eTodoDB:getUsers()),
+    EmailUsers = eGuiFunctions:getUsersWithEmail(UserCfg#userCfg.ownerCfg),
     Choice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxCheckListBox),
     wxCheckListBox:clear(Choice),
-    wxCheckListBox:appendStrings(Choice, Users),
+    wxCheckListBox:appendStrings(Choice, Users ++ EmailUsers),
     checkItemsInList(Choice, CUsers),
 
     wxDialog:setSize(Settings, {270, 400}),

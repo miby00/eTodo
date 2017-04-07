@@ -43,6 +43,7 @@
          getTaskList/1,
          getTodoList/2,
          getTodoLists/1,
+         getUsersWithEmail/1,
          getWorkDesc/2,
          makeETodo/3,
          obj/2,
