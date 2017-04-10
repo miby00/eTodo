@@ -619,7 +619,7 @@ startDateChangedEvent(State) ->
 %%====================================================================
 msgTextCtrlEvent(Event = #wxKey{}, Id, Frame, State) ->
     MsgTextCtrl = obj("msgTextCtrl",  State),
-    Empty       = wxTextCtrl:getValue(MsgTextCtrl) == "",
+    Empty       = isEmpty(wxTextCtrl:getValue(MsgTextCtrl)),
 
     case {Empty, Event} of
         {false, #wxKey{keyCode     = 13,
@@ -639,7 +639,7 @@ msgTextCtrlEvent(command_text_updated, _Id, _Frame,
     MsgTextCtrl = obj("msgTextCtrl",  State),
     SMChatObj   = xrcId("sendChatMenu"),
 
-    Empty       = wxTextCtrl:getValue(MsgTextCtrl) == "",
+    Empty       = isEmpty(wxTextCtrl:getValue(MsgTextCtrl)),
     if
         Empty ->
             wxMenuBar:enable(MenuBar, SMChatObj, false),
@@ -753,6 +753,13 @@ getPeerEmail(Peer, [PeerInfo|Rest]) ->
         _ ->
             getPeerEmail(Peer, Rest)
     end.
+
+isEmpty([]) -> true;
+isEmpty([13|Rest]) -> isEmpty(Rest);
+isEmpty([10|Rest]) -> isEmpty(Rest);
+isEmpty([32|Rest]) -> isEmpty(Rest);
+isEmpty([9 |Rest]) -> isEmpty(Rest);
+isEmpty(_)         -> false.
 
 %%====================================================================
 %% Show right click menu on message window.

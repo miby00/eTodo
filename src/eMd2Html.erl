@@ -179,8 +179,16 @@ parse(<<$!, $[, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
 parse(<<$], $(, Rest/binary>>, [{ilDesc, 1, CT}| St], PL, CL, Dir, Acc) ->
     convert(Rest, [{ilink, 1, <<>>}, {ilDesc, CT}|St], PL, CL, Dir, Acc);
 
-parse(<<$], Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
+parse(<<$], Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Dir, Acc)
+    when Num > 1 ->
     convert(Rest, [{ilDesc, Num - 1, <<CT/binary, $]>>}|PState], PL, CL, Dir, Acc);
+
+parse(<<$], Rest/binary>>, [{ilDesc, _Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(<<CT/binary, $], Rest/binary>>,
+            addCT(<<"![">>, PState), PL, CL, Dir, Acc);
+
+parse(<<13, 10, Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(Rest, [{ilDesc, Num, <<CT/binary, 13, 10>>}|PState], PL, CL, Dir, Acc);
 
 parse(<<Char:8, Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
     convert(Rest, [{ilDesc, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Dir, Acc);
@@ -215,6 +223,9 @@ parse(<<$), Rest/binary>>, [{ilink, 1, CT}, {ilDesc, PT}|St], PL, CL, Dir, Acc) 
                 addCT(<<"![">>, St), PL, CL, Dir, Acc)
     end;
 
+parse(<<13, 10, Rest/binary>>, [{ilink, Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(Rest, [{ilink, Num, <<CT/binary, 13, 10>>}|PState], PL, CL, Dir, Acc);
+
 parse(<<Char:8, Rest/binary>>, [{ilink, Num, CT}|PState], PL, CL, Dir, Acc) ->
     convert(Rest, [{ilink, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Dir, Acc);
 
@@ -228,8 +239,16 @@ parse(<<$[, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
 parse(<<$], $(, Rest/binary>>, [{lDesc, 1, CT}| St], PL, CL, Dir, Acc) ->
     convert(Rest, [{link, 1, <<>>}, {lDesc, CT}|St], PL, CL, Dir, Acc);
 
-parse(<<$], Rest/binary>>, [{lDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
+parse(<<$], Rest/binary>>, [{lDesc, Num, CT}|PState], PL, CL, Dir, Acc)
+    when Num > 1 ->
     convert(Rest, [{lDesc, Num - 1, <<CT/binary, $]>>}|PState], PL, CL, Dir, Acc);
+
+parse(<<$], Rest/binary>>, [{lDesc, _Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(<<CT/binary, $], Rest/binary>>,
+            addCT(<<"[">>, PState), PL, CL, Dir, Acc);
+
+parse(<<13, 10, Rest/binary>>, [{lDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(Rest, [{lDesc, Num, <<CT/binary, 13, 10>>}|PState], PL, CL, Dir, Acc);
 
 parse(<<Char:8, Rest/binary>>, [{lDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
     convert(Rest, [{lDesc, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Dir, Acc);
@@ -252,6 +271,9 @@ parse(<<$), Rest/binary>>, [{link, 1, CT}, {lDesc, PT}|St], PL, CL, Dir, Acc) ->
             Url = <<"<a href='", CT/binary, "'>", PT/binary, "</a>">>,
             convert(Rest, addCT(Url, St), PL, CL, Dir, Acc)
     end;
+
+parse(<<13, 10, Rest/binary>>, [{link, Num, CT}|PState], PL, CL, Dir, Acc) ->
+    convert(Rest, [{link, Num, <<CT/binary, 13, 10>>}|PState], PL, CL, Dir, Acc);
 
 parse(<<Char:8, Rest/binary>>, [{link, Num, CT}|PState], PL, CL, Dir, Acc) ->
     convert(Rest, [{link, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Dir, Acc);
