@@ -28,32 +28,28 @@
 convert(MDText) when is_list(MDText) ->
     convert(unicode:characters_to_binary(MDText));
 convert(MDText) when is_binary(MDText) ->
-    Dir = list_to_binary(eTodoUtils:getRootDir()),
-    convert(<<13, 10, MDText/binary>>, [{p, <<>>}], <<>>, <<>>, Dir, <<>>).
+    Dir     = list_to_binary(eTodoUtils:getRootDir()),
+    MDText2 = convertLineEnding(MDText),
+    convert(<<10, MDText2/binary>>, [{p, <<>>}], <<>>, <<>>, Dir, <<>>).
 
 convert(MDText, Dir) when is_list(MDText), is_list(Dir) ->
     convert(unicode:characters_to_binary(MDText), list_to_binary(Dir));
 convert(MDText, Dir) when is_binary(MDText), is_binary(Dir) ->
-    convert(<<13, 10, MDText/binary>>, [{p, <<>>}], <<>>, <<>>, Dir, <<>>).
+    convert(<<10, MDText/binary>>, [{p, <<>>}], <<>>, <<>>, Dir, <<>>).
 
 %% Handle no state as paragraph (p)
 convert(Content, [], PL, CL, Dir, Acc) ->
     convert(Content, [{p, <<>>}], PL, CL, Dir, Acc);
 
-convert(<<13, 10, Content/binary>>, PState, _PL, CL, Dir, Acc) ->
-    Content2 = evalRemWS(Content, PState),
-    parse(<<13, 10, Content2/binary>>, PState, CL, getCurrentRow(Content), Dir, Acc);
-
 convert(<<10, Content/binary>>, PState, _PL, CL, Dir, Acc) ->
     Content2 = evalRemWS(Content, PState),
-    parse(<<13, 10, Content2/binary>>, PState, CL, getCurrentRow(Content), Dir, Acc);
+    parse(<<10, Content2/binary>>, PState, CL, getCurrentRow(Content), Dir, Acc);
 
 convert(Content, PState, PL, CL, Dir, Acc) ->
     parse(Content, PState, PL, CL, Dir, Acc).
 
-
 %% Block quote
-parse(<<13, 10, $>, Rest/binary>>, PState = [{p, CT}|St], PL, CL, Dir, Acc) ->
+parse(<<10, $>, Rest/binary>>, PState = [{p, CT}|St], PL, CL, Dir, Acc) ->
     case lists:member(blockquote, St) of
         false ->
             BTag = makeTag(p, Dir, CT),
@@ -61,10 +57,10 @@ parse(<<13, 10, $>, Rest/binary>>, PState = [{p, CT}|St], PL, CL, Dir, Acc) ->
             convert(Rest, [{p, <<>>}, blockquote|St], PL, CL, Dir, Acc2);
         true ->
             BlockQuoteText = element(1, remWS(Rest)),
-            convert(<<13, 10, BlockQuoteText/binary>>,
+            convert(<<10, BlockQuoteText/binary>>,
                     [{p, <<CT/binary>>}|St], PL, CL, Dir, Acc);
         _ ->
-            convert(Rest, addCT(<<13, 10, $>>>, PState), PL, CL, Dir, Acc)
+            convert(Rest, addCT(<<10, $>>>, PState), PL, CL, Dir, Acc)
     end;
 
 %% Close block quote
@@ -73,10 +69,10 @@ parse(Content, [blockquote| St], PL, CL, Dir, Acc) ->
     convert(Content, St, PL, CL, Dir, Acc2);
 
 %% Indented code block
-parse(<<13, 10, Rest/binary>>, [{code, CT}], PL, CL, Dir, Acc) ->
+parse(<<10, Rest/binary>>, [{code, CT}], PL, CL, Dir, Acc) ->
     case remInd(Rest) of
         {Rest2, Count} when Count >= 4, is_binary(Rest2) ->
-            convert(Rest2, [{code, <<CT/binary, 13, 10>>}], PL, CL, Dir, Acc);
+            convert(Rest2, [{code, <<CT/binary, 10>>}], PL, CL, Dir, Acc);
         _ ->
             BTag = makeTag(code, Dir, CT),
             Acc2 = <<Acc/binary, BTag/binary>>,
@@ -106,9 +102,9 @@ parse(<<"```", Rest/binary>>, [{f2_code, CT}], PL, <<"```">>, Dir, Acc) ->
     convert(Rest, [{p, <<>>}], PL, <<"~~~">>, Dir, Acc2);
 
 %% Parse code block
-parse(<<13, 10, Rest/binary>>, [{Tag, CT}], PL, CL, Dir, Acc)
+parse(<<10, Rest/binary>>, [{Tag, CT}], PL, CL, Dir, Acc)
     when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
-    convert(Rest, [{Tag, <<CT/binary, 13, 10>>}], PL, CL, Dir, Acc);
+    convert(Rest, [{Tag, <<CT/binary, 10>>}], PL, CL, Dir, Acc);
 parse(<<Char:8, Rest/binary>>, [{Tag, CT}], PL, CL, Dir, Acc)
     when (Tag == code) or (Tag == f1_code) or (Tag == f2_code) ->
     convert(Rest, [{Tag, <<CT/binary, Char:8>>}], PL, CL, Dir, Acc);
@@ -127,12 +123,12 @@ parse(<<"\\", Char:8, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
     end;
 
 %% Paragraph text ending
-parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, <<>>, Dir, Acc) ->
+parse(<<10, Rest/binary>>, [{p, CT}| St], PL, <<>>, Dir, Acc) ->
     BTag = makeTag(p, Dir, CT),
     Acc2 = <<Acc/binary, BTag/binary>>,
     convert(Rest, St, PL, <<>>, Dir, Acc2);
 
-parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, CL, Dir, Acc) ->
+parse(<<10, Rest/binary>>, [{p, CT}| St], PL, CL, Dir, Acc) ->
     case header(CL, PL) of
         {true, Tag, Hdr} ->
             BTag = makeTag(Tag, Dir, Hdr),
@@ -146,7 +142,7 @@ parse(<<13, 10, Rest/binary>>, [{p, CT}| St], PL, CL, Dir, Acc) ->
                 {Rest2, Count} when Count >= CodeIndent ->
                     convert(Rest2, [{code, <<>>}], PL, CL, Dir, Acc);
                 _ ->
-                    convert(Rest, [{p, <<CT/binary, 13, 10>>}|St], PL, CL, Dir, Acc)
+                    convert(Rest, [{p, <<CT/binary, 10>>}|St], PL, CL, Dir, Acc)
             end
     end;
 
@@ -187,9 +183,6 @@ parse(<<$], Rest/binary>>, [{ilDesc, _Num, CT}|PState], PL, CL, Dir, Acc) ->
     convert(<<CT/binary, $], Rest/binary>>,
             addCT(<<"![">>, PState), PL, CL, Dir, Acc);
 
-parse(<<13, 10, Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
-    convert(Rest, [{ilDesc, Num, <<CT/binary, 13, 10>>}|PState], PL, CL, Dir, Acc);
-
 parse(<<Char:8, Rest/binary>>, [{ilDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
     convert(Rest, [{ilDesc, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Dir, Acc);
 
@@ -223,9 +216,6 @@ parse(<<$), Rest/binary>>, [{ilink, 1, CT}, {ilDesc, PT}|St], PL, CL, Dir, Acc) 
                 addCT(<<"![">>, St), PL, CL, Dir, Acc)
     end;
 
-parse(<<13, 10, Rest/binary>>, [{ilink, Num, CT}|PState], PL, CL, Dir, Acc) ->
-    convert(Rest, [{ilink, Num, <<CT/binary, 13, 10>>}|PState], PL, CL, Dir, Acc);
-
 parse(<<Char:8, Rest/binary>>, [{ilink, Num, CT}|PState], PL, CL, Dir, Acc) ->
     convert(Rest, [{ilink, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Dir, Acc);
 
@@ -246,9 +236,6 @@ parse(<<$], Rest/binary>>, [{lDesc, Num, CT}|PState], PL, CL, Dir, Acc)
 parse(<<$], Rest/binary>>, [{lDesc, _Num, CT}|PState], PL, CL, Dir, Acc) ->
     convert(<<CT/binary, $], Rest/binary>>,
             addCT(<<"[">>, PState), PL, CL, Dir, Acc);
-
-parse(<<13, 10, Rest/binary>>, [{lDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
-    convert(Rest, [{lDesc, Num, <<CT/binary, 13, 10>>}|PState], PL, CL, Dir, Acc);
 
 parse(<<Char:8, Rest/binary>>, [{lDesc, Num, CT}|PState], PL, CL, Dir, Acc) ->
     convert(Rest, [{lDesc, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Dir, Acc);
@@ -271,9 +258,6 @@ parse(<<$), Rest/binary>>, [{link, 1, CT}, {lDesc, PT}|St], PL, CL, Dir, Acc) ->
             Url = <<"<a href='", CT/binary, "'>", PT/binary, "</a>">>,
             convert(Rest, addCT(Url, St), PL, CL, Dir, Acc)
     end;
-
-parse(<<13, 10, Rest/binary>>, [{link, Num, CT}|PState], PL, CL, Dir, Acc) ->
-    convert(Rest, [{link, Num, <<CT/binary, 13, 10>>}|PState], PL, CL, Dir, Acc);
 
 parse(<<Char:8, Rest/binary>>, [{link, Num, CT}|PState], PL, CL, Dir, Acc) ->
     convert(Rest, [{link, Num, <<CT/binary, Char:8>>}|PState], PL, CL, Dir, Acc);
@@ -301,7 +285,7 @@ parse(<<" #", Rest/binary>>, [{Tag, CT}| St], PL, CL, Dir, Acc)
     end;
 
 %% Header end by line end.
-parse(<<13, 10, Rest/binary>>, [{Tag, CT}| St], PL, CL, Dir, Acc)
+parse(<<10, Rest/binary>>, [{Tag, CT}| St], PL, CL, Dir, Acc)
   when (Tag == h6) or (Tag == h5) or (Tag == h4) or
        (Tag == h3) or (Tag == h2) or (Tag == h1) ->
     BTag = makeTag(Tag, Dir, CT),
@@ -387,7 +371,7 @@ parse(Content, [ul_start| St], PL, CL, Dir, Acc) ->
     Acc2   = <<Acc/binary, "<ul>">>,
     convert(Rest, [{ul, Indent, <<>>}|St], PL, CL, Dir, Acc2);
 
-parse(<<13, 10, Rest/binary>>, PState = [{Tag, Ind, CT}| St], PL, CL, Dir, Acc)
+parse(<<10, Rest/binary>>, PState = [{Tag, Ind, CT}| St], PL, CL, Dir, Acc)
   when (Tag == ol) or (Tag == ul) ->
     BTag = makeTag(li, Dir, CT),
     case {Tag, parseList(Tag, Rest, Ind)} of
@@ -402,7 +386,7 @@ parse(<<13, 10, Rest/binary>>, PState = [{Tag, Ind, CT}| St], PL, CL, Dir, Acc)
         {ol, false} ->
             convert(Rest, St, PL, CL, Dir, <<Acc/binary, BTag/binary, "</ol>">>);
         {Tag, {cont, Rest2}} ->
-            convert(Rest2, [{Tag, Ind, <<CT/binary, 13, 10>>}|St], PL, CL, Dir, Acc)
+            convert(Rest2, [{Tag, Ind, <<CT/binary, 10>>}|St], PL, CL, Dir, Acc)
     end;
 parse(<<Char:8, Rest/binary>>, [{Tag, Ind, CT}| St], PL, CL, Dir, Acc)
   when (Tag == ol) or (Tag == ul) ->
@@ -490,10 +474,8 @@ headerEnd(HdrEnd) ->
 
 headerEnd(<<>>, _) ->
     {true, <<>>};
-headerEnd(<<13, 10, Rest/binary>>, _) ->
-    {true, <<13, 10, Rest/binary>>};
 headerEnd(<<10, Rest/binary>>, _) ->
-    {true, <<13, 10, Rest/binary>>};
+    {true, <<10, Rest/binary>>};
 headerEnd(<<$#, Rest/binary>>, start) ->
     headerEnd(Rest, start);
 headerEnd(<<32, Rest/binary>>, start) ->
@@ -538,9 +520,9 @@ checkSetext(_, _, _) ->
 insertBR(Content) ->
     insertBR(Content, <<>>).
 
-insertBR(<<32, 32, 13, 10, Rest/binary>>, SoFar) ->
+insertBR(<<32, 32, 10, Rest/binary>>, SoFar) ->
     evalInsertBR(Rest, SoFar);
-insertBR(<<"\\", 13, 10, Rest/binary>>, SoFar) ->
+insertBR(<<"\\", 10, Rest/binary>>, SoFar) ->
     evalInsertBR(Rest, SoFar);
 insertBR(<<32, Rest/binary>>, <<>>) ->
     insertBR(Rest, <<>>);
@@ -561,7 +543,7 @@ evalInsertBR(Rest, SoFar) ->
         {<<>>, _} ->
             SoFar;
         {Rest2, _} ->
-            insertBR(Rest2, <<SoFar/binary, ?brTag, 13, 10>>)
+            insertBR(Rest2, <<SoFar/binary, ?brTag, 10>>)
     end.
 
 remWS(Content) ->
@@ -575,10 +557,12 @@ remInd(Content) ->
 
 remWS(<<>>,                    _, C, _)      -> {<<>>, C};
 remWS(Rest, Ind, Count, _) when Count >= Ind -> {Rest, Count};
-remWS(<<13, 10, Rest/binary>>, I, C, false)  -> remWS(Rest, I, C,     true);
-remWS(<<13, 10, Rest/binary>>, I, C, all)    -> remWS(Rest, I, C,     all);
-remWS(<<32,     Rest/binary>>, I, C, LRem)   -> remWS(Rest, I, C + 1, LRem);
-remWS(<<9,      Rest/binary>>, I, C, LRem)   -> remWS(Rest, I, C + 4, LRem);
+remWS(<<10, Rest/binary>>, I, C, false)  -> remWS(Rest, I, C,     true);
+remWS(<<13, Rest/binary>>, I, C, false)  -> remWS(Rest, I, C,     true);
+remWS(<<10, Rest/binary>>, I, C, all)    -> remWS(Rest, I, C,     all);
+remWS(<<13, Rest/binary>>, I, C, all)    -> remWS(Rest, I, C,     all);
+remWS(<<32, Rest/binary>>, I, C, LRem)   -> remWS(Rest, I, C + 1, LRem);
+remWS(<<9,  Rest/binary>>, I, C, LRem)   -> remWS(Rest, I, C + 4, LRem);
 remWS(Rest,                    _, C, _)      -> {Rest, C}.
 
 checkIfList(Content, CL) ->
@@ -708,7 +692,6 @@ getCurrentRow(Content) ->
     getCurrentRow(Content, <<>>).
 
 getCurrentRow(<<>>,                     Acc) -> Acc;
-getCurrentRow(<<13, 10, _Rest/binary>>, Acc) -> Acc;
 getCurrentRow(<<10,     _Rest/binary>>, Acc) -> Acc;
 getCurrentRow(<<Char:8,  Rest/binary>>, Acc) ->
     getCurrentRow(Rest, <<Acc/binary, Char:8>>).
@@ -867,3 +850,16 @@ debug(Info) ->
     timer:sleep(500),
     redbug:start(Info, [{msgs, 1000}, {time, 100000}]).
 
+%%%-------------------------------------------------------------------
+%%% ConvertLineEnding
+%%%-------------------------------------------------------------------
+
+convertLineEnding(Text) ->
+    convertLineEnding(Text, <<>>).
+
+convertLineEnding(<<>>, SoFar) ->
+    SoFar;
+convertLineEnding(<<13, 10, Rest/binary>>, SoFar) ->
+    convertLineEnding(Rest, <<SoFar/binary, 10>>);
+convertLineEnding(<<Char:8, Rest/binary>>, SoFar) ->
+    convertLineEnding(Rest, <<SoFar/binary, Char:8>>).

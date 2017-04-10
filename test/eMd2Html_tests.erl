@@ -101,7 +101,7 @@ ullist_4_test() ->
     Result = eMd2Html:convert(<<"* Test1\r\n"
                                 "  Test2\r\n"
                                 "  Test3\r\n">>),
-    Expect = <<"<ul><li>Test1\r\nTest2\r\nTest3</li></ul>">>,
+    Expect = <<"<ul><li>Test1\nTest2\nTest3</li></ul>">>,
     ?assertEqual(Expect, Result).
 
 ullist_5_test() ->
@@ -145,7 +145,7 @@ ollist_4_test() ->
     Result = eMd2Html:convert(<<"1. Test1\r\n"
                                 "   Test2\r\n"
                                 "   Test3\r\n">>),
-    Expect = <<"<ol start='1'><li>Test1\r\nTest2\r\nTest3</li></ol>">>,
+    Expect = <<"<ol start='1'><li>Test1\nTest2\nTest3</li></ol>">>,
     ?assertEqual(Expect, Result).
 
 paragraph_1_test() ->
@@ -155,19 +155,19 @@ paragraph_1_test() ->
 
 paragraph_2_test() ->
     Result = eMd2Html:convert(<<"Hej här kommer lite text\r\nMed två rader">>),
-    Expect = <<"<p>Hej här kommer lite text\r\nMed två rader</p>">>,
+    Expect = <<"<p>Hej här kommer lite text\nMed två rader</p>">>,
     ?assertEqual(Expect, Result).
 
 paragraph_3_test() ->
     Result = eMd2Html:convert(<<"Hej här kommer lite text  \r\n"
                                 "Med två rader">>),
-    Expect = <<"<p>Hej här kommer lite text<br />\r\n"
+    Expect = <<"<p>Hej här kommer lite text<br />\n"
                "Med två rader</p>">>,
     ?assertEqual(Expect, Result).
 
 paragraph_4_test() ->
     Result = eMd2Html:convert(<<"Hej\r\nSvejs  \r\n">>),
-    Expect = <<"<p>Hej\r\nSvejs</p>">>,
+    Expect = <<"<p>Hej\nSvejs</p>">>,
     ?assertEqual(Expect, Result).
 
 url_1_test() ->
@@ -193,19 +193,19 @@ blockquote_2_test() ->
 
 blockquote_3_test() ->
     Result = eMd2Html:convert(<<"> Test1\r\n> Test2\r\n">>),
-    Expect = <<"<blockquote><p>Test1\r\nTest2</p></blockquote>">>,
+    Expect = <<"<blockquote><p>Test1\nTest2</p></blockquote>">>,
     ?assertEqual(Expect, Result).
 
 blockquote_4_test() ->
     Result = eMd2Html:convert(<<"> Test\r\n> av\r\n> Block quote\r\n">>),
-    Expect = <<"<blockquote><p>Test\r\nav\r\nBlock quote</p></blockquote>">>,
+    Expect = <<"<blockquote><p>Test\nav\nBlock quote</p></blockquote>">>,
     ?assertEqual(Expect, Result).
 
 blockquote_5_test() ->
     Result = eMd2Html:convert(<<"Hej\r\n\r\n> Test\r\n> av\r\n> Block quote\r\n">>),
     Expect = <<"<p>Hej</p>"
                  "<blockquote>"
-                 "<p>Test\r\nav\r\nBlock quote</p>"
+                 "<p>Test\nav\nBlock quote</p>"
                  "</blockquote>">>,
     ?assertEqual(Expect, Result).
 
@@ -216,7 +216,7 @@ code_1_test() ->
 
 code_2_test() ->
     Result = eMd2Html:convert(<<"    Hej\r\n    Svejs\r\n">>),
-    Expect = <<"<pre><code>Hej\r\nSvejs</code></pre>">>,
+    Expect = <<"<pre><code>Hej\nSvejs</code></pre>">>,
     ?assertEqual(Expect, Result).
 
 fcode_1_test() ->
@@ -226,12 +226,12 @@ fcode_1_test() ->
 
 fcode_2_test() ->
     Result = eMd2Html:convert(<<"```\r\nTest\r\n```">>),
-   Expect = <<"<pre><code>Test\r\n</code></pre>">>,
+   Expect = <<"<pre><code>Test\n</code></pre>">>,
     ?assertEqual(Expect, Result).
 
 fcode_3_test() ->
     Result = eMd2Html:convert(<<"~~~\r\nTest\r\n~~~">>),
-    Expect = <<"<pre><code>Test\r\n</code></pre>">>,
+    Expect = <<"<pre><code>Test\n</code></pre>">>,
     ?assertEqual(Expect, Result).
 
 smiley_1_test() ->
