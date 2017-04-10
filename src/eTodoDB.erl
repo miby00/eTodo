@@ -604,7 +604,7 @@ handle_call({updateConnection, #conCfg{userName = undefined}}, _From, State) ->
     {reply, ok, State};
 handle_call({updateConnection, ConCfg = #conCfg{email = undefined}},
             _From, State) ->
-    OldCfg = read(conCfg, ConCfg#conCfg.userName),
+    OldCfg = default(read(conCfg, ConCfg#conCfg.userName), #conCfg{}),
     NewCfg = ConCfg#conCfg{email = OldCfg#conCfg.email},
     Result = mnesia:transaction(fun() -> mnesia:write(NewCfg) end),
     {reply, Result, State};
