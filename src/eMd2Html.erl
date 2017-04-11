@@ -29,7 +29,7 @@ convert(MDText) when is_list(MDText) ->
     convert(unicode:characters_to_binary(MDText));
 convert(MDText) when is_binary(MDText) ->
     Dir     = list_to_binary(eTodoUtils:getRootDir()),
-    MDText2 = convertLineEnding(MDText),
+    MDText2 = convertLineEnding(MDText, crlf2lf),
     convert(<<10, MDText2/binary>>, [{p, <<>>}], <<>>, <<>>, Dir, <<>>).
 
 convert(MDText, Dir) when is_list(MDText), is_list(Dir) ->
@@ -649,7 +649,7 @@ addCT(D, [{Tag, CT}|St]) when is_atom(Tag), is_binary(D), is_binary(CT) ->
 addCT(D, [{Tag, Num, CT}|St]) when is_atom(Tag), is_binary(D), is_binary(CT) ->
     [{Tag, Num, <<CT/binary, D/binary>>}|St].
 
-getCT([PState = {Tag, Num, _CT}|TL]) ->
+getCT(PState = [{Tag, Num, _CT}|TL]) ->
     {Tag, Num, getCT(PState, <<>>), TL};
 getCT(PState = [{Tag, _CT}|TL]) ->
     {Tag, undefined, getCT(PState, <<>>), TL};
@@ -854,12 +854,14 @@ debug(Info) ->
 %%% ConvertLineEnding
 %%%-------------------------------------------------------------------
 
-convertLineEnding(Text) ->
-    convertLineEnding(Text, <<>>).
+convertLineEnding(Text, Type) ->
+    convertLineEnding(Text, Type, <<>>).
 
-convertLineEnding(<<>>, SoFar) ->
+convertLineEnding(<<>>, _Type, SoFar) ->
     SoFar;
-convertLineEnding(<<13, 10, Rest/binary>>, SoFar) ->
-    convertLineEnding(Rest, <<SoFar/binary, 10>>);
-convertLineEnding(<<Char:8, Rest/binary>>, SoFar) ->
-    convertLineEnding(Rest, <<SoFar/binary, Char:8>>).
+convertLineEnding(<<13, 10, Rest/binary>>, crlf2lf, SoFar) ->
+    convertLineEnding(Rest, crlf2lf, <<SoFar/binary, 10>>);
+convertLineEnding(<<10, Rest/binary>>, lf2crlf, SoFar) ->
+    convertLineEnding(Rest, lf2crlf, <<SoFar/binary, 13, 10>>);
+convertLineEnding(<<Char:8, Rest/binary>>, Type, SoFar) ->
+    convertLineEnding(Rest, Type, <<SoFar/binary, Char:8>>).
