@@ -5,7 +5,7 @@ template: eTodo
 ---
 ![eTodo](graphics/eTodo.png)
 
-#Introduction
+# Introduction
 
 eTodo is a P2P task manager written in erlang. Key functionality include:
 
@@ -18,11 +18,11 @@ eTodo is a P2P task manager written in erlang. Key functionality include:
 * Non intrusive reminders
 * Local storage (no central server)
 
-#Getting started
+# Getting started
 
-##Create and use To-Do lists
+## Create and use To-Do lists
 
-###To-Do list “All tasks”
+### To-Do list “All tasks”
 
 All users have a To-Do list called “All tasks”, this list includes all To-Do:s (including all sub To-Do:s) created in eTodo. “All tasks” is a system list and cannot be removed.
 
@@ -30,12 +30,12 @@ Use “All tasks” list if you want to search in all your To-Do:s
 
 It can also be used to find new To-Do:s that has been shared with you. To find To-Do:s that are not assigned to any other list other then “All tasks” use filter “Assigned” that you access by right clicking on the column header named “Id” or you can just change list to "Inbox"
 
-###To-Do list “Inbox”
+### To-Do list “Inbox”
 
 This list isn't actually a To-Do list. It is the list "All tasks" with filter "Assigned" activated.
 This is the easiest way of checking for new To-Do:s or To-Do:s which hasn't been assigned to a list.
 
-###How to create a new To-Do list
+### How to create a new To-Do list
 
 You create a new To-Do list using the button:
 
@@ -43,7 +43,7 @@ You create a new To-Do list using the button:
 
 After you have created a new list, choose the list in the drop down to the right of the “Manage lists” button.
 
-###How to create a new To-Do
+### How to create a new To-Do
 
 You can create a To-Do using the toolbar buttons: ![Add at top](graphics/addTop.png)  ![Add at bottom](graphics/addBottom.png)
 
@@ -51,7 +51,7 @@ The first toolbar button will place the new To-Do in the beginning of the To-Do 
 The second toolbar button will place the new To-Do at the end of the To-Do list.
 Control+N is the keyboard short cut for creating a new To-Do at the end of a To-Do list.
 
-###How to edit a To-Do
+### How to edit a To-Do
 
 A To-Do is edited using the bottom part of the main To-Do window.
 
@@ -99,7 +99,7 @@ A task can be shared with other peers. A shared task will be added to the “All
 
 Use the "Inbox" to find tasks that has been shared with you.
 
-##Using search function
+## Using search function
 
 The list “All tasks” is a good place to start when you want to search through all your To-Do:s. When you are doing a search you need to configure which fields to search in. 
 
@@ -124,7 +124,7 @@ To get the contents of a ToDo list you use @”Listname”
 
 There is also the possibility of using the two other methods of searching while using advanced search. This is accomplished by using the following construct. {[Field1, Field2, ...], “value”} where value is the search string and Field* is the columns to search through.
 
-###Examples:
+### Examples:
 
 `as~ {[Owner], “mikael”} and @”Work”`
 
@@ -138,7 +138,7 @@ Gets all To-Do:s in the lists “Work” and “Private”
 
 Gets all To-Do:s inte the list “Work” which isn't in the list “Boring”
 
-##Connecting to other eTodo peers
+## Connecting to other eTodo peers
 
 eTodo can connect to other eTodo users by connecting a circle. As long as the
 other peer is connected to the same circle using the same password the two peers
@@ -159,7 +159,7 @@ Enter the eTodo peer info:
 After that is done, just log into the circle using Ctrl+l and all the peers
 connected to the circle should appear.
 
-##Firewalls
+## Firewalls
 
 To be able to directly connect from peer A to peerB, peer B:s IP and port needs
 to be accessable. 
@@ -194,15 +194,15 @@ After the installation of the proxy peer is done, use "Make proxy link"
 menu alternative on the destination peer to make a link which uses the
 proxy peer to connect to the web gui. 
 
-##Summary
+## Summary
 
-####Why did I make eTodo?
+#### Why did I make eTodo?
 
 * Because its fun, and I wanted to learn to use wxErlang.
 * My own favourite To-Do manager QTodo, was	getting a bit outdated
 * I wanted to do something in erlang that I	could release as open source
 
-###Why make it a P2P application?
+### Why make it a P2P application?
 
 The short explanation is that me and a friend took a course in P2P systems and made this our programming assignment.
 
@@ -210,7 +210,7 @@ Another reason was to solve the problem of sharing To-Do:s.
 
 My goal with eTodo was to be able to have all my To-Do:s in one application, and I don't really like to save my own personal To-Do:s on a central server not owned by me, and my employer doesn't really like me to save work To-Do:s on a central server outside the company, so storing everything in a local database solves both issues.
 
-###Design goals of eTodo
+### Design goals of eTodo
 
 * Support multiple lists, that can share the same To-Do
 * Support sub To-Do:s, so you can split a big To-Do in to several smaller To-Do:s
@@ -223,7 +223,7 @@ My goal with eTodo was to be able to have all my To-Do:s in one application, and
 * Support for reminders that doesn't interrupt your work ( I hate pop-ups ;) )
 * Everything should be saved locally, and not on a centralised server
 
-###Features planned to be added in the future
+### Features planned to be added in the future
 
 * Improve the graphical user interface
 * Improve overall performance
@@ -232,7 +232,7 @@ My goal with eTodo was to be able to have all my To-Do:s in one application, and
 * Email integration using IMAP
 * More documentation
 
-###Features that might be added in the future
+### Features that might be added in the future
 
 * A more customisable and better graphical user interface for the web
 * An app for iPhone
