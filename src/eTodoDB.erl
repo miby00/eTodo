@@ -603,21 +603,17 @@ handle_call({updateConnection, #conCfg{userName = ""}}, _From, State) ->
 handle_call({updateConnection, #conCfg{userName = undefined}}, _From, State) ->
     {reply, ok, State};
 handle_call({updateConnection, ConCfg}, _From, State) ->
-    ConCfg2 = if
-                  ConCfg#conCfg.email == undefined ->
-                      OldCfg = default(read(conCfg, ConCfg#conCfg.userName),
-                                       #conCfg{}),
-                      ConCfg#conCfg{email = OldCfg#conCfg.email};
-                  true ->
-                      ConCfg
-             end,
-    ConCfg3 = if
-                  ConCfg2#conCfg.updateTime == undefined ->
-                      ConCfg2#conCfg{updateTime = eTodoUtils:dateTime()};
-                  true ->
-                      ConCfg2
-              end,
-    Result = mnesia:transaction(fun() -> mnesia:write(ConCfg3) end),
+    Default = #conCfg{updateTime = eTodoUtils:dateTime()},
+    OldCfg  = default(read(conCfg, ConCfg#conCfg.userName), Default),
+    ConCfg2 = ConCfg#conCfg{email      = default(ConCfg#conCfg.email,
+                                                 OldCfg#conCfg.email),
+                            host       = default(ConCfg#conCfg.host,
+                                                 OldCfg#conCfg.host),
+                            port       = default(ConCfg#conCfg.port,
+                                                 OldCfg#conCfg.port),
+                            updateTime = default(ConCfg#conCfg.updateTime,
+                                                 OldCfg#conCfg.updateTime)},
+    Result = mnesia:transaction(fun() -> mnesia:write(ConCfg2) end),
     {reply, Result, State};
 handle_call({removeConnection, #conCfg{userName = UserName}}, _From, State) ->
     Result = mnesia:transaction(fun() -> mnesia:delete({conCfg, UserName}) end),
