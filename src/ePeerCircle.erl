@@ -759,7 +759,8 @@ conLoop(State) ->
     State#state{loopActive = true}.
 
 notToOld(undefined) ->
-    false; %% This is a broken connection, remove it.
+    true; %% We do not know how old this connection is, updateConnection
+          %% will set an update time to now.
 notToOld(configured) ->
     true; %% This is a configured connection, keep it.
 notToOld(UpdateTime) ->
