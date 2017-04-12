@@ -681,11 +681,9 @@ handle_call(getConnections, _From, State) ->
                       end
               end,
     FilterFun =
-        fun (ConCfg) ->
-                Dist = ConCfg#conCfg.distance,
-                ((Dist ==  undefined) or (Dist == 1))
-                    and (ConCfg#conCfg.host =/= undefined)
-                    and (ConCfg#conCfg.port =/= undefined)
+        fun (#conCfg{host = undefined}) -> false;
+            (#conCfg{port = undefined}) -> false;
+            (#conCfg{})                 -> true
         end,
     Result2 = lists:filter(FilterFun, Result),
     Result3 = lists:sort(SortFun, Result2),
