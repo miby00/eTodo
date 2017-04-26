@@ -632,7 +632,7 @@ msgTextCtrlSTCEvent(Event = #wxKey{}, Id, Frame, State) ->
         _ ->
             State
     end;
-msgTextCtrlSTCEvent(command_text_updated, _Id, _Frame,
+msgTextCtrlSTCEvent(stc_change, _Id, _Frame,
                  State = #guiState{user          = User,
                                    msgStatusSent = SentStatus,
                                    menuBar       = MenuBar}) ->
@@ -701,7 +701,7 @@ sendChatMsgEvent(_Event, _Id, _Frame, State = #guiState{user = User}) ->
             appendToPage(MsgObj, msgEntry, User, AllUsers,
                          eHtml:generateMsg(User, User, AllUsers, MsgText), State),
 
-            wxTextCtrl:clear(MsgTextCtrl),
+            wxStyledTextCtrl:clearAll(MsgTextCtrl),
 
             State2 = sendMsg(Users, MsgText, State),
             sendEmails(EmailUsers, MsgText, AllUsers, State2)

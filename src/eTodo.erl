@@ -617,6 +617,8 @@ saveGuiText(State = #guiState{activeTodo = {ETodo, Index},
 
 saveGuiSettings(command_text_updated, State) ->
     saveGuiText(State);
+saveGuiSettings(stc_change, State) ->
+    saveGuiText(State);
 saveGuiSettings(_Type, State) ->
     saveGuiSettings(State).
 
@@ -956,6 +958,11 @@ handle_cast(_Msg, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
+handle_event(#wx{id = Id, event = #wxStyledText{type = Type}},
+    State = #guiState{frame = Frame, dict  = Dict}) ->
+    Name = getFromDict(Id, Dict),
+    handle_cmd(Name, Type, Id, Frame, State);
+
 handle_event(#wx{id = Id, event = #wxCommand{type = Type}},
              State = #guiState{frame = Frame, dict  = Dict}) ->
     Name = getFromDict(Id, Dict),
