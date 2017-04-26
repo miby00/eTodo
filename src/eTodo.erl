@@ -295,6 +295,38 @@ initGUI(Arg) ->
     wxXmlResource:loadDialog(Xrc,  Conflict, Frame, "conflictDlg"),
     wxXmlResource:loadDialog(Xrc,  About,    Frame, "aboutDlg"),
 
+    %% Attach wxStyledTextCtrl
+    DescArea    = wxStyledTextCtrl:new(Frame),
+    ComArea     = wxStyledTextCtrl:new(Frame),
+    MsgTextCtrl = wxStyledTextCtrl:new(Frame),
+
+    wxXmlResource:attachUnknownControl(Xrc, "descriptionAreaSTC", DescArea),
+    wxXmlResource:attachUnknownControl(Xrc, "commentAreaSTC",     ComArea),
+    wxXmlResource:attachUnknownControl(Xrc, "msgTextCtrlSTC",     MsgTextCtrl),
+
+    setEditStyle(DescArea),
+    setEditStyle(ComArea),
+    setEditStyle(MsgTextCtrl),
+
+    %% wxStyleCtrl conflict window.
+    DescArea1 = wxStyledTextCtrl:new(Conflict),
+    DescArea2 = wxStyledTextCtrl:new(Conflict),
+
+    wxXmlResource:attachUnknownControl(Xrc, "descriptionArea1STC", DescArea1),
+    wxXmlResource:attachUnknownControl(Xrc, "descriptionArea2STC", DescArea2),
+
+    ComArea1 = wxStyledTextCtrl:new(Conflict),
+    ComArea2 = wxStyledTextCtrl:new(Conflict),
+
+    wxXmlResource:attachUnknownControl(Xrc, "commentArea1STC", ComArea1),
+    wxXmlResource:attachUnknownControl(Xrc, "commentArea2STC", ComArea2),
+
+    setEditStyle(DescArea1),
+    setEditStyle(DescArea2),
+
+    setEditStyle(ComArea1),
+    setEditStyle(ComArea2),
+
     setIcon(Frame),
     setIcon(Login),
     setIcon(Time),
@@ -599,10 +631,10 @@ saveGuiSettings(State = #guiState{activeTodo = {ETodo, Index}}) ->
     end.
 
 getGuiText(State = #guiState{activeTodo = {ETodo, _}}) ->
-    DescObj     = obj("descriptionArea", State),
-    CommentObj  = obj("commentArea",     State),
-    Descript    = wxTextCtrl:getValue(DescObj),
-    Comment     = wxTextCtrl:getValue(CommentObj),
+    DescObj     = obj("descriptionAreaSTC", State),
+    CommentObj  = obj("commentAreaSTC",     State),
+    Descript    = wxStyledTextCtrl:getText(DescObj),
+    Comment     = wxStyledTextCtrl:getText(CommentObj),
     ETodo#etodo{description  = Descript,
                 comment      = Comment}.
 
@@ -639,6 +671,20 @@ getGuiSettings(State = #guiState{activeTodo = {ETodo, _}}) ->
                 sharedWith   = SharedTxt,
                 progress     = Progress,
                 owner        = Owner}.
+
+setEditStyle(Ed) ->
+    wxStyledTextCtrl:setReadOnly(Ed, false),
+    wxStyledTextCtrl:setLexer(Ed, ?wxSTC_LEX_NULL),
+    wxStyledTextCtrl:styleClearAll(Ed),
+    wxStyledTextCtrl:setMarginType(Ed, 0, ?wxSTC_MARGIN_NUMBER),
+    wxStyledTextCtrl:setUseTabs(Ed, false),
+    wxStyledTextCtrl:setSelectionMode(Ed, ?wxSTC_SEL_LINES),
+    wxStyledTextCtrl:setTabWidth(Ed, 4),
+    wxStyledTextCtrl:setWrapMode(Ed, ?wxSTC_WRAP_WORD),
+    Policy = ?wxSTC_CARET_SLOP bor ?wxSTC_CARET_JUMPS bor ?wxSTC_CARET_EVEN,
+    wxStyledTextCtrl:setVisiblePolicy(Ed, Policy, 3),
+    wxStyledTextCtrl:setYCaretPolicy(Ed, Policy, 3),
+    Ed.
 
 %%--------------------------------------------------------------------
 %% Function: %% handle_call(Request, From, State) -> {reply, Reply, State} |
@@ -1182,12 +1228,12 @@ handle_cmd(Name, Type, Index, Id, Frame, State) ->
 %% Notes    :
 %%======================================================================
 connectMsgFrame(Frame, Dict) ->
-    ChatMsgObj  = wxXmlResource:xrcctrl(Frame, "msgTextWin",    wxHtmlWindow),
-    RemMsgObj   = wxXmlResource:xrcctrl(Frame, "remTextWin",    wxHtmlWindow),
-    SysMsgObj   = wxXmlResource:xrcctrl(Frame, "systemTextWin", wxHtmlWindow),
-    WorkLogObj  = wxXmlResource:xrcctrl(Frame, "workLogReport", wxHtmlWindow),
-    MsgTextObj  = wxXmlResource:xrcctrl(Frame, "msgTextCtrl",   wxTextCtrl),
-    OfflineObj  = wxXmlResource:xrcctrl(Frame, "emailCheckBox", wxCheckListBox),
+    ChatMsgObj  = wxXmlResource:xrcctrl(Frame, "msgTextWin",     wxHtmlWindow),
+    RemMsgObj   = wxXmlResource:xrcctrl(Frame, "remTextWin",     wxHtmlWindow),
+    SysMsgObj   = wxXmlResource:xrcctrl(Frame, "systemTextWin",  wxHtmlWindow),
+    WorkLogObj  = wxXmlResource:xrcctrl(Frame, "workLogReport",  wxHtmlWindow),
+    MsgTextObj  = wxXmlResource:xrcctrl(Frame, "msgTextCtrlSTC", wxStyledTextCtrl),
+    OfflineObj  = wxXmlResource:xrcctrl(Frame, "emailCheckBox",  wxCheckListBox),
 
     wxHtmlWindow:connect(ChatMsgObj, right_down),
     wxHtmlWindow:connect(RemMsgObj,  right_down),
@@ -1200,7 +1246,7 @@ connectMsgFrame(Frame, Dict) ->
     wxTextCtrl:connect(MsgTextObj, kill_focus, [{skip, true}]),
     wxTextCtrl:connect(MsgTextObj, set_focus,  [{skip, true}]),
 
-    Dict2  = connectItems(["msgTextCtrl"], [command_text_updated], Frame, Dict),
+    Dict2  = connectItems(["msgTextCtrlSTC"], [stc_change], Frame, Dict),
     Dict3  = connectItems(["sendChatMsg"], command_button_clicked, Frame, Dict2),
     connectItems(["msgTextWin", "remTextWin", "systemTextWin",
                   "timeLogReport", "scheduleReport", "workLogReport",
@@ -1229,7 +1275,7 @@ connectMainFrame(Frame, Dict) ->
     MenuChoice = ["userStatusChoice", "statusChoice", "priorityChoice",
                   "taskListChoice", "ownerChoice"],
 
-    TextAreas = ["descriptionArea", "commentArea"],
+    TextAreas = ["descriptionAreaSTC", "commentAreaSTC"],
 
     ListEvents = [command_list_col_right_click,
                   command_list_item_right_click,
@@ -1253,7 +1299,7 @@ connectMainFrame(Frame, Dict) ->
     Dict5  = connectItems(["dueDatePicker"], date_changed,      Frame, Dict4),
     Dict6  = connectItems(["dueDateUsed"],
                           command_checkbox_clicked,             Frame, Dict5),
-    Dict7  = connectItems(TextAreas, command_text_updated,      Frame, Dict6),
+    Dict7  = connectItems(TextAreas, stc_change,                Frame, Dict6),
     Dict8  = connectItems(Buttons, command_button_clicked,      Frame, Dict7),
     Dict9  = connectItems(TextFields, command_text_enter,       Frame, Dict8),
     Dict10 = connectItems(["checkBoxUseFilter"],
@@ -1416,17 +1462,17 @@ fillConflictWindow(Local, Remote, State = #guiState{user    = User,
     State.
 
 fillRemoteConflict(ETodo, State = #guiState{conflictDlg = CD}) ->
-    DescObj     = obj("descriptionArea1", CD),
-    CommentObj  = obj("commentArea1",     CD),
-    SharedObj   = obj("sharedWithText1",  CD),
-    StatusObj   = obj("statusChoice1",    CD),
-    PrioObj     = obj("priorityChoice1",  CD),
-    DueDateObj  = obj("dueDatePicker1",   CD),
-    ProgressObj = obj("progressInfo1",    CD),
-    OwnerObj    = obj("ownerChoice1",     CD),
+    DescObj     = obj("descriptionArea1STC",  CD),
+    CommentObj  = obj("commentArea1STC",      CD),
+    SharedObj   = obj("sharedWithText1",      CD),
+    StatusObj   = obj("statusChoice1",        CD),
+    PrioObj     = obj("priorityChoice1",      CD),
+    DueDateObj  = obj("dueDatePicker1",       CD),
+    ProgressObj = obj("progressInfo1",        CD),
+    OwnerObj    = obj("ownerChoice1",         CD),
     setOwner(OwnerObj, State#guiState.user, ETodo#etodo.owner),
-    wxTextCtrl:setValue(DescObj, ETodo#etodo.description),
-    wxTextCtrl:setValue(CommentObj, ETodo#etodo.comment),
+    wxStyledTextCtrl:setText(DescObj, ETodo#etodo.description),
+    wxStyledTextCtrl:setText(CommentObj, ETodo#etodo.comment),
     setSelection(StatusObj, ETodo#etodo.status),
     setSelection(PrioObj, ETodo#etodo.priority),
     wxTextCtrl:setValue(SharedObj, ETodo#etodo.sharedWith),
@@ -1434,17 +1480,17 @@ fillRemoteConflict(ETodo, State = #guiState{conflictDlg = CD}) ->
     wxSpinCtrl:setValue(ProgressObj, default(ETodo#etodo.progress, 0)).
 
 fillLocalConflict(ETodo, State = #guiState{conflictDlg = CD}) ->
-    DescObj     = obj("descriptionArea2", CD),
-    CommentObj  = obj("commentArea2",     CD),
-    SharedObj   = obj("sharedWithText2",  CD),
-    StatusObj   = obj("statusChoice2",    CD),
-    PrioObj     = obj("priorityChoice2",  CD),
-    DueDateObj  = obj("dueDatePicker2",   CD),
-    ProgressObj = obj("progressInfo2",    CD),
-    OwnerObj    = obj("ownerChoice2",     CD),
+    DescObj     = obj("descriptionArea2STC", CD),
+    CommentObj  = obj("commentArea2STC",     CD),
+    SharedObj   = obj("sharedWithText2",     CD),
+    StatusObj   = obj("statusChoice2",       CD),
+    PrioObj     = obj("priorityChoice2",     CD),
+    DueDateObj  = obj("dueDatePicker2",      CD),
+    ProgressObj = obj("progressInfo2",       CD),
+    OwnerObj    = obj("ownerChoice2",        CD),
     setOwner(OwnerObj, State#guiState.user, ETodo#etodo.owner),
-    wxTextCtrl:setValue(DescObj, ETodo#etodo.description),
-    wxTextCtrl:setValue(CommentObj, ETodo#etodo.comment),
+    wxStyledTextCtrl:setText(DescObj, ETodo#etodo.description),
+    wxStyledTextCtrl:setText(CommentObj, ETodo#etodo.comment),
     setSelection(StatusObj, ETodo#etodo.status),
     setSelection(PrioObj, ETodo#etodo.priority),
     wxTextCtrl:setValue(SharedObj, ETodo#etodo.sharedWith),
@@ -1452,16 +1498,16 @@ fillLocalConflict(ETodo, State = #guiState{conflictDlg = CD}) ->
     wxSpinCtrl:setValue(ProgressObj, default(ETodo#etodo.progress, 0)).
 
 getConflictSettings(Todo, #guiState{conflictDlg = CD}) ->
-    DescObj     = obj("descriptionArea2", CD),
-    CommentObj  = obj("commentArea2",     CD),
-    SharedObj   = obj("sharedWithText2",  CD),
-    StatusObj   = obj("statusChoice2",    CD),
-    PriorityObj = obj("priorityChoice2",  CD),
-    DueDateObj  = obj("dueDatePicker2",   CD),
-    ProgressObj = obj("progressInfo2",    CD),
-    OwnerObj    = obj("ownerChoice2",     CD),
-    Descript    = wxTextCtrl:getValue(DescObj),
-    Comment     = wxTextCtrl:getValue(CommentObj),
+    DescObj     = obj("descriptionArea2STC",  CD),
+    CommentObj  = obj("commentArea2STC",      CD),
+    SharedObj   = obj("sharedWithText2",      CD),
+    StatusObj   = obj("statusChoice2",        CD),
+    PriorityObj = obj("priorityChoice2",      CD),
+    DueDateObj  = obj("dueDatePicker2",       CD),
+    ProgressObj = obj("progressInfo2",        CD),
+    OwnerObj    = obj("ownerChoice2",         CD),
+    Descript    = wxStyledTextCtrl:getText(DescObj),
+    Comment     = wxStyledTextCtrl:getText(CommentObj),
     SelNum1     = wxChoice:getSelection(StatusObj),
     SelAtom1    = toDB(wxChoice:getString(StatusObj, SelNum1)),
     SelNum2     = wxChoice:getSelection(PriorityObj),

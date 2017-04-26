@@ -384,12 +384,12 @@ updateGui(undefined, _Index, State = #guiState{user    = User,
                                                columns = Columns}) ->
     updateGui(makeETodo(#todo{}, User, Columns), 0, State);
 updateGui(ETodo, Index, State) ->
-    updateValue("descriptionArea",   State, ETodo#etodo.description),
-    updateValue("sharedWithText",    State, ETodo#etodo.sharedWith),
-    updateValue("addedToLists",      State, ETodo#etodo.lists),
-    updateValue("commentArea",       State, ETodo#etodo.comment),
-    doSetSelection("statusChoice",   State, ETodo#etodo.status),
-    doSetSelection("priorityChoice", State, ETodo#etodo.priority),
+    updateValue("descriptionAreaSTC",      State, ETodo#etodo.description),
+    updateValue("sharedWithText",          State, ETodo#etodo.sharedWith),
+    updateValue("addedToLists",            State, ETodo#etodo.lists),
+    updateValue("commentAreaSTC",          State, ETodo#etodo.comment),
+    doSetSelection("statusChoice",         State, ETodo#etodo.status),
+    doSetSelection("priorityChoice",       State, ETodo#etodo.priority),
     DueDateObj      = obj("dueDatePicker", State),
     DueDateUsedObj  = obj("dueDateUsed",   State),
     ProgressObj     = obj("progressInfo",  State),
@@ -426,14 +426,10 @@ updateValue(Name, State, Value, _OldValue) ->
 updateValue(Name, State, Value) ->
     Obj = obj(Name, State),
     case {type(Name), Name} of
-        {wxTextCtrl, Name} when
-              (Name == "descriptionArea") or
-              (Name == "commentArea")     ->
-            %% Do not generate update event when showing new eTodo, only
-            %% when the user edits the field.
-            wxTextCtrl:changeValue(Obj, Value);
         {wxTextCtrl, Name} ->
             wxTextCtrl:setValue(Obj, Value);
+        {wxStyledTextCtrl, Name} ->
+            wxStyledTextCtrl:setText(Obj, Value);
         {wxStaticText, _} ->
             wxStaticText:setLabel(Obj, Value)
     end.
@@ -480,12 +476,12 @@ updateGui(#etodo{description = OldDesc,
                          owner       = Owner,
                          progress    = Progress}, Index, State) ->
 
-    updateValue("descriptionArea", State, Desc,     OldDesc),
-    updateValue("sharedWithText",  State, Share,    OldShare),
-    updateValue("addedToLists",    State, Lists,    OldLists),
-    updateValue("commentArea",     State, Comment,  OldComment),
-    setSelection("statusChoice",   State, Status,   OldStatus),
-    setSelection("priorityChoice", State, Priority, OldPriority),
+    updateValue("descriptionAreaSTC",  State, Desc,     OldDesc),
+    updateValue("sharedWithText",      State, Share,    OldShare),
+    updateValue("addedToLists",        State, Lists,    OldLists),
+    updateValue("commentAreaSTC",      State, Comment,  OldComment),
+    setSelection("statusChoice",       State, Status,   OldStatus),
+    setSelection("priorityChoice",     State, Priority, OldPriority),
     DueDateObj  = obj("dueDatePicker", State),
     if DueTime =/= OldDueTime ->
             wxDatePickerCtrl:setValue(DueDateObj, date2wxDate(DueTime));

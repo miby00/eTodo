@@ -25,7 +25,7 @@
          backupMenuItemEvent/4,
          bookmarkBtnEvent/4,
          checkBoxUseFilterEvent/4,
-         commentAreaEvent/4,
+         commentAreaSTCEvent/4,
          commentButtonEvent/4,
          commentNotebookEvent/4,
          configureSearchEvent/4,
@@ -39,7 +39,7 @@
          deleteMenuEvent/4,
          deleteToolEvent/4,
          descNotebookEvent/4,
-         descriptionAreaEvent/4,
+         descriptionAreaSTCEvent/4,
          dueDatePickerEvent/4,
          dueDateUsedEvent/4,
          exitMenuItemEvent/4,
@@ -85,7 +85,7 @@
          msgSettingsButtonEvent/4,
          msgSettingsCancelEvent/4,
          msgSettingsOkEvent/4,
-         msgTextCtrlEvent/4,
+         msgTextCtrlSTCEvent/4,
          msgTextWinEvent/4,
          msgWinNotebookEvent/4,
          ownerChoiceEvent/4,
@@ -617,9 +617,9 @@ startDateChangedEvent(State) ->
 %%====================================================================
 %% Toolbar show/hide msg window.
 %%====================================================================
-msgTextCtrlEvent(Event = #wxKey{}, Id, Frame, State) ->
-    MsgTextCtrl = obj("msgTextCtrl",  State),
-    Empty       = isEmpty(wxTextCtrl:getValue(MsgTextCtrl)),
+msgTextCtrlSTCEvent(Event = #wxKey{}, Id, Frame, State) ->
+    MsgTextCtrl = obj("msgTextCtrlSTC",  State),
+    Empty       = isEmpty(wxStyledTextCtrl:getText(MsgTextCtrl)),
 
     case {Empty, Event} of
         {false, #wxKey{keyCode     = 13,
@@ -632,14 +632,14 @@ msgTextCtrlEvent(Event = #wxKey{}, Id, Frame, State) ->
         _ ->
             State
     end;
-msgTextCtrlEvent(command_text_updated, _Id, _Frame,
+msgTextCtrlSTCEvent(command_text_updated, _Id, _Frame,
                  State = #guiState{user          = User,
                                    msgStatusSent = SentStatus,
                                    menuBar       = MenuBar}) ->
-    MsgTextCtrl = obj("msgTextCtrl",  State),
+    MsgTextCtrl = obj("msgTextCtrlSTC",  State),
     SMChatObj   = xrcId("sendChatMenu"),
 
-    Empty       = isEmpty(wxTextCtrl:getValue(MsgTextCtrl)),
+    Empty       = isEmpty(wxStyledTextCtrl:getText(MsgTextCtrl)),
     if
         Empty ->
             wxMenuBar:enable(MenuBar, SMChatObj, false),
@@ -660,16 +660,16 @@ msgTextCtrlEvent(command_text_updated, _Id, _Frame,
                     State
             end
     end;
-msgTextCtrlEvent(kill_focus, _Id, _Frame,
+msgTextCtrlSTCEvent(kill_focus, _Id, _Frame,
                  State = #guiState{menuBar = MenuBar}) ->
     SMChatObj = xrcId("sendChatMenu"),
     wxMenuBar:enable(MenuBar, SMChatObj, false),
     State;
-msgTextCtrlEvent(set_focus, _Id, _Frame,
+msgTextCtrlSTCEvent(set_focus, _Id, _Frame,
                  State = #guiState{menuBar = MenuBar}) ->
-    MsgTextCtrl = obj("msgTextCtrl",  State),
+    MsgTextCtrl = obj("msgTextCtrlSTC",  State),
     SMChatObj   = xrcId("sendChatMenu"),
-    NotEmpty    = wxTextCtrl:getValue(MsgTextCtrl) =/= "",
+    NotEmpty    = wxStyledTextCtrl:getText(MsgTextCtrl) =/= "",
     wxMenuBar:enable(MenuBar, SMChatObj, NotEmpty),
     State.
 
@@ -688,9 +688,9 @@ sendChatMsgEvent(_Event, _Id, _Frame, State = #guiState{user = User}) ->
             wxDialog:destroy(MsgDlg),
             State;
         {Users, EmailUsers} ->
-            MsgTextCtrl = obj("msgTextCtrl",  State),
-            MsgObj      = obj("msgTextWin",   State),
-            MsgText     = wxTextCtrl:getValue(MsgTextCtrl),
+            MsgTextCtrl = obj("msgTextCtrlSTC", State),
+            MsgObj      = obj("msgTextWin",     State),
+            MsgText     = wxStyledTextCtrl:getText(MsgTextCtrl),
 
             AllUsers    = case UserCfg#userCfg.smtpEnabled of
                               true ->
@@ -972,12 +972,12 @@ todoUpToolEvent(_Type, _Id, _Frame, State = #guiState{user    = User,
                                  uid      = Todo#todo.uid,
                                  row      = 0,
                                  parent   = TaskList}, Todo),
-    ETodo  = makeETodo(Todo, User, Columns),
-    State2 = addTodo(TodoList, ETodo, 0, State),
-    State3 = updateGui(ETodo, 0, State2),
-    State4 = focusAndSelect(0, State3),
-    DescObj = obj("descriptionArea", State4),
-    wxChoice:setFocus(DescObj),
+    ETodo   = makeETodo(Todo, User, Columns),
+    State2  = addTodo(TodoList, ETodo, 0, State),
+    State3  = updateGui(ETodo, 0, State2),
+    State4  = focusAndSelect(0, State3),
+    DescObj = obj("descriptionAreaSTC", State4),
+    wxStyledTextCtrl:setFocus(DescObj),
     State4.
 
 %%====================================================================
@@ -997,12 +997,12 @@ addTaskInboxMenuEvent(_Type, _Id, _Frame,
                               uid      = Todo#todo.uid,
                               row      = eTodoDB:getRow(User, ?defTaskList),
                               parent   = ?defTaskList}, Todo),
-    ETodo  = makeETodo(Todo, User, Columns),
-    State2 = addTodo(TodoList, ETodo, Row, State),
-    State3 = updateGui(ETodo, Row, State2),
-    State4 = focusAndSelect(Row, State3),
-    DescObj = obj("descriptionArea", State4),
-    wxChoice:setFocus(DescObj),
+    ETodo   = makeETodo(Todo, User, Columns),
+    State2  = addTodo(TodoList, ETodo, Row, State),
+    State3  = updateGui(ETodo, Row, State2),
+    State4  = focusAndSelect(Row, State3),
+    DescObj = obj("descriptionAreaSTC", State4),
+    wxStyledTextCtrl:setFocus(DescObj),
     State4.
 
 todoDownToolEvent(_Type, _Id, _Frame, State = #guiState{user    = User,
@@ -1015,12 +1015,12 @@ todoDownToolEvent(_Type, _Id, _Frame, State = #guiState{user    = User,
                               uid      = Todo#todo.uid,
                               row      = eTodoDB:getRow(User, TaskList),
                               parent   = TaskList}, Todo),
-    ETodo  = makeETodo(Todo, User, Columns),
-    State2 = addTodo(TodoList, ETodo, Row, State),
-    State3 = updateGui(ETodo, Row, State2),
-    State4 = focusAndSelect(Row, State3),
-    DescObj = obj("descriptionArea", State3),
-    wxChoice:setFocus(DescObj),
+    ETodo   = makeETodo(Todo, User, Columns),
+    State2  = addTodo(TodoList, ETodo, Row, State),
+    State3  = updateGui(ETodo, Row, State2),
+    State4  = focusAndSelect(Row, State3),
+    DescObj = obj("descriptionAreaSTC", State3),
+    wxStyledTextCtrl:setFocus(DescObj),
     State4.
 
 %%====================================================================
@@ -1075,10 +1075,10 @@ priorityChoiceEvent(_Type, _Id, _Frame, State) ->
 statusChoiceEvent(_Type, _Id, _Frame, State) ->
     State.
 
-commentAreaEvent(_Type, _Id, _Frame, State) ->
+commentAreaSTCEvent(_Type, _Id, _Frame, State) ->
     State.
 
-descriptionAreaEvent(_Type, _Id, _Frame, State) ->
+descriptionAreaSTCEvent(_Type, _Id, _Frame, State) ->
     State.
 
 ownerChoiceEvent(_Type, _Id, _Frame, State) ->
@@ -1401,11 +1401,11 @@ linkFileButtonEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
     end.
 
 insertMsgText(Text, State) ->
-    Obj1 = obj("msgTextCtrl", State),
+    Obj1 = obj("msgTextCtrlSTC", State),
     Obj2 = obj("msgNotebook", State),
     wxNotebook:changeSelection(Obj2, 0),
-    wxTextCtrl:appendText(Obj1, Text),
-    wxTextCtrl:setFocus(Obj1),
+    wxStyledTextCtrl:appendText(Obj1, Text),
+    wxStyledTextCtrl:setFocus(Obj1),
     State.
 
 %%====================================================================
@@ -1719,14 +1719,14 @@ listCancelEvent(_Type, _Id, _Frame, State = #guiState{addListDlg = AddList}) ->
 %%====================================================================
 commentButtonEvent(_Type, _Id, _Frame, State) ->
     Signature = toStr(date()) ++ " " ++ State#guiState.user ++ ": ",
-    CommentField = obj("commentArea", State),
-    case wxTextCtrl:getValue(CommentField) of
+    CommentField = obj("commentAreaSTC", State),
+    case wxStyledTextCtrl:getText(CommentField) of
         "" ->
-            wxTextCtrl:appendText(CommentField, Signature),
-            wxTextCtrl:setFocus(CommentField);
+            wxStyledTextCtrl:appendText(CommentField, Signature),
+            wxStyledTextCtrl:setFocus(CommentField);
         _ ->
-            wxTextCtrl:appendText(CommentField, "\r\n" ++ Signature),
-            wxTextCtrl:setFocus(CommentField)
+            wxStyledTextCtrl:appendText(CommentField, "\r\n" ++ Signature),
+            wxStyledTextCtrl:setFocus(CommentField)
     end,
     wxNotebook:changeSelection(obj("commentNotebook", State), 0),
     State.
@@ -2389,28 +2389,28 @@ doRedo(State) ->
 %% Reply
 %%====================================================================
 replyMenuEvent(_Type, _Id, _Frame, State = #guiState{reply = []}) ->
-    Obj = obj("msgTextCtrl",  State),
-    wxTextCtrl:setFocus(Obj),
+    Obj = obj("msgTextCtrlSTC",  State),
+    wxStyledTextCtrl:setFocus(Obj),
     State;
 replyMenuEvent(_Type, _Id, _Frame, State = #guiState{reply = Reply}) ->
-    Obj1 = obj("userCheckBox", State),
-    Obj2 = obj("msgTextCtrl",  State),
+    Obj1 = obj("userCheckBox",   State),
+    Obj2 = obj("msgTextCtrlSTC", State),
     checkItemsInListWithClear(Obj1, [Reply]),
-    wxTextCtrl:setFocus(Obj2),
+    wxStyledTextCtrl:setFocus(Obj2),
     State.
 
 replyAllMenuEvent(_Type, _Id, _Frame, State = #guiState{replyAll = []}) ->
-    Obj = obj("msgTextCtrl",  State),
-    wxTextCtrl:setFocus(Obj),
+    Obj = obj("msgTextCtrlSTC",  State),
+    wxStyledTextCtrl:setFocus(Obj),
     State;
 replyAllMenuEvent(_Type, _Id, _Frame, State = #guiState{reply    = Sender,
                                                         replyAll = ReplyAll}) ->
-    Obj1 = obj("userCheckBox", State),
-    Obj2 = obj("msgTextCtrl",  State),
-    Obj3 = obj("emailCheckBox", State),
+    Obj1 = obj("userCheckBox",   State),
+    Obj2 = obj("msgTextCtrlSTC", State),
+    Obj3 = obj("emailCheckBox",  State),
     checkItemsInListWithClear(Obj1, [Sender|ReplyAll]),
     checkItemsInListWithClear(Obj3, [Sender|ReplyAll]),
-    wxTextCtrl:setFocus(Obj2),
+    wxStyledTextCtrl:setFocus(Obj2),
     State.
 
 sendChatMenuEvent(Type, Id, Frame, State) ->
@@ -3134,8 +3134,8 @@ descNotebookEvent(_Type, _Id, _Frame, State) ->
     case CurrPage of
         PreviewPage ->
             Obj      = obj("descAreaPreview", State),
-            DescObj  = obj("descriptionArea", State),
-            Descript = wxTextCtrl:getValue(DescObj),
+            DescObj  = obj("descriptionAreaSTC", State),
+            Descript = wxStyledTextCtrl:getText(DescObj),
             Page     = eMd2Html:convert(Descript),
             wxHtmlWindow:setPage(Obj, unicode:characters_to_list(Page, utf8));
         _ ->
@@ -3150,8 +3150,8 @@ commentNotebookEvent(_Type, _Id, _Frame, State) ->
     case CurrPage of
         PreviewPage ->
             Obj        = obj("commentAreaPreview", State),
-            CommentObj = obj("commentArea",     State),
-            Comment    = wxTextCtrl:getValue(CommentObj),
+            CommentObj = obj("commentAreaSTC",     State),
+            Comment    = wxStyledTextCtrl:getText(CommentObj),
             Page       = eMd2Html:convert(Comment),
             wxHtmlWindow:setPage(Obj, unicode:characters_to_list(Page, utf8));
         _ ->
@@ -3166,8 +3166,8 @@ msgNotebookEvent(_Type, _Id, _Frame, State) ->
     case CurrPage of
         PreviewPage ->
             Obj        = obj("msgTextPreview", State),
-            CommentObj = obj("msgTextCtrl",    State),
-            Comment    = wxTextCtrl:getValue(CommentObj),
+            CommentObj = obj("msgTextCtrlSTC", State),
+            Comment    = wxStyledTextCtrl:getText(CommentObj),
             Page       = eMd2Html:convert(Comment),
             wxHtmlWindow:setPage(Obj, unicode:characters_to_list(Page, utf8));
         _ ->
