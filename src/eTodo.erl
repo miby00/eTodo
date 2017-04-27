@@ -676,8 +676,11 @@ getGuiSettings(State = #guiState{activeTodo = {ETodo, _}}) ->
 
 setEditStyle(Ed) ->
     wxStyledTextCtrl:setReadOnly(Ed, false),
-    wxStyledTextCtrl:setLexer(Ed, ?wxSTC_LEX_NULL),
+    Sz = getTextSize(),
+    FixedFont = wxFont:new(Sz, ?wxFONTFAMILY_TELETYPE, ?wxNORMAL, ?wxNORMAL,[]),
     wxStyledTextCtrl:styleClearAll(Ed),
+    wxStyledTextCtrl:styleSetFont(Ed, ?wxSTC_STYLE_DEFAULT, FixedFont),
+    wxStyledTextCtrl:setLexer(Ed, ?wxSTC_LEX_AUTOMATIC),
     wxStyledTextCtrl:setMarginType(Ed, 0, ?wxSTC_MARGIN_NUMBER),
     wxStyledTextCtrl:setUseTabs(Ed, false),
     wxStyledTextCtrl:setSelectionMode(Ed, ?wxSTC_SEL_LINES),
@@ -687,6 +690,16 @@ setEditStyle(Ed) ->
     wxStyledTextCtrl:setVisiblePolicy(Ed, Policy, 3),
     wxStyledTextCtrl:setYCaretPolicy(Ed, Policy, 3),
     Ed.
+
+getTextSize() ->
+    case os:type() of
+        {unix,darwin} ->
+            13;
+        {win32, nt} ->
+            11;
+        _ ->
+            11
+    end.
 
 %%--------------------------------------------------------------------
 %% Function: %% handle_call(Request, From, State) -> {reply, Reply, State} |
