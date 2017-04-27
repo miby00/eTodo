@@ -93,6 +93,7 @@
                         setSelection/2,
                         setSelection/4,
                         setTaskLists/2,
+                        setText/2,
                         type/1,
                         updateGui/3,
                         updateGui/4,
@@ -676,6 +677,7 @@ getGuiSettings(State = #guiState{activeTodo = {ETodo, _}}) ->
 
 setEditStyle(Ed) ->
     wxStyledTextCtrl:setReadOnly(Ed, false),
+    wxStyledTextCtrl:setCodePage(Ed, ?wxSTC_CP_UTF8),
     Sz = getTextSize(),
     FixedFont = wxFont:new(Sz, ?wxFONTFAMILY_TELETYPE, ?wxNORMAL, ?wxNORMAL,[]),
     wxStyledTextCtrl:styleClearAll(Ed),
@@ -1491,8 +1493,8 @@ fillRemoteConflict(ETodo, State = #guiState{conflictDlg = CD}) ->
     ProgressObj = obj("progressInfo1",        CD),
     OwnerObj    = obj("ownerChoice1",         CD),
     setOwner(OwnerObj, State#guiState.user, ETodo#etodo.owner),
-    wxStyledTextCtrl:setText(DescObj, ETodo#etodo.description),
-    wxStyledTextCtrl:setText(CommentObj, ETodo#etodo.comment),
+    setText(DescObj, ETodo#etodo.description),
+    setText(CommentObj, ETodo#etodo.comment),
     setSelection(StatusObj, ETodo#etodo.status),
     setSelection(PrioObj, ETodo#etodo.priority),
     wxTextCtrl:setValue(SharedObj, ETodo#etodo.sharedWith),
@@ -1509,8 +1511,8 @@ fillLocalConflict(ETodo, State = #guiState{conflictDlg = CD}) ->
     ProgressObj = obj("progressInfo2",       CD),
     OwnerObj    = obj("ownerChoice2",        CD),
     setOwner(OwnerObj, State#guiState.user, ETodo#etodo.owner),
-    wxStyledTextCtrl:setText(DescObj, ETodo#etodo.description),
-    wxStyledTextCtrl:setText(CommentObj, ETodo#etodo.comment),
+    setText(DescObj, ETodo#etodo.description),
+    setText(CommentObj, ETodo#etodo.comment),
     setSelection(StatusObj, ETodo#etodo.status),
     setSelection(PrioObj, ETodo#etodo.priority),
     wxTextCtrl:setValue(SharedObj, ETodo#etodo.sharedWith),
@@ -1725,3 +1727,4 @@ mondayThisWeek() ->
     DayNum   = calendar:day_of_the_week(date()), %% Monday = 1, Tuesday = 2, ...
     GregDays = calendar:date_to_gregorian_days(date()) + 1 - DayNum,
     calendar:gregorian_days_to_date(GregDays).
+

@@ -31,6 +31,7 @@
          deleteAndUpdate/3,
          doLogout/2,
          eTodoUpdate/2,
+         filterUnicode/1,
          findSelected/1,
          focusAndSelect/1,
          focusAndSelect/2,
@@ -62,6 +63,7 @@
          setSelection/2,
          setSelection/4,
          setTaskLists/2,
+         setText/2,
          setUnreadMsgs/2,
          showBookmarkMenu/2,
          showMenu/4,
@@ -394,6 +396,7 @@ updateGui(ETodo, Index, State) ->
     DueDateUsedObj  = obj("dueDateUsed",   State),
     ProgressObj     = obj("progressInfo",  State),
     OwnerObj        = obj("ownerChoice",   State),
+
     case ETodo#etodo.dueTimeDB of
         undefined ->
             wxCheckBox:setValue(DueDateUsedObj, false),
@@ -429,7 +432,7 @@ updateValue(Name, State, Value) ->
         {wxTextCtrl, Name} ->
             wxTextCtrl:setValue(Obj, Value);
         {wxStyledTextCtrl, Name} ->
-            wxStyledTextCtrl:setText(Obj, Value);
+            setText(Obj, Value);
         {wxStaticText, _} ->
             wxStaticText:setLabel(Obj, Value)
     end.
@@ -533,16 +536,16 @@ setRowInfo(List, #etodo{priority       = Priority,
 
     case Count > 0 of
         true ->
-            wxListCtrl:setItem(List, Row, UidCol,        Uid),
-            wxListCtrl:setItem(List, Row, StatusCol,     Status),
-            wxListCtrl:setItem(List, Row, OwnerCol,      Owner),
-            wxListCtrl:setItem(List, Row, PriorityCol,   Priority),
-            wxListCtrl:setItem(List, Row, DueTimeCol,    DueTime),
-            wxListCtrl:setItem(List, Row, DescCol,       colFormat(Desc)),
-            wxListCtrl:setItem(List, Row, CommentCol,    colFormat(Comment)),
-            wxListCtrl:setItem(List, Row, SharedWithCol, SharedWith),
-            wxListCtrl:setItem(List, Row, CreateTimeCol, CreateTime),
-            wxListCtrl:setItem(List, Row, DoneTimeCol,   DoneTime),
+            setItem(List, Row, UidCol,        Uid),
+            setItem(List, Row, StatusCol,     Status),
+            setItem(List, Row, OwnerCol,      Owner),
+            setItem(List, Row, PriorityCol,   Priority),
+            setItem(List, Row, DueTimeCol,    DueTime),
+            setItem(List, Row, DescCol,       colFormat(Desc)),
+            setItem(List, Row, CommentCol,    colFormat(Comment)),
+            setItem(List, Row, SharedWithCol, SharedWith),
+            setItem(List, Row, CreateTimeCol, CreateTime),
+            setItem(List, Row, DoneTimeCol,   DoneTime),
 
             case HasSubTodo of
                 false ->
@@ -950,9 +953,11 @@ checkStatus(State = #guiState{user       = User,
     Backup   = xrcId("backupMenuItem"),
     Restore  = xrcId("restoreMenuItem"),
 
-    Reminder = obj("setReminderButton", State),
-    Shared   = obj("shareButton",       State),
-    TaskEdit = obj("taskEditPanel",     State),
+    Reminder = obj("setReminderButton",  State),
+    Shared   = obj("shareButton",        State),
+    TaskEdit = obj("taskEditPanel",      State),
+    DescArea = obj("descriptionAreaSTC", State),
+    ComArea  = obj("commentAreaSTC",     State),
 
     ToolBar   = State#guiState.toolBar,
     MenuBar   = State#guiState.menuBar,
@@ -1003,7 +1008,11 @@ checkStatus(State = #guiState{user       = User,
     wxMenuBar:enable(MenuBar,     DeleteM, Selected and NoSubTodos),
     wxMenuBar:enable(MenuBar,     Backup,  not LoggedIn),
     wxMenuBar:enable(MenuBar,     Restore, not LoggedIn),
+
     wxPanel:enable(TaskEdit, [{enable, Selected}]),
+
+    wxStyledTextCtrl:setReadOnly(DescArea, not Selected),
+    wxStyledTextCtrl:setReadOnly(ComArea, not Selected),
 
     checkUndoStatus(State).
 
@@ -2097,4 +2106,37 @@ saveFile(FileName, Img, CT) ->
             {CT, list_to_binary(FileName)};
         false ->
             CT
+    end.
+
+%%====================================================================
+%% Work around for crashing unicode input.
+%%====================================================================
+setText(Obj, "") ->
+    wxStyledTextCtrl:setTextRaw(Obj, <<0>>);
+setText(Obj, Text) ->
+    wxStyledTextCtrl:setReadOnly(Obj, false),
+    Utf8Bin = filterUnicode(Text),
+    wxStyledTextCtrl:setTextRaw(Obj, <<Utf8Bin/binary, 0>>).
+
+setItem(List, Row, Col, Text) ->
+    case catch wxListCtrl:setItem(List, Row, Col, Text) of
+        {'EXIT', _} ->
+            Utf8Bin = filterUnicode(lists:flatten(Text)),
+            Text2   = unicode:characters_to_list(Utf8Bin),
+            wxListCtrl:setItem(List, Row, Col, Text2);
+        _ ->
+            ok
+    end.
+
+filterUnicode(Text) ->
+    filterUnicode(Text, <<>>).
+
+filterUnicode(Text, SoFar) ->
+    case unicode:characters_to_binary(Text) of
+        {error, Bin, Rest} ->
+            filterUnicode(tl(Rest), <<SoFar/binary, Bin/binary>>);
+        {incomplete, Bin, _Rest} ->
+            <<SoFar/binary, Bin/binary>>;
+        Bin ->
+            <<SoFar/binary, Bin/binary>>
     end.
