@@ -974,7 +974,7 @@ handle_cast(_Msg, State) ->
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
 handle_event(#wx{id = Id, event = #wxStyledText{type = Type}},
-    State = #guiState{frame = Frame, dict  = Dict}) ->
+             State = #guiState{frame = Frame, dict  = Dict}) ->
     Name = getFromDict(Id, Dict),
     handle_cmd(Name, Type, Id, Frame, State);
 
@@ -1043,7 +1043,6 @@ handle_event(#wx{id = Id, event = #wxList{type      = Type,
 handle_event(#wx{event = #wxClose{}, obj = Frame},
              State = #guiState{frame = Frame}) ->
     State2 = saveGuiSettings(State),
-    catch wxWindows:'Destroy'(Frame),
     {stop, normal, State2};
 
 handle_event(#wx{event = #wxDate{}, obj = Obj},
@@ -1155,12 +1154,6 @@ handle_info(_Info, State) ->
 %% cleaning up. When it returns, the gen_server terminates with Reason.
 %% The return value is ignored.
 %%--------------------------------------------------------------------
-terminate(_Reason, State = #guiState{startup = normal}) ->
-    saveColumnSizes(State),
-    saveEtodoSettings(State),
-    doLogout(State#guiState.user, State),
-    wx:destroy(),
-    ok;
 terminate(_Reason, State) ->
     saveColumnSizes(State),
     saveEtodoSettings(State),
