@@ -149,10 +149,10 @@ makeForm(User, _Default) ->
 makeJSONListsList([]) ->
     [];
 makeJSONListsList([Value|[]]) ->
-    Value2 = unicode:characters_to_binary(Value, utf8),
+    Value2 = eGuiFunctions:filterAndConvert2Utf8(Value),
     ["{\"list\":\"", Value2, "\"}"];
 makeJSONListsList([Value|Rest]) ->
-    Value2 = unicode:characters_to_binary(Value, utf8),
+    Value2 = eGuiFunctions:filterAndConvert2Utf8(Value),
     ["{\"list\":\"", Value2, "\"},",makeJSONListsList(Rest)].
 
 %%%===================================================================
@@ -160,7 +160,7 @@ makeJSONListsList([Value|Rest]) ->
 %%%===================================================================
 
 makeJSONString(Text) ->
-    unicode:characters_to_binary(quote(Text, []), utf8).
+    eGuiFunctions:filterAndConvert2Utf8(quote(Text, [])).
 
 quote("", SoFar)  -> lists:flatten(SoFar);
 

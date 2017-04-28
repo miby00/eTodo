@@ -1720,15 +1720,11 @@ listCancelEvent(_Type, _Id, _Frame, State = #guiState{addListDlg = AddList}) ->
 commentButtonEvent(_Type, _Id, _Frame, State) ->
     Signature = toStr(date()) ++ " " ++ State#guiState.user ++ ": ",
     CommentField = obj("commentAreaSTC", State),
-    case wxStyledTextCtrl:getText(CommentField) of
-        "" ->
-            wxStyledTextCtrl:appendText(CommentField, Signature),
-            wxStyledTextCtrl:setFocus(CommentField);
-        _ ->
-            wxStyledTextCtrl:appendText(CommentField, "\r\n" ++ Signature),
-            wxStyledTextCtrl:setFocus(CommentField)
-    end,
+    wxStyledTextCtrl:setFocus(CommentField),
+    Pos = wxStyledTextCtrl:getCurrentPos(CommentField),
+    wxStyledTextCtrl:insertText(CommentField, Pos, Signature),
     wxNotebook:changeSelection(obj("commentNotebook", State), 0),
+    wxStyledTextCtrl:setCurrentPos(CommentField, Pos + length(Signature)),
     State.
 
 sendTaskButtonEvent(command_button_clicked, _Id, _Frame,

@@ -567,12 +567,12 @@ createForm2(List, Default) ->
 createForm([], Result, _Default) ->
     Result;
 createForm([Value | Rest], SoFar, Value) ->
-    Value2 = unicode:characters_to_binary(Value, utf8),
+    Value2 = eGuiFunctions:filterAndConvert2Utf8(Value),
     Option = ["<option value='", Value2, "' selected='selected'>",
               Value2, "</option>\r\n"],
     createForm(Rest, [Option, SoFar], Value);
 createForm([Value | Rest], SoFar, Default) ->
-    Value2 = unicode:characters_to_binary(Value, utf8),
+    Value2 = eGuiFunctions:filterAndConvert2Utf8(Value),
     Option = ["<option value='", Value2, "'>", Value2, "</option>\r\n"],
     createForm(Rest, [Option, SoFar], Default).
 
@@ -1493,7 +1493,7 @@ makeHtml(Text) ->
     makeHtml(Text, getRootDir()).
 
 makeHtml(Text, Dir) ->
-    unicode:characters_to_binary(checkForLinks(Text, Dir), utf8).
+    eGuiFunctions:filterAndConvert2Utf8(checkForLinks(Text, Dir)).
 
 checkForLinks(Text, Dir) ->
     checkForLinks(Text, Dir, [], text, []).

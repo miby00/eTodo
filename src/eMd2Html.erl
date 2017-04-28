@@ -26,14 +26,14 @@
 %% Acc => result in progress
 
 convert(MDText) when is_list(MDText) ->
-    convert(unicode:characters_to_binary(MDText));
+    convert(eGuiFunctions:filterAndConvert2Utf8(MDText));
 convert(MDText) when is_binary(MDText) ->
     Dir     = list_to_binary(eTodoUtils:getRootDir()),
     MDText2 = convertLineEnding(MDText, crlf2lf),
     convert(<<10, MDText2/binary>>, [{p, <<>>}], <<>>, <<>>, Dir, <<>>).
 
 convert(MDText, Dir) when is_list(MDText), is_list(Dir) ->
-    convert(unicode:characters_to_binary(MDText), list_to_binary(Dir));
+    convert(eGuiFunctions:filterAndConvert2Utf8(MDText), list_to_binary(Dir));
 convert(MDText, Dir) when is_binary(MDText), is_binary(Dir) ->
     convert(<<10, MDText/binary>>, [{p, <<>>}], <<>>, <<>>, Dir, <<>>).
 
