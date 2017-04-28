@@ -346,7 +346,9 @@ initGUI(Arg) ->
     setIcon(Conflict),
     setIcon(About),
 
-    IL         = wxImageList:new(16,16),
+    IL1        = wxImageList:new(16,16),
+    IL2        = wxImageList:new(16,16),
+
     MultiPng   = wxImage:new("./Icons/multi.png"),
     MultiBmp   = wxBitmap:new(MultiPng),
     SinglePng  = wxImage:new("./Icons/single.png"),
@@ -357,11 +359,18 @@ initGUI(Arg) ->
     MsgReadBmp = wxBitmap:new(MsgReadPng),
     MsgUnrPng  = wxImage:new("./Icons/message-unread.png"),
     MsgUnrBmp  = wxBitmap:new(MsgUnrPng),
-    wxImageList:add(IL, SingleBmp),
-    wxImageList:add(IL, MultiBmp),
-    wxImageList:add(IL, CheckedBmp),
-    wxImageList:add(IL, MsgReadBmp),
-    wxImageList:add(IL, MsgUnrBmp),
+
+    wxImageList:add(IL1, SingleBmp),
+    wxImageList:add(IL1, MultiBmp),
+    wxImageList:add(IL1, CheckedBmp),
+    wxImageList:add(IL1, MsgReadBmp),
+    wxImageList:add(IL1, MsgUnrBmp),
+
+    wxImageList:add(IL2, SingleBmp),
+    wxImageList:add(IL2, MultiBmp),
+    wxImageList:add(IL2, CheckedBmp),
+    wxImageList:add(IL2, MsgReadBmp),
+    wxImageList:add(IL2, MsgUnrBmp),
 
     DefUserCfg = eTodoDB:readUserCfg(default),
     DefUser    = setUserNameAndFocus(Login, DefUserCfg),
@@ -466,10 +475,10 @@ initGUI(Arg) ->
     wxStatusBar:setStatusText(StatusBar, ?sbNotLoggedIn, [{number, 1}]),
 
     TodoList = getTodoList(?defTaskList, State),
-    wxListCtrl:assignImageList(TodoList, IL, ?wxIMAGE_LIST_SMALL),
+    wxListCtrl:assignImageList(TodoList, IL2, ?wxIMAGE_LIST_SMALL),
 
     MainNotebook = obj("mainNotebook", State),
-    wxNotebook:assignImageList(MainNotebook, IL),
+    wxNotebook:assignImageList(MainNotebook, IL1),
     wxNotebook:setPageImage(MainNotebook, 1, 3),
 
     Columns  = eTodoDB:getColumns(DefUser),
@@ -536,6 +545,7 @@ initGUI(Arg) ->
 
     eGuiFunctions:fillEmailCheckBox(State9),
 
+    %% wxImageList:destroy(IL),
     {Frame, checkStatus(State9#guiState{columns = Columns})}.
 
 setWindowSize(DefUser, Frame) ->
@@ -1154,10 +1164,11 @@ handle_info(_Info, State) ->
 %% cleaning up. When it returns, the gen_server terminates with Reason.
 %% The return value is ignored.
 %%--------------------------------------------------------------------
-terminate(_Reason, State) ->
+terminate(_Reason, State = #guiState{frame = Frame}) ->
     saveColumnSizes(State),
     saveEtodoSettings(State),
     doLogout(State#guiState.user, State),
+    wxFrame:close(Frame),
     wx:destroy(),
     init:stop(),
     ok.
