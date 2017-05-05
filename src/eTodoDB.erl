@@ -982,6 +982,7 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast({appendToPage, User, Type, From, To, Html}, State) ->
+    HtmlUtf8 = unicode:characters_to_binary(Html, utf8),
     TS = fun() ->
                  mnesia:write(#messages{key       = make_ref(),
                                         timestamp = erlang:timestamp(),
@@ -989,7 +990,7 @@ handle_cast({appendToPage, User, Type, From, To, Html}, State) ->
                                         type      = Type,
                                         from      = From,
                                         to        = To,
-                                        message   = zlib:zip(Html)})
+                                        message   = zlib:zip(HtmlUtf8)})
          end,
     mnesia:transaction(TS),
     {noreply, State};
