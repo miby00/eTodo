@@ -94,6 +94,7 @@
                         setSelection/4,
                         setTaskLists/2,
                         setText/2,
+                        showMenu/2,
                         type/1,
                         updateGui/3,
                         updateGui/4,
@@ -1652,6 +1653,8 @@ raiseIfIconified(Frame) ->
 %%====================================================================
 %% Event to trigger gui save
 %%====================================================================
+showTodo(Uid, State = #guiState{ctrlMod = true}) ->
+    showMenu(Uid, State#guiState{ctrlMod = false});
 showTodo(Uid, State = #guiState{frame = Frame, columns = Columns, user = User}) ->
     %% Show window when clicking on ETodo link.
     wxFrame:raise(Frame),

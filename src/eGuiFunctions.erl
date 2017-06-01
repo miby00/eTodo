@@ -67,6 +67,7 @@
          setText/2,
          setUnreadMsgs/2,
          showBookmarkMenu/2,
+         showMenu/2,
          showMenu/4,
          toClipboard/1,
          toClipboard/2,
@@ -744,6 +745,13 @@ showMenu(User, Column, Frame, State = #guiState{popUpMenu = OldMenu,
     wxWindow:popupMenu(Frame, Menu),
     State#guiState{popUpMenu = Menu, popUpCol  = Column}.
 
+showMenu(Uid, State = #guiState{frame = Frame, popUpMenu = OldMenu}) ->
+    removeOldMenu(OldMenu),
+    Menu = createMenu(Uid, State),
+    wxMenu:connect(Menu, command_menu_selected),
+    wxWindow:popupMenu(Frame, Menu),
+    State#guiState{popUpMenu = Menu, popUpCol = {row, -1}}.
+
 removeOldMenu(undefined) -> ok;
 removeOldMenu(Menu)      -> wxMenu:destroy(Menu).
 
@@ -774,6 +782,16 @@ createPluginMenu2(Menu, [{{MenuType, Name}, MenuOptions}|Rest])
 createPluginMenu2(SubMenu, [{MenuOption, MenuText}|Rest]) ->
     wxMenu:append(SubMenu, MenuOption, MenuText),
     createPluginMenu2(SubMenu, Rest).
+
+createMenu(Uid, #guiState{user = User, columns = Columns}) ->
+    Menu        = wxMenu:new(),
+    %% Create Plugin menu options
+
+    Todo  = eTodoDB:getTodo(Uid),
+    ETodo = eTodoUtils:makeETodo(Todo, User, Columns),
+    createPluginMenu(Menu, ETodo),
+
+    Menu.
 
 createMenu(User, Row, State = #guiState{}) ->
     Menu        = wxMenu:new(),
