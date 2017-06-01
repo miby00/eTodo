@@ -776,6 +776,10 @@ systemTextWinEvent(_Type, _Id, Frame, State = #guiState{msgMenu = MsgMenu}) ->
     wxWindow:popupMenu(Frame, MsgMenu),
     State.
 
+workLogReportEvent(Event = #wxKey{}, _Id, _Frame, State) ->
+    ShiftMod = Event#wxKey.shiftDown,
+    CtrlMod  = Event#wxKey.controlDown,
+    State#guiState{shiftMod = ShiftMod, ctrlMod = CtrlMod};
 workLogReportEvent(_Type, _Id, Frame, State = #guiState{user = User}) ->
     showMenu(User, {row, -1}, Frame, State).
 

@@ -26,6 +26,7 @@
                    unreadMsgs = 0, unreadMsgs2 = {0, 0, 0}, delayedUpdate,
                    reply = [], replyAll = [], toolBar, menuBar,
                    manBookmDlg, popupBookmMenu, bookmCfg = [],
+                   ctrlMod = false, shiftMod = false,
                    sortColsDlg, timerDlg, timerRef, pluginDlg, logWorkDlg,
                    timerDlgOpen = false, updateFile, notificationTimer}).
 

@@ -1265,6 +1265,8 @@ connectMsgFrame(Frame, Dict) ->
     wxHtmlWindow:connect(RemMsgObj,  right_down),
     wxHtmlWindow:connect(SysMsgObj,  right_down),
     wxHtmlWindow:connect(WorkLogObj, right_down),
+    wxHtmlWindow:connect(WorkLogObj, key_down),
+    wxHtmlWindow:connect(WorkLogObj, key_up),
 
     wxCheckListBox:connect(OfflineObj, right_down),
 
@@ -1687,6 +1689,16 @@ saveAvatar(Peer, Icon) ->
 %%====================================================================
 %% Show log work dialog.
 %%====================================================================
+showLogWork(Uid, Date, State = #guiState{shiftMod = true, user = User}) ->
+    UidStr = integer_to_list(Uid),
+    {Date, Hours, Minutes} = eTodoDB:getLoggedWork(User, UidStr, Date),
+    eTodoDB:logWork(User, UidStr, Date, Hours + 1, Minutes),
+    eGuiFunctions:generateWorkLog(State);
+showLogWork(Uid, Date, State = #guiState{ctrlMod = true, user = User}) ->
+    UidStr = integer_to_list(Uid),
+    {Date, Hours, Minutes} = eTodoDB:getLoggedWork(User, UidStr, Date),
+    eTodoDB:logWork(User, UidStr, Date, Hours - 1, Minutes),
+    eGuiFunctions:generateWorkLog(State);
 showLogWork(Uid, Date, State) ->
     %% ETodo link clicked, open log work dialog.
     Todo    = eTodoDB:getTodo(Uid),
