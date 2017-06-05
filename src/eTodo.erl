@@ -1700,7 +1700,12 @@ showLogWork(Uid, Date, State = #guiState{shiftMod = true, user = User}) ->
 showLogWork(Uid, Date, State = #guiState{ctrlMod = true, user = User}) ->
     UidStr = integer_to_list(Uid),
     {Date, Hours, Minutes} = eTodoDB:getLoggedWork(User, UidStr, Date),
-    eTodoDB:logWork(User, UidStr, Date, Hours - 1, Minutes),
+    case Hours > 0 of
+        true ->
+            eTodoDB:logWork(User, UidStr, Date, Hours - 1, Minutes);
+        false ->
+            eTodoDB:logWork(User, UidStr, Date, 0, 0)
+    end,
     eGuiFunctions:generateWorkLog(State);
 showLogWork(Uid, Date, State) ->
     %% ETodo link clicked, open log work dialog.
