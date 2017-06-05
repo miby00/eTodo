@@ -1266,8 +1266,8 @@ connectMsgFrame(Frame, Dict) ->
     wxHtmlWindow:connect(RemMsgObj,  right_down),
     wxHtmlWindow:connect(SysMsgObj,  right_down),
     wxHtmlWindow:connect(WorkLogObj, right_down),
-    wxHtmlWindow:connect(WorkLogObj, key_down),
-    wxHtmlWindow:connect(WorkLogObj, key_up),
+    wxHtmlWindow:connect(WorkLogObj, key_down, [{skip, true}]),
+    wxHtmlWindow:connect(WorkLogObj, key_up,   [{skip, true}]),
 
     wxCheckListBox:connect(OfflineObj, right_down),
 
