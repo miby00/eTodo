@@ -655,13 +655,13 @@ updateTodoWindow(State = #guiState{searchCfg = Cfg,
     updateColumns(Filter2, State),
     ETodos = eTodoDB:getETodos(User, TaskList3, Filter2, SearchText, Cfg),
 
-    wxListCtrl:freeze(TodoList),
-    clearAndInitiate(TodoList, length(ETodos)),
-    lists:foldl(fun (ETodo, Acc) ->
-                        setRowInfo(TodoList, ETodo, Acc),
-                        Acc + 1
-                end, 0, ETodos),
-    wxListCtrl:thaw(TodoList),
+    wx:batch(fun() ->
+                     clearAndInitiate(TodoList, length(ETodos)),
+                     lists:foldl(fun (ETodo, Acc) ->
+                                         setRowInfo(TodoList, ETodo, Acc),
+                                         Acc + 1
+                                 end, 0, ETodos)
+             end),
 
     Count  = wxListCtrl:getItemCount(TodoList),
     State3 = case getActive(State) of
