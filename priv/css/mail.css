@@ -42,7 +42,7 @@ img {
     background: linear-gradient(to bottom, rgb(192, 192, 192) 0%, rgb(224, 224, 224) 100%); /* W3C */
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#C0C0C0', endColorstr='#33FF33', GradientType=0); /* IE6-8 */
 
-    border-color: black;
+    border-color: darkgrey;
     border-width: 1px;
 }
 
@@ -53,7 +53,7 @@ table {
     margin-right: 0.5%;
     margin-top: 6px;
     margin-bottom: 6px;
-    border: 1px solid black;
+    border: 1px solid darkgrey;
     -moz-border-radius: 6px;
     -webkit-border-radius: 6px;
     border-radius: 6px;
