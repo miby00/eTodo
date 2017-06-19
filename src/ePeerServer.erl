@@ -539,9 +539,13 @@ getPeer(peerUser, PeerUser, #state{peers = Peers}) ->
 %% @spec savePeer(Peer, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-savePeer(Peer, State = #state{peers = Peers}) ->
+savePeer(Peer, State = #state{peers = Peers}) when is_record(Peer, peer) ->
     Peers2 = lists:keystore(Peer#peer.pid, #peer.pid, Peers, Peer),
-    State#state{peers = Peers2}.
+    State#state{peers = Peers2};
+savePeer(Peer, State) ->
+    eLog:log(error, ?MODULE, savePeer, [self(), Peer],
+             "Unexpected peer, ignore.", ?LINE),
+    State.
 
 %%--------------------------------------------------------------------
 %% @private
