@@ -63,12 +63,12 @@ Have patience: The first startup needs to create an empty TODO database.
 
 [Getting started with eTodo](https://rawgit.com/miby00/eTodo/master/priv/www/docs/eTodo.html)
 
-###Status
+### Status
 
 eTodo isn't finished, when I feel inspired I code on it during my spare time.
 So do not expect it to be perfect, commented, have test cases or be fully documented ;)
 
-###Contributors
+### Contributors
 
 I would like to give special thanks to:
 
