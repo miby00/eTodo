@@ -249,7 +249,7 @@ eMenuEvent(_EScriptDir, User, 1501, _ETodo, _MenuText,
            State = #state{jiraUrl = JiraUrl, jiraSearch = Search,
                           bauth   = BAuth,   frame      = Frame}) ->
     Url = JiraUrl ++ "/rest/api/2/search?jql=" ++
-        http_uri:encode(Search) ++ "&fields=summary,key",
+        http_uri:encode(Search) ++ "&maxResults=5000&fields=summary,key",
     Result   = httpRequest(BAuth, get, Url),
     Issues   = issueList(Result),
     MultiDlg = wxMultiChoiceDialog:new(Frame,
