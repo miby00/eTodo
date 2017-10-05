@@ -1722,13 +1722,15 @@ listCancelEvent(_Type, _Id, _Frame, State = #guiState{addListDlg = AddList}) ->
 %% Insert signature into comment field.
 %%====================================================================
 commentButtonEvent(_Type, _Id, _Frame, State) ->
-    Signature = toStr(date()) ++ " " ++ State#guiState.user ++ ": ",
+    Signature = "\n" ++ toStr(date()) ++ " " ++ State#guiState.user ++ ": ",
     CommentField = obj("commentAreaSTC", State),
     wxStyledTextCtrl:setFocus(CommentField),
-    Pos = wxStyledTextCtrl:getCurrentPos(CommentField),
-    wxStyledTextCtrl:insertText(CommentField, Pos, Signature),
+    Line = wxStyledTextCtrl:getCurrentLine(CommentField),
+    LEnd = wxStyledTextCtrl:getLineEndPosition(CommentField, Line),
+    wxStyledTextCtrl:insertText(CommentField, LEnd, Signature),
     wxNotebook:changeSelection(obj("commentNotebook", State), 0),
-    wxStyledTextCtrl:setCurrentPos(CommentField, Pos + length(Signature)),
+    wxStyledTextCtrl:setCurrentPos(CommentField, LEnd + length(Signature)),
+    wxStyledTextCtrl:setSelectionStart(CommentField, LEnd + length(Signature)),
     State.
 
 sendTaskButtonEvent(command_button_clicked, _Id, _Frame,
