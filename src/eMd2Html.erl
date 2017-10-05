@@ -572,15 +572,26 @@ insertEM(Content) ->
 insertEM(<<>>, [], Acc) ->
     Acc;
 
+insertEM(<<Char:8, $*, $*, $*, Rest/binary>>, [{strong3, CT}|St], Acc)
+    when (Char =/= 32) and (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
+    and  (Char =/= $*) ->
+    BoldText = <<"<strong>", CT/binary, Char:8, "</strong>">>,
+    insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
+
 insertEM(<<Char:8, $*, $*, Rest/binary>>, [{strong, CT}|St], Acc)
     when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
     BoldText = <<"<strong>", CT/binary, Char:8, "</strong>">>,
     insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
 
 insertEM(<<Char:8, $*, Rest/binary>>, [{em, CT}|St], Acc)
-    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
-    and  (Char =/= $*) ->
+    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
     BoldText = <<"<em>", CT/binary, Char:8, "</em>">>,
+    insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
+
+insertEM(<<Char:8, $_, $_, $_, Rest/binary>>, [{strong4, CT}|St], Acc)
+    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
+    and  (Char =/= $_) ->
+    BoldText = <<"<strong>", CT/binary, Char:8, "</strong>">>,
     insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
 
 insertEM(<<Char:8, $_, $_, Rest/binary>>, [{strong2, CT}|St], Acc)
@@ -589,13 +600,17 @@ insertEM(<<Char:8, $_, $_, Rest/binary>>, [{strong2, CT}|St], Acc)
     insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
 
 insertEM(<<Char:8, $_, Rest/binary>>, [{em2, CT}|St], Acc)
-    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
-    and  (Char =/= $_) ->
+    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
     BoldText = <<"<em>", CT/binary, Char:8, "</em>">>,
     insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
 
-insertEM(<<$*, $*, Char:8, Rest/binary>>, St, Acc)
+insertEM(<<$*, $*, $*, Char:8, Rest/binary>>, St, Acc)
     when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
+    insertEM(Rest, [{strong3, <<Char:8>>}|St], Acc);
+
+insertEM(<<$*, $*, Char:8, Rest/binary>>, St, Acc)
+    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
+    and  (Char =/= $*) ->
     insertEM(Rest, [{strong, <<Char:8>>}|St], Acc);
 
 insertEM(<<$*, Char:8, Rest/binary>>, St, Acc)
@@ -603,8 +618,13 @@ insertEM(<<$*, Char:8, Rest/binary>>, St, Acc)
     and  (Char =/= $*) ->
     insertEM(Rest, [{em, <<Char:8>>}|St], Acc);
 
-insertEM(<<$_, $_, Char:8, Rest/binary>>, St, Acc)
+insertEM(<<$_, $_, $_, Char:8, Rest/binary>>, St, Acc)
     when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
+    insertEM(Rest, [{strong4, <<Char:8>>}|St], Acc);
+
+insertEM(<<$_, $_, Char:8, Rest/binary>>, St, Acc)
+    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
+    and  (Char =/= $_) ->
     insertEM(Rest, [{strong2, <<Char:8>>}|St], Acc);
 
 insertEM(<<$_, Char:8, Rest/binary>>, St, Acc)
@@ -623,6 +643,12 @@ insertEM(<<>>, [{strong, CT}|St], Acc) ->
 
 insertEM(<<>>, [{strong2, CT}|St], Acc) ->
     insertEM(<<>>, St, <<Acc/binary, $_, $_, CT/binary>>);
+
+insertEM(<<>>, [{strong3, CT}|St], Acc) ->
+    insertEM(<<>>, St, <<Acc/binary, $*, $*, $*, CT/binary>>);
+
+insertEM(<<>>, [{strong4, CT}|St], Acc) ->
+    insertEM(<<>>, St, <<Acc/binary, $_, $_, $_, CT/binary>>);
 
 insertEM(<<Char:8, Rest/binary>>, [{Tag, CT}|St], Acc) ->
     insertEM(Rest, [{Tag, <<CT/binary, Char:8>>}|St], Acc);

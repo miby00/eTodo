@@ -303,3 +303,33 @@ strong_6_test() ->
     Result = eMd2Html:convert(<<"**Hej \r\nHallå**">>),
     Expect = <<"<p><strong>Hej \nHallå</strong></p>">>,
     ?assertEqual(Expect, Result).
+
+strong_7_test() ->
+    Result = eMd2Html:convert(<<"***Hej***">>),
+    Expect = <<"<p><strong>Hej</strong></p>">>,
+    ?assertEqual(Expect, Result).
+
+strong_8_test() ->
+    Result = eMd2Html:convert(<<"***Hej \r\n***">>),
+    Expect = <<"<p>***Hej \n***</p>">>,
+    ?assertEqual(Expect, Result).
+
+strong_9_test() ->
+    Result = eMd2Html:convert(<<"***Hej \r\nHallå***">>),
+    Expect = <<"<p><strong>Hej \nHallå</strong></p>">>,
+    ?assertEqual(Expect, Result).
+
+strong_10_test() ->
+    Result = eMd2Html:convert(<<"___Hej___">>),
+    Expect = <<"<p><strong>Hej</strong></p>">>,
+    ?assertEqual(Expect, Result).
+
+strong_11_test() ->
+    Result = eMd2Html:convert(<<"___Hej \r\n___">>),
+    Expect = <<"<p>___Hej \n___</p>">>,
+    ?assertEqual(Expect, Result).
+
+strong_12_test() ->
+    Result = eMd2Html:convert(<<"___Hej \r\nHallå___">>),
+    Expect = <<"<p><strong>Hej \nHallå</strong></p>">>,
+    ?assertEqual(Expect, Result).
