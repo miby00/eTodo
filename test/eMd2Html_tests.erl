@@ -243,3 +243,63 @@ smiley_2_test() ->
     Result = eMd2Html:convert(<<":-)<3">>),
     {match, Matches} = re:run(Result, "img class='emote'", [global]),
     ?assertEqual(2, length(Matches)).
+
+em_1_test() ->
+    Result = eMd2Html:convert(<<"*Hej*">>),
+    Expect = <<"<p><em>Hej</em></p>">>,
+    ?assertEqual(Expect, Result).
+
+em_2_test() ->
+    Result = eMd2Html:convert(<<"*Hej \r\n*">>),
+    Expect = <<"<p>*Hej \n*</p>">>,
+    ?assertEqual(Expect, Result).
+
+em_3_test() ->
+    Result = eMd2Html:convert(<<"*Hej \r\nHallå*">>),
+    Expect = <<"<p><em>Hej \nHallå</em></p>">>,
+    ?assertEqual(Expect, Result).
+
+em_4_test() ->
+    Result = eMd2Html:convert(<<"_Hej_">>),
+    Expect = <<"<p><em>Hej</em></p>">>,
+    ?assertEqual(Expect, Result).
+
+em_5_test() ->
+    Result = eMd2Html:convert(<<"_Hej \r\n_">>),
+    Expect = <<"<p>_Hej \n_</p>">>,
+    ?assertEqual(Expect, Result).
+
+em_6_test() ->
+    Result = eMd2Html:convert(<<"_Hej \r\nHallå_">>),
+    Expect = <<"<p><em>Hej \nHallå</em></p>">>,
+    ?assertEqual(Expect, Result).
+
+strong_1_test() ->
+    Result = eMd2Html:convert(<<"__Hej__">>),
+    Expect = <<"<p><strong>Hej</strong></p>">>,
+    ?assertEqual(Expect, Result).
+
+strong_2_test() ->
+    Result = eMd2Html:convert(<<"__Hej \r\n__">>),
+    Expect = <<"<p>__Hej \n__</p>">>,
+    ?assertEqual(Expect, Result).
+
+strong_3_test() ->
+    Result = eMd2Html:convert(<<"__Hej \r\nHallå__">>),
+    Expect = <<"<p><strong>Hej \nHallå</strong></p>">>,
+    ?assertEqual(Expect, Result).
+
+strong_4_test() ->
+    Result = eMd2Html:convert(<<"**Hej**">>),
+    Expect = <<"<p><strong>Hej</strong></p>">>,
+    ?assertEqual(Expect, Result).
+
+strong_5_test() ->
+    Result = eMd2Html:convert(<<"**Hej \r\n**">>),
+    Expect = <<"<p>**Hej \n**</p>">>,
+    ?assertEqual(Expect, Result).
+
+strong_6_test() ->
+    Result = eMd2Html:convert(<<"**Hej \r\nHallå**">>),
+    Expect = <<"<p><strong>Hej \nHallå</strong></p>">>,
+    ?assertEqual(Expect, Result).

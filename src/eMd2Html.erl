@@ -453,12 +453,13 @@ makeTag(code, _Dir, Content) ->
 makeTag(Tag, Dir, Content) ->
     BTag     = list_to_binary(atom_to_list(Tag)),
     Content2 = insertBR(Content),
-    case remWS(Content2) of
+    Content3 = insertEM(Content2),
+    case remWS(Content3) of
         {<<>>, _} ->
             <<>>;
-        {Cont3, _} ->
-            Cont4 = smiley(Tag, Dir, Cont3),
-            <<$<, BTag/binary, $>, Cont4/binary, $<, $/, BTag/binary, $>>>
+        {Cont4, _} ->
+            Cont5 = smiley(Tag, Dir, Cont4),
+            <<$<, BTag/binary, $>, Cont5/binary, $<, $/, BTag/binary, $>>>
     end.
 
 headerStart(<<"# ",      Rest/binary>>) -> {true, h1, Rest};
@@ -564,6 +565,70 @@ remWS(<<13, Rest/binary>>, I, C, all)    -> remWS(Rest, I, C,     all);
 remWS(<<32, Rest/binary>>, I, C, LRem)   -> remWS(Rest, I, C + 1, LRem);
 remWS(<<9,  Rest/binary>>, I, C, LRem)   -> remWS(Rest, I, C + 4, LRem);
 remWS(Rest,                    _, C, _)      -> {Rest, C}.
+
+insertEM(Content) ->
+    insertEM(Content, [], <<>>).
+
+insertEM(<<>>, [], Acc) ->
+    Acc;
+
+insertEM(<<Char:8, $*, $*, Rest/binary>>, [{strong, CT}|St], Acc)
+    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
+    BoldText = <<"<strong>", CT/binary, Char:8, "</strong>">>,
+    insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
+
+insertEM(<<Char:8, $*, Rest/binary>>, [{em, CT}|St], Acc)
+    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
+    and  (Char =/= $*) ->
+    BoldText = <<"<em>", CT/binary, Char:8, "</em>">>,
+    insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
+
+insertEM(<<Char:8, $_, $_, Rest/binary>>, [{strong2, CT}|St], Acc)
+    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
+    BoldText = <<"<strong>", CT/binary, Char:8, "</strong>">>,
+    insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
+
+insertEM(<<Char:8, $_, Rest/binary>>, [{em2, CT}|St], Acc)
+    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
+    and  (Char =/= $_) ->
+    BoldText = <<"<em>", CT/binary, Char:8, "</em>">>,
+    insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
+
+insertEM(<<$*, $*, Char:8, Rest/binary>>, St, Acc)
+    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
+    insertEM(Rest, [{strong, <<Char:8>>}|St], Acc);
+
+insertEM(<<$*, Char:8, Rest/binary>>, St, Acc)
+    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
+    and  (Char =/= $*) ->
+    insertEM(Rest, [{em, <<Char:8>>}|St], Acc);
+
+insertEM(<<$_, $_, Char:8, Rest/binary>>, St, Acc)
+    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
+    insertEM(Rest, [{strong2, <<Char:8>>}|St], Acc);
+
+insertEM(<<$_, Char:8, Rest/binary>>, St, Acc)
+    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
+    and  (Char =/= $_) ->
+    insertEM(Rest, [{em2, <<Char:8>>}|St], Acc);
+
+insertEM(<<>>, [{em, CT}|St], Acc) ->
+    insertEM(<<>>, St, <<Acc/binary, $*, CT/binary>>);
+
+insertEM(<<>>, [{em2, CT}|St], Acc) ->
+    insertEM(<<>>, St, <<Acc/binary, $_, CT/binary>>);
+
+insertEM(<<>>, [{strong, CT}|St], Acc) ->
+    insertEM(<<>>, St, <<Acc/binary, $*, $*, CT/binary>>);
+
+insertEM(<<>>, [{strong2, CT}|St], Acc) ->
+    insertEM(<<>>, St, <<Acc/binary, $_, $_, CT/binary>>);
+
+insertEM(<<Char:8, Rest/binary>>, [{Tag, CT}|St], Acc) ->
+    insertEM(Rest, [{Tag, <<CT/binary, Char:8>>}|St], Acc);
+
+insertEM(<<Char:8, Rest/binary>>, St, Acc) ->
+    insertEM(Rest, St, <<Acc/binary, Char:8>>).
 
 checkIfList(Content, CL) ->
     case getCurrentRow(Content) of
@@ -734,7 +799,7 @@ smiley(Tag, <<":>", Rest/binary>>, Dir, SoFar) ->
     Happy = smileyIcon(Tag, Dir, <<"happy.png">>, <<":>">>),
     smiley(Tag, Rest, Dir, <<SoFar/binary, Happy/binary>>);
 
-%% :-(  :(  =(  :< :[ :C
+%% :-(  :( =( :[ :C
 smiley(Tag, <<":-(", Rest/binary>>, Dir, SoFar) ->
     Sad = smileyIcon(Tag, Dir, <<"sad.png">>, <<":-(">>),
     smiley(Tag, Rest, Dir, <<SoFar/binary, Sad/binary>>);
@@ -743,9 +808,6 @@ smiley(Tag, <<":(", Rest/binary>>, Dir, SoFar) ->
     smiley(Tag, Rest, Dir, <<SoFar/binary, Sad/binary>>);
 smiley(Tag, <<"=(", Rest/binary>>, Dir, SoFar) ->
     Sad = smileyIcon(Tag, Dir, <<"sad.png">>, <<"=(">>),
-    smiley(Tag, Rest, Dir, <<SoFar/binary, Sad/binary>>);
-smiley(Tag, <<":<", Rest/binary>>, Dir, SoFar) ->
-    Sad = smileyIcon(Tag, Dir, <<"sad.png">>, <<":<">>),
     smiley(Tag, Rest, Dir, <<SoFar/binary, Sad/binary>>);
 smiley(Tag, <<":[", Rest/binary>>, Dir, SoFar) ->
     Sad = smileyIcon(Tag, Dir, <<"sad.png">>, <<":[">>),
