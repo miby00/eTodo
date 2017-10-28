@@ -15,17 +15,17 @@ NAME=etodo
 DESC="eTodo is a task manager written in Erlang"
 
 lockfile=/var/lock/subsys/$NAME
-binpath=/usr/lib64/etodo/bin
-etodoopbin="${ETODO_OPERATION:=/app/etodo}/bin"
+binpath=/usr/lib/eTodo/bin
+etodoopbin="${ETODO_OPERATION:=/app/eTodo}/bin"
 
 startcommand="$binpath/run_erl -daemon \
-      $etodoopbin/.etodo/ $ETODO_OPERATION/logs/ \
+      $etodoopbin/.eTodo/ $ETODO_OPERATION/logs/ \
       '$binpath/erl -env ERL_CRASH_DUMP_SECONDS -1 "
 
 stopcommand="echo -e 'ok.\r\ninit:stop().\r\n' | \
-             $binpath/to_erl $etodoopbin/.etodo/"
+             $binpath/to_erl $etodoopbin/.eTodo/"
 
-connectcommand="$binpath/to_erl $etodoopbin/.etodo/"
+connectcommand="$binpath/to_erl $etodoopbin/.eTodo/"
 
 RETVAL=0
 
@@ -48,7 +48,7 @@ start() {
     echo -n $"Starting eTodo: "
 
     # Empty pipe folder
-    rm -f $etodoopbin/.etodo/*
+    rm -f $etodoopbin/.eTodo/*
 
     # Start update node.
     su - etodo -c "$startcommand"
