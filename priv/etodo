@@ -9,23 +9,17 @@
 #
 
 # Source function library.
-. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
+# . /etc/rc.d/init.d/functions
 
 NAME=etodo
 DESC="eTodo is a task manager written in Erlang"
 
 lockfile=/var/lock/subsys/$NAME
 binpath=/usr/lib/eTodo/bin
-etodoopbin="${ETODO_OPERATION:=/app/eTodo}/bin"
-
-startcommand="$binpath/run_erl -daemon \
-      $etodoopbin/.eTodo/ $ETODO_OPERATION/logs/ \
-      '$binpath/erl -env ERL_CRASH_DUMP_SECONDS -1 "
-
-stopcommand="echo -e 'ok.\r\ninit:stop().\r\n' | \
-             $binpath/to_erl $etodoopbin/.eTodo/"
-
-connectcommand="$binpath/to_erl $etodoopbin/.eTodo/"
+startcommand="$binpath/eTodo start"
+stopcommand="$binpath/eTodo stop"
+connectcommand="$binpath/eTodo attach"
 
 RETVAL=0
 
@@ -47,11 +41,8 @@ start() {
     # Start daemons.
     echo -n $"Starting eTodo: "
 
-    # Empty pipe folder
-    rm -f $etodoopbin/.eTodo/*
-
-    # Start update node.
     su - etodo -c "$startcommand"
+
     RETVAL=$?
     if [ $RETVAL -eq 0 ]; then
         touch $lockfile
@@ -109,8 +100,6 @@ hardstop() {
 
 connect() {
     # Stop daemon.
-    echo -n $"Connecting to eTodo: "
-    su - etodo -c "killall to_erl >/dev/null 2>&1"
     su - etodo -c "$connectcommand"
     RETVAL=$?
     return $RETVAL
