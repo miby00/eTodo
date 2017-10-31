@@ -1,0 +1,161 @@
+#!/bin/sh
+#
+# etodo
+#
+
+# chkconfig: 2345 85 15
+# description: eTodo is a task manager written in Erlang
+# processname: beam
+#
+
+# Source function library.
+. /lib/lsb/init-functions
+# . /etc/rc.d/init.d/functions
+
+NAME=etodo
+DESC="eTodo is a task manager written in Erlang"
+
+lockfile=/var/lock/subsys/$NAME
+binpath=/usr/lib/eTodo/bin
+startcommand="$binpath/eTodo start"
+stopcommand="$binpath/eTodo stop"
+connectcommand="$binpath/eTodo attach"
+
+RETVAL=0
+
+# Check for installed files
+[ -d $binpath ] || exit 0
+
+check_pid_status() {
+    pid=$(ps ax | grep beam | grep "$NAME" | grep "\-progname" | grep -v grep | awk '{print $1}')
+    if [ "$pid" = "" ]; then
+        # prog not running?
+        return 1
+    else
+        # running
+        return 0
+    fi
+}
+
+start() {
+    # Start daemons.
+    echo -n $"Starting eTodo: "
+
+    su - etodo -c "$startcommand"
+
+    RETVAL=$?
+    if [ $RETVAL -eq 0 ]; then
+        touch $lockfile
+        success
+    else
+        failure $"$NAME start"
+    fi
+    echo
+    return $RETVAL
+}
+
+stop() {
+    # Stop daemon.
+    echo -n $"Shutting down eTodo: "
+    su - etodo -c "killall to_erl >/dev/null 2>&1"
+    su - etodo -c "$stopcommand >/dev/null 2>&1"
+    for n in $(seq 1 10); do
+        sleep 1
+        check_pid_status
+        RETVAL=$?
+        if [ $RETVAL -eq 1 ]; then
+            break
+        fi
+    done
+    if [ $RETVAL -eq 1 ]; then
+        rm -r $lockfile
+        success
+    else
+        failure $"$NAME stop"
+    fi
+    echo
+    return $RETVAL
+}
+
+hardstop() {
+    echo -n $"Shutting down $NAME: "
+    ps -ef | grep beam | grep "$NAME" | grep '\-progname' | grep -v grep | awk '{print $2}' | xargs kill -9
+    for n in $(seq 1 10); do
+        sleep 1
+        check_pid_status
+        RETVAL=$?
+        if [ $RETVAL -eq 1 ]; then
+            break
+        fi
+    done
+    if [ $RETVAL -eq 1 ]; then
+        rm -r $lockfile
+        success
+    else
+        failure $"$NAME hardstop"
+    fi
+    echo
+    return $RETVAL
+}
+
+connect() {
+    # Stop daemon.
+    su - etodo -c "$connectcommand"
+    RETVAL=$?
+    return $RETVAL
+}
+
+check_pid_status
+running=$?
+
+# See how we were called.
+case "$1" in
+    start)
+        [ $running -eq 0 ] && exit 0
+        start
+        ;;
+    stop)
+        if [ $running -eq 0 ]; then
+            stop
+        else
+            check_pid_status
+            RETVAL=$?
+            if [ $RETVAL -eq 1 ]; then
+                rm -f $lockfile
+            fi
+            exit 0
+        fi
+        ;;
+    restart|force-reload)
+        [ $running -eq 0 ] && stop
+        start
+        ;;
+    hardstop)
+        [ $running -eq 0 ] || exit 0
+        hardstop
+        ;;
+    connect)
+        connect
+        ;;
+    condrestart|try-restart)
+        [ $running -eq 0 ] || exit 0
+        restart
+        ;;
+    status)
+
+        check_pid_status
+        running=$?
+
+        pid=$(ps ax | grep beam | grep "$NAME" | grep "\-progname" | grep -v grep | awk '{print $1}')
+
+        [ $running -eq 0 ] && echo "eTodo (pid $pid) is running"
+        [ $running -eq 1 ] && echo 'eTodo is not running'
+
+        exit $running
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|restart|force-reload|hardstop|condrestart|try-restart|status|connect}"
+        exit 1
+esac
+
+exit $?

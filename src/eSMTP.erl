@@ -111,7 +111,7 @@ handle_cast(updateConfig, State = #state{user = undefined}) ->
     {noreply, State};
 handle_cast(updateConfig, State) ->
     UserCfg = eTodoDB:readUserCfg(State#state.user),
-    ConCfg  = eTodoDB:getConnection(State#state.user),
+    ConCfg  = eTodoUtils:default(eTodoDB:getConnection(State#state.user), #conCfg{}),
     {noreply, State#state{host      = UserCfg#userCfg.smtpServer,
                           port      = UserCfg#userCfg.smtpPort,
                           smtpUser  = UserCfg#userCfg.smtpUser,
