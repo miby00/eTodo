@@ -880,6 +880,7 @@ timerOkEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
     Obj4 = wxXmlResource:xrcctrl(TimerDlg, "executeTimCmd",  wxCheckBox),
     Obj5 = wxXmlResource:xrcctrl(TimerDlg, "execTimCmd",     wxTextCtrl),
     Obj6 = wxXmlResource:xrcctrl(TimerDlg, "timerDesc",      wxTextCtrl),
+    Obj7 = wxXmlResource:xrcctrl(TimerDlg, "teamPom",        wxCheckBox),
 
     Hours   = wxSpinCtrl:getValue(Obj1),
     Minutes = wxSpinCtrl:getValue(Obj2),
@@ -887,13 +888,13 @@ timerOkEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
 
     MSeconds = ((Hours * 3600) + (Minutes * 60) + Seconds) * 1000,
     MsgTxt   = wxTextCtrl:getValue(Obj6),
-
+    Obj      = {Obj1, Obj2, Obj3, Obj7},
     Message =
         case wxCheckBox:isChecked(Obj4) of
             true ->
-                {timerEnded, MsgTxt, wxTextCtrl:getValue(Obj5)};
+                {timerEnded, MsgTxt, wxTextCtrl:getValue(Obj5), Obj};
             false ->
-                {timerEnded, MsgTxt}
+                {timerEnded, MsgTxt, Obj}
         end,
 
     TimerRef = erlang:send_after(MSeconds, self(), Message),

@@ -1112,17 +1112,32 @@ handle_event(Event = #wx{}, State) ->
 handle_info({delayedUpdateGui, ETodo, Index}, State) ->
     State2 = updateGui(ETodo, Index, State),
     {noreply, State2#guiState{delayedUpdate = undefined}};
-handle_info({timerEnded, MsgTxt}, State = #guiState{user = User}) ->
+handle_info({timerEnded, MsgTxt, TPom}, State = #guiState{user = User}) ->
     alarmEntry(timer, MsgTxt),
     ePluginServer:eReceivedAlarmMsg("Notify: " ++ MsgTxt),
     ePluginServer:eTimerEnded(User, MsgTxt),
+    restartTeamPomodoro(TPom),
     {noreply, State#guiState{timerRef = undefined}};
-handle_info({timerEnded, MsgTxt, Command}, State = #guiState{user = User}) ->
+handle_info({timerEnded, MsgTxt, Command, TPom}, State = #guiState{user = User}) ->
     alarmEntry(timer, MsgTxt),
     ePluginServer:eTimerEnded(User, MsgTxt),
     %% Run command for Pomodoro timer.
     os:cmd(Command),
+    restartTeamPomodoro(TPom),
     {noreply, State#guiState{timerRef = undefined}};
+handle_info({restartTeamPomodoro, {Obj1, Obj2, Obj3, Obj4}},
+            State = #guiState{timerDlgOpen = false}) ->
+    case wxCheckBox:isChecked(Obj4) of
+        true ->
+            wxSpinCtrl:setValue(Obj1, 0),
+            wxSpinCtrl:setValue(Obj2, 25),
+            wxSpinCtrl:setValue(Obj3, 0),
+
+            eGuiEvents:timerOkEvent(undefined, undefined, undefined, State);
+        false ->
+            ok
+    end,
+    {noreply, State};
 handle_info(DownMsg = {'DOWN', _Reference, process, _Object, _Info},
             State = #guiState{user = User}) ->
     eLog:log(error, ?MODULE, handle_info, [DownMsg],
@@ -1138,7 +1153,7 @@ handle_info(Msg = {setPomodoroClock, Obj1, Obj2, Obj3, Obj4}, State) ->
         false ->
             ok;
         true ->
-            setTeamPomodoroClock(Obj1, Obj2, Obj3)
+            setTeamPomodoroClock(Obj1, Obj2, Obj3, Obj4)
     end,
     erlang:send_after(1000, self(), Msg),
     {noreply, State};
@@ -1725,23 +1740,38 @@ showLogWork(Uid, Date, State) ->
 %%====================================================================
 %% Set team pomodoro clock
 %%====================================================================
-setTeamPomodoroClock(Obj1, Obj2, Obj3) ->
-    {Minutes, Seconds} = getTeamPomodoroClock(),
+setTeamPomodoroClock(Obj1, Obj2, Obj3, Obj4) ->
+    {Minutes, Seconds} = getTeamPomodoroClock({Obj1, Obj2, Obj3, Obj4}),
     wxSpinCtrl:setValue(Obj1, 0),
     wxSpinCtrl:setValue(Obj2, Minutes),
     wxSpinCtrl:setValue(Obj3, Seconds).
 
-getTeamPomodoroClock() ->
+getTeamPomodoroClock(Obj) ->
     {_Hours, Min, Seconds} = time(),
     case Min of
         Min when (Min >= 25) and (Min < 30) ->
+            restartTeamPomodoro(Obj),
             {0, 0};
         Min when Min >= 55 ->
+            restartTeamPomodoro(Obj),
             {0, 0};
         Min when Min < 25 ->
             {24 - Min, 59 - Seconds};
         _ ->
             {54 - Min, 59 - Seconds}
+    end.
+
+
+restartTeamPomodoro(Obj) ->
+    {_Hours, Min, Seconds} = time(),
+    SecondsToHalfHour = 1800 - Min * 60 - Seconds,
+    SecondsToHour     = 3600 - Min * 60 - Seconds,
+    Message           = {restartTeamPomodoro, Obj},
+    case SecondsToHalfHour > 0 of
+        true ->
+            erlang:send_after(SecondsToHalfHour * 1000, self(), Message);
+        false ->
+            erlang:send_after(SecondsToHour * 1000, self(), Message)
     end.
 
 %%====================================================================
@@ -1751,4 +1781,3 @@ mondayThisWeek() ->
     DayNum   = calendar:day_of_the_week(date()), %% Monday = 1, Tuesday = 2, ...
     GregDays = calendar:date_to_gregorian_days(date()) + 1 - DayNum,
     calendar:gregorian_days_to_date(GregDays).
-
