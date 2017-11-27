@@ -72,15 +72,18 @@ terminate(_Reason, _State) ->
 %% @end
 %%--------------------------------------------------------------------
 getMenu(undefined, State) ->
-    {ok, [{1501, "Create Task from JIRA"}], State};
+    {ok, [{1501, "Create Task"},
+          {1502, "Create Task(s)"}], State};
 getMenu(ETodo, State = #state{jiraUrl = JiraUrl}) ->
     Comment = lists:flatten(ETodo#etodo.comment),
     case parseComment(Comment, JiraUrl) of
         {error, keyNotFound} ->
-            {ok, [{1501, "Create Task from JIRA"}], State};
+            {ok, [{1501, "Create Task"},
+                  {1502, "Create Task(s)"}], State};
         _ ->
             {ok, [{1500, "Log work in JIRA"},
-                  {1501, "Create Task from JIRA"}], State}
+                  {1501, "Create Task"},
+                  {1502, "Create Task(s)"}], State}
     end.
 
 %%--------------------------------------------------------------------
@@ -246,6 +249,25 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
             State
     end;
 eMenuEvent(_EScriptDir, User, 1501, _ETodo, _MenuText,
+           State = #state{frame = Frame}) ->
+    EntryDlg = wxTextEntryDialog:new(Frame,
+                                     "Enter issue to create task from"),
+    wxTextEntryDialog:setValue(EntryDlg, "DEV-"),
+    case wxTextEntryDialog:showModal(EntryDlg) of
+        ?wxID_OK ->
+            Value = wxTextEntryDialog:getValue(EntryDlg),
+            case verifyValue(Value) of
+                true ->
+                    addTask(User, Value, State);
+                false ->
+                    ok
+            end;
+        ?wxID_CANCEL ->
+            ok
+    end,
+    wxMultiChoiceDialog:destroy(EntryDlg),
+    State;
+eMenuEvent(_EScriptDir, User, 1502, _ETodo, _MenuText,
            State = #state{jiraUrl = JiraUrl, jiraSearch = Search,
                           bauth   = BAuth,   frame      = Frame}) ->
     Url = JiraUrl ++ "/rest/api/2/search?jql=" ++
@@ -560,3 +582,11 @@ doSetEstimate({true, Estimate}, BAuth, Url, Frame) ->
     httpPost(BAuth, put, JSON, Url, Frame);
 doSetEstimate(_SetEstimate, _BAuth, _Url, _Frame) ->
     ok.
+
+verifyValue("DEV-" ++ Rest) ->
+    case catch list_to_integer(Rest) of
+        Num when is_integer(Num), Num > 0 ->
+            true;
+        _ ->
+            false
+    end.
