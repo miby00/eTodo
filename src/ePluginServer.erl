@@ -37,6 +37,7 @@
          eReceivedAlarmMsg/1,
          eLoggedInMsg/1,
          eLoggedOutMsg/1,
+         eSendMsg/3,
          eMenuEvent/3]).
 
 -export([runCmd/4, runCmd/3, runCmdGetResult/4]).
@@ -178,6 +179,16 @@ eTimerEnded(User, Text) ->
 %%--------------------------------------------------------------------
 eReceivedMsg(User, Users, Text) ->
     gen_server:cast(?MODULE, {eReceivedMsg, [User, makeStr(Users), Text]}).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% ePlugin callback for when a message is sent.
+%%
+%% @spec eSendMsg() -> ok
+%% @end
+%%--------------------------------------------------------------------
+eSendMsg(User, Users, Text) ->
+    gen_server:cast(?MODULE, {eSendMsg, [User, makeStr(Users), Text]}).
 
 %%--------------------------------------------------------------------
 %% @doc

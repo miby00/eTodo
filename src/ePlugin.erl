@@ -35,6 +35,7 @@
          eReceivedAlarmMsg/3,
          eLoggedInMsg/3,
          eLoggedOutMsg/3,
+         eSendMsg/5,
          eMenuEvent/6]).
 
 -import(eTodoUtils, [makeStr/1, toStr/1]).
@@ -179,6 +180,16 @@ eLoggedInMsg(Pid, Dir, User) ->
 %%--------------------------------------------------------------------
 eLoggedOutMsg(Pid, Dir, User) ->
     gen_server:cast(Pid, {eLoggedOutMsg, [Dir, User]}).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% ePlugin callback for when a message is sent.
+%%
+%% @spec eSendMsg(Pid, Dir, User, Users, Text) -> ok
+%% @end
+%%--------------------------------------------------------------------
+eSendMsg(Pid, Dir, User, Users, Text) ->
+    gen_server:cast(Pid, {eSendMsg, [Dir, User, Users, Text]}).
 
 %%--------------------------------------------------------------------
 %% @doc

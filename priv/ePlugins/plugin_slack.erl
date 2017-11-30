@@ -7,7 +7,7 @@
 %%% Created : 08 July 2013 by Mikael Bylund <mikael.bylund@gmail.com>
 %%%-------------------------------------------------------------------
 
--module(plugin_template).
+-module(plugin_slack).
 
 -export([getName/0, getDesc/0, getMenu/2, init/1, terminate/2]).
 
@@ -25,11 +25,14 @@
          eSetWorkLogDate/4,
          eMenuEvent/6]).
 
-getName() -> "Name here".
+getName() -> "eSlack".
 
-getDesc() -> "Descriptions goes here.".
+getDesc() -> "An eTodo slack integration.".
 
--record(state, {}).
+-include_lib("eTodo/include/eTodo.hrl").
+-include_lib("wx/include/wx.hrl").
+
+-record(state, {frame, slackUrl, slackToken}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -37,7 +40,16 @@ getDesc() -> "Descriptions goes here.".
 %% @spec init() -> State.
 %% @end
 %%--------------------------------------------------------------------
-init(_Args) -> #state{}.
+init([WX, Frame]) ->
+    DefaultUrl     = "https://slack.com/api",
+
+    Url   = application:get_env(eTodo, slackUrl,   DefaultUrl),
+    Token = application:get_env(eTodo, slackToken, ""),
+
+    wx:set_env(WX),
+    #state{frame         = Frame,
+           slackUrl      = Url,
+           slackToken    = Token}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -156,7 +168,8 @@ eLoggedOutMsg(_Dir, _User, State) ->
 %% @spec eSendMsg(Dir, User, Users, Text, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-eSendMsg(_EScriptDir, _User, _Users, _Text, State) ->
+eSendMsg(_EScriptDir, User, Users, Text, State) ->
+    postChatMessages(State, User, Users, Text),
     State.
 
 %%--------------------------------------------------------------------
@@ -190,3 +203,54 @@ eSetWorkLogDate(_Dir, _User, _Date, State) ->
 %%--------------------------------------------------------------------
 eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, _MenuText, State) ->
     State.
+
+postChatMessages(State, User, Users, Text) ->
+    UserList = string:tokens(Users, ";"),
+    UserCfg  = eTodoDB:readUserCfg(User),
+    OwnerCfg = UserCfg#userCfg.ownerCfg,
+    [postChatMessage(State, OwnerCfg, User, Text) || User <- UserList].
+
+postChatMessage(_State, [], _User, _Text) ->
+    ok;
+postChatMessage(State, [Owner|Rest], User, Text) ->
+    case eTodoUtils:getPeerInfo(Owner) of
+        {User, "#" ++ SlackChannel} ->
+            postChatMessage(State, "#" ++ SlackChannel, Text);
+        _ ->
+            postChatMessage(State, Rest, User, Text)
+    end.
+
+postChatMessage(State, SlackChannel, Text) ->
+    Token = State#state.slackToken,
+    Url   = State#state.slackUrl ++ "/chat.postMessage",
+    JSON  = jsx:encode(#{token   => list_to_binary(Token),
+                         channel => list_to_binary(SlackChannel),
+                         text    => unicode:characters_to_binary(Text)}),
+    httpPost(Token, post, JSON, Url, State#state.frame).
+
+
+httpPost(Token, Method, Body, Url, Frame) ->
+    AuthOption  = {"Authorization", "Bearer " ++ Token},
+    ContentType = {"Content-Type", "application/json; charset=utf-8"},
+    Request     = {Url, [AuthOption, ContentType], "application/json", Body},
+    Options     = [{body_format,binary}],
+    case httpc:request(Method, Request, [{url_encode, false}], Options) of
+        {ok, {{_HTTPVersion, Status, _Reason}, _Headers, RBody}}
+          when (Status == 200) or (Status == 201) or (Status == 204) ->
+            eLog:log(debug, ?MODULE, init, [Method, Url, Body, RBody],
+                     "http success", ?LINE),
+            Body;
+        {ok, {{_HTTPVersion, _Error, Reason}, _Headers, RBody}} ->
+            eLog:log(debug, ?MODULE, init, [Method, Url, Body, RBody],
+                     "http failure", ?LINE),
+            MsgDlg = wxMessageDialog:new(Frame, "Error occured: " ++ Reason,
+                                         [{style,   ?wxICON_ERROR},
+                                          {caption, "Http failure"}]),
+            wxMessageDialog:showModal(MsgDlg),
+            wxMessageDialog:destroy(MsgDlg),
+            Body;
+        Else ->
+            eLog:log(debug, ?MODULE, init, [Method, Url, Body, Else],
+                     "http failure", ?LINE),
+            Else
+    end.

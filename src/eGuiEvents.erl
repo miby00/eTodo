@@ -704,6 +704,7 @@ sendChatMsgEvent(_Event, _Id, _Frame, State = #guiState{user = User}) ->
             wxStyledTextCtrl:clearAll(MsgTextCtrl),
 
             State2 = sendMsg(Users, MsgText, State),
+            ePluginServer:eSendMsg(User, AllUsers, MsgText),
             sendEmails(EmailUsers, MsgText, AllUsers, State2)
     end.
 
@@ -734,7 +735,13 @@ sendEmails([Peer|Rest], MsgText, Users, State, From, AccTo) ->
         undefined ->
             sendEmails(Rest, MsgText, Users, State, From, AccTo);
         ToAddress ->
-            sendEmails(Rest, MsgText, Users, State, From, [ToAddress|AccTo])
+            case (string:str(ToAddress, "@") =/= 0) of
+                true ->
+                    sendEmails(Rest, MsgText, Users, State, From,
+                               [ToAddress|AccTo]);
+                false ->
+                    sendEmails(Rest, MsgText, Users, State, From, AccTo)
+            end
     end.
 
 getTo(_UserCfg, _Peer, #conCfg{email = Email}) when Email =/= undefined ->
