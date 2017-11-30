@@ -225,6 +225,7 @@ postChatMessage(State, SlackChannel, Text) ->
     Url   = State#state.slackUrl ++ "/chat.postMessage",
     JSON  = jsx:encode(#{token   => list_to_binary(Token),
                          channel => list_to_binary(SlackChannel),
+                         as_user => true,
                          text    => unicode:characters_to_binary(Text)}),
     httpPost(Token, post, JSON, Url, State#state.frame).
 
