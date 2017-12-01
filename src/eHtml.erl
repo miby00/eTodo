@@ -65,10 +65,11 @@
 -include_lib("eTodo/include/eTodo.hrl").
 -include_lib("inets/include/httpd.hrl").
 
--define(DodgerBlue,    "#1e90ff").
--define(HdrOptions1, [{color, ?DodgerBlue}, {size, 3},
+-define(Background,  "#E0E0E0").
+-define(TextColor,   "#303030").
+-define(HdrOptions1, [{color, ?TextColor}, {size, 3},
                       {face, "Impact, Charcoal, sans-serif"}]).
--define(HdrOptions2,  [{color, ?DodgerBlue}, {size, 3},
+-define(HdrOptions2,  [{color, ?TextColor}, {size, 3},
                        {face, "Impact, Charcoal, sans-serif"}]).
 -define(MsgOptions1,  [{color, "Black"}, {size, 3},
                        {face, "Tahoma, Geneva, sans-serif"}]).
@@ -1241,18 +1242,18 @@ generateMsg(Sender, Sender, Users, Text) ->
                trTag(
                  [tdTag([{width, "150"}], []),
                   tdTag([{valign, "top"}, {align, "left"},
-                         {width, "100%"}, {bgcolor, "#e6f2ff"}],
+                         {width, "100%"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions1, [Sender, UserList])),
                   tdTag([{valign, "top"}, {width, "80"},
-                         {align, "center"}, {bgcolor, "#e6f2ff"}],
+                         {align, "center"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions1, toStr(time(), time))),
                   tdTag([{valign, "top"}, {width, "40"}],
                         imgTag([{src, getRootDir() ++ "/Icons/" ++ Icon}]))]),
                trTag(
                  [tdTag(),
-                  tdTag([{align, "left"}, {bgcolor, "#e6f2ff"}],
+                  tdTag([{align, "left"}, {bgcolor, ?Background}],
                         fontTag(?MsgOptions1, eMd2Html:convert(Text))),
-                  tdTag([{valign, "top"}, {align, center}, {bgcolor, "#e6f2ff"}],
+                  tdTag([{valign, "top"}, {align, center}, {bgcolor, ?Background}],
                         imgTag([{src, Portrait}, {height, "45"}, {width, "45"}])),
                   tdTag()])]),
      tableTag([{class, "msgSent"}],
@@ -1284,16 +1285,16 @@ generateMsg(_User, Sender, Users, Text) ->
                  [tdTag([{valign, "top"}, {width, "40"}],
                         imgTag([{src, getRootDir() ++ "/Icons/" ++ Icon}])),
                   tdTag([{valign, "top"}, {width, "80"},
-                         {align, "center"}, {bgcolor, "#e6f2ff"}],
+                         {align, "center"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions1, toStr(time(), time))),
-                  tdTag([{valign, "top"}, {width, "100%"}, {bgcolor, "#e6f2ff"}],
+                  tdTag([{valign, "top"}, {width, "100%"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions1, [Sender, UserList])),
                   tdTag([{width, "150"}], [])]),
                trTag(
                  [tdTag(),
-                  tdTag([{valign, "top"}, {align, center}, {bgcolor, "#e6f2ff"}],
+                  tdTag([{valign, "top"}, {align, center}, {bgcolor, ?Background}],
                         imgTag([{src, Portrait}, {height, "45"}, {width, "45"}])),
-                  tdTag([{bgcolor, "#e6f2ff"}],
+                  tdTag([{bgcolor, ?Background}],
                         fontTag(?MsgOptions1, eMd2Html:convert(Text))),
                   tdTag()])]),
      tableTag([{class, "msgReceived"}],
@@ -1343,13 +1344,13 @@ generateSystemMsg(system, Text) ->
                trTag(
                  [tdTag([{valign, "top"}],
                         imgTag([{src, getRootDir() ++ "/Icons/etodoChat.png"}])),
-                  tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
+                  tdTag([{valign, "top"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions1,
                                 toStr(time(), time))),
-                  tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
+                  tdTag([{valign, "top"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions1, "eTodo"))]),
-               trTag([tdTag(), tdTag([{bgcolor, "#f5f5f5"}], []),
-                      tdTag([{bgcolor, "#f5f5f5"}],
+               trTag([tdTag(), tdTag([{bgcolor, ?Background}], []),
+                      tdTag([{bgcolor, ?Background}],
                           fontTag(?MsgOptions1, eMd2Html:convert(Text)))])]),
      tableTag(
        [trTag(
@@ -1365,14 +1366,14 @@ generateSystemMsg(Uid, Text) ->
                trTag(
                  [tdTag([{valign, "top"}],
                         imgTag([{src, getRootDir() ++ "/Icons/etodoChat.png"}])),
-                  tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
+                  tdTag([{valign, "top"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions1,
                                 toStr(time(), time))),
-                  tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
+                  tdTag([{valign, "top"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions1,
                                 aTag([{href, UidStr}], "eTodo")))]),
-               trTag([tdTag(), tdTag([{bgcolor, "#f5f5f5"}], []),
-                      tdTag([{bgcolor, "#f5f5f5"}],
+               trTag([tdTag(), tdTag([{bgcolor, ?Background}], []),
+                      tdTag([{bgcolor, ?Background}],
                           fontTag(?MsgOptions1, eMd2Html:convert(Text)))])]),
      tableTag(
        [trTag(
@@ -1418,13 +1419,13 @@ generateAlarmMsg(timer, Text) ->
                trTag(
                  [tdTag([{valign, "top"}],
                         imgTag([{src, getRootDir() ++ "/Icons/clockChat.png"}])),
-                  tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
+                  tdTag([{valign, "top"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions2,
                                 toStr(time(), time))),
-                  tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
+                  tdTag([{valign, "top"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions2, "Timer expired"))]),
-               trTag([tdTag(), tdTag([{bgcolor, "#f5f5f5"}], []),
-                      tdTag([{bgcolor, "#f5f5f5"}],
+               trTag([tdTag(), tdTag([{bgcolor, ?Background}], []),
+                      tdTag([{bgcolor, ?Background}],
                           fontTag(?MsgOptions1, eMd2Html:convert(Text)))])]),
      tableTag(
        [trTag(
@@ -1440,14 +1441,14 @@ generateAlarmMsg(Uid, Text) ->
                trTag(
                  [tdTag([{valign, "top"}],
                         imgTag([{src, getRootDir() ++ "/Icons/clockChat.png"}])),
-                  tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
+                  tdTag([{valign, "top"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions2,
                                 toStr(time(), time))),
-                  tdTag([{valign, "top"}, {bgcolor, "#f5f5f5"}],
+                  tdTag([{valign, "top"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions2,
                                 aTag([{href, UidStr}], "eTodo")))]),
-               trTag([tdTag(), tdTag([{bgcolor, "#f5f5f5"}], []),
-                      tdTag([{bgcolor, "#f5f5f5"}],
+               trTag([tdTag(), tdTag([{bgcolor, ?Background}], []),
+                      tdTag([{bgcolor, ?Background}],
                           fontTag(?MsgOptions1, eMd2Html:convert(Text)))])]),
      tableTag([{class, "msgAlarm"}],
               [trTag(

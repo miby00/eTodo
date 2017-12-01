@@ -236,7 +236,8 @@ table.msgSent {
     width: 100px;
     text-align: left;
     color: white;
-    font-size: 0.8em;
+    font-size: 0.9em;
+    font-family: Impact, Charcoal, sans-serif;
 }
 
 .textCenter {
@@ -260,7 +261,8 @@ table.msgSent {
 
 .msgText {
     color: white;
-    font-size: 0.8em;
+    font-size: 0.9em;
+    font-family: Impact, Charcoal, sans-serif;
 }
 
 .status {
@@ -743,11 +745,11 @@ input.rounded:focus {
 
     .msgTime {
         width: 60px;
-        font-size: 0.7em;
+        font-size: 0.8em;
     }
 
     .msgText {
-        font-size: 0.7em;
+        font-size: 0.8em;
     }
 
     .portrait {

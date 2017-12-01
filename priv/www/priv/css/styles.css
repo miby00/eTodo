@@ -220,7 +220,8 @@ table.msgSent {
 .msgTime {
     width: 100px;
     text-align: left;
-    font-size: 0.8em;
+    font-size: 0.9em;
+    font-family: Impact, Charcoal, sans-serif;
 }
 
 .textCenter {
@@ -242,7 +243,8 @@ table.msgSent {
 }
 
 .msgText {
-    font-size: 0.8em;
+    font-size: 0.9em;
+    font-family: Impact, Charcoal, sans-serif;
 }
 
 .status {
@@ -720,11 +722,11 @@ input.rounded {
 
     .msgTime {
         width: 60px;
-        font-size: 0.7em;
+        font-size: 0.8em;
     }
 
     .msgText {
-        font-size: 0.7em;
+        font-size: 0.8em;
     }
 
 

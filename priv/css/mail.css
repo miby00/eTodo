@@ -1,5 +1,6 @@
 body {
-    font-size: 0.9em;
+    font-size: 1.0em;
+    font-family: Tahoma, Geneva, sans-serif;
     color: black;
 }
 
@@ -127,7 +128,8 @@ table.msgSent {
 }
 
 .msgTime {
-    font-size: 0.8em;
+    font-size: 1.0em;
+    font-family: Impact, Charcoal, sans-serif;
     width: 100px;
     text-align: left;
     color: black;
@@ -135,7 +137,8 @@ table.msgSent {
 
 .msgText {
     color: black;
-    font-size: 0.8em;
+    font-size: 1.0em;
+    font-family: Impact, Charcoal, sans-serif;
 }
 
 .textCenter {
@@ -146,16 +149,16 @@ table.msgSent {
 
 @media screen and (max-width: 450px) {
     body {
-        font-size: 0.8em;
+        font-size: 0.9em;
     }
 
     .msgTime {
         width: 60px;
-        font-size: 0.7em;
+        font-size: 0.9em;
     }
 
     .msgText {
-        font-size: 0.7em;
+        font-size: 0.9em;
     }
 
     .portrait {
