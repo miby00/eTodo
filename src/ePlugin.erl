@@ -312,8 +312,15 @@ handle_cast(_Request, State) ->
              {noreply, NewState :: #state{}} |
              {noreply, NewState :: #state{}, timeout() | hibernate} |
              {stop, Reason :: term(), NewState :: #state{}}).
-handle_info(_Info, State) ->
-    {noreply, State}.
+handle_info(Info, State = #state{module = Module, state = PState}) ->
+    State3 =
+        case catch Module:handleInfo(Info, PState) of
+            {'EXIT', _} ->
+                State;
+            PState2 ->
+                State#state{state = PState2}
+        end,
+    {noreply, State3}.
 
 %%--------------------------------------------------------------------
 %% @private

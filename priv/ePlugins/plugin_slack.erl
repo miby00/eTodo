@@ -23,7 +23,8 @@
          eSendMsg/5,
          eSetStatusUpdate/5,
          eSetWorkLogDate/4,
-         eMenuEvent/6]).
+         eMenuEvent/6,
+         handleInfo/2]).
 
 getName() -> "eSlack".
 
@@ -32,7 +33,8 @@ getDesc() -> "An eTodo slack integration.".
 -include_lib("eTodo/include/eTodo.hrl").
 -include_lib("wx/include/wx.hrl").
 
--record(state, {frame, slackUrl, slackToken}).
+-record(state, {frame, slackUrl, slackToken, slackBotToken,
+                slackConn, slackRef, wsCon, wsReconnectUrl}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -43,13 +45,45 @@ getDesc() -> "An eTodo slack integration.".
 init([WX, Frame]) ->
     DefaultUrl     = "https://slack.com/api",
 
-    Url   = application:get_env(eTodo, slackUrl,   DefaultUrl),
-    Token = application:get_env(eTodo, slackToken, ""),
+    Url    = application:get_env(eTodo, slackUrl,      DefaultUrl),
+    Token  = application:get_env(eTodo, slackToken,    ""),
+    BToken = application:get_env(eTodo, slackBotToken, ""),
 
     wx:set_env(WX),
+
+    application:ensure_all_started(gun),
+    {ConnPid, Ref} = startSetupWebsocket(Url, BToken),
+
     #state{frame         = Frame,
            slackUrl      = Url,
-           slackToken    = Token}.
+           slackToken    = Token,
+           slackBotToken = BToken,
+           slackConn     = ConnPid,
+           slackRef      = Ref}.
+
+startSetupWebsocket(Url, Token) ->
+    {Server, Port, _} = getServerAndPort(Url),
+    {ok, ConnPid}     = gun:open(Server, Port),
+    {ok, _Protocol}   = gun:await_up(ConnPid),
+    BinToken = list_to_binary(Token),
+    Body     = <<"token=", BinToken/binary>>,
+    ContentType   = "application/x-www-form-urlencoded",
+    ContentLength = byte_size(Body),
+    Headers = [{<<"content-type">>,   ContentType},
+               {<<"content-length">>, ContentLength}],
+    Ref = gun:post(ConnPid, "/api/rtm.connect", Headers, Body),
+    {ConnPid, Ref}.
+
+getServerAndPort(Url) when is_binary(Url) ->
+    getServerAndPort(binary_to_list(Url));
+getServerAndPort(Url) ->
+    SchemeDefaults = http_uri:scheme_defaults() ++ [{wss,  443}, {ws, 80}],
+    case http_uri:parse(Url, [{scheme_defaults, SchemeDefaults}]) of
+        {ok,{_Scheme,[], Server, Port, Path,[]}} ->
+            {Server, Port, Path};
+        _ ->
+            {Url, 443, ""}
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -204,11 +238,45 @@ eSetWorkLogDate(_Dir, _User, _Date, State) ->
 eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, _MenuText, State) ->
     State.
 
+%%--------------------------------------------------------------------
+%% @doc
+%% Handle messages sent to this plugin
+%%
+%% @spec handleInfo(Info, State) -> NewState
+%% @end
+%%--------------------------------------------------------------------
+handleInfo({gun_data, _Pid, Ref, _, Body}, State = #state{slackRef = Ref}) ->
+    JSON  = jsx:decode(Body, [return_maps]),
+    WSUrl = maps:get(<<"url">>, JSON),
+    {Server, Port, Path}  = getServerAndPort(WSUrl),
+    {ok, ConnPid}   = gun:open(Server, Port),
+    {ok, _Protocol} = gun:await_up(ConnPid),
+    gun:ws_upgrade(ConnPid, Path),
+    State#state{wsCon = ConnPid, slackRef = undefined};
+handleInfo({gun_ws, Pid, {text, Body}}, State) ->
+    JSON = jsx:decode(Body, [return_maps]),
+    Type = maps:get(<<"type">>, JSON),
+    case Type of
+        <<"reconnect_url">> ->
+            Url = maps:get(<<"url">>, JSON),
+            State#state{wsReconnectUrl = Url};
+        _ ->
+            io:format("Pid: ~p: Msg: ~p~n", [Pid, JSON]),
+            State
+    end;
+handleInfo({gun_up, Pid, http2}, State = #state{wsReconnectUrl = WSUrl}) ->
+    {_Server, _Port, Path}  = getServerAndPort(WSUrl),
+    gun:ws_upgrade(Pid, Path),
+    State;
+handleInfo(Info, State) ->
+    io:format("~p~n", [Info]),
+    State.
+
 postChatMessages(State, User, Users, Text) ->
     UserList = string:tokens(Users, ";"),
     UserCfg  = eTodoDB:readUserCfg(User),
     OwnerCfg = UserCfg#userCfg.ownerCfg,
-    [postChatMessage(State, OwnerCfg, User, Text) || User <- UserList].
+    [postChatMessage(State, OwnerCfg, EUser, Text) || EUser <- UserList].
 
 postChatMessage(_State, [], _User, _Text) ->
     ok;
@@ -221,37 +289,13 @@ postChatMessage(State, [Owner|Rest], User, Text) ->
     end.
 
 postChatMessage(State, SlackChannel, Text) ->
-    Token = State#state.slackToken,
-    Url   = State#state.slackUrl ++ "/chat.postMessage",
-    JSON  = jsx:encode(#{token   => list_to_binary(Token),
-                         channel => list_to_binary(SlackChannel),
-                         as_user => true,
-                         text    => unicode:characters_to_binary(Text)}),
-    httpPost(Token, post, JSON, Url, State#state.frame).
-
-
-httpPost(Token, Method, Body, Url, Frame) ->
-    AuthOption  = {"Authorization", "Bearer " ++ Token},
-    ContentType = {"Content-Type", "application/json; charset=utf-8"},
-    Request     = {Url, [AuthOption, ContentType], "application/json", Body},
-    Options     = [{body_format,binary}],
-    case httpc:request(Method, Request, [{url_encode, false}], Options) of
-        {ok, {{_HTTPVersion, Status, _Reason}, _Headers, RBody}}
-          when (Status == 200) or (Status == 201) or (Status == 204) ->
-            eLog:log(debug, ?MODULE, init, [Method, Url, Body, RBody],
-                     "http success", ?LINE),
-            Body;
-        {ok, {{_HTTPVersion, _Error, Reason}, _Headers, RBody}} ->
-            eLog:log(debug, ?MODULE, init, [Method, Url, Body, RBody],
-                     "http failure", ?LINE),
-            MsgDlg = wxMessageDialog:new(Frame, "Error occured: " ++ Reason,
-                                         [{style,   ?wxICON_ERROR},
-                                          {caption, "Http failure"}]),
-            wxMessageDialog:showModal(MsgDlg),
-            wxMessageDialog:destroy(MsgDlg),
-            Body;
-        Else ->
-            eLog:log(debug, ?MODULE, init, [Method, Url, Body, Else],
-                     "http failure", ?LINE),
-            Else
-    end.
+    JSON  = jsx:encode(#{channel => unicode:characters_to_binary(SlackChannel),
+                         token   => list_to_binary(State#state.slackToken),
+                         text    => unicode:characters_to_binary(Text),
+                         as_user => true}),
+    ContentType   = "application/json; charset=utf-8",
+    ContentLength = byte_size(JSON),
+    Headers = [{<<"content-type">>,   ContentType},
+               {<<"content-length">>, ContentLength},
+               {<<"authorization">>,  "Bearer " ++ State#state.slackToken}],
+    gun:post(State#state.slackConn, "/api/chat.postMessage", Headers, JSON).

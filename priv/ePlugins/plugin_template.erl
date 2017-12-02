@@ -23,7 +23,8 @@
          eSendMsg/5,
          eSetStatusUpdate/5,
          eSetWorkLogDate/4,
-         eMenuEvent/6]).
+         eMenuEvent/6,
+         handleInfo/2]).
 
 getName() -> "Name here".
 
@@ -189,4 +190,14 @@ eSetWorkLogDate(_Dir, _User, _Date, State) ->
 %% @end
 %%--------------------------------------------------------------------
 eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, _MenuText, State) ->
+    State.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Handle messages sent to this plugin
+%%
+%% @spec handleInfo(Info, State) -> NewState
+%% @end
+%%--------------------------------------------------------------------
+handleInfo(_Info, State) ->
     State.
