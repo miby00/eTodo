@@ -33,8 +33,11 @@ getDesc() -> "An eTodo slack integration.".
 -include_lib("eTodo/include/eTodo.hrl").
 -include_lib("wx/include/wx.hrl").
 
--record(state, {frame, slackUrl, slackToken, slackBotToken,
-                slackConn, slackRef, wsCon, wsReconnectUrl}).
+-record(state, {frame, slackUrl, status, statusText,
+                slackToken, slackBotToken,
+                slackUsers, slackChannels, userProfile,
+                slackConn, slackRef,
+                wsCon, wsReconnectUrl}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -59,7 +62,7 @@ init([WX, Frame]) ->
            slackToken    = Token,
            slackBotToken = BToken,
            slackConn     = ConnPid,
-           slackRef      = Ref}.
+           slackRef      = {"rtm.connect", Ref, <<>>}}.
 
 startSetupWebsocket(Url, Token) ->
     {Server, Port, _} = getServerAndPort(Url),
@@ -67,10 +70,7 @@ startSetupWebsocket(Url, Token) ->
     {ok, _Protocol}   = gun:await_up(ConnPid),
     BinToken = list_to_binary(Token),
     Body     = <<"token=", BinToken/binary>>,
-    ContentType   = "application/x-www-form-urlencoded",
-    ContentLength = byte_size(Body),
-    Headers = [{<<"content-type">>,   ContentType},
-               {<<"content-length">>, ContentLength}],
+    Headers  = createHeaders(Token, Body, "application/x-www-form-urlencoded"),
     Ref = gun:post(ConnPid, "/api/rtm.connect", Headers, Body),
     {ConnPid, Ref}.
 
@@ -112,7 +112,7 @@ getMenu(_ETodo, State) -> {ok, [], State}.
 %% @end
 %%--------------------------------------------------------------------
 eGetStatusUpdate(_Dir, _User, Status, StatusMsg, State) ->
-    {ok, Status, StatusMsg, State}.
+    {ok, State#state.status, State#state.statusText, State}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -245,31 +245,80 @@ eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, _MenuText, State) ->
 %% @spec handleInfo(Info, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-handleInfo({gun_data, _Pid, Ref, _, Body}, State = #state{slackRef = Ref}) ->
-    JSON  = jsx:decode(Body, [return_maps]),
+handleInfo({gun_data, _Pid, Ref, nofin, Body},
+    State = #state{slackRef = {Command, Ref, SoFar}}) ->
+    State#state{slackRef = {Command, Ref, <<SoFar/binary, Body/binary>>}};
+handleInfo({gun_data, _Pid, Ref, fin, Body},
+           State = #state{slackRef = {"rtm.connect", Ref, SoFar}}) ->
+    JSON  = jsx:decode(<<SoFar/binary, Body/binary>>, [return_maps]),
     WSUrl = maps:get(<<"url">>, JSON),
     {Server, Port, Path}  = getServerAndPort(WSUrl),
     {ok, ConnPid}   = gun:open(Server, Port),
     {ok, _Protocol} = gun:await_up(ConnPid),
     gun:ws_upgrade(ConnPid, Path),
-    State#state{wsCon = ConnPid, slackRef = undefined};
-handleInfo({gun_ws, Pid, {text, Body}}, State) ->
+    NewRef = getUserInfo(State#state.slackConn, State#state.slackToken),
+    State#state{wsCon = ConnPid, slackRef = NewRef};
+handleInfo({gun_data, Pid, Ref, fin, Body},
+           State = #state{slackRef = {"users.list", Ref, SoFar}}) ->
+    JSON  = jsx:decode(<<SoFar/binary, Body/binary>>, [return_maps]),
+    Users = maps:get(<<"members">>, JSON),
+    NewRef = getChannelInfo(Pid, State#state.slackToken),
+    State#state{slackRef = NewRef, slackUsers = Users};
+handleInfo({gun_data, Pid, Ref, fin, Body},
+    State = #state{slackRef = {"channels.list", Ref, SoFar}}) ->
+    JSON     = jsx:decode(<<SoFar/binary, Body/binary>>, [return_maps]),
+    Channels = maps:get(<<"channels">>, JSON),
+    NewRef   = getUserProfile(Pid, State#state.slackToken),
+    State#state{slackRef = NewRef, slackChannels = Channels};
+handleInfo({gun_data, _Pid, Ref, fin, Body},
+    State = #state{slackRef = {"users.profile.get", Ref, SoFar}}) ->
+    JSON        = jsx:decode(<<SoFar/binary, Body/binary>>, [return_maps]),
+    UserProfile = maps:get(<<"profile">>, JSON),
+    State#state{slackRef = undefined, userProfile = UserProfile};
+handleInfo({gun_ws, _Pid, {text, Body}}, State) ->
     JSON = jsx:decode(Body, [return_maps]),
     Type = maps:get(<<"type">>, JSON),
     case Type of
         <<"reconnect_url">> ->
             Url = maps:get(<<"url">>, JSON),
             State#state{wsReconnectUrl = Url};
+        <<"message">> ->
+            #{<<"bot_id">>  := BotId,
+              <<"user">>    := User,
+              <<"text">>    := Text,
+              <<"channel">> := Channel} = JSON,
+            handleMsg(State, BotId, User, Text, Channel);
+        <<"user_typing">> ->
+            User = maps:get(<<"user">>, JSON),
+            setWriting(State);
+        <<"presence_change">> ->
+            User     = maps:get(<<"user">>,     JSON),
+            Presence = maps:get(<<"presence">>, JSON, <<"active">>),
+            setPresence(State, User, Presence);
+        <<"user_change">> ->
+            UserMap   = maps:get(<<"user">>,        JSON,    #{}),
+            User      = maps:get(<<"id">>,          UserMap, <<>>),
+            Profile   = maps:get(<<"profile">>,     UserMap, #{}),
+            StatusTxt = maps:get(<<"status_text">>, Profile, <<>>),
+            setStatusText(State, User, StatusTxt);
         _ ->
-            io:format("Pid: ~p: Msg: ~p~n", [Pid, JSON]),
+            io:format("Received message on websocket: ~p~n", [JSON]),
             State
     end;
-handleInfo({gun_up, Pid, http2}, State = #state{wsReconnectUrl = WSUrl}) ->
+handleInfo({gun_up, Pid, http2},
+           State = #state{wsReconnectUrl = undefined, wsCon = Pid}) ->
+    Token    = State#state.slackBotToken,
+    BinToken = list_to_binary(Token),
+    Body     = <<"token=", BinToken/binary>>,
+    Headers  = createHeaders(Token, Body, "application/x-www-form-urlencoded"),
+    Ref = gun:post(Pid, "/api/rtm.connect", Headers, Body),
+    State#state{slackRef = Ref};
+handleInfo({gun_up, Pid, http2},
+            State = #state{wsReconnectUrl = WSUrl, wsCon = Pid}) ->
     {_Server, _Port, Path}  = getServerAndPort(WSUrl),
     gun:ws_upgrade(Pid, Path),
     State;
 handleInfo(Info, State) ->
-    io:format("~p~n", [Info]),
     State.
 
 postChatMessages(State, User, Users, Text) ->
@@ -293,9 +342,79 @@ postChatMessage(State, SlackChannel, Text) ->
                          token   => list_to_binary(State#state.slackToken),
                          text    => unicode:characters_to_binary(Text),
                          as_user => true}),
-    ContentType   = "application/json; charset=utf-8",
-    ContentLength = byte_size(JSON),
-    Headers = [{<<"content-type">>,   ContentType},
-               {<<"content-length">>, ContentLength},
-               {<<"authorization">>,  "Bearer " ++ State#state.slackToken}],
+    Token   = State#state.slackToken,
+    Headers = createHeaders(Token, JSON, "application/json; charset=utf-8"),
     gun:post(State#state.slackConn, "/api/chat.postMessage", Headers, JSON).
+
+createHeaders(Token, Body, ContentType) ->
+    [{<<"content-type">>,   ContentType},
+     {<<"content-length">>, byte_size(Body)},
+     {<<"authorization">>,  "Bearer " ++ Token}].
+
+getUserInfo(Connection, Token) ->
+    BinToken = list_to_binary(Token),
+    Body     = <<"token=", BinToken/binary, "&presence=false">>,
+    Headers  = createHeaders(Token, Body, "application/x-www-form-urlencoded"),
+    Ref      = gun:post(Connection, "/api/users.list", Headers, Body),
+    {"users.list", Ref, <<>>}.
+
+getChannelInfo(Connection, Token) ->
+    BinToken = list_to_binary(Token),
+    Body     = <<"token=", BinToken/binary, "&exclude_archived=true">>,
+    Headers  = createHeaders(Token, Body, "application/x-www-form-urlencoded"),
+    Ref      = gun:post(Connection, "/api/channels.list", Headers, Body),
+    {"channels.list", Ref, <<>>}.
+
+getUserProfile(Connection, Token) ->
+    BinToken = list_to_binary(Token),
+    Body     = <<"token=", BinToken/binary>>,
+    Headers  = createHeaders(Token, Body, "application/x-www-form-urlencoded"),
+    Ref      = gun:post(Connection, "/api/users.profile.get", Headers, Body),
+    {"users.profile.get", Ref, <<>>}.
+
+handleMsg(State, <<>>, User, Text, Channel) ->
+    %% Print message
+    State;
+handleMsg(State, _BotId, User, _Text, Channel) ->
+    case myUser(User, State) of
+        true ->
+            State;
+        false ->
+            %% Print message
+            State
+    end.
+
+setWriting(State) ->
+    State.
+
+setPresence(State, User, Presence) ->
+    case myUser(User, State) of
+        true ->
+            State#state{status = mapStatus(Presence)};
+        false ->
+            State
+    end.
+
+setStatusText(State, User, StatusTxt) ->
+    case myUser(User, State) of
+        true ->
+            State#state{statusText = StatusTxt};
+        false ->
+            State
+    end.
+
+myUser(User, #state{slackUsers = SlackUsers, userProfile = Profile}) ->
+    myUser(User, SlackUsers, Profile).
+
+myUser(_User, [], _Profile) ->
+    false;
+myUser(User, [SlackUser|Rest], Profile) ->
+    case User == maps:get(<<"id">>, SlackUser, <<>>) of
+        true ->
+            maps:get(<<"profile">>, SlackUser, <<>>) == Profile;
+        false ->
+            myUser(User, Rest, Profile)
+    end.
+
+mapStatus(<<"away">>) -> "Away";
+mapStatus(_Other)     -> "Available".
