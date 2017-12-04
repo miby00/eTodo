@@ -411,20 +411,20 @@ runCmd(Operation, Args, [{_Module, {ok, Pid}}|Rest]) ->
 runCmd(Operation, Args, [_StartupError|Rest]) ->
     runCmd(Operation, Args, Rest).
 
-runCmdGetResult(eGetStatusUpdate, [_User, Status, StatusMsg], From, []) ->
+runCmdGetResult(eGetStatusUpdate, [_Dir, _User, Status, StatusMsg], From, []) ->
     gen_server:reply(From, {ok, Status, StatusMsg});
-runCmdGetResult(eGetStatusUpdate, [User, Status, StatusMsg], From,
+runCmdGetResult(eGetStatusUpdate, [Dir, User, Status, StatusMsg], From,
                 [{Module, {ok, Pid}}|Rest]) ->
 
     {Status3, StatusMsg3} =
         case catch apply(Module, eGetStatusUpdate,
-                         [Pid, User, Status, StatusMsg]) of
+                         [Pid, Dir, User, Status, StatusMsg]) of
             {ok, Status2, StatusMsg2} ->
                 {Status2, StatusMsg2};
             _ ->
                 {Status, StatusMsg}
         end,
-    runCmdGetResult(eGetStatusUpdate, [User, Status3, StatusMsg3], From, Rest).
+    runCmdGetResult(eGetStatusUpdate, [Dir, User, Status3, StatusMsg3], From, Rest).
 
 getModulesToCast(MenuOption, PluginMenuInfo) ->
     getModulesToCast(MenuOption, PluginMenuInfo, []).

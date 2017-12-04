@@ -112,7 +112,8 @@ getMenu(_ETodo, State) -> {ok, [], State}.
 %% @end
 %%--------------------------------------------------------------------
 eGetStatusUpdate(_Dir, _User, Status, StatusMsg, State) ->
-    {ok, State#state.status, State#state.statusText, State}.
+    {ok, State#state.status, State#state.statusText,
+     State#state{status = undefined, statusText = undefined}}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -404,16 +405,19 @@ setStatusText(State, User, StatusTxt) ->
     end.
 
 myUser(User, #state{slackUsers = SlackUsers, userProfile = Profile}) ->
-    myUser(User, SlackUsers, Profile).
+    MyEmail = maps:get(<<"email">>, Profile, <<"my_email">>),
+    myUser(User, SlackUsers, MyEmail).
 
-myUser(_User, [], _Profile) ->
+myUser(_User, [], _MyEmail) ->
     false;
-myUser(User, [SlackUser|Rest], Profile) ->
+myUser(User, [SlackUser|Rest], MyEmail) ->
     case User == maps:get(<<"id">>, SlackUser, <<>>) of
         true ->
-            maps:get(<<"profile">>, SlackUser, <<>>) == Profile;
+            Profile   = maps:get(<<"profile">>, SlackUser, <<>>),
+            EmailAddr = maps:get(<<"email">>, Profile, <<"user_email">>),
+            MyEmail == EmailAddr;
         false ->
-            myUser(User, Rest, Profile)
+            myUser(User, Rest, MyEmail)
     end.
 
 mapStatus(<<"away">>) -> "Away";
