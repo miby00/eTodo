@@ -28,12 +28,13 @@
 
 getName() -> "eSlack".
 
-getDesc() -> "An eTodo slack integration.".
+getDesc() -> "An eTodo Slack integration.".
 
 -include_lib("eTodo/include/eTodo.hrl").
 -include_lib("wx/include/wx.hrl").
 
--record(state, {frame, slackUrl, status, statusText,
+-record(state, {frame,
+                slackUrl, status, statusText, srvStatus,
                 slackToken, slackBotToken,
                 slackUsers, slackChannels, userProfile,
                 slackConn, slackRef,
@@ -112,8 +113,12 @@ getMenu(_ETodo, State) -> {ok, [], State}.
 %% @end
 %%--------------------------------------------------------------------
 eGetStatusUpdate(_Dir, _User, Status, StatusMsg, State) ->
-    {ok, State#state.status, State#state.statusText,
+    {ok, default(State#state.status, Status),
+     default(State#state.statusText, StatusMsg),
      State#state{status = undefined, statusText = undefined}}.
+
+default(undefined, Value) -> Value;
+default(Value, _Default)  -> Value.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -215,8 +220,8 @@ eSendMsg(_EScriptDir, User, Users, Text, State) ->
 %%       NewState
 %% @end
 %%--------------------------------------------------------------------
-eSetStatusUpdate(_Dir, _User, _Status, _StatusMsg, State) ->
-    State.
+eSetStatusUpdate(_Dir, _User, Status, _StatusMsg, State) ->
+    State#state{srvStatus = Status}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -391,7 +396,7 @@ setWriting(State) ->
 setPresence(State, User, Presence) ->
     case myUser(User, State) of
         true ->
-            State#state{status = mapStatus(Presence)};
+            State#state{status = mapStatus(Presence, State#state.srvStatus)};
         false ->
             State
     end.
@@ -420,5 +425,19 @@ myUser(User, [SlackUser|Rest], MyEmail) ->
             myUser(User, Rest, MyEmail)
     end.
 
-mapStatus(<<"away">>) -> "Away";
-mapStatus(_Other)     -> "Available".
+mapStatus(<<"away">>, SrvStatus) ->
+    case SrvStatus of
+        "Available" -> "Away";
+        "Away"      -> "Away";
+        "Busy"      -> "Away";
+        "Offline"   -> "Offline";
+        undefined   -> undefined
+    end;
+mapStatus(<<"active">>, SrvStatus) ->
+    case SrvStatus of
+        "Available" -> "Available";
+        "Away"      -> "Available";
+        "Busy"      -> "Busy";
+        "Offline"   -> "Offline";
+        undefined   -> undefined
+    end.

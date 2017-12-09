@@ -414,10 +414,10 @@ runCmd(Operation, Args, [_StartupError|Rest]) ->
 runCmdGetResult(eGetStatusUpdate, [_Dir, _User, Status, StatusMsg], From, []) ->
     gen_server:reply(From, {ok, Status, StatusMsg});
 runCmdGetResult(eGetStatusUpdate, [Dir, User, Status, StatusMsg], From,
-                [{Module, {ok, Pid}}|Rest]) ->
+                [{_Module, {ok, Pid}}|Rest]) ->
 
     {Status3, StatusMsg3} =
-        case catch apply(Module, eGetStatusUpdate,
+        case catch apply(ePlugin, eGetStatusUpdate,
                          [Pid, Dir, User, Status, StatusMsg]) of
             {ok, Status2, StatusMsg2} ->
                 {Status2, StatusMsg2};
