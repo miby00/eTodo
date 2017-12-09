@@ -254,7 +254,7 @@ handle_call({getMenu, ETodo}, _From,
         "Result from plugin", ?LINE),
 
     {reply, Menu, State3};
-handle_call({eGetStatusUpdate, Args = [_User, Status, StatusMsg]}, _From,
+handle_call({eGetStatusUpdate, Args = [_Dir, _User, Status, StatusMsg]}, _From,
             State = #state{state = PState, module = Module}) ->
     {Result2, State3} =
         case catch apply(Module, eGetStatusUpdate, Args ++ [PState]) of

@@ -232,6 +232,7 @@ init([Arg]) ->
     LinkedDir = filename:join([eTodoUtils:getUserCfgDir(), "linkedFiles", "temp"]),
     filelib:ensure_dir(LinkedDir),
 
+    erlang:send_after(5000, self(), pluginUpdateStatus),
     {WXFrame, State}.
 
 initGUI(Arg) ->
@@ -1168,6 +1169,30 @@ handle_info(sendNotification, State = #guiState{user = User, reply = Reply}) ->
             Msg = eMime:constructMail(User, "eTodo notification", ReplyTo, [To]),
             eSMTP:sendMail(To, [To], Msg)
     end,
+    {noreply, State};
+handle_info(pluginUpdateStatus, State = #guiState{loggedIn = false}) ->
+    erlang:send_after(5000, self(), pluginUpdateStatus),
+    {noreply, State};
+handle_info(pluginUpdateStatus, State) ->
+    Obj          = obj("userStatusChoice", State),
+    Obj2         = obj("userStatusMsg",    State),
+    Index        = wxChoice:getSelection(Obj),
+    Status       = wxChoice:getString(Obj, Index),
+    StatusMsg    = wxComboBox:getValue(Obj2),
+    case ePluginServer:eGetStatusUpdate(State#guiState.user,
+                                        Status, StatusMsg) of
+        {ok, Status, StatusMsg} ->
+            ok; %% No change
+        {ok, NewStatus, NewStatusMsg} ->
+            eGuiFunctions:setUserStatus(NewStatus, State),
+            wxComboBox:setValue(Obj2, NewStatusMsg),
+            MsgTop = obj("msgTopPanel", State),
+            wxPanel:layout(MsgTop),
+            wxPanel:refresh(MsgTop);
+        _ ->
+            ok %% No change
+    end,
+    erlang:send_after(5000, self(), pluginUpdateStatus),
     {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.

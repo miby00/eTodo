@@ -59,6 +59,7 @@ init([WX, Frame]) ->
     {ConnPid, Ref} = startSetupWebsocket(Url, BToken),
 
     #state{frame         = Frame,
+           srvStatus     = "Available",
            slackUrl      = Url,
            slackToken    = Token,
            slackBotToken = BToken,
@@ -105,7 +106,7 @@ getMenu(_ETodo, State) -> {ok, [], State}.
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Called every 15 seconds to check if someone changes status
+%% Called every 5 seconds to check if someone changes status
 %% outside eTodo.
 %% Status can be "Available" | "Away" | "Busy" | "Offline"
 %% @spec eSetStatusUpdate(Dir, User, Status, StatusMsg, State) ->
@@ -117,6 +118,8 @@ eGetStatusUpdate(_Dir, _User, Status, StatusMsg, State) ->
      default(State#state.statusText, StatusMsg),
      State#state{status = undefined, statusText = undefined}}.
 
+default(undefined, Value) when is_binary(Value) -> binary_to_list(Value);
+default(Value, _Default)  when is_binary(Value) -> binary_to_list(Value);
 default(undefined, Value) -> Value;
 default(Value, _Default)  -> Value.
 
@@ -430,14 +433,12 @@ mapStatus(<<"away">>, SrvStatus) ->
         "Available" -> "Away";
         "Away"      -> "Away";
         "Busy"      -> "Away";
-        "Offline"   -> "Offline";
-        undefined   -> undefined
+        "Offline"   -> "Offline"
     end;
 mapStatus(<<"active">>, SrvStatus) ->
     case SrvStatus of
         "Available" -> "Available";
         "Away"      -> "Available";
         "Busy"      -> "Busy";
-        "Offline"   -> "Offline";
-        undefined   -> undefined
+        "Offline"   -> "Offline"
     end.

@@ -72,7 +72,7 @@ getMenu([HLink|Rest], MenuOption, SoFar) ->
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Called every 15 seconds to check if someone changes status
+%% Called every 5 seconds to check if someone changes status
 %% outside eTodo.
 %% Status can be "Available" | "Away" | "Busy" | "Offline"
 %% @spec eSetStatusUpdate(Dir, User, Status, StatusMsg, State) ->

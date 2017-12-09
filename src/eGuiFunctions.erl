@@ -65,6 +65,7 @@
          setSelection/4,
          setTaskLists/2,
          setText/2,
+         setUserStatus/2,
          setUnreadMsgs/2,
          showBookmarkMenu/2,
          showMenu/2,
@@ -1381,12 +1382,17 @@ userStatusBusy(State) ->
     Obj3 = obj("userAwayIcon",      State),
     Obj4 = obj("userOfflineIcon",   State),
     Obj5 = obj("allMsgPanel",       State),
+    Obj6 = obj("userStatusChoice",  State),
 
     %% Set correct icon to show
     wxStaticBitmap:hide(Obj1),
     wxStaticBitmap:hide(Obj3),
     wxStaticBitmap:hide(Obj4),
     wxStaticBitmap:show(Obj2),
+
+    %% Enable and set combobox to available.
+    wxChoice:enable(Obj6),
+    setSelection(Obj6, "Away"),
 
     wxPanel:layout(Obj5),
     wxPanel:refresh(Obj5),
@@ -1405,12 +1411,17 @@ userStatusAway(State) ->
     Obj3 = obj("userAwayIcon",      State),
     Obj4 = obj("userOfflineIcon",   State),
     Obj5 = obj("allMsgPanel",       State),
+    Obj6 = obj("userStatusChoice",  State),
 
     %% Set correct icon to show
     wxStaticBitmap:hide(Obj1),
     wxStaticBitmap:hide(Obj2),
     wxStaticBitmap:hide(Obj4),
     wxStaticBitmap:show(Obj3),
+
+    %% Enable and set combobox to available.
+    wxChoice:enable(Obj6),
+    setSelection(Obj6, "Away"),
 
     wxPanel:layout(Obj5),
     wxPanel:refresh(Obj5),
