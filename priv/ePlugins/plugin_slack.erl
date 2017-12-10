@@ -223,8 +223,12 @@ eSendMsg(_EScriptDir, User, Users, Text, State) ->
 %%       NewState
 %% @end
 %%--------------------------------------------------------------------
-eSetStatusUpdate(_Dir, _User, Status, _StatusMsg, State) ->
-    State#state{srvStatus = Status}.
+eSetStatusUpdate(_Dir, _User, Status, StatusMsg, State) ->
+    SlackRef = setUserProfile(State#state.slackConn,
+                              State#state.slackToken, StatusMsg),
+    setUserPresence(State#state.slackConn,
+                    State#state.slackToken, mapStatus(Status)),
+    State#state{srvStatus = Status, slackRef = SlackRef}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -284,6 +288,9 @@ handleInfo({gun_data, _Pid, Ref, fin, Body},
     JSON        = jsx:decode(<<SoFar/binary, Body/binary>>, [return_maps]),
     UserProfile = maps:get(<<"profile">>, JSON),
     State#state{slackRef = undefined, userProfile = UserProfile};
+handleInfo({gun_data, _Pid, Ref, fin, _Body},
+    State = #state{slackRef = {"users.profile.set", Ref, _SoFar}}) ->
+    State#state{slackRef = undefined};
 handleInfo({gun_ws, _Pid, {text, Body}}, State) ->
     JSON = jsx:decode(Body, [return_maps]),
     Type = maps:get(<<"type">>, JSON),
@@ -328,6 +335,7 @@ handleInfo({gun_up, Pid, http2},
     gun:ws_upgrade(Pid, Path),
     State;
 handleInfo(Info, State) ->
+    io:format("~p~n", [Info]),
     State.
 
 postChatMessages(State, User, Users, Text) ->
@@ -380,6 +388,29 @@ getUserProfile(Connection, Token) ->
     Headers  = createHeaders(Token, Body, "application/x-www-form-urlencoded"),
     Ref      = gun:post(Connection, "/api/users.profile.get", Headers, Body),
     {"users.profile.get", Ref, <<>>}.
+
+setUserProfile(Connection, Token, "") ->
+    BinToken = list_to_binary(Token),
+    Profile  = cow_uri:urlencode(jsx:encode(#{status_text  => <<>>,
+                                              status_emoji => <<>>})),
+    Body     = <<"token=", BinToken/binary, "&profile=", Profile/binary>>,
+    Headers  = createHeaders(Token, Body, "application/x-www-form-urlencoded"),
+    gun:post(Connection, "/api/users.profile.set", Headers, Body);
+setUserProfile(Connection, Token, StatusText) ->
+    BinToken = list_to_binary(Token),
+    StatTxt2 = list_to_binary(StatusText),
+    Profile  = cow_uri:urlencode(jsx:encode(#{status_text => StatTxt2})),
+    Body     = <<"token=", BinToken/binary, "&profile=", Profile/binary>>,
+    Headers  = createHeaders(Token, Body, "application/x-www-form-urlencoded"),
+    Ref      = gun:post(Connection, "/api/users.profile.set", Headers, Body),
+    {"users.profile.set", Ref, <<>>}.
+
+setUserPresence(Connection, Token, Status) ->
+    BinToken = list_to_binary(Token),
+    Body     = jsx:encode(#{token    => BinToken,
+                            presence => Status}),
+    Headers  = createHeaders(Token, Body, "application/json; charset=utf-8"),
+    gun:post(Connection, "/api/users.setPresence", Headers, Body).
 
 handleMsg(State, <<>>, User, Text, Channel) ->
     %% Print message
@@ -442,3 +473,8 @@ mapStatus(<<"active">>, SrvStatus) ->
         "Busy"      -> "Busy";
         "Offline"   -> "Offline"
     end.
+
+mapStatus("Available") -> <<"auto">>;
+mapStatus("Busy")      -> <<"auto">>;
+mapStatus("Away")      -> <<"away">>;
+mapStatus("Offline")   -> <<"away">>.
