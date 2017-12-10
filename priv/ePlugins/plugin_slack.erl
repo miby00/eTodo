@@ -278,13 +278,13 @@ handleInfo({gun_data, Pid, Ref, fin, Body},
     NewRef = getChannelInfo(Pid, State#state.slackToken),
     State#state{slackRef = NewRef, slackUsers = Users};
 handleInfo({gun_data, Pid, Ref, fin, Body},
-    State = #state{slackRef = {"channels.list", Ref, SoFar}}) ->
+           State = #state{slackRef = {"channels.list", Ref, SoFar}}) ->
     JSON     = jsx:decode(<<SoFar/binary, Body/binary>>, [return_maps]),
     Channels = maps:get(<<"channels">>, JSON),
     NewRef   = getUserProfile(Pid, State#state.slackToken),
     State#state{slackRef = NewRef, slackChannels = Channels};
-handleInfo({gun_data, _Pid, Ref, fin, Body},
-    State = #state{slackRef = {"users.profile.get", Ref, SoFar}}) ->
+handleInfo({gun_data, Pid, Ref, fin, Body},
+           State = #state{slackRef = {"users.profile.get", Ref, SoFar}}) ->
     JSON        = jsx:decode(<<SoFar/binary, Body/binary>>, [return_maps]),
     UserProfile = maps:get(<<"profile">>, JSON),
     State#state{slackRef = undefined, userProfile = UserProfile};
@@ -341,6 +341,8 @@ postChatMessage(_State, [], _User, _Text) ->
     ok;
 postChatMessage(State, [Owner|Rest], User, Text) ->
     case eTodoUtils:getPeerInfo(Owner) of
+        {User, "!" ++ SlackChannel} ->
+            postChatMessage(State, SlackChannel, Text);
         {User, "#" ++ SlackChannel} ->
             postChatMessage(State, "#" ++ SlackChannel, Text);
         _ ->
@@ -457,16 +459,16 @@ myUser(User, [SlackUser|Rest], MyEmail) ->
     end.
 
 getUserName(User, #state{slackUsers = SlackUsers}) ->
-    getUserName(User, SlackUsers);
+    doGetUserName(User, SlackUsers).
 
-getUserName(User, []) ->
+doGetUserName(User, []) ->
     User;
-getUserName(User, [SlackUser|Rest]) ->
+doGetUserName(User, [SlackUser|Rest]) ->
     case User == maps:get(<<"id">>, SlackUser, <<>>) of
         true ->
             savePortrait(User, SlackUser);
         false ->
-            getUserName(User, Rest)
+            doGetUserName(User, Rest)
     end.
 
 getChannelName(Channel, #state{slackChannels = SlackChannels}) ->
@@ -500,6 +502,8 @@ getGUIDescription(ChannelName, [Owner|Rest]) ->
     ChannelDesc = binary_to_list(ChannelName),
     case eTodoUtils:getPeerInfo(Owner) of
         {User, "#" ++ ChannelDesc} ->
+            list_to_binary(User);
+        {User, "!" ++ ChannelDesc} ->
             list_to_binary(User);
         _ ->
             getGUIDescription(ChannelName, Rest)
