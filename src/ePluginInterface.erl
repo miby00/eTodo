@@ -10,26 +10,29 @@
 -author("mikael.bylund@gmail.com").
 
 %% API
--export([toStr/1,
-         toClipboard/1,
-         getLoggedWork/3,
-         getAllLoggedWorkDate/1,
-         getTime/1,
-         makeRef/0,
+-export([addTodo/2,
+         appendToPage/1,
          dateTime/0,
-         getTaskList/0,
+         getAllLoggedWorkDate/1,
+         getLoggedWork/3,
          getRow/2,
-         addTodo/2,
-         tryInt/1,
-         todoCreated/3,
-         saveTime/3,
-         readConfig/1,
-         saveConfig/2,
+         getTaskList/0,
+         getTime/1,
+         getWeekDay/1,
          getWorkLog/2,
          incDate/2,
+         loggedIn/0,
+         makeRef/0,
+         msgEntry/3,
+         readConfig/1,
+         saveConfig/2,
+         saveTime/3,
+         setPortrait/3,
          systemEntry/1,
-         appendToPage/1,
-         getWeekDay/1]).
+         toClipboard/1,
+         todoCreated/3,
+         toStr/1,
+         tryInt/1]).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -229,8 +232,24 @@ incDate(Date, Inc) ->
 %%
 %% @end
 %%--------------------------------------------------------------------
+systemEntry(Text) when is_binary(Text) ->
+    eTodo:systemEntry(system, unicode:characters_to_list(Text, utf8));
 systemEntry(Text) ->
     eTodo:systemEntry(system, Text).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Generate msgEntry
+%% @spec msgEntry(User, Users, Text) -> void()
+%%
+%% @end
+%%--------------------------------------------------------------------
+msgEntry(User, Users, Text) when is_binary(User), is_binary(Text) ->
+    Users2 = [unicode:characters_to_list(To, utf8) || To <- Users],
+    eTodo:msgEntry(unicode:characters_to_list(User, utf8),
+                   Users2, unicode:characters_to_list(Text, utf8));
+msgEntry(User, Users, Text) ->
+    eTodo:msgEntry(User, Users, Text).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -253,3 +272,29 @@ getWeekDay(Date) ->
     DayNum = calendar:day_of_the_week(Date),
     lists:nth(DayNum, ["Monday", "Tuesday", "Wednesday",
                        "Thursday", "Friday", "Saturday", "Sunday"]).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Get user logged in to local eTodo.
+%% @spec loggedIn() -> false | {true, User}
+%%
+%% @end
+%%--------------------------------------------------------------------
+loggedIn() ->
+    eTodo:loggedIn().
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Set portrait
+%% @spec setPortrait(User :: string(), Overwrite :: true | false) -> void
+%%
+%% @end
+%%--------------------------------------------------------------------
+setPortrait(User, Picture, Overwrite) ->
+    RootDir        = eTodoUtils:getRootDir(),
+    CustomPortrait =  RootDir ++ "/Icons/portrait_" ++ User ++ ".png",
+    PortraitExist  = filelib:is_file(CustomPortrait),
+    savePortrait(CustomPortrait, Picture, PortraitExist, Overwrite).
+
+savePortrait(_, _, true, false)   -> ok;
+savePortrait(File, Picture, _, _) -> file:write_file(File, Picture).

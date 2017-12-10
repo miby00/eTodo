@@ -27,6 +27,7 @@
          getTaskList/0,
          getFilterCfg/1,
          getTimeReportData/0,
+         loggedIn/0,
          loggedIn/1,
          loggedOut/1,
          msgEntry/3,
@@ -137,6 +138,8 @@ getSearchCfg() ->
 getTaskList() ->
     wx_object:call(?MODULE, getTaskList).
 
+loggedIn() ->
+    wx_object:call(?MODULE, loggedIn).
 
 getFilterCfg(TaskList) ->
     wx_object:call(?MODULE, {getFilterCfg, TaskList}).
@@ -739,6 +742,10 @@ handle_call(getTimeReportData, _From, State) ->
     AllTask  = TaskList == ?defTaskList,
     Reply    = {ok, State#guiState.rows, AllTask},
     {reply, Reply, State};
+handle_call(loggedIn, _From, State = #guiState{loggedIn = false}) ->
+    {reply, false, State};
+handle_call(loggedIn, _From, State = #guiState{user = User}) ->
+    {reply, {true, User}, State};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.

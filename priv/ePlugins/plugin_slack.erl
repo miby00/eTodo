@@ -288,30 +288,23 @@ handleInfo({gun_data, _Pid, Ref, fin, Body},
     JSON        = jsx:decode(<<SoFar/binary, Body/binary>>, [return_maps]),
     UserProfile = maps:get(<<"profile">>, JSON),
     State#state{slackRef = undefined, userProfile = UserProfile};
-handleInfo({gun_data, _Pid, Ref, fin, _Body},
-    State = #state{slackRef = {"users.profile.set", Ref, _SoFar}}) ->
-    State#state{slackRef = undefined};
 handleInfo({gun_ws, _Pid, {text, Body}}, State) ->
     JSON = jsx:decode(Body, [return_maps]),
     Type = maps:get(<<"type">>, JSON),
-    case Type of
-        <<"reconnect_url">> ->
-            Url = maps:get(<<"url">>, JSON),
+    case {Type, JSON} of
+        {<<"reconnect_url">>, #{<<"url">> := Url}} ->
             State#state{wsReconnectUrl = Url};
-        <<"message">> ->
-            #{<<"bot_id">>  := BotId,
-              <<"user">>    := User,
-              <<"text">>    := Text,
-              <<"channel">> := Channel} = JSON,
+        {<<"message">>, #{<<"user">>    := User,
+                          <<"text">>    := Text,
+                          <<"channel">> := Channel}} ->
+            BotId = maps:get(<<"bot_id">>, JSON, <<>>),
             handleMsg(State, BotId, User, Text, Channel);
-        <<"user_typing">> ->
-            User = maps:get(<<"user">>, JSON),
+        {<<"user_typing">>, _} ->
             setWriting(State);
-        <<"presence_change">> ->
-            User     = maps:get(<<"user">>,     JSON),
+        {<<"presence_change">>, #{<<"user">> := User}} ->
             Presence = maps:get(<<"presence">>, JSON, <<"active">>),
             setPresence(State, User, Presence);
-        <<"user_change">> ->
+        {<<"user_change">>, JSON} ->
             UserMap   = maps:get(<<"user">>,        JSON,    #{}),
             User      = maps:get(<<"id">>,          UserMap, <<>>),
             Profile   = maps:get(<<"profile">>,     UserMap, #{}),
@@ -334,8 +327,8 @@ handleInfo({gun_up, Pid, http2},
     {_Server, _Port, Path}  = getServerAndPort(WSUrl),
     gun:ws_upgrade(Pid, Path),
     State;
-handleInfo(Info, State) ->
-    io:format("~p~n", [Info]),
+handleInfo(_Info, State) ->
+    %% io:format("~p~n", [Info]),
     State.
 
 postChatMessages(State, User, Users, Text) ->
@@ -398,12 +391,11 @@ setUserProfile(Connection, Token, "") ->
     gun:post(Connection, "/api/users.profile.set", Headers, Body);
 setUserProfile(Connection, Token, StatusText) ->
     BinToken = list_to_binary(Token),
-    StatTxt2 = list_to_binary(StatusText),
+    StatTxt2 = unicode:characters_to_binary(StatusText),
     Profile  = cow_uri:urlencode(jsx:encode(#{status_text => StatTxt2})),
     Body     = <<"token=", BinToken/binary, "&profile=", Profile/binary>>,
     Headers  = createHeaders(Token, Body, "application/x-www-form-urlencoded"),
-    Ref      = gun:post(Connection, "/api/users.profile.set", Headers, Body),
-    {"users.profile.set", Ref, <<>>}.
+    gun:post(Connection, "/api/users.profile.set", Headers, Body).
 
 setUserPresence(Connection, Token, Status) ->
     BinToken = list_to_binary(Token),
@@ -413,16 +405,21 @@ setUserPresence(Connection, Token, Status) ->
     gun:post(Connection, "/api/users.setPresence", Headers, Body).
 
 handleMsg(State, <<>>, User, Text, Channel) ->
-    %% Print message
-    State;
-handleMsg(State, _BotId, User, _Text, Channel) ->
+    sendMsg(User, State, Channel, Text);
+handleMsg(State, _BotId, User, Text, Channel) ->
     case myUser(User, State) of
         true ->
             State;
         false ->
-            %% Print message
-            State
+            sendMsg(User, State, Channel, Text)
     end.
+
+sendMsg(User, State, Channel, Text) ->
+    UserName       = getUserName(User, State),
+    ChannelName    = getChannelName(Channel, State),
+    ChannelGUIDesc = getGUIDesc(ChannelName),
+    ePluginInterface:msgEntry(UserName, [ChannelGUIDesc], Text),
+    State.
 
 setWriting(State) ->
     State.
@@ -458,6 +455,71 @@ myUser(User, [SlackUser|Rest], MyEmail) ->
         false ->
             myUser(User, Rest, MyEmail)
     end.
+
+getUserName(User, #state{slackUsers = SlackUsers}) ->
+    getUserName(User, SlackUsers);
+
+getUserName(User, []) ->
+    User;
+getUserName(User, [SlackUser|Rest]) ->
+    case User == maps:get(<<"id">>, SlackUser, <<>>) of
+        true ->
+            savePortrait(User, SlackUser);
+        false ->
+            getUserName(User, Rest)
+    end.
+
+getChannelName(Channel, #state{slackChannels = SlackChannels}) ->
+    doGetChannelName(Channel, SlackChannels).
+
+doGetChannelName(Channel, []) ->
+    Channel;
+doGetChannelName(Channel, [SlackChannel|Rest]) ->
+    case Channel == maps:get(<<"id">>, SlackChannel, <<>>) of
+        true ->
+            maps:get(<<"name">>, SlackChannel, Channel);
+        false ->
+            doGetChannelName(Channel, Rest)
+    end.
+
+getGUIDesc(ChannelName) ->
+    case ePluginInterface:loggedIn() of
+        false ->
+            ChannelName;
+        {true, User} ->
+            UserCfg  = eTodoDB:readUserCfg(User),
+            OwnerCfg = UserCfg#userCfg.ownerCfg,
+            getGUIDescription(ChannelName, OwnerCfg)
+    end.
+
+getGUIDescription(ChannelName, undefined) ->
+    ChannelName;
+getGUIDescription(ChannelName, []) ->
+    ChannelName;
+getGUIDescription(ChannelName, [Owner|Rest]) ->
+    ChannelDesc = binary_to_list(ChannelName),
+    case eTodoUtils:getPeerInfo(Owner) of
+        {User, "#" ++ ChannelDesc} ->
+            list_to_binary(User);
+        _ ->
+            getGUIDescription(ChannelName, Rest)
+    end.
+
+savePortrait(_User, #{<<"profile">> := #{<<"image_72">>     := Url,
+                                         <<"display_name">> := DisplayName}}) ->
+    Opt = [{ssl, [{verify, verify_none}]}],
+    case httpc:request(get, {binary_to_list(Url), ""}, Opt,
+                       [{body_format, binary}]) of
+        {ok, {{_, 200, _}, _Headers, Picture}} ->
+            ePluginInterface:setPortrait(binary_to_list(DisplayName),
+                                         Picture, false);
+        _ ->
+            ok
+    end,
+    DisplayName;
+savePortrait(User, _Other) ->
+    User.
+
 
 mapStatus(<<"away">>, SrvStatus) ->
     case SrvStatus of
