@@ -30,7 +30,6 @@ getName() -> "eSlack".
 
 getDesc() -> "An eTodo Slack integration.".
 
--include_lib("eTodo/include/eTodo.hrl").
 -include_lib("wx/include/wx.hrl").
 
 -record(state, {frame,
@@ -39,6 +38,7 @@ getDesc() -> "An eTodo Slack integration.".
                 slackUsers, slackChannels, userProfile,
                 slackConn, slackRef,
                 wsCon, wsReconnectUrl}).
+
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -283,7 +283,7 @@ handleInfo({gun_data, Pid, Ref, fin, Body},
     Channels = maps:get(<<"channels">>, JSON),
     NewRef   = getUserProfile(Pid, State#state.slackToken),
     State#state{slackRef = NewRef, slackChannels = Channels};
-handleInfo({gun_data, Pid, Ref, fin, Body},
+handleInfo({gun_data, _Pid, Ref, fin, Body},
            State = #state{slackRef = {"users.profile.get", Ref, SoFar}}) ->
     JSON        = jsx:decode(<<SoFar/binary, Body/binary>>, [return_maps]),
     UserProfile = maps:get(<<"profile">>, JSON),
@@ -333,14 +333,13 @@ handleInfo(_Info, State) ->
 
 postChatMessages(State, User, Users, Text) ->
     UserList = string:tokens(Users, ";"),
-    UserCfg  = eTodoDB:readUserCfg(User),
-    OwnerCfg = UserCfg#userCfg.ownerCfg,
-    [postChatMessage(State, OwnerCfg, EUser, Text) || EUser <- UserList].
+    ExtUsers = ePluginInterface:getExternalUsers(User),
+    [postChatMessage(State, ExtUsers, EUser, Text) || EUser <- UserList].
 
 postChatMessage(_State, [], _User, _Text) ->
     ok;
-postChatMessage(State, [Owner|Rest], User, Text) ->
-    case eTodoUtils:getPeerInfo(Owner) of
+postChatMessage(State, [ExtUser|Rest], User, Text) ->
+    case ePluginInterface:getPeerInfo(ExtUser) of
         {User, "!" ++ SlackChannel} ->
             postChatMessage(State, SlackChannel, Text);
         {User, "#" ++ SlackChannel} ->
@@ -419,7 +418,26 @@ handleMsg(State, _BotId, User, Text, Channel) ->
 sendMsg(User, State, Channel, Text) ->
     UserName       = getUserName(User, State),
     ChannelName    = getChannelName(Channel, State),
-    ChannelGUIDesc = getGUIDesc(ChannelName),
+    ChannelGUIDesc = case getGUIDesc(ChannelName) of
+                         {false, ChannelDesc} ->
+                             ChannelDesc;
+                         {true, ETodoUser, Channel} ->
+                             ExtUser     = <<"!", Channel/binary>>,
+                             ExtUserDesc = <<"Slack-", Channel/binary>>,
+                             ePluginInterface:saveExternalUser(ETodoUser,
+                                                               ExtUserDesc,
+                                                               ExtUser),
+                             ExtUserDesc;
+                         {true, ETodoUser, ChannelName} ->
+                             ExtUser     = <<"#", ChannelName/binary>>,
+                             ExtUserDesc = <<"Slack-", ChannelName/binary>>,
+                             ePluginInterface:saveExternalUser(ETodoUser,
+                                                               ExtUserDesc,
+                                                               ExtUser),
+                             ExtUserDesc;
+                         {true, _User, ChannelDesc} ->
+                             ChannelDesc
+                     end,
     ePluginInterface:msgEntry(UserName, [ChannelGUIDesc], Text),
     State.
 
@@ -487,11 +505,10 @@ doGetChannelName(Channel, [SlackChannel|Rest]) ->
 getGUIDesc(ChannelName) ->
     case ePluginInterface:loggedIn() of
         false ->
-            ChannelName;
+            {false, ChannelName};
         {true, User} ->
-            UserCfg  = eTodoDB:readUserCfg(User),
-            OwnerCfg = UserCfg#userCfg.ownerCfg,
-            getGUIDescription(ChannelName, OwnerCfg)
+            ExtUsers = ePluginInterface:getExternalUsers(User),
+            {true, User, getGUIDescription(ChannelName, ExtUsers)}
     end.
 
 getGUIDescription(ChannelName, undefined) ->

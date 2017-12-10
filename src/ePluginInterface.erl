@@ -14,6 +14,8 @@
          appendToPage/1,
          dateTime/0,
          getAllLoggedWorkDate/1,
+         getExternalUsers/1,
+         getPeerInfo/1,
          getLoggedWork/3,
          getRow/2,
          getTaskList/0,
@@ -26,6 +28,7 @@
          msgEntry/3,
          readConfig/1,
          saveConfig/2,
+         saveExternalUser/3,
          saveTime/3,
          setPortrait/3,
          systemEntry/1,
@@ -33,6 +36,8 @@
          todoCreated/3,
          toStr/1,
          tryInt/1]).
+
+-include_lib("eTodo/include/eTodo.hrl").
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -43,6 +48,44 @@
 %%--------------------------------------------------------------------
 toStr(Date) ->
     eTodoUtils:toStr(Date).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Get External Users
+%% @spec getExternalUsers(User) -> ExternalUsers
+%%
+%% @end
+%%--------------------------------------------------------------------
+getExternalUsers(User) ->
+    UserCfg = eTodoDB:readUserCfg(User),
+    UserCfg#userCfg.ownerCfg.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Get External Users
+%% @spec saveExternalUser(User         :: string(),
+%%                        ExternalUser :: binary(),
+%%                        Address      :: binary()) -> ok
+%%
+%% @end
+%%--------------------------------------------------------------------
+saveExternalUser(User, ExternalUser, Address) ->
+    UserCfg   = eTodoDB:readUserCfg(User),
+    ExtUser   = <<ExternalUser/binary, "<", Address/binary, ">">>,
+    ExtUsers  = UserCfg#userCfg.ownerCfg,
+    ExtUsers2 = [binary_to_list(ExtUser)|ExtUsers],
+    eTodoDB:saveUserCfg(UserCfg#userCfg{ownerCfg = ExtUsers2}),
+    eTodo:updateExternalUsers().
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Get peer information
+%% @spec getPeerInfo(ExternalUser) -> {User, Address}
+%%
+%% @end
+%%--------------------------------------------------------------------
+getPeerInfo(ExtUser) ->
+    eTodoUtils:getPeerInfo(ExtUser).
 
 %%--------------------------------------------------------------------
 %% @doc

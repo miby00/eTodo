@@ -17,15 +17,18 @@
 -behaviour(wx_object).
 
 %% API
--export([acceptingIncCon/3,
+-export([
+         acceptingIncCon/3,
          alarmEntry/2,
+         appendToPage/1,
          checkConflict/5,
+         checkStatusChange/3,
          delayedUpdateGui/2,
          eWebMsgRead/0,
          eWebNotification/0,
+         getFilterCfg/1,
          getSearchCfg/0,
          getTaskList/0,
-         getFilterCfg/1,
          getTimeReportData/0,
          loggedIn/0,
          loggedIn/1,
@@ -33,16 +36,17 @@
          msgEntry/3,
          start/0,
          start/1,
+         statusUpdate/2,
          stop/0,
-         appendToPage/1,
          systemEntry/2,
          taskListDeleted/1,
          taskListsUpdated/0,
          todoCreated/3,
-         todoUpdated/2,
          todoDeleted/1,
+         todoUpdated/2,
+         updateExternalUsers/0,
+         updateStatus/2,
          writing/1,
-         statusUpdate/2,
 
          launchBrowser/1]).
 
@@ -173,6 +177,12 @@ loggedIn(User) ->
 
 loggedOut(User) ->
     wx_object:cast(?MODULE, {loggedOut, User}), ok.
+
+updateExternalUsers() ->
+    wx_object:cast(?MODULE, updateExternalUsers), ok.
+
+updateStatus(Status, StatusMsg) ->
+    wx_object:cast(?MODULE, {updateStatus, Status, StatusMsg}), ok.
 
 writing(Sender) ->
     wx_object:cast(?MODULE, {writing, Sender}), ok.
@@ -982,6 +992,16 @@ handle_cast(eWebMsgRead, State) ->
     wxNotebook:setPageText(Notebook2, 2, "System"),
     {noreply, State#guiState{notificationTimer = undefined,
                              unreadMsgs = 0, unreadMsgs2 = {0, 0, 0}}};
+handle_cast(updateExternalUsers, State) ->
+    eGuiFunctions:fillEmailCheckBox(State),
+    {noreply, State};
+handle_cast({updateStatus, Status, StatusMsg}, State) ->
+    eGuiFunctions:setUserStatus(Status, State),
+    wxComboBox:setValue(obj("userStatusMsg", State), StatusMsg),
+    MsgTop = obj("msgTopPanel", State),
+    wxPanel:layout(MsgTop),
+    wxPanel:refresh(MsgTop),
+    {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -1180,30 +1200,19 @@ handle_info(sendNotification, State = #guiState{user = User, reply = Reply}) ->
 handle_info(pluginUpdateStatus, State = #guiState{loggedIn = false}) ->
     erlang:send_after(5000, self(), pluginUpdateStatus),
     {noreply, State};
-handle_info(pluginUpdateStatus, State) ->
+handle_info(pluginUpdateStatus, State = #guiState{user = User}) ->
     Obj          = obj("userStatusChoice", State),
     Obj2         = obj("userStatusMsg",    State),
     Index        = wxChoice:getSelection(Obj),
     Status       = wxChoice:getString(Obj, Index),
     StatusMsg    = wxComboBox:getValue(Obj2),
-    case ePluginServer:eGetStatusUpdate(State#guiState.user,
-                                        Status, StatusMsg) of
-        {ok, Status, StatusMsg} ->
-            ok; %% No change
-        {ok, NewStatus, NewStatusMsg} ->
-            eGuiFunctions:setUserStatus(NewStatus, State),
-            wxComboBox:setValue(Obj2, NewStatusMsg),
-            MsgTop = obj("msgTopPanel", State),
-            wxPanel:layout(MsgTop),
-            wxPanel:refresh(MsgTop);
-        _ ->
-            ok %% No change
-    end,
+    spawn(?MODULE, checkStatusChange, [User, Status, StatusMsg]),
     erlang:send_after(5000, self(), pluginUpdateStatus),
+    {noreply, State};
+handle_info(updateStatus, State) ->
     {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
-
 
 %%--------------------------------------------------------------------
 %% Function: terminate(Reason, State) -> void()
@@ -1813,3 +1822,17 @@ mondayThisWeek() ->
     DayNum   = calendar:day_of_the_week(date()), %% Monday = 1, Tuesday = 2, ...
     GregDays = calendar:date_to_gregorian_days(date()) + 1 - DayNum,
     calendar:gregorian_days_to_date(GregDays).
+
+%%====================================================================
+%% Check if we need to update status
+%%====================================================================
+checkStatusChange(User, Status, StatusMsg) ->
+    case ePluginServer:eGetStatusUpdate(User, Status, StatusMsg) of
+        {ok, Status, StatusMsg} ->
+            ok; %% No change
+        {ok, NewStatus, NewStatusMsg} ->
+            updateStatus(NewStatus, NewStatusMsg);
+        _ ->
+            ok %% No change
+    end.
+
