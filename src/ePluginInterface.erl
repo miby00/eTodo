@@ -72,10 +72,17 @@ getExternalUsers(User) ->
 saveExternalUser(User, ExternalUser, Address) ->
     UserCfg   = eTodoDB:readUserCfg(User),
     ExtUser   = <<ExternalUser/binary, "<", Address/binary, ">">>,
+    ExtUser2  = binary_to_list(ExtUser),
     ExtUsers  = UserCfg#userCfg.ownerCfg,
-    ExtUsers2 = [binary_to_list(ExtUser)|ExtUsers],
-    eTodoDB:saveUserCfg(UserCfg#userCfg{ownerCfg = ExtUsers2}),
-    eTodo:updateExternalUsers().
+    ExtUsers2 = [ExtUser2|lists:delete(ExtUser2, ExtUsers)],
+    case ExtUsers of
+        ExtUsers2 ->
+            %% No change, no need to update chat window.
+            ok;
+        _ ->
+            eTodoDB:saveUserCfg(UserCfg#userCfg{ownerCfg = ExtUsers2}),
+            eTodo:updateExternalUsers()
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc

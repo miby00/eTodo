@@ -998,9 +998,18 @@ handle_cast(updateExternalUsers, State) ->
 handle_cast({updateStatus, Status, StatusMsg}, State) ->
     eGuiFunctions:setUserStatus(Status, State),
     wxComboBox:setValue(obj("userStatusMsg", State), StatusMsg),
-    MsgTop = obj("msgTopPanel", State),
+
+    MsgTop   = obj("msgTopPanel",   State),
+    CHtmlWin = obj("msgTextWin",    State),
+    RHtmlWin = obj("remTextWin",    State),
+    SHtmlWin = obj("systemTextWin", State),
+
     wxPanel:layout(MsgTop),
     wxPanel:refresh(MsgTop),
+    
+    setScrollBar(CHtmlWin),
+    setScrollBar(RHtmlWin),
+    setScrollBar(SHtmlWin),
     {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.

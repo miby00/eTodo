@@ -34,8 +34,7 @@ getDesc() -> "An eTodo Slack integration.".
 
 -record(state, {frame,
                 slackUrl, status, statusText, srvStatus,
-                slackToken, slackBotToken,
-                slackUsers, slackChannels, userProfile,
+                slackToken, slackUsers, slackChannels, userProfile,
                 slackConn, slackRef,
                 wsCon, wsReconnectUrl}).
 
@@ -51,18 +50,16 @@ init([WX, Frame]) ->
 
     Url    = application:get_env(eTodo, slackUrl,      DefaultUrl),
     Token  = application:get_env(eTodo, slackToken,    ""),
-    BToken = application:get_env(eTodo, slackBotToken, ""),
 
     wx:set_env(WX),
 
     application:ensure_all_started(gun),
-    {ConnPid, Ref} = startSetupWebsocket(Url, BToken),
+    {ConnPid, Ref} = startSetupWebsocket(Url, Token),
 
     #state{frame         = Frame,
            srvStatus     = "Available",
            slackUrl      = Url,
            slackToken    = Token,
-           slackBotToken = BToken,
            slackConn     = ConnPid,
            slackRef      = {"rtm.connect", Ref, <<>>}}.
 
@@ -118,8 +115,10 @@ eGetStatusUpdate(_Dir, _User, Status, StatusMsg, State) ->
      default(State#state.statusText, StatusMsg),
      State#state{status = undefined, statusText = undefined}}.
 
-default(undefined, Value) when is_binary(Value) -> binary_to_list(Value);
-default(Value, _Default)  when is_binary(Value) -> binary_to_list(Value);
+default(undefined, Value) when is_binary(Value) ->
+    unicode:characters_to_list(Value, utf8);
+default(Value, _Default)  when is_binary(Value) ->
+    unicode:characters_to_list(Value, utf8);
 default(undefined, Value) -> Value;
 default(Value, _Default)  -> Value.
 
@@ -298,7 +297,8 @@ handleInfo({gun_ws, _Pid, {text, Body}}, State) ->
                           <<"text">>    := Text,
                           <<"channel">> := Channel}} ->
             BotId = maps:get(<<"bot_id">>, JSON, <<>>),
-            handleMsg(State, BotId, User, Text, Channel);
+            io:format("Mottaget meddelande: ~p~n", [JSON]),
+            handleMsg(State, JSON, BotId, User, Text, Channel);
         {<<"user_typing">>, _} ->
             setWriting(State);
         {<<"presence_change">>, #{<<"user">> := User}} ->
@@ -316,7 +316,7 @@ handleInfo({gun_ws, _Pid, {text, Body}}, State) ->
     end;
 handleInfo({gun_up, Pid, http2},
            State = #state{wsReconnectUrl = undefined, wsCon = Pid}) ->
-    Token    = State#state.slackBotToken,
+    Token    = State#state.slackToken,
     BinToken = list_to_binary(Token),
     Body     = <<"token=", BinToken/binary>>,
     Headers  = createHeaders(Token, Body, "application/x-www-form-urlencoded"),
@@ -405,17 +405,17 @@ setUserPresence(Connection, Token, Status) ->
     Headers  = createHeaders(Token, Body, "application/json; charset=utf-8"),
     gun:post(Connection, "/api/users.setPresence", Headers, Body).
 
-handleMsg(State, <<>>, User, Text, Channel) ->
-    sendMsg(User, State, Channel, Text);
-handleMsg(State, _BotId, User, Text, Channel) ->
-    case myUser(User, State) of
+handleMsg(State, JSON, <<>>, User, Text, Channel) ->
+    sendMsg(User, State, JSON, Channel, Text);
+handleMsg(State, JSON, _BotId, User, Text, Channel) ->
+    case (myUser(User, State) and (not maps:is_key(<<"attachments">>, JSON))) of
         true ->
             State;
         false ->
-            sendMsg(User, State, Channel, Text)
+            sendMsg(User, State, JSON, Channel, Text)
     end.
 
-sendMsg(User, State, Channel, Text) ->
+sendMsg(User, State, JSON, Channel, Text) ->
     UserName       = getUserName(User, State),
     ChannelName    = getChannelName(Channel, State),
     ChannelGUIDesc = case getGUIDesc(ChannelName) of
@@ -423,14 +423,14 @@ sendMsg(User, State, Channel, Text) ->
                              ChannelDesc;
                          {true, ETodoUser, Channel} ->
                              ExtUser     = <<"!", Channel/binary>>,
-                             ExtUserDesc = <<"Slack-", Channel/binary>>,
+                             ExtUserDesc = <<"Slack - ", UserName/binary>>,
                              ePluginInterface:saveExternalUser(ETodoUser,
                                                                ExtUserDesc,
                                                                ExtUser),
                              ExtUserDesc;
                          {true, ETodoUser, ChannelName} ->
                              ExtUser     = <<"#", ChannelName/binary>>,
-                             ExtUserDesc = <<"Slack-", ChannelName/binary>>,
+                             ExtUserDesc = <<"Slack - ", ChannelName/binary>>,
                              ePluginInterface:saveExternalUser(ETodoUser,
                                                                ExtUserDesc,
                                                                ExtUser),
@@ -438,8 +438,30 @@ sendMsg(User, State, Channel, Text) ->
                          {true, _User, ChannelDesc} ->
                              ChannelDesc
                      end,
-    ePluginInterface:msgEntry(UserName, [ChannelGUIDesc], Text),
+    sendMsgEntry(JSON, UserName, [ChannelGUIDesc], Text),
     State.
+
+sendMsgEntry(#{<<"attachments">> := [#{<<"image_url">>    := Image,
+                                       <<"title">>        := Title,
+                                       <<"footer">>       := Footer,
+                                       <<"title_link">>   := TitleLink}|_]},
+             From, To, Text) ->
+    MsgText = <<"### [", Title/binary, "](", TitleLink/binary, ")\n",
+                "![", Title/binary, "](", Image/binary, ")\n\n",
+                "*", Footer/binary, "*\n\n", Text/binary>>,
+    ePluginInterface:msgEntry(From, To, MsgText);
+sendMsgEntry(#{<<"attachments">> := [#{<<"image_url">> := Image,
+                                       <<"footer">>    := Footer}|_]},
+             From, To, Text) ->
+    MsgText = <<"![", Footer/binary, "](", Image/binary, ")\n\n",
+                "*", Footer/binary, "*\n\n", Text/binary>>,
+    ePluginInterface:msgEntry(From, To, MsgText);
+sendMsgEntry(#{<<"attachments">> := [#{<<"image_url">> := Image}|_]},
+             From, To, Text) ->
+    MsgText = <<"![Image](", Image/binary, ")\n\n", Text/binary>>,
+    ePluginInterface:msgEntry(From, To, MsgText);
+sendMsgEntry(_JSON, From, To, Text) ->
+    ePluginInterface:msgEntry(From, To, Text).
 
 setWriting(State) ->
     State.
@@ -462,6 +484,7 @@ setStatusText(State, User, StatusTxt) ->
 
 myUser(User, #state{slackUsers = SlackUsers, userProfile = Profile}) ->
     MyEmail = maps:get(<<"email">>, Profile, <<"my_email">>),
+    io:format("~p~n", [Profile]),
     myUser(User, SlackUsers, MyEmail).
 
 myUser(_User, [], _MyEmail) ->
@@ -526,6 +549,19 @@ getGUIDescription(ChannelName, [Owner|Rest]) ->
             getGUIDescription(ChannelName, Rest)
     end.
 
+savePortrait(_User, #{<<"profile">> := #{<<"image_72">>     := Url,
+                                         <<"real_name">>    := RealName,
+                                         <<"display_name">> := <<>>}}) ->
+    Opt = [{ssl, [{verify, verify_none}]}],
+    case httpc:request(get, {binary_to_list(Url), ""}, Opt,
+                       [{body_format, binary}]) of
+        {ok, {{_, 200, _}, _Headers, Picture}} ->
+            ePluginInterface:setPortrait(binary_to_list(RealName),
+                                         Picture, false);
+        _ ->
+            ok
+    end,
+    RealName;
 savePortrait(_User, #{<<"profile">> := #{<<"image_72">>     := Url,
                                          <<"display_name">> := DisplayName}}) ->
     Opt = [{ssl, [{verify, verify_none}]}],
