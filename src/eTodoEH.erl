@@ -83,6 +83,9 @@ handle_event({alarmEntry, Uid, Description}, State) ->
     eWeb:appendToPage(HtmlCSS),
     ePluginServer:eReceivedAlarmMsg(Description),
     {ok, State};
+handle_event({msgEntry, Sender, Users, Text}, State) ->
+    sendMsg(Sender, Users, msgEntry, Text, State),
+    {ok, State};
 handle_event({sendMsg, Sender, Users, msgEntry, Text},
              State = #state{user = Sender}) ->
     {_, HtmlCSS} = eHtml:generateMsg(Sender, Sender, Users, Text),

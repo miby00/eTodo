@@ -18,6 +18,7 @@
          todoUpdated/3,
          loggedIn/1,
          loggedOut/1,
+         msgEntry/3,
          sendMsg/4,
          alarmEntry/2,
          checkConflict/5]).
@@ -120,12 +121,23 @@ loggedOut(User) ->
 %% @doc
 %% Send msg to users
 %%
-%% @spec sendMsg(Users, MsgType, Text) ->
+%% @spec sendMsg(Sender, Users, MsgType, Text) ->
 %%       ok | {'EXIT', Reason} | term()
 %% @end
 %%--------------------------------------------------------------------
 sendMsg(Sender, Users, MsgType, Text) ->
     gen_event:notify(?SERVER, {sendMsg, Sender, Users, MsgType, Text}).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Send msg to users
+%%
+%% @spec msgEntry(Sender, Users, Text) ->
+%%       ok | {'EXIT', Reason} | term()
+%% @end
+%%--------------------------------------------------------------------
+msgEntry(Sender, Users, Text) ->
+    gen_event:notify(?SERVER, {msgEntry, Sender, Users, Text}).
 
 %%--------------------------------------------------------------------
 %% @doc

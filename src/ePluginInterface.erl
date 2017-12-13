@@ -35,7 +35,8 @@
          toClipboard/1,
          todoCreated/3,
          toStr/1,
-         tryInt/1]).
+         tryInt/1,
+         writing/1]).
 
 -include_lib("eTodo/include/eTodo.hrl").
 
@@ -296,10 +297,10 @@ systemEntry(Text) ->
 %%--------------------------------------------------------------------
 msgEntry(User, Users, Text) when is_binary(User), is_binary(Text) ->
     Users2 = [unicode:characters_to_list(To, utf8) || To <- Users],
-    eTodo:msgEntry(unicode:characters_to_list(User, utf8),
-                   Users2, unicode:characters_to_list(Text, utf8));
+    ePeerEM:msgEntry(unicode:characters_to_list(User, utf8),
+                    Users2, unicode:characters_to_list(Text, utf8));
 msgEntry(User, Users, Text) ->
-    eTodo:msgEntry(User, Users, Text).
+    ePeerEM:msgEntry(User, Users, Text).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -335,6 +336,18 @@ loggedIn() ->
 
 %%--------------------------------------------------------------------
 %% @doc
+%% Send user writing to eTodo.
+%% @spec writing(Sender) -> void
+%%
+%% @end
+%%--------------------------------------------------------------------
+writing(Sender) when is_binary(Sender) ->
+    eTodo:writing(binary_to_list(Sender));
+writing(Sender) ->
+    eTodo:writing(Sender).
+
+%%--------------------------------------------------------------------
+%% @doc
 %% Set portrait
 %% @spec setPortrait(User :: string(), Overwrite :: true | false) -> void
 %%
@@ -342,9 +355,14 @@ loggedIn() ->
 %%--------------------------------------------------------------------
 setPortrait(User, Picture, Overwrite) ->
     RootDir        = eTodoUtils:getRootDir(),
-    CustomPortrait =  RootDir ++ "/Icons/portrait_" ++ User ++ ".png",
+
+    CustomPortrait = RootDir ++ "/Icons/portrait_" ++ User ++ ".png",
     PortraitExist  = filelib:is_file(CustomPortrait),
-    savePortrait(CustomPortrait, Picture, PortraitExist, Overwrite).
+    savePortrait(CustomPortrait, Picture, PortraitExist, Overwrite),
+
+    CustomPort2    = RootDir ++ "/www/priv/Icons/portrait_" ++ User ++ ".png",
+    PortraitExist2 = filelib:is_file(CustomPort2),
+    savePortrait(CustomPort2, Picture, PortraitExist2, Overwrite).
 
 savePortrait(_, _, true, false)   -> ok;
 savePortrait(File, Picture, _, _) -> file:write_file(File, Picture).

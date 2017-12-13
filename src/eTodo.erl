@@ -816,9 +816,7 @@ handle_cast({alarmEntry, Uid, Text}, State) ->
 handle_cast({loggedIn, User}, State = #guiState{userStatus = Users}) ->
     UserObj      = obj("userCheckBox",  State),
     EmailCBObj   = obj("emailCheckBox", State),
-    StatusBarObj = obj("mainStatusBar", State),
-    Opt = [{number, 2}],
-    wxStatusBar:setStatusText(StatusBarObj, User ++ " logged in.", Opt),
+    setStatusText(State, User ++ " logged in.", 2),
     UIndex = wxCheckListBox:getCount(UserObj),
     wxCheckListBox:append(UserObj, User),
     Users2     = lists:keydelete(User, #userStatus.userName, Users),
@@ -902,9 +900,7 @@ handle_cast({todoDeleted, Uid},
         end,
     {noreply, State4};
 handle_cast({writing, Sender}, State) ->
-    StatusBarObj = obj("mainStatusBar", State),
-    Opt = [{number, 2}],
-    wxStatusBar:setStatusText(StatusBarObj, Sender ++ " writing...", Opt),
+    setStatusText(State, Sender ++ " writing...", 2),
     {noreply, State};
 handle_cast({statusUpdate, UserStatus, Avatar},
             State = #guiState{userStatus = Users}) ->
@@ -913,8 +909,7 @@ handle_cast({statusUpdate, UserStatus, Avatar},
     %% Update status bar with status info.
     Msg =  UserStatus#userStatus.userName ++
         " (" ++ UserStatus#userStatus.status ++ ")",
-    StatusBarObj = obj("mainStatusBar", State),
-    wxStatusBar:setStatusText(StatusBarObj, Msg, [{number, 3}]),
+    setStatusText(State, Msg, 3),
     (catch saveAvatar(UserStatus#userStatus.userName, Avatar)),
     State2 = setPeerStatusIfNeeded(State#guiState{userStatus = Users2}),
     {noreply, State2};
@@ -1220,8 +1215,17 @@ handle_info(pluginUpdateStatus, State = #guiState{user = User}) ->
     {noreply, State};
 handle_info(updateStatus, State) ->
     {noreply, State};
+handle_info({removeStatus, StatusBarObj, Text, Col}, State) ->
+    case wxStatusBar:getStatusText(StatusBarObj, [{number, Col}]) of
+        Text ->
+            wxStatusBar:setStatusText(StatusBarObj, "", [{number, Col}]);
+        _ ->
+            ok
+    end,
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
+
 
 %%--------------------------------------------------------------------
 %% Function: terminate(Reason, State) -> void()
@@ -1845,3 +1849,10 @@ checkStatusChange(User, Status, StatusMsg) ->
             ok %% No change
     end.
 
+%%====================================================================
+%% Set status text for 3 secs.
+%%====================================================================
+setStatusText(State, Text, Col) ->
+    StatusBarObj = obj("mainStatusBar", State),
+    wxStatusBar:setStatusText(StatusBarObj, Text, [{number, Col}]),
+    erlang:send_after(3000, self(), {removeStatus, StatusBarObj, Text, Col}).

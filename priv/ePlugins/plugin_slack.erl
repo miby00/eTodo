@@ -297,10 +297,9 @@ handleInfo({gun_ws, _Pid, {text, Body}}, State) ->
                           <<"text">>    := Text,
                           <<"channel">> := Channel}} ->
             BotId = maps:get(<<"bot_id">>, JSON, <<>>),
-            io:format("Mottaget meddelande: ~p~n", [JSON]),
             handleMsg(State, JSON, BotId, User, Text, Channel);
-        {<<"user_typing">>, _} ->
-            setWriting(State);
+        {<<"user_typing">>, #{<<"user">> := User}} ->
+            setWriting(State, User);
         {<<"presence_change">>, #{<<"user">> := User}} ->
             Presence = maps:get(<<"presence">>, JSON, <<"active">>),
             setPresence(State, User, Presence);
@@ -311,7 +310,7 @@ handleInfo({gun_ws, _Pid, {text, Body}}, State) ->
             StatusTxt = maps:get(<<"status_text">>, Profile, <<>>),
             setStatusText(State, User, StatusTxt);
         _ ->
-            io:format("Received message on websocket: ~p~n", [JSON]),
+            %% io:format("Received message on websocket: ~p~n", [JSON]),
             State
     end;
 handleInfo({gun_up, Pid, http2},
@@ -328,7 +327,6 @@ handleInfo({gun_up, Pid, http2},
     gun:ws_upgrade(Pid, Path),
     State;
 handleInfo(_Info, State) ->
-    %% io:format("~p~n", [Info]),
     State.
 
 postChatMessages(State, User, Users, Text) ->
@@ -446,24 +444,34 @@ sendMsgEntry(#{<<"attachments">> := [#{<<"image_url">>    := Image,
                                        <<"footer">>       := Footer,
                                        <<"title_link">>   := TitleLink}|_]},
              From, To, Text) ->
+    Text2   = convertToMD(Text),
+    Footer2 = convertToMD(Footer),
     MsgText = <<"### [", Title/binary, "](", TitleLink/binary, ")\n",
                 "![", Title/binary, "](", Image/binary, ")\n\n",
-                "*", Footer/binary, "*\n\n", Text/binary>>,
-    ePluginInterface:msgEntry(From, To, MsgText);
+                "*", Footer2/binary, "*\n\n", Text2/binary>>,
+    sendToETodo(From, To, MsgText);
 sendMsgEntry(#{<<"attachments">> := [#{<<"image_url">> := Image,
                                        <<"footer">>    := Footer}|_]},
              From, To, Text) ->
+    Text2   = convertToMD(Text),
+    Footer2 = convertToMD(Footer),
     MsgText = <<"![", Footer/binary, "](", Image/binary, ")\n\n",
-                "*", Footer/binary, "*\n\n", Text/binary>>,
-    ePluginInterface:msgEntry(From, To, MsgText);
+                "*", Footer2/binary, "*\n\n", Text2/binary>>,
+    sendToETodo(From, To, MsgText);
 sendMsgEntry(#{<<"attachments">> := [#{<<"image_url">> := Image}|_]},
              From, To, Text) ->
-    MsgText = <<"![Image](", Image/binary, ")\n\n", Text/binary>>,
-    ePluginInterface:msgEntry(From, To, MsgText);
+    Text2   = convertToMD(Text),
+    MsgText = <<"![Image](", Image/binary, ")\n\n", Text2/binary>>,
+    sendToETodo(From, To, MsgText);
 sendMsgEntry(_JSON, From, To, Text) ->
+    sendToETodo(From, To, convertToMD(Text)).
+
+sendToETodo(From, To, Text) ->
     ePluginInterface:msgEntry(From, To, Text).
 
-setWriting(State) ->
+setWriting(State, User) ->
+    UserName = getUserName(User, State),
+    ePluginInterface:writing(UserName),
     State.
 
 setPresence(State, User, Presence) ->
@@ -597,3 +605,50 @@ mapStatus("Available") -> <<"auto">>;
 mapStatus("Busy")      -> <<"auto">>;
 mapStatus("Away")      -> <<"away">>;
 mapStatus("Offline")   -> <<"away">>.
+
+convertToMD(Text) ->
+    try
+        convertToMD(Text, <<>>, <<>>, text)
+    catch
+        _:_ ->
+            Text
+    end.
+
+convertToMD(<<>>, {Url, Desc}, SoFar, urlDesc)  ->
+    <<SoFar/binary, "<", Url/binary, "|", Desc/binary>>;
+convertToMD(<<>>, {Url, _Desc}, SoFar, url)  ->
+    <<SoFar/binary, "<", Url/binary>>;
+convertToMD(<<>>, CurrToken, SoFar, _State)  ->
+    <<SoFar/binary, CurrToken/binary>>;
+
+convertToMD(<<"|", Rest/binary>>, {Url, _Token}, SoFar, url) ->
+    case http_uri:parse(binary_to_list(Url)) of
+        {ok,_Url} ->
+             convertToMD(Rest, {Url, <<>>}, SoFar, urlDesc);
+        _ ->
+            convertToMD(Rest, <<>>, <<SoFar/binary, "<", Url/binary, "|">>, text)
+    end;
+convertToMD(<<">", Rest/binary>>, {Url, _Token}, SoFar, url) ->
+    convertToMD(Rest, <<>>, <<SoFar/binary, "<", Url/binary, ">">>, text);
+convertToMD(<<Char:8, Rest/binary>>, {Url, _Token}, SoFar, url) ->
+    convertToMD(Rest, {<<Url/binary, Char:8>>, <<>>}, SoFar, url);
+
+convertToMD(<<">", Rest/binary>>, {Url, Desc}, SoFar, urlDesc) ->
+    case http_uri:parse(binary_to_list(Url)) of
+        {ok,_Url} ->
+            convertToMD(Rest, <<>>,
+                <<SoFar/binary, "[", Desc/binary, "](", Url/binary, ")">>, text);
+        _ ->
+            convertToMD(Rest, <<>>,
+                <<SoFar/binary, "<", Url/binary, "|", Desc/binary, ">">>,
+                text)
+    end;
+convertToMD(<<Char:8, Rest/binary>>, {Url, Desc}, SoFar, urlDesc) ->
+    convertToMD(Rest, {Url, <<Desc/binary, Char:8>>}, SoFar, urlDesc);
+
+convertToMD(<<"<", Rest/binary>>, _Token, SoFar, text) ->
+    convertToMD(Rest, {<<>>, <<>>}, SoFar, url);
+convertToMD(<<Char:8, Rest/binary>>, <<>>, SoFar, text) ->
+    convertToMD(Rest, <<>>, <<SoFar/binary, Char:8>>, text).
+
+
