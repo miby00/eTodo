@@ -2,7 +2,24 @@
 %%% @author Mikael Bylund <mikael.bylund@gmail.com>
 %%% @copyright (C) 2013, Mikael Bylund
 %%% @doc
+%%% To use this plugin a slack token is needed.
+%%% This slack token needs at least client scope.
 %%%
+%%% One way to get a token with a client scope is to follow these instructions.
+%%%
+%%% 1) Create a new APP at https://api.slack.com/apps
+%%% 2) Go to:
+%%%    https://slack.com/oauth/authorize?client_id=X&scope=client
+%%%    Change X to your client id which you can find in the config for your
+%%%    new APP.
+%%% 3) Follow the instructions and authenticate the APP
+%%% 4) Copy the code in the URL which the browser tried to access.
+%%% 5) Go to the following URL:
+%%%    https://slack.com/api/oauth.access?client_id=X&client_secret=Y&code=Z
+%%%    Where Y is your client secret found in the same place as client id.
+%%%    And Z is the code you copied from your browser.
+%%% 6) Copy the slack token given as a response, to the sys.config file.
+%%% 7) Rebuild eTodo, you should be up and running.
 %%% @end
 %%% Created : 08 July 2013 by Mikael Bylund <mikael.bylund@gmail.com>
 %%%-------------------------------------------------------------------
