@@ -436,35 +436,35 @@ sendMsg(User, State, JSON, Channel, Text) ->
                          {true, _User, ChannelDesc} ->
                              ChannelDesc
                      end,
-    sendMsgEntry(JSON, UserName, [ChannelGUIDesc], Text),
+    sendMsgEntry(JSON, UserName, [ChannelGUIDesc], Text, State),
     State.
 
 sendMsgEntry(#{<<"attachments">> := [#{<<"image_url">>    := Image,
                                        <<"title">>        := Title,
                                        <<"footer">>       := Footer,
                                        <<"title_link">>   := TitleLink}|_]},
-             From, To, Text) ->
-    Text2   = convertToMD(Text),
-    Footer2 = convertToMD(Footer),
+             From, To, Text, State) ->
+    Text2   = convertToMD(Text, State),
+    Footer2 = convertToMD(Footer, State),
     MsgText = <<"### [", Title/binary, "](", TitleLink/binary, ")\n",
                 "![", Title/binary, "](", Image/binary, ")\n\n",
                 "*", Footer2/binary, "*\n\n", Text2/binary>>,
     sendToETodo(From, To, MsgText);
 sendMsgEntry(#{<<"attachments">> := [#{<<"image_url">> := Image,
                                        <<"footer">>    := Footer}|_]},
-             From, To, Text) ->
-    Text2   = convertToMD(Text),
-    Footer2 = convertToMD(Footer),
+             From, To, Text, State) ->
+    Text2   = convertToMD(Text, State),
+    Footer2 = convertToMD(Footer, State),
     MsgText = <<"![", Footer/binary, "](", Image/binary, ")\n\n",
                 "*", Footer2/binary, "*\n\n", Text2/binary>>,
     sendToETodo(From, To, MsgText);
 sendMsgEntry(#{<<"attachments">> := [#{<<"image_url">> := Image}|_]},
-             From, To, Text) ->
-    Text2   = convertToMD(Text),
+             From, To, Text, State) ->
+    Text2   = convertToMD(Text, State),
     MsgText = <<"![Image](", Image/binary, ")\n\n", Text2/binary>>,
     sendToETodo(From, To, MsgText);
-sendMsgEntry(_JSON, From, To, Text) ->
-    sendToETodo(From, To, convertToMD(Text)).
+sendMsgEntry(_JSON, From, To, Text, State) ->
+    sendToETodo(From, To, convertToMD(Text, State)).
 
 sendToETodo(From, To, Text) ->
     ePluginInterface:msgEntry(From, To, Text).
@@ -606,49 +606,78 @@ mapStatus("Busy")      -> <<"auto">>;
 mapStatus("Away")      -> <<"away">>;
 mapStatus("Offline")   -> <<"away">>.
 
-convertToMD(Text) ->
+convertToMD(Text, State) ->
     try
-        convertToMD(Text, <<>>, <<>>, text)
+        convertToMD(Text, <<>>, <<>>, State, text)
     catch
         _:_ ->
             Text
     end.
 
-convertToMD(<<>>, {Url, Desc}, SoFar, urlDesc)  ->
+convertToMD(<<>>, {Url, Desc}, SoFar, _State, urlDesc)  ->
     <<SoFar/binary, "<", Url/binary, "|", Desc/binary>>;
-convertToMD(<<>>, {Url, _Desc}, SoFar, url)  ->
+convertToMD(<<>>, {Url, _Desc}, SoFar, _State, url)  ->
     <<SoFar/binary, "<", Url/binary>>;
-convertToMD(<<>>, CurrToken, SoFar, _State)  ->
+convertToMD(<<>>, CurrToken, SoFar, _State, _ParseState)  ->
     <<SoFar/binary, CurrToken/binary>>;
 
-convertToMD(<<"|", Rest/binary>>, {Url, _Token}, SoFar, url) ->
+convertToMD(<<"|", Rest/binary>>, {Url, _Token}, SoFar, State, url) ->
     case http_uri:parse(binary_to_list(Url)) of
         {ok,_Url} ->
-             convertToMD(Rest, {Url, <<>>}, SoFar, urlDesc);
+             convertToMD(Rest, {Url, <<>>}, SoFar, State, urlDesc);
         _ ->
-            convertToMD(Rest, <<>>, <<SoFar/binary, "<", Url/binary, "|">>, text)
+            convertToMD(Rest, <<>>,
+                        <<SoFar/binary, "<", Url/binary, "|">>, State, text)
     end;
-convertToMD(<<">", Rest/binary>>, {Url, _Token}, SoFar, url) ->
-    convertToMD(Rest, <<>>, <<SoFar/binary, "<", Url/binary, ">">>, text);
-convertToMD(<<Char:8, Rest/binary>>, {Url, _Token}, SoFar, url) ->
-    convertToMD(Rest, {<<Url/binary, Char:8>>, <<>>}, SoFar, url);
+convertToMD(<<">", Rest/binary>>, {Url, _Token}, SoFar, State, url) ->
+    convertToMD(Rest, <<>>, <<SoFar/binary, "<", Url/binary, ">">>, State, text);
+convertToMD(<<Char:8, Rest/binary>>, {Url, _Token}, SoFar, State, url) ->
+    convertToMD(Rest, {<<Url/binary, Char:8>>, <<>>}, SoFar, State, url);
 
-convertToMD(<<">", Rest/binary>>, {Url, Desc}, SoFar, urlDesc) ->
+convertToMD(<<">", Rest/binary>>, {Url, Desc}, SoFar, State, urlDesc) ->
     case http_uri:parse(binary_to_list(Url)) of
         {ok,_Url} ->
             convertToMD(Rest, <<>>,
-                <<SoFar/binary, "[", Desc/binary, "](", Url/binary, ")">>, text);
+                        <<SoFar/binary, "[", Desc/binary, "](", Url/binary, ")">>,
+                        State, text);
         _ ->
             convertToMD(Rest, <<>>,
-                <<SoFar/binary, "<", Url/binary, "|", Desc/binary, ">">>,
-                text)
+                        <<SoFar/binary, "<", Url/binary, "|", Desc/binary, ">">>,
+                        State, text)
     end;
-convertToMD(<<Char:8, Rest/binary>>, {Url, Desc}, SoFar, urlDesc) ->
-    convertToMD(Rest, {Url, <<Desc/binary, Char:8>>}, SoFar, urlDesc);
+convertToMD(<<Char:8, Rest/binary>>, {Url, Desc}, SoFar, State, urlDesc) ->
+    convertToMD(Rest, {Url, <<Desc/binary, Char:8>>}, SoFar, State, urlDesc);
 
-convertToMD(<<"<", Rest/binary>>, _Token, SoFar, text) ->
-    convertToMD(Rest, {<<>>, <<>>}, SoFar, url);
-convertToMD(<<Char:8, Rest/binary>>, <<>>, SoFar, text) ->
-    convertToMD(Rest, <<>>, <<SoFar/binary, Char:8>>, text).
+convertToMD(<<">", Rest/binary>>, Token, SoFar, State, mention) ->
+    case getUserName(Token, State) of
+        Token ->
+            convertToMD(Rest, <<>>, <<SoFar/binary, "<@", Token/binary, ">">>,
+                        State, text);
+        UserName ->
+            convertToMD(Rest, <<>>, <<SoFar/binary, UserName/binary>>,
+                        State, text)
+    end;
+convertToMD(<<Char:8, Rest/binary>>, Token, SoFar, State, mention) ->
+    convertToMD(Rest, <<Token/binary, Char:8>>, SoFar, State, mention);
 
+convertToMD(<<"<@", Rest/binary>>, _Token, SoFar, State, text) ->
+    convertToMD(Rest, <<>>, SoFar, State, mention);
+convertToMD(<<"<", Rest/binary>>, _Token, SoFar, State, text) ->
+    convertToMD(Rest, {<<>>, <<>>}, SoFar, State, url);
+convertToMD(<<":grinning:", Rest/binary>>, Token, SoFar, State, text) ->
+    convertToMD(Rest, Token, <<SoFar/binary, ":D">>, State, text);
+convertToMD(<<":slightly_smiling_face:", Rest/binary>>, Token, SoFar, State, text) ->
+    convertToMD(Rest, Token, <<SoFar/binary, ":-)">>, State, text);
+convertToMD(<<":wink:", Rest/binary>>, Token, SoFar, State, text) ->
+    convertToMD(Rest, Token, <<SoFar/binary, ";-)">>, State, text);
+convertToMD(<<":heart:", Rest/binary>>, Token, SoFar, State, text) ->
+    convertToMD(Rest, Token, <<SoFar/binary, "<3">>, State, text);
+convertToMD(<<":astonished:", Rest/binary>>, Token, SoFar, State, text) ->
+    convertToMD(Rest, Token, <<SoFar/binary, ":O">>, State, text);
+convertToMD(<<":cry:", Rest/binary>>, Token, SoFar, State, text) ->
+    convertToMD(Rest, Token, <<SoFar/binary, ":,(">>, State, text);
+convertToMD(<<":stuck_out_tongue:", Rest/binary>>, Token, SoFar, State, text) ->
+    convertToMD(Rest, Token, <<SoFar/binary, ":P">>, State, text);
+convertToMD(<<Char:8, Rest/binary>>, <<>>, SoFar, State, text) ->
+    convertToMD(Rest, <<>>, <<SoFar/binary, Char:8>>, State, text).
 

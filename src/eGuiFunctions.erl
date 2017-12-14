@@ -2124,13 +2124,13 @@ saveFile(FileName, Img, CT) ->
     Width   = wxImage:getWidth(Image),
     Height  = wxImage:getHeight(Image),
     Options = [{quality, ?wxIMAGE_QUALITY_HIGH}],
-    Bitmap = case Width > 1024 of
-                 true ->
-                     NewHeight = round(1024/Width * Height),
-                     wxBitmap:new(wxImage:scale(Image, 1024, NewHeight, Options));
-                 false ->
-                     wxBitmap:new(Image)
-             end,
+    Bitmap  = case Width > 1024 of
+                  true ->
+                      NewHeight = round(1024/Width * Height),
+                      wxBitmap:new(wxImage:scale(Image, 1024, NewHeight, Options));
+                  false ->
+                      wxBitmap:new(Image)
+              end,
     case wxBitmap:saveFile(Bitmap, FileName, ?wxBITMAP_TYPE_PNG) of
         true ->
             {CT, list_to_binary(FileName)};
