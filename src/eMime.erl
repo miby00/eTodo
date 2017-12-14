@@ -55,7 +55,7 @@ doConstructMail(HeaderStart, UserName, Subject, To, Messages) ->
          ?LF,
          ?BD, ?LF,
          "Content-Type: text/html; charset=\"UTF-8\"", ?LF,
-         "Content-Transfer-Encoding: quoted-printable", ?LF,
+         "Content-Transfer-Encoding: base64", ?LF,
          ?LF,
          body(UserName, Messages), ?LF,
          addMimeParts(Messages),
@@ -67,14 +67,15 @@ body(UserName, Messages) ->
     StyleSheet   = filename:join([getRootDir(), "css", "mail.css"]),
     {ok, Styles} = file:read_file(StyleSheet),
     Messages2    = replaceParts(Messages, <<>>),
-    encodeQuotedPrintable(["<!DOCTYPE html><html>",
-                           [headTag(
-                              [titleTag(["eTodo - ", UserName]),
-                               metaTag([{"http-equiv", "Content-Type"},
-                                        {content, "text/html; charset=UTF-8"}]),
-                               styleTag([{type, "text/css"}], Styles)
-                              ]),
-                            bodyTag([Messages2])]]).
+    encodeBase64(
+      iolist_to_binary(["<!DOCTYPE html><html>",
+                        [headTag(
+                           [titleTag(["eTodo - ", UserName]),
+                            metaTag([{"http-equiv", "Content-Type"},
+                                     {content, "text/html; charset=UTF-8"}]),
+                            styleTag([{type, "text/css"}], Styles)
+                           ]),
+                         bodyTag([Messages2])]])).
 
 addMimeParts(Messages) ->
     Parts = findParts(Messages, []),
