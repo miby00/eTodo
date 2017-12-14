@@ -992,6 +992,8 @@ handle_cast(updateExternalUsers, State) ->
     {noreply, State};
 handle_cast({updateStatus, Status, StatusMsg}, State) ->
     eGuiFunctions:setUserStatus(Status, State),
+    eWeb:setStatusUpdate(State#guiState.user, Status, StatusMsg),
+
     wxComboBox:setValue(obj("userStatusMsg", State), StatusMsg),
 
     MsgTop   = obj("msgTopPanel",   State),
