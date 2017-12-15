@@ -1339,6 +1339,8 @@ getPortrait(User) ->
 %% Notes    :
 %%======================================================================
 generateSystemMsg(system, Text) ->
+    Portrait  = getRootDir() ++ "/Icons/eTodo.png",
+    WPortrait = "/priv/Icons/eTodoBiggest.png",
     {tableTag([{cellspacing, "0"}, {cellpadding, "10"}],
               [trTag([tdTag([{colspan, 3}], [])]),
                trTag(
@@ -1349,18 +1351,27 @@ generateSystemMsg(system, Text) ->
                                 toStr(time(), time))),
                   tdTag([{valign, "top"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions1, "eTodo"))]),
-               trTag([tdTag(), tdTag([{bgcolor, ?Background}], []),
-                      tdTag([{bgcolor, ?Background}],
+               trTag(
+                   [tdTag(),
+                    tdTag([{valign, "top"}, {align, center}, {bgcolor, ?Background}],
+                          imgTag([{src, Portrait}, {height, "45"}, {width, "45"}])),
+                    tdTag([{bgcolor, ?Background}],
                           fontTag(?MsgOptions1, eMd2Html:convert(Text)))])]),
      tableTag(
        [trTag(
           [tdTag([{class, "msgImg"}],
                  imgTag([{src, "/priv/Icons/etodoChat.png"}])),
-           tdTag([{class, "msgTime"}], toStr(time(), time)),
+           tdTag([{class, "msgTime textCenter"}], toStr(time(), time)),
            tdTag([{class, "msgText"}], "eTodo")]),
-        trTag([tdTag(), tdTag([{colspan, 2}], eMd2Html:convert(Text, "/priv"))])])};
+        trTag(
+            [tdTag(),
+             tdTag([{class, "portraitCol"}],
+                   imgTag([{src, WPortrait}, {class, "portrait"}])),
+             tdTag(eMd2Html:convert(Text, "/priv"))])])};
 generateSystemMsg(Uid, Text) ->
     UidStr = eTodoUtils:convertUid(Uid),
+    Portrait = getRootDir() ++ "/Icons/eTodo.png",
+    WPortrait = "/priv/Icons/eTodoBiggest.png",
     {tableTag([{cellspacing, "0"}, {cellpadding, "10"}],
               [trTag([tdTag([{colspan, 3}], [])]),
                trTag(
@@ -1372,29 +1383,41 @@ generateSystemMsg(Uid, Text) ->
                   tdTag([{valign, "top"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions1,
                                 aTag([{href, UidStr}], "eTodo")))]),
-               trTag([tdTag(), tdTag([{bgcolor, ?Background}], []),
-                      tdTag([{bgcolor, ?Background}],
+               trTag(
+                   [tdTag(),
+                    tdTag([{valign, "top"}, {align, center}, {bgcolor, ?Background}],
+                          imgTag([{src, Portrait}, {height, "45"}, {width, "45"}])),
+                    tdTag([{bgcolor, ?Background}],
                           fontTag(?MsgOptions1, eMd2Html:convert(Text)))])]),
      tableTag(
        [trTag(
           [tdTag([{class, "msgImg"}],
                  imgTag([{src, "/priv/Icons/etodoChat.png"}])),
-           tdTag([{class, "msgTime"}], toStr(time(), time)),
+           tdTag([{class, "msgTime textCenter"}], toStr(time(), time)),
            tdTag([{class, "msgText"}],
                  aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
                             http_uri:encode(UidStr)}], "eTodo"))]),
-        trTag([tdTag(), tdTag([{colspan, 2}], eMd2Html:convert(Text, "/priv"))])])}.
+        trTag(
+            [tdTag(),
+             tdTag([{class, "portraitCol"}],
+                   imgTag([{src, WPortrait}, {class, "portrait"}])),
+             tdTag(eMd2Html:convert(Text, "/priv"))])])}.
 
 generateSystemMsgEmail(User, Uid, Text) ->
-    ExtUrl = constructExternalUrl(User, Uid),
+    ExtUrl    = constructExternalUrl(User, Uid),
+    WPortrait = "/priv/Icons/eTodoBiggest.png",
 
     tableTag(
       [trTag(
          [tdTag([{class, "msgImg"}],
                 imgTag([{src, "/priv/Icons/etodoChat.png"}])),
-          tdTag([{class, "msgTime"}], toStr(time(), time)),
+          tdTag([{class, "msgTime textCenter"}], toStr(time(), time)),
           tdTag([{class, "msgText"}], aTag([{href, ExtUrl}], "eTodo"))]),
-       trTag([tdTag(), tdTag([{colspan, 2}], eMd2Html:convert(Text, "/priv"))])]).
+       trTag(
+           [tdTag(),
+            tdTag([{class, "portraitCol"}],
+                  imgTag([{src, WPortrait}, {class, "portrait"}])),
+            tdTag(eMd2Html:convert(Text, "/priv"))])]).
 
 constructExternalUrl(User, Uid) ->
     UidStr   = eTodoUtils:convertUid(Uid),
@@ -1414,6 +1437,9 @@ constructExternalUrl(User, Uid) ->
 %% Notes    :
 %%======================================================================
 generateAlarmMsg(timer, Text) ->
+    Portrait  = getRootDir() ++ "/Icons/eTodo.png",
+    WPortrait = "/priv/Icons/eTodoBiggest.png",
+
     {tableTag([{cellspacing, "0"}, {cellpadding, "10"}],
               [trTag([tdTag([{colspan, 3}], [])]),
                trTag(
@@ -1424,17 +1450,26 @@ generateAlarmMsg(timer, Text) ->
                                 toStr(time(), time))),
                   tdTag([{valign, "top"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions2, "Timer expired"))]),
-               trTag([tdTag(), tdTag([{bgcolor, ?Background}], []),
-                      tdTag([{bgcolor, ?Background}],
+               trTag(
+                   [tdTag(),
+                    tdTag([{valign, "top"}, {align, center}, {bgcolor, ?Background}],
+                          imgTag([{src, Portrait}, {height, "45"}, {width, "45"}])),
+                    tdTag([{bgcolor, ?Background}],
                           fontTag(?MsgOptions1, eMd2Html:convert(Text)))])]),
      tableTag(
        [trTag(
           [tdTag([{class, "msgImg"}],
                  imgTag([{src, "/priv/Icons/clockChat.png"}])),
-           tdTag([{class, "msgTime"}], toStr(time(), time)),
+           tdTag([{class, "msgTime textCenter"}], toStr(time(), time)),
            tdTag([{class, "msgText"}], "Timer expired")]),
-        trTag([tdTag(), tdTag([{colspan, 2}], eMd2Html:convert(Text, "/priv"))])])};
+        trTag(
+            [tdTag(),
+             tdTag([{class, "portraitCol"}],
+                   imgTag([{src, WPortrait}, {class, "portrait"}])),
+             tdTag(eMd2Html:convert(Text, "/priv"))])])};
 generateAlarmMsg(Uid, Text) ->
+    Portrait  = getRootDir() ++ "/Icons/eTodo.png",
+    WPortrait = "/priv/Icons/eTodoBiggest.png",
     UidStr = eTodoUtils:convertUid(Uid),
     {tableTag([{cellspacing, "0"}, {cellpadding, "10"}],
               [trTag([tdTag([{colspan, 3}], [])]),
@@ -1447,29 +1482,41 @@ generateAlarmMsg(Uid, Text) ->
                   tdTag([{valign, "top"}, {bgcolor, ?Background}],
                         fontTag(?HdrOptions2,
                                 aTag([{href, UidStr}], "eTodo")))]),
-               trTag([tdTag(), tdTag([{bgcolor, ?Background}], []),
-                      tdTag([{bgcolor, ?Background}],
+               trTag(
+                   [tdTag(),
+                    tdTag([{valign, "top"}, {align, center}, {bgcolor, ?Background}],
+                          imgTag([{src, Portrait}, {height, "45"}, {width, "45"}])),
+                    tdTag([{bgcolor, ?Background}],
                           fontTag(?MsgOptions1, eMd2Html:convert(Text)))])]),
      tableTag([{class, "msgAlarm"}],
               [trTag(
                  [tdTag([{class, "msgImg"}],
                         imgTag([{src, "/priv/Icons/clockChat.png"}])),
-                  tdTag([{class, "msgTime"}], toStr(time(), time)),
+                  tdTag([{class, "msgTime textCenter"}], toStr(time(), time)),
                   tdTag([{class, "msgText"}],
                         aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
                                    http_uri:encode(UidStr)}], "eTodo"))]),
-               trTag([tdTag(), tdTag([{colspan, 2}], eMd2Html:convert(Text, "/priv"))])])}.
+               trTag(
+                   [tdTag(),
+                    tdTag([{class, "portraitCol"}],
+                          imgTag([{src, WPortrait}, {class, "portrait"}])),
+                    tdTag(eMd2Html:convert(Text, "/priv"))])])}.
 
 generateAlarmMsgEmail(User, Uid, Text) ->
-    ExtUrl = constructExternalUrl(User, Uid),
+    ExtUrl    = constructExternalUrl(User, Uid),
+    WPortrait = "/priv/Icons/eTodoBiggest.png",
     tableTag([{class, "msgAlarm"}],
              [trTag(
                 [tdTag([{class, "msgImg"}],
                        imgTag([{src, "/priv/Icons/clockChat.png"}])),
-                 tdTag([{class, "msgTime"}], toStr(time(), time)),
+                 tdTag([{class, "msgTime textCenter"}], toStr(time(), time)),
                  tdTag([{class, "msgText"}],
                        aTag([{href, ExtUrl}], "eTodo"))]),
-              trTag([tdTag(), tdTag([{colspan, 2}], eMd2Html:convert(Text, "/priv"))])]).
+              trTag(
+                  [tdTag(),
+                   tdTag([{class, "portraitCol"}],
+                         imgTag([{src, WPortrait}, {class, "portrait"}])),
+                   tdTag(eMd2Html:convert(Text, "/priv"))])]).
 
 %%======================================================================
 %% Function :
