@@ -458,12 +458,11 @@ sendMsg(User, State, JSON, Channel, Text) ->
 
 sendMsgEntry(#{<<"attachments">> := [#{<<"image_url">>    := Image,
                                        <<"title">>        := Title,
-                                       <<"footer">>       := Footer,
-                                       <<"title_link">>   := TitleLink}|_]},
+                                       <<"footer">>       := Footer}|_]},
              From, To, Text, State) ->
     Text2   = convertToMD(Text, State),
     Footer2 = convertToMD(Footer, State),
-    MsgText = <<"### [", Title/binary, "](", TitleLink/binary, ")\n",
+    MsgText = <<"### [", Title/binary, "](", Image/binary, ")\n",
                 "![", Title/binary, "](", Image/binary, ")\n\n",
                 "*", Footer2/binary, "*\n\n", Text2/binary>>,
     sendToETodo(From, To, MsgText);
@@ -509,7 +508,6 @@ setStatusText(State, User, StatusTxt) ->
 
 myUser(User, #state{slackUsers = SlackUsers, userProfile = Profile}) ->
     MyEmail = maps:get(<<"email">>, Profile, <<"my_email">>),
-    io:format("~p~n", [Profile]),
     myUser(User, SlackUsers, MyEmail).
 
 myUser(_User, [], _MyEmail) ->

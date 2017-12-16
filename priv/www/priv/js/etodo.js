@@ -416,7 +416,10 @@ var eTodo;
 
     function handleResult(responseText, status) {
         "use strict";
-        if (status === 200 && responseText !== "noMessages") {
+        if (responseText === "noAccess") {
+            window.open('/eTodo/eWeb:index', '_self');
+            return;
+        } else if (status === 200 && responseText !== "noMessages") {
             document.getElementById('messageField').innerHTML = responseText;
         }
         setTimeout(checkForMessage, 1000);

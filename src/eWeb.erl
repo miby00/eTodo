@@ -403,7 +403,7 @@ handle_call({checkCredentials, _SessionId, Env, Input}, _From,
             {reply, HtmlPage, State}
     end;
 
-handle_call({call, Message = {_Message, SessionId, Env, _Input}, Timeout}, From,
+handle_call({call, Message = {Op, SessionId, Env, _Input}, Timeout}, From,
             State = #state{headers = SessionHdrs, key = Key}) ->
     State2 = State#state{headers = keepAliveSessions(SessionHdrs)},
     WUser  = getUser(Env, Key),
@@ -413,8 +413,14 @@ handle_call({call, Message = {_Message, SessionId, Env, _Input}, Timeout}, From,
                 true ->
                     handle_call(Message, From, State3);
                 false ->
-                    HtmlPage = removeCookie("eSession", redirect("login", Env)),
-                    {reply, HtmlPage, State}
+                    case Op of
+                        checkForMessage ->
+                            {reply, "noAccess", State};
+                        _ ->
+                            HtmlPage = removeCookie("eSession",
+                                                    redirect("login", Env)),
+                            {reply, HtmlPage, State}
+                    end
             end;
         {true, Pid, State3} ->
             Headers2 = getHeaders(SessionId, State3),
