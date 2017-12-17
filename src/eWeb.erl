@@ -1204,7 +1204,7 @@ doStartWebServer(Port, MaxPort) ->
                                                        {keyfile,    KeyFile},
                                                        {cacertfile, CACert}]}},
                                  {ipfamily, inet},
-                                 {erl_script_alias, {"/eTodo", [eWeb]}},
+                                 {erl_script_alias, {"/eTodo", [eWeb, eWebPlugin]}},
                                  {error_log,    "error.log"},
                                  {security_log, "security.log"},
                                  {transfer_log, "transfer.log"},
