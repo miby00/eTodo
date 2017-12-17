@@ -54,7 +54,10 @@ doSlackCallback(_SessioId, _Env, Input) ->
     case httpc:request(get, {Url, ""}, [],[{body_format, binary}]) of
         {ok, {{_, 200, _}, _Headers, JSON}} ->
             JMap = jsx:decode(JSON, [return_maps]),
-            [headTag(), bodyTag(pTag(maps:get(<<"access_token">>, JMap, JSON)))];
+            AccessToken = maps:get(<<"access_token">>, JMap, JSON),
+            TokenText   = "Please insert the token below into sys.config file "
+                          "and restart eTodo. Happy slacking with eTodo!",
+            [headTag(), bodyTag([pTag(TokenText), pTag(AccessToken)])];
         _ ->
             [headTag(), bodyTag(pTag("Call failed"))]
     end.
