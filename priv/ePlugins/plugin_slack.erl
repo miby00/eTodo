@@ -11,12 +11,9 @@
 %%%    (Only one app for all users per workspace is needed)
 %%% 2) Configure redirect url to:
 %%%    https://localhost:*PORT*/eTodo/eWebPlugin:slackCallback
-%%% 3) Enter ClientId and Client Secret to sys.config, rebuild, restart.
-%%% 4) Make sure web gui is running at port *PORT*.
-%%% 5) Start Web Gui, enter url:
-%%%    https://*ETODO*:*PORT*/eTodo/eWebPlugin:slackAuth
-%%% 6) Copy the slack token given as a response, to the sys.config file.
-%%% 7) Rebuild, restart eTodo, you should be up and running.
+%%% 3) Rightclick in task list to get menu, choose generate token.
+%%% 4) Copy the slack token given as a response, to the sys.config file.
+%%% 5) Rebuild, restart eTodo, you should be up and running.
 %%% @end
 %%% Created : 08 July 2013 by Mikael Bylund <mikael.bylund@gmail.com>
 %%%-------------------------------------------------------------------
@@ -113,7 +110,17 @@ terminate(_Reason, _State) -> ok.
 %% @spec getMenu(ETodo, State) -> {ok, [{menuOption, menuText}, ...], NewState}
 %% @end
 %%--------------------------------------------------------------------
-getMenu(_ETodo, State) -> {ok, [], State}.
+getMenu(_ETodo, State) ->
+    case eWeb:getPort() of
+        -1 ->
+            {ok, [{1550, "Add user(s)"},
+                  {1551, "Add channel(s)"}], State};
+        _ ->
+            {ok, [{1550, "Add user(s)"},
+                  {1551, "Add channel(s)"},
+                  divider,
+                  {1552, "Create Slack token"}], State}
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -261,8 +268,74 @@ eSetWorkLogDate(_Dir, _User, _Date, State) ->
 %%       NewState
 %% @end
 %%--------------------------------------------------------------------
-eMenuEvent(_EScriptDir, _User, _MenuOption, _ETodo, _MenuText, State) ->
+eMenuEvent(_EScriptDir, ETodoUser, 1550, _ETodo, _MenuText,
+           State = #state{frame = Frame}) ->
+    Users    = getUsers(State#state.slackUsers),
+    MultiDlg = wxMultiChoiceDialog:new(Frame,
+                                       "Choose which users to add",
+                                       "Add users", Users),
+    wxMultiChoiceDialog:setSize(MultiDlg, {500, 500}),
+    case wxMultiChoiceDialog:showModal(MultiDlg) of
+        ?wxID_OK ->
+            MSel = wxMultiChoiceDialog:getSelections(MultiDlg),
+            [addExternalUser(ETodoUser, User, Users) || User <- MSel];
+        ?wxID_CANCEL ->
+            ok
+    end,
+    wxMultiChoiceDialog:destroy(MultiDlg),
+    State;
+eMenuEvent(_EScriptDir, ETodoUser, 1551, _ETodo, _MenuText,
+           State = #state{frame = Frame}) ->
+    Channels = getChannels(State#state.slackChannels),
+    MultiDlg = wxMultiChoiceDialog:new(Frame,
+                                       "Choose which channels to add",
+                                       "Add channel", Channels),
+    wxMultiChoiceDialog:setSize(MultiDlg, {500, 500}),
+    case wxMultiChoiceDialog:showModal(MultiDlg) of
+        ?wxID_OK ->
+            MSel = wxMultiChoiceDialog:getSelections(MultiDlg),
+            [addExternalUser(ETodoUser, Channel, Channels) || Channel <- MSel];
+        ?wxID_CANCEL ->
+            ok
+    end,
+    wxMultiChoiceDialog:destroy(MultiDlg),
+    State;
+eMenuEvent(_EScriptDir, _User, 1552, _ETodo, _MenuText,
+           State = #state{frame = Frame}) ->
+    Cid  = application:get_env(eTodo, slackClientId,     ""),
+    CSec = application:get_env(eTodo, slackClientSecret, ""),
+
+    Entry1Dlg = wxTextEntryDialog:new(Frame, "Enter client id for slack app"),
+    wxTextEntryDialog:setValue(Entry1Dlg, Cid),
+    case wxTextEntryDialog:showModal(Entry1Dlg) of
+        ?wxID_OK ->
+            Value1 = wxTextEntryDialog:getValue(Entry1Dlg),
+            application:set_env(eTodo, slackClientId, Value1);
+        ?wxID_CANCEL ->
+            ok
+    end,
+
+    wxTextEntryDialog:destroy(Entry1Dlg),
+
+    Entry2Dlg = wxTextEntryDialog:new(Frame, "Enter client secret for slack app"),
+    wxTextEntryDialog:setValue(Entry2Dlg, CSec),
+    case wxTextEntryDialog:showModal(Entry2Dlg) of
+        ?wxID_OK ->
+            Value2 = wxTextEntryDialog:getValue(Entry2Dlg),
+            application:set_env(eTodo, slackClientSecret, Value2);
+        ?wxID_CANCEL ->
+            ok
+    end,
+
+    wxTextEntryDialog:destroy(Entry2Dlg),
+
+    PortStr = integer_to_list(eWeb:getPort()),
+    AuthUrl = "https://localhost:" ++ PortStr ++ "/eTodo/eWebPlugin:slackAuth",
+    wx_misc:launchDefaultBrowser(AuthUrl),
+    State;
+eMenuEvent(_EScriptDir, _User, _MenuEvent, _ETodo, _MenuText, State) ->
     State.
+
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -693,3 +766,43 @@ convertToMD(<<":stuck_out_tongue:", Rest/binary>>, Token, SoFar, State, text) ->
 convertToMD(<<Char:8, Rest/binary>>, <<>>, SoFar, State, text) ->
     convertToMD(Rest, <<>>, <<SoFar/binary, Char:8>>, State, text).
 
+addExternalUser(ETodoUser, ExternalUser, UsersOrChannels) ->
+    StrExternalUser = lists:nth(ExternalUser + 1, UsersOrChannels),
+    {ExtUserDesc, ExtUser} = ePluginInterface:getPeerInfo(StrExternalUser),
+    ePluginInterface:saveExternalUser(ETodoUser,
+                                      list_to_binary(ExtUserDesc),
+                                      list_to_binary(ExtUser)).
+
+getUsers(SlackUsers) ->
+    getUsers(SlackUsers, []).
+
+getUsers([], Acc) ->
+    Sort = fun(X, Y) ->
+                string:to_lower(X) < string:to_lower(Y)
+           end,
+    lists:sort(Sort, Acc);
+getUsers([SlackUser|Rest], Acc) ->
+    ID       = maps:get(<<"id">>,           SlackUser),
+    Profile  = maps:get(<<"profile">>,      SlackUser),
+    RealName = maps:get(<<"real_name">>,    Profile),
+    DispName = maps:get(<<"display_name">>, Profile, RealName),
+    UserName = case DispName of
+                   <<>> ->
+                       <<"Slack - ", RealName/binary, $<, $!, ID/binary, $>>>;
+                   _ ->
+                       <<"Slack - ", DispName/binary, $<, $!, ID/binary, $>>>
+               end,
+    getUsers(Rest, [unicode:characters_to_list(UserName, utf8)|Acc]).
+
+getChannels(SlackChannels) ->
+    getChannels(SlackChannels, []).
+
+getChannels([], Acc) ->
+    Sort = fun(X, Y) ->
+        string:to_lower(X) < string:to_lower(Y)
+           end,
+    lists:sort(Sort, Acc);
+getChannels([SlackChannel|Rest], Acc) ->
+    Name    = maps:get(<<"name">>, SlackChannel),
+    Channel = <<"Slack - ", Name/binary, $<, $#, Name/binary, $>>>,
+    getChannels(Rest, [unicode:characters_to_list(Channel, utf8)|Acc]).

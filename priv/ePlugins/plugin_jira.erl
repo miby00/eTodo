@@ -265,7 +265,7 @@ eMenuEvent(_EScriptDir, User, 1501, _ETodo, _MenuText,
         ?wxID_CANCEL ->
             ok
     end,
-    wxMultiChoiceDialog:destroy(EntryDlg),
+    wxTextEntryDialog:destroy(EntryDlg),
     State;
 eMenuEvent(_EScriptDir, User, 1502, _ETodo, _MenuText,
            State = #state{jiraUrl = JiraUrl, jiraSearch = Search,
