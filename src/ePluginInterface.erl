@@ -298,7 +298,7 @@ systemEntry(Text) ->
 msgEntry(User, Users, Text) when is_binary(User), is_binary(Text) ->
     Users2 = [unicode:characters_to_list(To, utf8) || To <- Users],
     ePeerEM:msgEntry(unicode:characters_to_list(User, utf8),
-                    Users2, unicode:characters_to_list(Text, utf8));
+                     Users2, unicode:characters_to_list(Text, utf8));
 msgEntry(User, Users, Text) ->
     ePeerEM:msgEntry(User, Users, Text).
 

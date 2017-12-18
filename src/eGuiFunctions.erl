@@ -1553,7 +1553,12 @@ setPortrait(Peer, State) ->
                    true ->
                        getRootDir() ++ "/Icons/portrait_" ++ Peer ++ ".png";
                    false ->
-                       getRootDir() ++ "/Icons/portrait.png"
+                       case Peer of
+                           "Slack - " ++ SlackUser ->
+                               setPortrait(SlackUser, State);
+                           _ ->
+                               getRootDir() ++ "/Icons/portrait.png"
+                       end
                end,
     Png = wxImage:new(FileName),
     Bitmap = wxBitmap:new(Png),
