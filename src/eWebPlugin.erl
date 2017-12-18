@@ -12,6 +12,27 @@
 %% API
 -export([slackAuth/3, slackCallback/3]).
 
+-define(styling,
+        "body {\n"
+        "    background: black;\n"
+        "    color: white;\n"
+        "}\n\n"
+        "#accessToken {\n"
+        "    font-size: 1.0em;\n"
+        "    font-family: Impact, Charcoal, sans-serif;\n"
+        "    text-align: center;\n"
+        "}\n\n"
+        "#tokenText {\n"
+        "    font-size: 2em;\n"
+        "    font-family: Impact, Charcoal, sans-serif;\n"
+        "    text-align: center;\n"
+        "}\n\n"
+        "#eTodoHeading {\n"
+        "    display: block;\n"
+        "    margin-left: auto;\n"
+        "    margin-right: auto;\n"
+        "}\n").
+
 -import(eHtml, [htmlTag/0,   htmlTag/1,   htmlTag/2,
                 headTag/0,   headTag/1,   headTag/2,
                 bodyTag/0,   bodyTag/1,   bodyTag/2,
@@ -55,9 +76,16 @@ doSlackCallback(_SessioId, _Env, Input) ->
         {ok, {{_, 200, _}, _Headers, JSON}} ->
             JMap = jsx:decode(JSON, [return_maps]),
             AccessToken = maps:get(<<"access_token">>, JMap, JSON),
-            TokenText   = "Please insert the token below into sys.config file "
-                          "and restart eTodo. Happy slacking with eTodo!",
-            [headTag(), bodyTag([pTag(TokenText), pTag(AccessToken)])];
+            TokenText   = "Success, copy token to sys.config and restart",
+            [headTag(styleTag([{type, "text/css"}], ?styling)),
+             bodyTag([pTag([{id, "accessToken"}], AccessToken),
+                      pTag([{id, "tokenText"}],   TokenText),
+                      imgTag([{src, "/priv/Icons/ETodo-300.png"},
+                              {alt, "eTodo heading"},
+                              {id,  "eTodoHeading"}])])];
         _ ->
-            [headTag(), bodyTag(pTag("Call failed"))]
+            FailedText = "We failed to create a token, please try again...",
+            [headTag(styleTag([{type, "text/css"}], ?styling)),
+             bodyTag(pTag([{id, "tokenText"}], FailedText))]
     end.
+
