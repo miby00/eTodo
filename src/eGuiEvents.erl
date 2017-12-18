@@ -1156,6 +1156,20 @@ userCheckBoxEvent(_Type, _Id, _Frame, State) ->
 
 emailCheckBoxEvent(right_down, Id, Frame, State) ->
     addOwnerButtonEvent(right_down, Id, Frame, State);
+emailCheckBoxEvent(command_checklistbox_toggled, _Id, _Frame,
+                   State  = #guiState{msgCfgDlg = Settings, user = User}) ->
+    Obj1 = obj("userCheckBox",   State),
+    Obj2 = obj("emailCheckBox",  State),
+
+    UseFilter     = wxXmlResource:xrcctrl(Settings, "filterMsgCBox",  wxCheckBox),
+    UserChoice    = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxCheckListBox),
+    Checked1      = eGuiFunctions:getCheckedItems(UserChoice),
+    Checked2      = eGuiFunctions:getCheckedItems(Obj1),
+    Checked3      = eGuiFunctions:getCheckedItems(Obj2),
+    Checked       = Checked1 ++ Checked2 ++ Checked3,
+
+    Cfg          = {wxCheckBox:isChecked(UseFilter), Checked},
+    updateMsgWindow(State#guiState{msgCfg = Cfg}, User);
 emailCheckBoxEvent(_Type, _Id, _Frame, State) ->
     setPeerStatusIfNeeded(State).
 
@@ -1164,7 +1178,6 @@ userStatusChoiceEvent(_Type, _Id, _Frame, State) ->
 
 userStatusMsgEvent(_Type, _Id, _Frame, State) ->
     userStatusUpdate(State).
-
 
 %%====================================================================
 %% Manage bookmarks
