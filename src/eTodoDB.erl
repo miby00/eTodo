@@ -2088,8 +2088,8 @@ showInWorkLog(LW) ->
             true;
         false ->
             ({LW#logWork.hours, LW#logWork.minutes} =/= {0, 0}) and
-                                                                  (LW#logWork.hours =/= undefined) and
-                                                                                                     (LW#logWork.minutes =/= undefined)
+            (LW#logWork.hours =/= undefined) and
+            (LW#logWork.minutes =/= undefined)
     end.
 
 addToLoggedWork(LoggedWork, ShowInWL) ->

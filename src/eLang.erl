@@ -249,7 +249,8 @@ translate(Language, Component, wxMenu, GuiState) ->
     Pos = case Component of
               "fileMenu" -> 0;
               "editMenu" -> 1;
-              "helpMenu" -> 2
+              "viewMenu" -> 2;
+              "helpMenu" -> 3
           end,
     Translated = tr(Language, Component),
     wxMenuBar:setLabelTop(GuiState#guiState.menuBar, Pos, Translated);

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <wxFormBuilder_Project>
     <FileVersion major="1" minor="10" />
-    <object class="Project" expanded="0">
+    <object class="Project" expanded="1">
         <property name="class_decoration"></property>
         <property name="code_generation">XRC</property>
         <property name="disconnect_events">1</property>
@@ -474,6 +474,26 @@
                         <property name="permission">none</property>
                     </object>
                     <object class="wxMenuItem" expanded="0">
+                        <property name="bitmap">./Icons/network-small.png; Load From File</property>
+                        <property name="checked">0</property>
+                        <property name="enabled">1</property>
+                        <property name="help">Enter peer information needed to connect to other circles.</property>
+                        <property name="id">wxID_ANY</property>
+                        <property name="kind">wxITEM_NORMAL</property>
+                        <property name="label">Settings</property>
+                        <property name="name">settingsMenu</property>
+                        <property name="permission">none</property>
+                        <property name="shortcut"></property>
+                        <property name="unchecked_bitmap"></property>
+                        <event name="OnMenuSelection"></event>
+                        <event name="OnUpdateUI"></event>
+                    </object>
+                </object>
+                <object class="wxMenu" expanded="0">
+                    <property name="label">View</property>
+                    <property name="name">viewMenu</property>
+                    <property name="permission">protected</property>
+                    <object class="wxMenuItem" expanded="0">
                         <property name="bitmap">./Icons/link.png; Load From File</property>
                         <property name="checked">0</property>
                         <property name="enabled">1</property>
@@ -587,19 +607,23 @@
                         <property name="permission">none</property>
                     </object>
                     <object class="wxMenuItem" expanded="0">
-                        <property name="bitmap">./Icons/network-small.png; Load From File</property>
+                        <property name="bitmap"></property>
                         <property name="checked">0</property>
                         <property name="enabled">1</property>
-                        <property name="help">Enter peer information needed to connect to other circles.</property>
+                        <property name="help">Toggle filter messages.</property>
                         <property name="id">wxID_ANY</property>
                         <property name="kind">wxITEM_NORMAL</property>
-                        <property name="label">Settings</property>
-                        <property name="name">settingsMenu</property>
+                        <property name="label">Toggle filter messages</property>
+                        <property name="name">toggleFilterMenuItem</property>
                         <property name="permission">none</property>
-                        <property name="shortcut"></property>
+                        <property name="shortcut">Ctrl+F</property>
                         <property name="unchecked_bitmap"></property>
                         <event name="OnMenuSelection"></event>
                         <event name="OnUpdateUI"></event>
+                    </object>
+                    <object class="separator" expanded="0">
+                        <property name="name">m_separator15</property>
+                        <property name="permission">none</property>
                     </object>
                 </object>
                 <object class="wxMenu" expanded="0">

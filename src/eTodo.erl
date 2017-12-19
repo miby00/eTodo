@@ -814,11 +814,18 @@ handle_cast({alarmEntry, Uid, Text}, State) ->
     State3   = chatMsgStatusBar(alarmEntry, "Alarm message received.", State2),
     {noreply, State3};
 handle_cast({loggedIn, User}, State = #guiState{userStatus = Users}) ->
-    UserObj      = obj("userCheckBox",  State),
-    EmailCBObj   = obj("emailCheckBox", State),
     setStatusText(State, User ++ " logged in.", 2),
-    UIndex = wxCheckListBox:getCount(UserObj),
-    wxCheckListBox:append(UserObj, User),
+    UserObj      = obj("userCheckBox",  State),
+
+    LoggedIn   = [ETodoUser || #userStatus{userName = ETodoUser} <- Users],
+    ETodoUsers = lists:sort(fun(U1, U2) ->
+                                    string:to_lower(U1) < string:to_lower(U2)
+                            end, [User|LoggedIn]),
+    wxCheckListBox:clear(UserObj),
+    [wxCheckListBox:append(UserObj, ETodoUser) || ETodoUser <- ETodoUsers],
+
+    EmailCBObj   = obj("emailCheckBox", State),
+
     Users2     = lists:keydelete(User, #userStatus.userName, Users),
     UserStatus = #userStatus{userName = User},
     State2 = userStatusUpdate(State#guiState{userStatus = [UserStatus|Users2]}),
@@ -826,6 +833,7 @@ handle_cast({loggedIn, User}, State = #guiState{userStatus = Users}) ->
         Index when Index >= 0 ->
             Checked = wxCheckListBox:isChecked(EmailCBObj, Index),
             wxCheckListBox:delete(EmailCBObj, Index),
+            UIndex = wxCheckListBox:findString(UserObj, User),
             wxCheckListBox:check(UserObj, UIndex, [{check, Checked}]);
         _ ->
             ok
@@ -1003,7 +1011,7 @@ handle_cast({updateStatus, Status, StatusMsg}, State) ->
 
     wxPanel:layout(MsgTop),
     wxPanel:refresh(MsgTop),
-    
+
     setScrollBar(CHtmlWin),
     setScrollBar(RHtmlWin),
     setScrollBar(SHtmlWin),
@@ -1370,7 +1378,8 @@ connectMainFrame(Frame, Dict) ->
                  "moveUpMenu", "moveDownMenu", "addTaskMenu",
                  "helpMenu1", "updateMenu", "sendChatMenu",
                  "replyMenu", "replyAllMenu", "setAvatarMenuItem",
-                 "backupMenuItem", "restoreMenuItem", "pluginMenuItem"],
+                 "backupMenuItem", "restoreMenuItem", "pluginMenuItem",
+                 "toggleFilterMenuItem"],
 
     MenuChoice = ["userStatusChoice", "statusChoice", "priorityChoice",
                   "taskListChoice", "ownerChoice"],

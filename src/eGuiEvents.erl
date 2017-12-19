@@ -141,6 +141,7 @@
          timerToolEvent/4,
          todoDownToolEvent/4,
          todoUpToolEvent/4,
+         toggleFilterMenuItemEvent/4,
          undoMenuEvent/4,
          undoToolEvent/4,
          updateBookmarkButtonEvent/4,
@@ -359,10 +360,6 @@ loginToCircle(Default, OldUser, User, Circle, Password, Md5Pwd,
     State6 = updateMsgWindow(State5, User),
     eSMTP:setUser(User),
     eSMTP:updateConfig(),
-
-    SendEmailCB = obj("emailCheckBox", State6),
-    SMTPEnabled = default(UserCfg#userCfg.smtpEnabled, false),
-    wxCheckListBox:enable(SendEmailCB, [{enable, SMTPEnabled}]),
 
     setStyleSheet(User, UserCfg),
     focusAndSelect(State6#guiState{loggedIn = true}).
@@ -973,6 +970,16 @@ timerToolEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
     State#guiState{timerDlgOpen = true}.
 
 %%====================================================================
+%% Toggle filter messages
+%%====================================================================
+toggleFilterMenuItemEvent(_Type, _Id, _Frame,
+                          State  = #guiState{msgCfgDlg = Settings, user = User}) ->
+    UseFilter = wxXmlResource:xrcctrl(Settings, "filterMsgCBox",  wxCheckBox),
+    IsChecked = wxCheckBox:isChecked(UseFilter),
+    wxCheckBox:setValue(UseFilter, not IsChecked),
+    setMsgFilter(State, not IsChecked, Settings, User).
+
+%%====================================================================
 %% Toolbar Create new task at top of task list
 %%====================================================================
 todoUpToolEvent(_Type, _Id, _Frame, State = #guiState{user    = User,
@@ -1151,6 +1158,17 @@ userCancelEvent(_Type, _Id, _Frame, State = #guiState{usersDlg = Users}) ->
     wxDialog:hide(Users),
     State.
 
+userCheckBoxEvent(command_checklistbox_toggled, _Id, _Frame,
+                  State  = #guiState{msgCfgDlg = Settings, user = User}) ->
+    UseFilter = wxXmlResource:xrcctrl(Settings,  "filterMsgCBox",  wxCheckBox),
+    IsChecked = wxCheckBox:isChecked(UseFilter),
+
+    case IsChecked of
+        true ->
+            setMsgFilter(State, IsChecked, Settings, User);
+        false ->
+            State
+    end;
 userCheckBoxEvent(_Type, _Id, _Frame, State) ->
     setPeerStatusIfNeeded(State).
 
@@ -1158,20 +1176,31 @@ emailCheckBoxEvent(right_down, Id, Frame, State) ->
     addOwnerButtonEvent(right_down, Id, Frame, State);
 emailCheckBoxEvent(command_checklistbox_toggled, _Id, _Frame,
                    State  = #guiState{msgCfgDlg = Settings, user = User}) ->
-    Obj1 = obj("userCheckBox",   State),
-    Obj2 = obj("emailCheckBox",  State),
+    UseFilter = wxXmlResource:xrcctrl(Settings,  "filterMsgCBox",  wxCheckBox),
+    IsChecked = wxCheckBox:isChecked(UseFilter),
 
-    UseFilter     = wxXmlResource:xrcctrl(Settings, "filterMsgCBox",  wxCheckBox),
-    UserChoice    = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxCheckListBox),
-    Checked1      = eGuiFunctions:getCheckedItems(UserChoice),
-    Checked2      = eGuiFunctions:getCheckedItems(Obj1),
-    Checked3      = eGuiFunctions:getCheckedItems(Obj2),
-    Checked       = Checked1 ++ Checked2 ++ Checked3,
-
-    Cfg          = {wxCheckBox:isChecked(UseFilter), Checked},
-    updateMsgWindow(State#guiState{msgCfg = Cfg}, User);
+    case IsChecked of
+        true ->
+            setMsgFilter(State, IsChecked, Settings, User);
+        false ->
+            State
+    end;
 emailCheckBoxEvent(_Type, _Id, _Frame, State) ->
     setPeerStatusIfNeeded(State).
+
+setMsgFilter(State, IsChecked, Settings, User) ->
+    Obj1 = obj("userCheckBox",  State),
+    Obj2 = obj("emailCheckBox", State),
+
+    UserChoice = wxXmlResource:xrcctrl(Settings, "msgAgentChoice", wxCheckListBox),
+
+    Checked1   = eGuiFunctions:getCheckedItems(UserChoice),
+    Checked2   = eGuiFunctions:getCheckedItems(Obj1),
+    Checked3   = eGuiFunctions:getCheckedItems(Obj2),
+    Checked    = Checked1 ++ Checked2 ++ Checked3,
+
+    Cfg = {IsChecked, Checked},
+    updateMsgWindow(State#guiState{msgCfg = Cfg}, User).
 
 userStatusChoiceEvent(_Type, _Id, _Frame, State) ->
     userStatusUpdate(State).
@@ -2762,8 +2791,6 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     wxDialog:hide(Settings),
     eSMTP:updateConfig(),
 
-    SendEmailCB = obj("emailCheckBox", State),
-    wxCheckListBox:enable(SendEmailCB, [{enable, SMTPEnabled}]),
     State.
 
 setStyleSheet(User, #userCfg{theme = Selection}) ->

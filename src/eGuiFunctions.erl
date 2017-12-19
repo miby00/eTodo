@@ -1825,13 +1825,20 @@ fillEmailCheckBox(State = #guiState{user = User}) ->
                  (#conCfg{email    = ""})        -> false;
                  (#conCfg{})                     -> true
              end,
-    EmailUsers = lists:filter(Filter, eTodoDB:getConnections()),
+    ConWithEmail = lists:filter(Filter, eTodoDB:getConnections()),
+    EmailUsers   = [EmailUser || #conCfg{userName = EmailUser} <- ConWithEmail],
+    OffLineUsers = lists:filter(fun(EmailUser) ->
+                                    not ePeerCircle:isActivePeer(EmailUser)
+                                end, EmailUsers),
     wxCheckListBox:clear(EmailCheckBox),
-    [addIfOffline(EmailCheckBox, EmailUser) ||
-        #conCfg{userName = EmailUser} <- EmailUsers, EmailUser =/= User],
-    UserCfg  = eTodoDB:readUserCfg(User),
-    ExtUsers = getUsersWithEmail(UserCfg#userCfg.ownerCfg),
-    [wxCheckListBox:append(EmailCheckBox, ExtUser) || ExtUser <- ExtUsers].
+
+    UserCfg   = eTodoDB:readUserCfg(User),
+    ExtUsers  = getUsersWithEmail(UserCfg#userCfg.ownerCfg),
+    ExtUsers2 = lists:sort(fun(X, Y) ->
+                               string:to_lower(X) < string:to_lower(Y)
+                           end,
+                           ExtUsers ++ OffLineUsers),
+    [wxCheckListBox:append(EmailCheckBox, ExtUser) || ExtUser <- ExtUsers2].
 
 
 addIfEmail(Peer, Checked, State) ->
@@ -1843,14 +1850,6 @@ addIfEmail(Peer, Checked, State) ->
             Index = wxCheckListBox:getCount(EmailCheckBox),
             wxCheckListBox:append(EmailCheckBox, Peer),
             wxCheckListBox:check(EmailCheckBox, Index, [{check, Checked}])
-    end.
-
-addIfOffline(EmailCheckBox, EmailUser) ->
-    case ePeerCircle:isActivePeer(EmailUser) of
-        false ->
-            wxCheckListBox:append(EmailCheckBox, EmailUser);
-        true ->
-            ok
     end.
 
 getUsersWithEmail(undefined) -> [];
