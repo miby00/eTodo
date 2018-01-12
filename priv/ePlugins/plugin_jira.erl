@@ -242,7 +242,7 @@ eMenuEvent(_EScriptDir, _User, 1500, ETodo, _MenuText,
                                    BaseUrl ++ "/2/issue/" ++ Key, Frame),
                     doSetEstimate(SetEst,  BAuth,
                                   BaseUrl ++ "/2/issue/" ++ Key, Frame);
-                    ?wxID_CANCEL ->
+                ?wxID_CANCEL ->
                     ok
             end,
             wxMultiChoiceDialog:destroy(MultiDlg),
@@ -352,8 +352,7 @@ issueList2([], SoFar) ->
 issueList2([Feature| Rest], SoFar) ->
     FeatureRef   = binary_to_list(maps:get(<<"key">>, Feature)),
     Fields       = maps:get(<<"fields">>, Feature),
-    FeatureDesc  = unicode:characters_to_binary(maps:get(<<"summary">>, Fields),
-                                                utf8, latin1),
+    FeatureDesc  = toLatin1(maps:get(<<"summary">>, Fields)),
     FeatureMText = FeatureRef ++ ": " ++ binary_to_list(FeatureDesc),
     issueList2(Rest, [FeatureMText| SoFar]).
 
@@ -383,8 +382,7 @@ makeComment([_Value|Rest], Acc) ->
     makeComment(Rest, Acc).
 
 characters_to_binary(null)  -> <<>>;
-characters_to_binary(Value) ->
-    unicode:characters_to_binary(Value, utf8, latin1).
+characters_to_binary(Value) -> toLatin1(Value).
 
 get(Key, Map, Default) ->
     case maps:get(Key, Map, Default) of
@@ -426,12 +424,12 @@ filterWorkLogs(WorkLogs, JiraUser) when is_list(WorkLogs) ->
 filterWorkLogs([], _JiraUser, Acc) ->
     lists:reverse(Acc);
 filterWorkLogs([#{<<"author">>           := #{<<"name">>        := Name,
-                                             <<"emailAddress">> := Email},
+                                              <<"emailAddress">> := Email},
                   <<"comment">>          := Comment,
                   <<"started">>          := LogTime,
                   <<"id">>               := Id,
                   <<"timeSpentSeconds">> := TimeSpent}|Rest], JiraUser, Acc)
-    when (Name == JiraUser) ->
+  when (Name == JiraUser) ->
     <<LogDate:10/bytes, _/binary>> = LogTime,
     Acc2 = [{LogDate, #{name             => Name,
                         email            => Email,
@@ -491,19 +489,19 @@ httpPost(BAuth, Method, Body, Url, Frame) ->
     Options     = [{body_format,binary}],
     case httpc:request(Method, Request, [{url_encode, false}], Options) of
         {ok, {{_HTTPVersion, Status, _Reason}, _Headers, RBody}}
-            when (Status == 200) or (Status == 201) or (Status == 204) ->
+          when (Status == 200) or (Status == 201) or (Status == 204) ->
             eLog:log(debug, ?MODULE, init, [Method, Url, Body, RBody],
                      "http success", ?LINE),
             Body;
-            {ok, {{_HTTPVersion, _Error, Reason}, _Headers, RBody}} ->
-                eLog:log(debug, ?MODULE, init, [Method, Url, Body, RBody],
-                         "http failure", ?LINE),
-                MsgDlg = wxMessageDialog:new(Frame, "Error occured: " ++ Reason,
-                                             [{style,   ?wxICON_ERROR},
-                                              {caption, "Worklog failure"}]),
-                wxMessageDialog:showModal(MsgDlg),
-                wxMessageDialog:destroy(MsgDlg),
-                Body;
+        {ok, {{_HTTPVersion, _Error, Reason}, _Headers, RBody}} ->
+            eLog:log(debug, ?MODULE, init, [Method, Url, Body, RBody],
+                     "http failure", ?LINE),
+            MsgDlg = wxMessageDialog:new(Frame, "Error occured: " ++ Reason,
+                                         [{style,   ?wxICON_ERROR},
+                                          {caption, "Worklog failure"}]),
+            wxMessageDialog:showModal(MsgDlg),
+            wxMessageDialog:destroy(MsgDlg),
+            Body;
         Else ->
             eLog:log(debug, ?MODULE, init, [Method, Url, Body, Else],
                      "http failure", ?LINE),
@@ -590,3 +588,25 @@ verifyValue("DEV-" ++ Rest) ->
         _ ->
             false
     end.
+
+toLatin1(Bin) ->
+  toLatin1(Bin, <<>>).
+
+toLatin1(Bin, Acc) when is_binary(Bin) ->
+    case unicode:characters_to_binary(Bin, utf8, latin1) of
+        Binary when is_binary(Binary) ->
+            <<Acc/binary, Binary/binary>>;
+        {error, Binary, Rest} ->
+            BinRest = removeUtf8Char(Rest),
+            toLatin1(BinRest, <<Acc/binary, Binary/binary>>);
+        {incomplete, Binary, Rest} ->
+            BinRest = removeUtf8Char(Rest),
+            toLatin1(BinRest, <<Acc/binary, Binary/binary>>)
+    end.
+
+removeUtf8Char(<<2#0:1,    _Y:7, T/binary>>) -> T;
+removeUtf8Char(<<2#110:3,  _Y:13,T/binary>>) -> T;
+removeUtf8Char(<<2#1110:4, _Y:20,T/binary>>) -> T;
+removeUtf8Char(<<2#11110:5,_Y:27,T/binary>>) -> T;
+removeUtf8Char(<<_:8, T/binary>>)            -> T;
+removeUtf8Char(_)                            -> <<>>.
