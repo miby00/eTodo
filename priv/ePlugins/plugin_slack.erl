@@ -41,6 +41,8 @@ getName() -> "eSlack".
 
 getDesc() -> "An eTodo Slack integration.".
 
+-define(Timeout, 30000).
+
 -include_lib("wx/include/wx.hrl").
 
 -record(state, {frame,
@@ -77,7 +79,7 @@ init([WX, Frame]) ->
 startSetupWebsocket(Url, Token) ->
     {Server, Port, _} = getServerAndPort(Url),
     {ok, ConnPid}     = gun:open(Server, Port),
-    {ok, _Protocol}   = gun:await_up(ConnPid),
+    {ok, _Protocol}   = gun:await_up(ConnPid, ?Timeout),
     BinToken = list_to_binary(Token),
     Body     = <<"token=", BinToken/binary>>,
     Headers  = createHeaders(Token, Body, "application/x-www-form-urlencoded"),
@@ -89,7 +91,7 @@ getServerAndPort(Url) when is_binary(Url) ->
 getServerAndPort(Url) ->
     SchemeDefaults = http_uri:scheme_defaults() ++ [{wss,  443}, {ws, 80}],
     case http_uri:parse(Url, [{scheme_defaults, SchemeDefaults}]) of
-        {ok,{_Scheme,[], Server, Port, Path,[]}} ->
+        {ok,{_Scheme,[], Server, Port, Path, _QParam}} ->
             {Server, Port, Path};
         _ ->
             {Url, 443, ""}
@@ -353,7 +355,7 @@ handleInfo({gun_data, _Pid, Ref, fin, Body},
     WSUrl = maps:get(<<"url">>, JSON),
     {Server, Port, Path}  = getServerAndPort(WSUrl),
     {ok, ConnPid}   = gun:open(Server, Port),
-    {ok, _Protocol} = gun:await_up(ConnPid),
+    {ok, _Protocol} = gun:await_up(ConnPid, ?Timeout),
     gun:ws_upgrade(ConnPid, Path),
     NewRef = getUserInfo(State#state.slackConn, State#state.slackToken),
     State#state{wsCon = ConnPid, slackRef = NewRef};
