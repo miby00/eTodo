@@ -10,7 +10,7 @@
 -author("mikael.bylund@gmail.com").
 
 %% API
--export([convert/1, convert/2, dbg/0, dbg/1, debug/1, remInd/1]).
+-export([convert/1, convert/2, remInd/1]).
 
 -define(brTag, "<br />").
 
@@ -916,27 +916,6 @@ removeParam(<<>>, _NotModified, 0, SoFar) ->
     SoFar;
 removeParam(<<>>, NotModified, _Num, _SoFar) ->
     NotModified.
-
-%%%-------------------------------------------------------------------
-%%% Debug info
-%%%-------------------------------------------------------------------
-
-dbg() ->
-    redbug:stop(),
-    timer:sleep(500),
-    Dbg = ["eMd2Html:convert", "eMd2Html:parse"],
-    redbug:start(Dbg, [{msgs, 1000}, {time, 100000}]).
-
-dbg(Info) ->
-    redbug:stop(),
-    timer:sleep(500),
-    Info2 = ["eMd2Html:" ++ Value || Value <- Info],
-    redbug:start(Info2, [{msgs, 1000}, {time, 100000}]).
-
-debug(Info) ->
-    redbug:stop(),
-    timer:sleep(500),
-    redbug:start(Info, [{msgs, 1000}, {time, 100000}]).
 
 %%%-------------------------------------------------------------------
 %%% ConvertLineEnding
