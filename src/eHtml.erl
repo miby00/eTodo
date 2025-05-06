@@ -369,7 +369,7 @@ showLoggedWork(Date, [{Act, Desc} | Rest],
     Opts3 = [{class, "workLogValue workLogColBig"}],
     Row = trTag(Opts,
                 [tdTag(aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
-                                  http_uri:encode(UidStr)}], empty(Desc, Act))),
+                                  uri_string:quote(UidStr)}], empty(Desc, Act))),
                  tdTag(Opts3, hours(Act, D1) ++ ":" ++ minutes(Act, D1)),
                  tdTag(Opts3, hours(Act, D2) ++ ":" ++ minutes(Act, D2)),
                  tdTag(Opts2, hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
@@ -517,17 +517,17 @@ makeForm(User, Def) ->
               [trTag([tdTag([{id, "toolbar"}],
                             [aTag([{id, "createTodo"},
                                    {href, "/eTodo/eWeb:createTodo?list=" ++
-                                        http_uri:encode(Default)}],
+                                        uri_string:quote(Default)}],
                                   [imgTag([{src, "/priv/Icons/createNew.png"},
                                            {alt, "Create new"}])]),
                              aTag([{id, "message"},
                                    {href, "/eTodo/eWeb:message?list=" ++
-                                        http_uri:encode(Default)}],
+                                        uri_string:quote(Default)}],
                                   [imgTag([{src, "/priv/Icons/message.png"},
                                            {alt, "Messages"}])]),
                              aTag([{id, "settings"},
                                    {href, "/eTodo/eWeb:settings?list=" ++
-                                        http_uri:encode(Default)}],
+                                        uri_string:quote(Default)}],
                                   [imgTag([{src, "/priv/Icons/settings.png"},
                                            {alt, "Settings"}])])]),
                       tdTag(createForm(User, Default))])])].
@@ -666,7 +666,7 @@ settingsPage(User, TaskList) ->
                {value, "List tasks"},
                {onclick, "eTodo.openLink('/eTodo/eWeb"
                 ":listTodos?list=" ++
-                    http_uri:encode(List) ++ "');"}])].
+                    uri_string:quote(List) ++ "');"}])].
 
 %%======================================================================
 %% Function :
@@ -1396,7 +1396,7 @@ generateSystemMsg(Uid, Text) ->
            tdTag([{class, "msgTime textCenter"}], toStr(time(), time)),
            tdTag([{class, "msgText"}],
                  aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
-                            http_uri:encode(UidStr)}], "eTodo"))]),
+                            uri_string:quote(UidStr)}], "eTodo"))]),
         trTag(
             [tdTag(),
              tdTag([{class, "portraitCol"}],
@@ -1427,7 +1427,7 @@ constructExternalUrl(User, Uid) ->
     Host     = default(ConCfg#conCfg.host, "localhost"),
 
     "https://" ++ Host ++ ":" ++ PortStr ++
-        "/eTodo/eWeb:showTask?uid=" ++ http_uri:encode(UidStr).
+        "/eTodo/eWeb:showTask?uid=" ++ uri_string:quote(UidStr).
 
 %%======================================================================
 %% Function :
@@ -1495,7 +1495,7 @@ generateAlarmMsg(Uid, Text) ->
                   tdTag([{class, "msgTime textCenter"}], toStr(time(), time)),
                   tdTag([{class, "msgText"}],
                         aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
-                                   http_uri:encode(UidStr)}], "eTodo"))]),
+                                   uri_string:quote(UidStr)}], "eTodo"))]),
                trTag(
                    [tdTag(),
                     tdTag([{class, "portraitCol"}],
@@ -1637,15 +1637,12 @@ checkToken(Token, Char) when (Char == $>)    or
                              (Char == 12288) or
                              ((Char > 8191) and (Char < 8203)) ->
     Link = lists:flatten(Token),
-    case catch http_uri:parse(Link) of
-        {'EXIT', _} ->
-            false;
-        {error, _} ->
-            false;
-        {ok, Result} when element(3, Result) == [] ->
-            false;
+    case catch uri_string:parse(Link) of
+        #{host   := Host,
+          scheme := "https"} when (Host =/= "") ->
+              {true, "<a href='" ++ Link ++ "'>" ++ Link ++ "</a>"};
         _ ->
-            {true, "<a href='" ++ Link ++ "'>" ++ Link ++ "</a>"}
+            false
     end;
 checkToken(_Token, _Char) ->
     false.
@@ -1959,7 +1956,7 @@ showTimeReport2([Uid | Rest], Acc) ->
     showTimeReport2(Rest,
                     [trTag(Opts,
                            [tdTag(aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
-                                             http_uri:encode(UidStr)}], empty(Desc, Uid))),
+                                             uri_string:quote(UidStr)}], empty(Desc, Uid))),
                             tdTag(Opts2, time(Estimate) ++ ":00"),
                             tdTag(Opts2, AllLogged),
                             tdTag(Opts2, time(Remaining) ++ ":00")]) | Acc]);
@@ -2063,7 +2060,7 @@ showScheduleReport2([{_Key, DateTime, DueDate,
     Opts = if Odd ->  [{class, "trOdd"}];
               true -> [{class, "trEven"}]
            end,
-    Href = "/eTodo/eWeb:showTodo?uid=" ++ http_uri:encode(UidStr),
+    Href = "/eTodo/eWeb:showTodo?uid=" ++ uri_string:quote(UidStr),
     showScheduleReport2(Rest, [trTag(Opts,
                                      [tdTag([{class, "scheduleDescTask"}],
                                             [aTag([{href, Href}], makeHtml(Desc))]),

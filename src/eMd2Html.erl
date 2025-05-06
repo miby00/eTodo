@@ -151,18 +151,14 @@ parse(<<$<, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
     convert(Rest, [{url, <<>>}|PState], PL, CL, Dir, Acc);
 
 parse(<<$>, Rest/binary>>, [{url, CT}| St], PL, CL, Dir, Acc) ->
-    case catch http_uri:parse(binary_to_list(CT)) of
-        {'EXIT', _} ->
-            %% Convert to &lt to remove html support from markdown
-            convert(<<CT/binary, $>, Rest/binary>>,
-                    addCT(<<"&lt;">>, St), PL, CL, Dir, Acc);
-        {error, _} ->
-            %% Convert to &lt to remove html support from markdown
-            convert(<<CT/binary, $>, Rest/binary>>,
-                    addCT(<<"&lt;">>, St), PL, CL, Dir, Acc);
-        _ ->
+    case catch uri_string:parse(binary_to_list(CT)) of
+        #{host := Host, scheme := "https"} when Host =/= "" ->
             Url = <<"<a href='", CT/binary, "'>", CT/binary, "</a>">>,
-            convert(Rest, addCT(Url, St), PL, CL, Dir, Acc)
+            convert(Rest, addCT(Url, St), PL, CL, Dir, Acc);
+        _ ->
+            %% Convert to &lt to remove html support from markdown
+            convert(<<CT/binary, $>, Rest/binary>>,
+                    addCT(<<"&lt;">>, St), PL, CL, Dir, Acc)
     end;
 
 %% ImgLink
@@ -193,15 +189,8 @@ parse(<<$), Rest/binary>>, [{ilink, 2, CT}|St], PL, CL, Dir, Acc) ->
     convert(Rest, [{ilink, 1, <<CT/binary, $)>>}|St], PL, CL, Dir, Acc);
 
 parse(<<$), Rest/binary>>, [{ilink, 1, CT}, {ilDesc, PT}|St], PL, CL, Dir, Acc) ->
-    case catch http_uri:parse(binary_to_list(removeParam(CT))) of
-        {'EXIT', _} ->
-            convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
-                addCT(<<"![">>, St), PL, CL, Dir, Acc);
-        {error, _} ->
-            convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
-                addCT(<<"![">>, St), PL, CL, Dir, Acc);
-        {ok, {Scheme, _UserInfo, _Host, _Port, _Path, _Query}}
-            when (Scheme == http) or (Scheme == https) ->
+    case catch uri_string:parse(binary_to_list(removeParam(CT))) of
+        #{host := Host, scheme := "https"} when Host =/= "" ->
             case eGuiFunctions:convertToLocal(CT) of
                 {Original, LUrl} ->
                     Url  = <<"<img src='", LUrl/binary, "' alt='", PT/binary, "' />">>,
@@ -247,16 +236,13 @@ parse(<<$), Rest/binary>>, [{link, 2, CT}|St], PL, CL, Dir, Acc) ->
     convert(Rest, [{link, 1, <<CT/binary, $)>>}|St], PL, CL, Dir, Acc);
 
 parse(<<$), Rest/binary>>, [{link, 1, CT}, {lDesc, PT}|St], PL, CL, Dir, Acc) ->
-    case catch http_uri:parse(binary_to_list(removeParam(CT))) of
-        {'EXIT', _} ->
-            convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
-                addCT(<<"[">>, St), PL, CL, Dir, Acc);
-        {error, _} ->
-            convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
-                addCT(<<"[">>, St), PL, CL, Dir, Acc);
-        _ ->
+    case catch uri_string:parse(binary_to_list(removeParam(CT))) of
+        #{host := Host, scheme := "https"} when Host =/= "" ->
             Url = <<"<a href='", CT/binary, "'>", PT/binary, "</a>">>,
-            convert(Rest, addCT(Url, St), PL, CL, Dir, Acc)
+            convert(Rest, addCT(Url, St), PL, CL, Dir, Acc);
+        _ ->
+            convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
+                addCT(<<"[">>, St), PL, CL, Dir, Acc)
     end;
 
 parse(<<Char:8, Rest/binary>>, [{link, Num, CT}|PState], PL, CL, Dir, Acc) ->

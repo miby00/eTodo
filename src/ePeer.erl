@@ -940,8 +940,8 @@ tokenOK({link,        _SessionId, _Env, _Input}, _User, _Password) -> true;
 tokenOK({showStatus,  _SessionId, _Env, _Input}, _User, _Password) -> true;
 tokenOK({checkStatus, _SessionId, _Env, _Input}, _User, _Password) -> true;
 tokenOK({_Name, _SessionId, _Env, Input}, User, Password) ->
-    KeyValueList = httpd:parse_query(Input),
-    Token        = http_uri:decode(
+    KeyValueList = uri_string:dissect_query(Input),
+    Token        = uri_string:unquote(
                      proplists:get_value("token", KeyValueList, "")),
     Token == base64:encode_to_string(crypto:hash(sha, User ++ "@" ++ Password)).
 

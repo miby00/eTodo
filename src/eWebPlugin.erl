@@ -66,7 +66,7 @@ doSlackCallback(_SessioId, _Env, Input) ->
     Cid  = application:get_env(eTodo, slackClientId,     ""),
     CSec = application:get_env(eTodo, slackClientSecret, ""),
 
-    KeyValueList = httpd:parse_query(Input),
+    KeyValueList = uri_string:dissect_query(Input),
     QueryParams  = maps:from_list(KeyValueList),
     Code         = maps:get("code", QueryParams, ""),
     Url  = "https://slack.com/api/oauth.access?client_id=" ++
@@ -88,4 +88,3 @@ doSlackCallback(_SessioId, _Env, Input) ->
             [headTag(styleTag([{type, "text/css"}], ?styling)),
              bodyTag(pTag([{id, "tokenText"}], FailedText))]
     end.
-

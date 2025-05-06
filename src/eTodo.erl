@@ -1046,7 +1046,7 @@ handle_event(#wx{id = Id, event = #wxSpin{type = Type}},
     Name = getFromDict(Id, Dict),
     handle_cmd(Name, Type, Id, Frame, State);
 
-handle_event(#wx{id = Id, event = #wxNotebook{type = Type}},
+handle_event(#wx{id = Id, event = #wxAuiNotebook{type = Type}},
              State = #guiState{frame = Frame, dict  = Dict}) ->
     Name = getFromDict(Id, Dict),
     handle_cmd(Name, Type, Id, Frame, State);

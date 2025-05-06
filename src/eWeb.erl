@@ -574,7 +574,7 @@ handle_call({createTaskList, _SessionId, Env, Input}, _From,
             ok
     end,
 
-    HtmlPage = redirect("listTodos?list=" ++ http_uri:encode(TaskList) ++
+    HtmlPage = redirect("listTodos?list=" ++ uri_string:quote(TaskList) ++
                             "&search=", Env),
     {reply, HtmlPage, State};
 handle_call({deleteTask, _SessionId, _Env, Input}, _From, State) ->
@@ -620,7 +620,7 @@ handle_call({createTask, _SessionId, Env, Input}, _From,
                               parent   = tryInt(TaskList)}, Todo),
 
     eTodo:todoCreated(TaskList, Row, Todo),
-    HtmlPage = redirect("listTodos?list=" ++ http_uri:encode(TaskList) ++
+    HtmlPage = redirect("listTodos?list=" ++ uri_string:quote(TaskList) ++
                             "&search=", Env),
     {reply, HtmlPage, State};
 handle_call({showTodo, _SessionId, _Env, Input}, _From,
@@ -947,9 +947,9 @@ handle_call({sendMsg, _SessionId, _Env, Input}, _From,
                    "All" ->
                        lists:delete(User, Users);
                    Peer ->
-                       [http_uri:decode(Peer)]
+                       [uri_string:unquote(Peer)]
                end,
-    Msg2 = http_uri:decode(Msg),
+    Msg2 = uri_string:unquote(Msg),
     ePeerEM:sendMsg(User, UserList, msgEntry, Msg2),
     eTodo:msgEntry(User, UserList, Msg2),
     {reply, "ok", State};
@@ -1379,9 +1379,9 @@ getPeer(User) ->
 updateMsg(Msg, undefined) ->
     Msg;
 updateMsg({Name, SessionId, Env, ""}, Token) ->
-    {Name, SessionId, Env, "token=" ++ http_uri:encode(Token)};
+    {Name, SessionId, Env, "token=" ++ uri_string:quote(Token)};
 updateMsg({Name, SessionId, Env, Input}, Token) ->
-    {Name, SessionId, Env, Input ++ "&token=" ++ http_uri:encode(Token)}.
+    {Name, SessionId, Env, Input ++ "&token=" ++ uri_string:quote(Token)}.
 
 
 %%--------------------------------------------------------------------
@@ -1409,7 +1409,7 @@ conv(List) ->
 %% @end
 %%--------------------------------------------------------------------
 makeDict(Input) ->
-    KeyValueList = httpd:parse_query(Input),
+    KeyValueList = uri_string:dissect_query(Input),
     maps:from_list(KeyValueList).
 
 %%--------------------------------------------------------------------
@@ -1887,10 +1887,10 @@ getUser(Env, Key) ->
     end.
 
 encrypt({Key, IV}, Binary) ->
-    crypto:block_encrypt(aes_cfb128, Key, IV, Binary).
+    crypto:crypto_one_time(aes_cfb128, Key, IV, Binary, true).
 
 decrypt({Key, IV}, Binary) ->
-    crypto:block_decrypt(aes_cfb128, Key, IV, Binary).
+    crypto:crypto_one_time(aes_cfb128, Key, IV, Binary, false).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -1911,4 +1911,3 @@ removeWS(Value) ->
     catch
         _:_ -> "0"
     end.
-

@@ -1412,8 +1412,8 @@ linkFileButtonEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
         {{?wxID_OK, Path, File}, PortStr} when PortStr =/= "-1" ->
             Reference    = toStr(makeRef()),
             Args         =
-                "?filename="  ++ http_uri:encode(File) ++
-                "&reference=" ++ http_uri:encode(Reference),
+                "?filename="  ++ uri_string:quote(File) ++
+                "&reference=" ++ uri_string:quote(Reference),
 
             ConCfg = default(eTodoDB:getConnection(User),
                              #conCfg{host = "localhost"}),
@@ -1992,8 +1992,8 @@ proxyLinkMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
                 {"ServerNameHere", "PortHere"}
         end,
     Args     =
-        "?proxy="    ++ http_uri:encode(User)   ++
-        "&token="    ++ http_uri:encode(Token),
+        "?proxy="    ++ uri_string:quote(User)   ++
+        "&token="    ++ uri_string:quote(Token),
     Link = "https://" ++ Host ++ ":" ++ Port ++ "/eTodo/eWeb:index" ++ Args,
     eTodo:systemEntry(system, "<" ++ Link ++ "> Can be used to access web gui"
                       " through a proxy host. Link added to clipboard."),
@@ -2016,10 +2016,10 @@ linkViewMenuEvent(_Type, _Id, _Frame, State = #guiState{searchCfg = Cfg,
             SearchCfg = makeStr(Cfg),
             Filter    = makeStr(useFilter(getTaskList(State), Flt, State)),
             Args      =
-                "?list="      ++ http_uri:encode(List)      ++
-                "&search="    ++ http_uri:encode(Search)    ++
-                "&searchCfg=" ++ http_uri:encode(SearchCfg) ++
-                "&filter="    ++ http_uri:encode(Filter),
+                "?list="      ++ uri_string:quote(List)      ++
+                "&search="    ++ uri_string:quote(Search)    ++
+                "&searchCfg=" ++ uri_string:quote(SearchCfg) ++
+                "&filter="    ++ uri_string:quote(Filter),
 
             ConCfg = default(eTodoDB:getConnection(User),
                              #conCfg{host = "localhost"}),
@@ -2046,10 +2046,10 @@ linkTimeReportMenuEvent(_Type, _Id, _Frame, State = #guiState{searchCfg = Cfg,
             SearchCfg = makeStr(Cfg),
             Filter    = makeStr(useFilter(getTaskList(State), Flt, State)),
             Args      =
-                "?list="      ++ http_uri:encode(List)      ++
-                "&search="    ++ http_uri:encode(Search)    ++
-                "&searchCfg=" ++ http_uri:encode(SearchCfg) ++
-                "&filter="    ++ http_uri:encode(Filter),
+                "?list="      ++ uri_string:quote(List)      ++
+                "&search="    ++ uri_string:quote(Search)    ++
+                "&searchCfg=" ++ uri_string:quote(SearchCfg) ++
+                "&filter="    ++ uri_string:quote(Filter),
 
             ConCfg = default(eTodoDB:getConnection(User),
                              #conCfg{host = "localhost"}),
@@ -2072,8 +2072,8 @@ linkFileMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
         {{?wxID_OK, Path, File}, PortStr} when PortStr =/= "-1" ->
             Reference    = toStr(makeRef()),
             Args         =
-                "?filename="  ++ http_uri:encode(File) ++
-                "&reference=" ++ http_uri:encode(Reference),
+                "?filename="  ++ uri_string:quote(File) ++
+                "&reference=" ++ uri_string:quote(Reference),
 
             ConCfg   = default(eTodoDB:getConnection(User),
                                #conCfg{host = "localhost"}),
