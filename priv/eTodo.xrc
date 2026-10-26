@@ -3084,15 +3084,6 @@
 											<orient>wxVERTICAL</orient>
 											<object class="sizeritem">
 												<option>0</option>
-												<flag>wxALL</flag>
-												<border>5</border>
-												<object class="wxCheckBox" name="webUIEnabled">
-													<label>Activate Web UI</label>
-													<checked>0</checked>
-												</object>
-											</object>
-											<object class="sizeritem">
-												<option>0</option>
 												<flag>wxEXPAND</flag>
 												<border>5</border>
 												<object class="wxBoxSizer">
@@ -3112,36 +3103,7 @@
 														<border>5</border>
 														<object class="wxTextCtrl" name="webPassword">
 															<style>wxTE_PASSWORD</style>
-															<enabled>0</enabled>
 															<value></value>
-															<maxlength>0</maxlength>
-														</object>
-													</object>
-												</object>
-											</object>
-											<object class="sizeritem">
-												<option>0</option>
-												<flag>wxEXPAND</flag>
-												<border>5</border>
-												<object class="wxBoxSizer">
-													<orient>wxHORIZONTAL</orient>
-													<object class="sizeritem">
-														<option>2</option>
-														<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-														<border>5</border>
-														<object class="wxStaticText" name="m_staticText251">
-															<label>Port:</label>
-															<wrap>-1</wrap>
-														</object>
-													</object>
-													<object class="sizeritem">
-														<option>3</option>
-														<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-														<border>5</border>
-														<object class="wxTextCtrl" name="webPort">
-															<enabled>0</enabled>
-															<tooltip>Starting port to try with, will be incremented if port is busy.</tooltip>
-															<value>8099</value>
 															<maxlength>0</maxlength>
 														</object>
 													</object>
@@ -3170,95 +3132,6 @@
 												<item>Black theme</item>
 											</content>
 											<dimension>1</dimension>
-										</object>
-									</object>
-								</object>
-							</object>
-						</object>
-					</object>
-					<object class="sizeritem">
-						<option>1</option>
-						<flag>wxEXPAND</flag>
-						<border>5</border>
-						<object class="wxBoxSizer">
-							<orient>wxVERTICAL</orient>
-							<object class="sizeritem">
-								<option>1</option>
-								<flag>wxALL|wxEXPAND</flag>
-								<border>5</border>
-								<object class="wxStaticBoxSizer">
-									<orient>wxHORIZONTAL</orient>
-									<label>Web proxy settings</label>
-									<object class="sizeritem">
-										<option>1</option>
-										<flag></flag>
-										<border>5</border>
-										<object class="wxBoxSizer">
-											<orient>wxVERTICAL</orient>
-											<object class="sizeritem">
-												<option>0</option>
-												<flag>wxALL</flag>
-												<border>5</border>
-												<object class="wxCheckBox" name="webProxyEnabled">
-													<label>Activate Web proxy</label>
-													<checked>0</checked>
-												</object>
-											</object>
-											<object class="sizeritem">
-												<option>0</option>
-												<flag>wxEXPAND</flag>
-												<border>5</border>
-												<object class="wxBoxSizer">
-													<orient>wxHORIZONTAL</orient>
-													<object class="sizeritem">
-														<option>2</option>
-														<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-														<border>5</border>
-														<object class="wxStaticText" name="m_staticText253">
-															<label>Proxy host:</label>
-															<wrap>-1</wrap>
-														</object>
-													</object>
-													<object class="sizeritem">
-														<option>3</option>
-														<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-														<border>5</border>
-														<object class="wxTextCtrl" name="webProxyHost">
-															<enabled>0</enabled>
-															<value></value>
-															<maxlength>0</maxlength>
-														</object>
-													</object>
-												</object>
-											</object>
-											<object class="sizeritem">
-												<option>0</option>
-												<flag>wxEXPAND</flag>
-												<border>5</border>
-												<object class="wxBoxSizer">
-													<orient>wxHORIZONTAL</orient>
-													<object class="sizeritem">
-														<option>2</option>
-														<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-														<border>5</border>
-														<object class="wxStaticText" name="webProxyLabel">
-															<label>Port:</label>
-															<wrap>-1</wrap>
-														</object>
-													</object>
-													<object class="sizeritem">
-														<option>3</option>
-														<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-														<border>5</border>
-														<object class="wxTextCtrl" name="webProxyPort">
-															<enabled>0</enabled>
-															<tooltip>Starting port to try with, will be incremented if port is busy.</tooltip>
-															<value>8099</value>
-															<maxlength>0</maxlength>
-														</object>
-													</object>
-												</object>
-											</object>
 										</object>
 									</object>
 								</object>

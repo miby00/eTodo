@@ -39,8 +39,6 @@
 %% @end
 %%--------------------------------------------------------------------
 init([{User, noGui}]) ->
-    {ok, Pid} = eWeb:start_link(User),
-    monitor(process, Pid),
     {ok, #state{user = User, mode = noGui}};
 init([User]) ->
     {ok, #state{user = User}}.
@@ -59,37 +57,34 @@ init([User]) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_event({loggedOut, User}, State = #state{mode = noGui}) ->
-    eWeb:loggedOut(User),
     ePluginServer:eLoggedOutMsg(User),
     {ok, State};
-handle_event({alarmEntry, Uid, Description}, State = #state{mode = noGui}) ->
-    {_, HtmlCSS} = eHtml:generateAlarmMsg(Uid, Description),
-    eWeb:appendToPage(HtmlCSS),
+handle_event({alarmEntry, _Uid, Description}, State = #state{mode = noGui}) ->
     ePluginServer:eReceivedAlarmMsg(Description),
     {ok, State};
 handle_event({loggedIn, User}, State) ->
     eTodo:loggedIn(User),
-    eWeb:loggedIn(User),
     ePluginServer:eLoggedInMsg(User),
     {ok, State};
 handle_event({loggedOut, User}, State) ->
     eTodo:loggedOut(User),
-    eWeb:loggedOut(User),
     ePluginServer:eLoggedOutMsg(User),
     {ok, State};
 handle_event({alarmEntry, Uid, Description}, State) ->
     eTodo:alarmEntry(Uid, Description),
-    {_, HtmlCSS} = eHtml:generateAlarmMsg(Uid, Description),
-    eWeb:appendToPage(HtmlCSS),
     ePluginServer:eReceivedAlarmMsg(Description),
     {ok, State};
 handle_event({msgEntry, Sender, Users, Text}, State) ->
     sendMsg(Sender, Users, msgEntry, Text, State),
     {ok, State};
-handle_event({sendMsg, Sender, Users, msgEntry, Text},
+handle_event({sendMsg, Sender, _Users, msgEntry, _Text},
              State = #state{user = Sender}) ->
-    {_, HtmlCSS} = eHtml:generateMsg(Sender, Sender, Users, Text),
-    eWeb:appendToPage(HtmlCSS),
+    {ok, State};
+handle_event({sendMsg, Sender, Users, tunnel, Message}, State) ->
+    case lists:member(State#state.user, Users) of
+        true  -> eTodoTunnel:handle(Sender, Message);
+        false -> ok
+    end,
     {ok, State};
 handle_event({sendMsg, Sender, Users, MsgType, Text}, State) ->
     case lists:member(State#state.user, Users) of
@@ -156,13 +151,6 @@ handle_call(_Request, State) ->
 %%                         remove_handler
 %% @end
 %%--------------------------------------------------------------------
-handle_info(DownMsg = {'DOWN', _Reference, process, _Object, _Info},
-            State = #state{user = User}) ->
-    eLog:log(error, ?MODULE, handle_info, [DownMsg],
-             "Recieved down message from eWeb.", ?LINE),
-    {ok, Pid} = eWeb:start_link(User),
-    monitor(process, Pid),
-    {noreply, State};
 handle_info(_Info, State) ->
     {ok, State}.
 
@@ -209,20 +197,14 @@ sendMsg(_Sender, _Users, statusEntry, {statusUpdate, UserStatus}, State) ->
     sendToGui(statusUpdate, [UserStatus, undefined], State);
 sendMsg(Sender, _Users, statusEntry, writing, State) ->
     sendToGui(writing, [Sender], State);
-sendMsg(Sender, Users, msgEntry, Text, State = #state{user = User}) ->
+sendMsg(Sender, Users, msgEntry, Text, State) ->
     sendToGui(msgEntry, [Sender, Users, Text], State),
-    {_, HtmlCSS} = eHtml:generateMsg(User, Sender, Users, Text),
-    eWeb:appendToPage(HtmlCSS),
     ePluginServer:eReceivedMsg(Sender, Users, Text);
 sendMsg(Sender, _Users, systemEntry, Text, State) ->
     sendToGui(systemEntry, [Sender, Text], State),
-    {_, HtmlCSS} = eHtml:generateSystemMsg(Sender, Text),
-    eWeb:appendToPage(HtmlCSS),
     ePluginServer:eReceivedSysMsg(Text);
 sendMsg(_Sender, _Users, {systemEntry, Uid}, Text, State) ->
     sendToGui(systemEntry, [Uid, Text], State),
-    {_, HtmlCSS} = eHtml:generateSystemMsg(Uid, Text),
-    eWeb:appendToPage(HtmlCSS),
     ePluginServer:eReceivedSysMsg(Text).
 
 sendToGui(msgEntry, _Args, #state{mode = noGui}) ->

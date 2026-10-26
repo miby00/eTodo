@@ -74,7 +74,13 @@ init([]) ->
                  {eSMTP, {eSMTP, start_link, []},
                   Restart, Shutdown, Type, [eSMTP]},
                  {ePeerLock, {ePeerLock, start_link, []},
-                  Restart, Shutdown, Type, [ePeerLock]}],
+                  Restart, Shutdown, Type, [ePeerLock]},
+                 {eTodoMistAuth, {eTodoMistAuth, start_link, []},
+                  Restart, Shutdown, Type, [eTodoMistAuth]},
+                 {eTodoMist, {eTodoMist, start_link, []},
+                  Restart, Shutdown, Type, [eTodoMist]},
+                 {eTodoTunnel, {eTodoTunnel, start_link, []},
+                  Restart, Shutdown, Type, [eTodoTunnel]}],
 
     {ok, {SupFlags, ChildList}}.
 

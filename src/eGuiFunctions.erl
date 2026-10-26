@@ -177,7 +177,10 @@ doLogout(User, State) ->
     userStatusOffline(State),
 
     ePeerEM:loggedOut(User),
-    eWeb:stop(),
+    case application:get_env(eTodo, user) of
+        {ok, User} -> application:unset_env(eTodo, user);
+        _ -> ok
+    end,
     checkStatus(State#guiState{loggedIn = false}).
 
 
@@ -1080,7 +1083,7 @@ userStatusUpdate(State = #guiState{userStatus = UserList,
                                        statusMsg = StatusMsg,
                                        status    = Status},
             ePluginServer:eSetStatusUpdate(User, Status, StatusMsg),
-            eWeb:setStatusUpdate(User, Status, StatusMsg),
+            eTodoStatus:set_status(User, Status, StatusMsg),
             Users = [UserStatus#userStatus.userName || UserStatus <- UserList],
             ePeerEM:sendMsg(User, Users, statusEntry,
                             {statusUpdate, StatusUpdate, getPortrait(User)}),

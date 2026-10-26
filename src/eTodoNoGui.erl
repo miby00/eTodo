@@ -20,8 +20,7 @@
          getTimeReportData/0,
          getTaskList/0]).
 
--export([eWebMsgRead/0,
-         eWebNotification/0,
+-export([eWebNotification/0,
          loggedIn/1,
          taskListDeleted/1,
          todoDeleted/1,
@@ -99,9 +98,6 @@ statusUpdate(UserStatus, Avatar) ->
 
 eWebNotification() ->
     gen_server:cast(?SERVER, eWebNotification), ok.
-
-eWebMsgRead() ->
-    gen_server:cast(?SERVER, eWebMsgRead), ok.
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -211,7 +207,6 @@ handle_cast({loggedIn, Peer}, State = #guiState{mode = noGui,
             StatusUpdate = #userStatus{userName  = User,
                                        status    = Status,
                                        statusMsg = StatusMsg},
-            eWeb:setStatusUpdate(User, Status, StatusMsg),
             ePeerEM:sendMsg(User, [Peer], statusEntry,
                             {statusUpdate, StatusUpdate, getPortrait(User)});
         _ ->
@@ -241,9 +236,6 @@ handle_cast(eWebNotification, State = #guiState{mode = noGui}) ->
     NotificationTime = getNotificationTime(State#guiState.user),
     TimerRef = erlang:send_after(NotificationTime, self(), sendNotification),
     {noreply, State#guiState{notificationTimer = TimerRef}};
-handle_cast(eWebMsgRead, State = #guiState{mode = noGui}) ->
-    clearNotificationTimer(State),
-    {noreply, State#guiState{notificationTimer = undefined}};
 handle_cast(_Request, State) ->
     {noreply, State}.
 

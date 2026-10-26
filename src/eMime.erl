@@ -29,7 +29,7 @@
 %% @end
 %%--------------------------------------------------------------------
 constructMail(UserName, Subject, ReplyTo, To) ->
-    Messages = iolist_to_binary(eWeb:getMessages()),
+    Messages = <<"Email notification for eTodo">>,
     constructMail(UserName, Subject, To ,ReplyTo, To, Messages).
 
 constructMail(UserName, Subject, From, From, To, Messages) ->

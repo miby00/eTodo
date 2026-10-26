@@ -24,7 +24,6 @@
          todoUpdated/3,
          getLock/3,
          releaseLock/3,
-         webProxyCall/3,
          proxyCall/5,
          proxyCall/6,
          proxyCast/5]).
@@ -33,8 +32,6 @@
 -export([doConnect/0,
          doRegister/0,
          doProxyLogin/0,
-         doWebProxyCall/3,
-         doWebProxyCall/5,
          doSpawnAndReturn/4,
          sendCall/3
         ]).
@@ -162,15 +159,6 @@ releaseLock(Pid, Uid, Owner) ->
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Get lock
-%% @spec webProxyCall(Pid, Message, Timeout) -> Result
-%% @end
-%%--------------------------------------------------------------------
-webProxyCall(Pid, Message, Timeout) ->
-    gen_server:call(Pid, {webProxyCall, Message, Timeout}, Timeout).
-
-%%--------------------------------------------------------------------
-%% @doc
 %% Proxy message from other ePeer.
 %% @spec proxyCall(Pid, SrcUser, DestUser, Message, Args, Timeout) -> ok
 %% @end
@@ -221,14 +209,6 @@ doProxyLogin() ->
 %%%===================================================================
 %%% EPort API
 %%%===================================================================
-sendCall(Message, Args, Timeout, #state{proxyPid = undefined,
-                                        ePortPid = EPortPid}) ->
-    ePort:call(EPortPid, Message, Args, Timeout);
-sendCall(Message, Args, Timeout, #state{proxyPid = ProxyPid,
-                                        peerUser = PeerUser,
-                                        user     = User}) ->
-    ePeer:proxyCall(ProxyPid, User, PeerUser, Message, Args, Timeout).
-
 sendCall(Message, Args, #state{proxyPid = undefined,
                                ePortPid = EPortPid}) ->
     ePort:call(EPortPid, Message, Args);
@@ -339,11 +319,6 @@ handle_call({getLock, Uid, Owner}, From,
     spawnAndReturn(?MODULE, sendCall, [getLock, [Uid, Owner], State],
                    From, State),
     {noreply, State};
-handle_call({webProxyCall, Message, Timeout}, From,
-            State = #state{stateName = authorized,
-                           hashPwd   = HashPwd}) ->
-    spawn(?MODULE, doWebProxyCall, [Message, HashPwd, Timeout, From, State]),
-    {noreply, State};
 handle_call({proxyCall, SrcUser, DestUser, Message, Args}, From,
             State = #state{proxyPid = undefined}) ->
     spawnAndReturn(?MODULE, sendCall,
@@ -363,9 +338,6 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({peerCall, From, webProxyCall, Args}, State) ->
-    State2 = handlePeerCall(webProxyCall, Args, From, State),
-    {noreply, State2};
 handle_cast({peerCall, From, Message, Args}, State) ->
     eLog:log(debug, ?MODULE, peerCall, [self(), Message],
              "entering", ?LINE),
@@ -603,30 +575,6 @@ handlePeerCall(proxyMsg, [SrcUser, DestUser, Message, Args],
                    From, State);
 handlePeerCall(getLock, [Uid, Owner], From, State) ->
     spawnAndReturn(ePeerLock, getLock, [Uid, Owner], From, State);
-handlePeerCall(webProxyCall, [Message, HashPwd, Timeout],
-               From, State = #state{hashPwd = HashPwd}) ->
-    spawn(?MODULE, doWebProxyCall, [From, Message, Timeout]),
-    State;
-handlePeerCall(webProxyCall, [Message, HashPwd, Timeout], From, State) ->
-    User     = State#state.user,
-    UserCfg  = eTodoDB:readUserCfg(User),
-    Password = default(UserCfg#userCfg.webPassword, ""),
-    HashPwd2 = crypto:hash(sha, Password),
-
-    case HashPwd2 of
-        HashPwd ->
-            spawn(?MODULE, doWebProxyCall, [From, Message, Timeout]);
-        _ ->
-            case tokenOK(Message, User, Password) of
-                true ->
-                    spawn(?MODULE, doWebProxyCall, [From, Message, Timeout]);
-                false ->
-                    eLog:log(error, ?MODULE, webProxyCall, [self(), Message],
-                             "Unauthorized.", ?LINE),
-                    gen_server:reply(From, "Unauthorized")
-            end
-    end,
-    State#state{hashPwd = HashPwd2};
 handlePeerCall(Message, Args, From, _State) ->
     eLog:log(error, ?MODULE, handlePeerCall, [self(), Message, Args],
              "Unknown message received.", ?LINE),
@@ -862,24 +810,6 @@ getCircleHash(Timestamp) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Send get lock to other peer.
-%%
-%% @spec doWebProxyCall(Message, HashPwd, Timeout, From, State) -> ok
-%% @end
-%%--------------------------------------------------------------------
-doWebProxyCall(Message, HashPwd, Timeout, From, State) ->
-    Reply = sendCall(webProxyCall,
-                     [Message, HashPwd, Timeout],
-                     Timeout, State),
-    gen_server:reply(From, Reply).
-
-doWebProxyCall(From, Message, Timeout) ->
-    Reply = eWeb:webProxyCall(Message, Timeout),
-    gen_server:reply(From, Reply).
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
 %% Check for task edit conflicts
 %%
 %% @spec checkConflict(SharedTodos, PeerUser, User, OldConTime) -> ok
@@ -935,15 +865,6 @@ cancelTimer(recvTimer, State = #state{recvPingTimer = undefined}) ->
 cancelTimer(recvTimer, State = #state{recvPingTimer = Reference}) ->
     erlang:cancel_timer(Reference),
     State#state{recvPingTimer = undefined}.
-
-tokenOK({link,        _SessionId, _Env, _Input}, _User, _Password) -> true;
-tokenOK({showStatus,  _SessionId, _Env, _Input}, _User, _Password) -> true;
-tokenOK({checkStatus, _SessionId, _Env, _Input}, _User, _Password) -> true;
-tokenOK({_Name, _SessionId, _Env, Input}, User, Password) ->
-    KeyValueList = uri_string:dissect_query(Input),
-    Token        = uri_string:unquote(
-                     proplists:get_value("token", KeyValueList, "")),
-    Token == base64:encode_to_string(crypto:hash(sha, User ++ "@" ++ Password)).
 
 %%%===================================================================
 %%% END: Internal functions

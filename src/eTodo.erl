@@ -24,7 +24,6 @@
          checkConflict/5,
          checkStatusChange/3,
          delayedUpdateGui/2,
-         eWebMsgRead/0,
          eWebNotification/0,
          getFilterCfg/1,
          getSearchCfg/0,
@@ -46,6 +45,7 @@
          todoUpdated/2,
          updateExternalUsers/0,
          updateStatus/2,
+         webStatus/2,
          writing/1,
 
          launchBrowser/1]).
@@ -181,6 +181,9 @@ loggedOut(User) ->
 updateExternalUsers() ->
     wx_object:cast(?MODULE, updateExternalUsers), ok.
 
+webStatus(Status, StatusMsg) ->
+    wx_object:cast(?MODULE, {webStatus, Status, StatusMsg}), ok.
+
 updateStatus(Status, StatusMsg) ->
     wx_object:cast(?MODULE, {updateStatus, Status, StatusMsg}), ok.
 
@@ -211,9 +214,6 @@ checkConflict(User, PeerUser, OldLocalConTime, OldRemoteConTime, Diff) ->
 
 eWebNotification() ->
     wx_object:cast(?MODULE, eWebNotification), ok.
-
-eWebMsgRead() ->
-    wx_object:cast(?MODULE, eWebMsgRead), ok.
 
 %%====================================================================
 %% gen_server callbacks
@@ -417,8 +417,7 @@ initGUI(Arg) ->
     Dict18 = connectDlg(MsgCfg,   "msgSettingsCancel",    Dict17),
     Dict19 = connectDlg(Settings, "settingsOk",           Dict18),
     Dict20 = connectDlg(Settings, "settingsCancel",       Dict19),
-    Dict21 = connectDlg(Settings, "webUIEnabled",         Event1, Dict20),
-    Dict22 = connectDlg(ManLists, "manageListOk",         Dict21),
+    Dict22 = connectDlg(ManLists, "manageListOk",         Dict20),
     Dict23 = connectDlg(ManLists, "manageListCancel",     Dict22),
     Dict24 = connectDlg(ManLists, "createListButton",     Dict23),
     Dict25 = connectDlg(ManLists, "removeListButton",     Dict24),
@@ -449,8 +448,7 @@ initGUI(Arg) ->
     Dict50 = connectDlg(LogWork,  "logWorkOk",            Dict49),
     Dict51 = connectDlg(LogWork,  "logWorkCancel",        Dict50),
     Dict52 = connectDlg(LogWork,  "workDate",             Event2, Dict51),
-    Dict53 = connectDlg(Settings, "webProxyEnabled",      Event1, Dict52),
-    Dict54 = connectDlg(Settings, "smtpEnabled",          Event1, Dict53),
+    Dict54 = connectDlg(Settings, "smtpEnabled",          Event1, Dict52),
     Dict55 = connectDlg(MsgCfg,   "msgFilter",            Event5, Dict54),
 
     connectModalDialog(Conflict, "useLocalButton",  ?useLocal),
@@ -985,23 +983,17 @@ handle_cast({launchBrowser, URL}, State) ->
     {noreply, State};
 handle_cast(eWebNotification, State) ->
     {noreply, State};
-handle_cast(eWebMsgRead, State) ->
-    clearNotificationTimer(State),
-    Notebook1 = obj("mainNotebook",   State),
-    Notebook2 = obj("msgWinNotebook", State),
-    eGuiFunctions:setMsgCounter(Notebook1, 0),
-    wxNotebook:setPageText(Notebook2, 0, "Chat"),
-    wxNotebook:setPageText(Notebook2, 1, "Reminder"),
-    wxNotebook:setPageText(Notebook2, 2, "System"),
-    {noreply, State#guiState{notificationTimer = undefined,
-                             unreadMsgs = 0, unreadMsgs2 = {0, 0, 0}}};
 handle_cast(updateExternalUsers, State) ->
     eGuiFunctions:fillEmailCheckBox(State),
     {noreply, State};
+handle_cast({webStatus, Status, StatusMsg}, State) ->
+    eGuiFunctions:setUserStatus(Status, State),
+    wxComboBox:setValue(obj("userStatusMsg", State), StatusMsg),
+    eGuiFunctions:userStatusUpdate(State),
+    {noreply, State};
 handle_cast({updateStatus, Status, StatusMsg}, State) ->
     eGuiFunctions:setUserStatus(Status, State),
-    eWeb:setStatusUpdate(State#guiState.user, Status, StatusMsg),
-
+    eTodoStatus:set_status(State#guiState.user, Status, StatusMsg),
     wxComboBox:setValue(obj("userStatusMsg", State), StatusMsg),
 
     MsgTop   = obj("msgTopPanel",   State),
@@ -1179,13 +1171,6 @@ handle_info({restartTeamPomodoro, {Obj1, Obj2, Obj3, Obj4}},
         false ->
             ok
     end,
-    {noreply, State};
-handle_info(DownMsg = {'DOWN', _Reference, process, _Object, _Info},
-            State = #guiState{user = User}) ->
-    eLog:log(error, ?MODULE, handle_info, [DownMsg],
-             "Recieved down message from eWeb.", ?LINE),
-    {ok, Pid} = eWeb:start_link(User),
-    monitor(process, Pid),
     {noreply, State};
 handle_info({setPomodoroClock, _Obj1, _Obj2, _Obj3, _Obj4},
             State = #guiState{timerDlgOpen = false}) ->

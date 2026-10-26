@@ -1,0 +1,13 @@
+name = "etodo_web"
+version = "0.1.0"
+target = "erlang"
+description = "Mist and Lustre web interface for eTodo"
+licences = ["MIT"]
+
+[dependencies]
+gleam_stdlib = ">= 0.60.0 and < 2.0.0"
+mist = ">= 6.0.3 and < 7.0.0"
+lustre = ">= 5.7.1 and < 6.0.0"
+gleam_erlang = ">= 1.3.0 and < 2.0.0"
+gleam_http = ">= 4.5.0 and < 5.0.0"
+gleam_json = ">= 3.1.0 and < 4.0.0"

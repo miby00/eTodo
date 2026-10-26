@@ -15,7 +15,6 @@
          sendMsg/5,
          todoUpdated/4,
          getLock/3,
-         webProxyCall/4,
          releaseLock/3,
 
          proxyMsg/6
@@ -106,16 +105,6 @@ releaseLock(EPortPid, Uid, Owner) ->
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Get lock
-%% @spec webProxyCall(Message, HashPwd, Timeout) -> Result
-%% @end
-%%--------------------------------------------------------------------
-webProxyCall(EPortPid, Message, HashPwd, Timeout) ->
-    ePeerServer:peerCall(EPortPid, webProxyCall,
-                         [Message, HashPwd, Timeout], Timeout).
-
-%%--------------------------------------------------------------------
-%% @doc
 %% Relay a messsage to another peer.
 %% @spec proxyMsg(Type, SrcUser, DestUser, Message, Args) -> ok
 %% @end
@@ -148,7 +137,6 @@ validMessage(eTodoRegister)   -> true;
 validMessage(sendMsg)         -> true;
 validMessage(todoUpdated)     -> true;
 validMessage(getLock)         -> true;
-validMessage(webProxyCall)    -> true;
 validMessage(releaseLock)     -> true;
 validMessage(proxyMsg)        -> false; %% Don't proxy a proxy.
 validMessage(proxyLogin)      -> true;  %% Only available in proxyMsg.

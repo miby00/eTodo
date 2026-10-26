@@ -9,38 +9,15 @@
 -module(eHtml).
 
 %% API
--export([checkForLinks/2,
-         createSendMsg/2,
-         pageHeader/1,
-         pageHeader/2,
-         pageFooter/0,
-         generateMsg/4,
+-export([generateMsg/4,
          generateSystemMsg/2,
          generateSystemMsgEmail/3,
          generateAlarmMsg/2,
          generateAlarmMsgEmail/3,
          printTaskList/5,
-         makeTaskList/5,
-         makeHtmlTaskCSS/2,
-         makeHtmlTaskCSS2/2,
-         makeForm/2,
-         makeHtml/1,
-         makeText/1,
          makeWorkLogReport/2,
          makeTimeLogReport/3,
-         makeScheduleReport/1,
-         loginForm/1,
-         createTaskForm/2,
-         createTaskListForm/0,
-         deleteTaskListForm/2,
-         settingsPage/2,
-         sortETodos/2,
-         showStatus/3,
-         showLoggedWork/2,
-         showTimeReport/1,
-         showTimeReport/3,
-         showTimeReport/4,
-         showScheduleReport/1]).
+         makeScheduleReport/1]).
 
 -export([htmlTag/0, htmlTag/1, htmlTag/2,
          headTag/0, headTag/1, headTag/2,
@@ -305,18 +282,6 @@ makeWorkLogReport(User, Date) ->
                      tdTag(Opts, heading(tot(D5)))
                     ])]).
 
-showLoggedWork(User, Date) ->
-    {D1, D2, D3, D4, D5, Act4} = calcReport(User, Date),
-    tableTag([{class, "workLogTable"}],
-             [showLoggedWork(Date, Act4, {D1, D2, D3, D4, D5}, []),
-              trTag([{class, "workLogSum"}],
-                    [tdTag([{class, "workLogDesc workLogSum"}], "Total"),
-                     [tdTag([{class, "workLogSum workLogColBig"}], tot(D1)),
-                      tdTag([{class, "workLogSum workLogColBig"}], tot(D2)),
-                      tdTag([{class, "workLogSum"}], tot(D3)),
-                      tdTag([{class, "workLogSum"}], tot(D4)),
-                      tdTag([{class, "workLogSum"}], tot(D5))
-                     ]])]).
 
 calcReport(User, Date) ->
     D1 = eTodoDB:getLoggedWork(User, Date),
@@ -347,35 +312,6 @@ incDate(Date, Inc) ->
 
 
 
-showLoggedWork(Date, [], _Days, Result) ->
-    Opts = [{class, "workLogColumn"}],
-    Opts2 = [{class, "workLogColumn workLogColBig"}],
-    [trTag([{class, "workLogHeading"}],
-           [tdTag([{class, "workLogDesc"}], "Task description"),
-            tdTag(Opts2, getWeekDay(Date)),
-            tdTag(Opts2, getWeekDay(incDate(Date, 1))),
-            tdTag(Opts, getWeekDay(incDate(Date, 2))),
-            tdTag(Opts,  getWeekDay(incDate(Date, 3))),
-            tdTag(Opts,  getWeekDay(incDate(Date, 4)))
-           ]) | lists:reverse(Result)];
-showLoggedWork(Date, [{Act, Desc} | Rest],
-               Days = {D1, D2, D3, D4, D5}, SoFar) ->
-    Odd = ((length(Rest) rem 2) == 0),
-    UidStr = eTodoUtils:convertUid(list_to_integer(Act)),
-    Opts = if Odd -> [{class, "lwOdd"}];
-              true -> [{class, "lwEven"}]
-           end,
-    Opts2 = [{class, "workLogValue"}],
-    Opts3 = [{class, "workLogValue workLogColBig"}],
-    Row = trTag(Opts,
-                [tdTag(aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
-                                  uri_string:quote(UidStr)}], empty(Desc, Act))),
-                 tdTag(Opts3, hours(Act, D1) ++ ":" ++ minutes(Act, D1)),
-                 tdTag(Opts3, hours(Act, D2) ++ ":" ++ minutes(Act, D2)),
-                 tdTag(Opts2, hours(Act, D3) ++ ":" ++ minutes(Act, D3)),
-                 tdTag(Opts2, hours(Act, D4) ++ ":" ++ minutes(Act, D4)),
-                 tdTag(Opts2, hours(Act, D5) ++ ":" ++ minutes(Act, D5))]),
-    showLoggedWork(Date, Rest, Days, [Row | SoFar]).
 
 makeWorkLogReport(Date, [], _Days, Result) ->
     Opts = [{width, "14%"}, {align, center}],
@@ -452,627 +388,27 @@ time(Min) when Min < 10 ->
 time(Min) ->
     integer_to_list(Min).
 
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-pageHeader(UserName) ->
-    pageHeader("", UserName).
 
-pageHeader(Extra, UserName) ->
-    StyleSheet = getStyleSheet(UserName),
-    {ok, Styles} = file:read_file(StyleSheet),
-    Content = "width=device-width, initial-scale=1.0, "
-        "maximum-scale=1.0, user-scalable=0",
-    Manifest = "<link rel='manifest' href='/manifest.json'>",
-    IconFile = filename:join(["priv", "Icons", "etodoSuper.png"]),
-    Icon = "<link rel='icon' sizes='192x192' href='/" ++ IconFile ++ "'>",
-    ["<!DOCTYPE html><html>",
-     [headTag(
-        [titleTag(["eTodo - ", UserName]),
-         metaTag([{name, "mobile-web-app-capable"}, {content, "yes"}]),
-         metaTag([{content, Content}, {name, "viewport"}]),
-         metaTag([{"http-equiv", "Content-Type"},
-                  {content, "text/html; charset=UTF-8"}]),
 
-         Manifest, Icon,
-         styleTag([{type, "text/css"}], Styles),
-         javascript()
-        ]),
-      "<body " ++ Extra ++ "><div id='container'>"]].
 
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-javascript() ->
-    "<script type='text/JavaScript' src='/priv/js/etodo.js'></script>".
 
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-pageFooter() ->
-    "</div></body></html>".
 
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-makeForm(User, Def) ->
-    Default = default(Def, ?defTaskList),
-    [tableTag([{id, "tableHeader"}],
-              [trTag([tdTag([{id, "toolbar"}],
-                            [aTag([{id, "createTodo"},
-                                   {href, "/eTodo/eWeb:createTodo?list=" ++
-                                        uri_string:quote(Default)}],
-                                  [imgTag([{src, "/priv/Icons/createNew.png"},
-                                           {alt, "Create new"}])]),
-                             aTag([{id, "message"},
-                                   {href, "/eTodo/eWeb:message?list=" ++
-                                        uri_string:quote(Default)}],
-                                  [imgTag([{src, "/priv/Icons/message.png"},
-                                           {alt, "Messages"}])]),
-                             aTag([{id, "settings"},
-                                   {href, "/eTodo/eWeb:settings?list=" ++
-                                        uri_string:quote(Default)}],
-                                  [imgTag([{src, "/priv/Icons/settings.png"},
-                                           {alt, "Settings"}])])]),
-                      tdTag(createForm(User, Default))])])].
 
-createForm(User, Default) ->
-    TodoLists =
-        case eTodoDB:readUserCfg(User) of
-            #userCfg{lists = undefined} ->
-                lists:sort([guiName(Default) | lists:delete(Default,
-                                                            [?defLoggedWork,
-                                                             ?defTimeReport,
-                                                             ?defShowStatus,
-                                                             ?defSchedule,
-                                                             ?defInbox,
-                                                             ?defTaskList])]);
-            #userCfg{lists = Lists} ->
-                lists:sort([guiName(Default)| lists:delete(Default,
-                                                           [?defLoggedWork,
-                                                            ?defTimeReport,
-                                                            ?defShowStatus,
-                                                            ?defSchedule,
-                                                            ?defInbox |
-                                                            Lists])])
 
-        end,
-    formTag([{action, "/eTodo/eWeb:listTodos"},
-             {'accept-charset', "UTF-8"},
-             {id, "searchForm"},
-             {method, "get"}],
-            [selectTag([{id, "taskSelect"},
-                        {name, "list"},
-                        {onfocus, "this.selectedIndex = -1;"},
-                        {onchange, "eTodo.submitForm('searchForm')"}],
-                       createForm2(TodoLists, guiName(Default))),
-             inputTag([{type, "submit"},
-                       {id, "searchButton"},
-                       {onclick, "eTodo.submitForm('searchForm')"},
-                       {value, "Search"}]),
-             inputTag([{type, "text"},
-                       {name, "search"},
-                       {id, "searchField"},
-                       {class, "rounded"}])]).
 
-createForm2(List, Default) ->
-    createForm(lists:reverse(List), [], Default).
 
-createForm([], Result, _Default) ->
-    Result;
-createForm([Value | Rest], SoFar, Value) ->
-    Value2 = eGuiFunctions:filterAndConvert2Utf8(Value),
-    Option = ["<option value='", Value2, "' selected='selected'>",
-              Value2, "</option>\r\n"],
-    createForm(Rest, [Option, SoFar], Value);
-createForm([Value | Rest], SoFar, Default) ->
-    Value2 = eGuiFunctions:filterAndConvert2Utf8(Value),
-    Option = ["<option value='", Value2, "'>", Value2, "</option>\r\n"],
-    createForm(Rest, [Option, SoFar], Default).
 
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-settingsPage(User, TaskList) ->
-    List = default(TaskList, ?defTaskList),
-    %% Get web settings.
-    UserCfg       = eTodoDB:readUserCfg(User),
-    WebSettings   = default(UserCfg#userCfg.webSettings, []),
-    DefStatus     = proplists:get_value("filterStatus", WebSettings, ?descDef),
-    DefPrio       = proplists:get_value("filterPrio",   WebSettings, ?descDef),
-    DefListType   = proplists:get_value("listType",     WebSettings, ?descDef),
-    DefSortOrder  = proplists:get_value("sortOrder",    WebSettings, ?descDef),
-    DefSortOrder2 = proplists:get_value("sortOrderSec", WebSettings, ?descDef),
 
-    StatusList = [?descDef, ?descPlanning, ?descInProgress,
-                  ?descDone, ?descNA, ?descAll],
-    PrioList   = [?descDef, ?descLow, ?descMedium, ?descHigh, ?descNA, ?descAll],
-    ListTypes  = [?descDef, ?descCompact],
-    SortOrders = [?descDef, ?status, ?prio, ?description, ?comment,
-                  ?createTime, ?dueTime, ?doneTimestamp],
-    [tableTag([{id, "filterSettings"}],
-              [trTag([thTag([{colspan, 2},
-                             {class,   "formHeader"}],
-                            ["Filter settings"])]),
-               trTag(tdTag([{colspan, 2}, {class, "formDiv"}], "")),
-               trTag(
-                 [tdTag("Keep tasks with status"),
-                  tdTag([selectTag([{id,      "filterStatus"},
-                                    {name,    "filterStatus"},
-                                    {class,   "selects"},
-                                    {onchange,
-                                     "eTodo.sendSetting('filterStatus')"}],
-                                   createForm2(StatusList, DefStatus))])]),
-               trTag(
-                 [tdTag("Keep tasks with prio"),
-                  tdTag([selectTag([{id, "filterPrio"},
-                                    {name, "filterPrio"},
-                                    {class, "selects"},
-                                    {onchange, "eTodo.sendSetting('filterPrio')"}],
-                                   createForm2(PrioList, DefPrio))])])
-              ]),
-     tableTag([{id, "presentationSettings"}],
-              [trTag([thTag([{colspan, 2},
-                             {class,   "formHeader"}],
-                            ["Presentation settings"])]),
-               trTag(tdTag([{colspan, 2}, {class, "formDiv"}], "")),
-               trTag(
-                 [tdTag("Task list type"),
-                  tdTag([selectTag([{id,      "listType"},
-                                    {name,    "listType"},
-                                    {class,   "selects"},
-                                    {onchange,
-                                     "eTodo.sendSetting('listType')"}],
-                                   createForm2(ListTypes, DefListType))])]),
-               trTag(
-                 [tdTag("Sort order(Primary)"),
-                  tdTag([selectTag([{id,      "sortOrder"},
-                                    {name,    "sortOrder"},
-                                    {class,   "selects"},
-                                    {onchange,
-                                     "eTodo.sendSetting('sortOrder')"}],
-                                   createForm2(SortOrders, DefSortOrder))])]),
-               trTag(
-                 [tdTag("Sort order(Secondary)"),
-                  tdTag([selectTag([{id,      "sortOrderSec"},
-                                    {name,    "sortOrderSec"},
-                                    {class,   "selects"},
-                                    {onchange,
-                                     "eTodo.sendSetting('sortOrderSec')"}],
-                                   createForm2(SortOrders, DefSortOrder2))])])
-              ]),
-     inputTag([{type,  "button"},
-               {id,    "doneBtn"},
-               {value, "List tasks"},
-               {onclick, "eTodo.openLink('/eTodo/eWeb"
-                ":listTodos?list=" ++
-                    uri_string:quote(List) ++ "');"}])].
 
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-loginForm(User) ->
-    formTag([{action, "/eTodo/eWeb:checkCredentials"},
-             {'accept-charset', "UTF-8"},
-             {method, "post"},
-             {id, "loginTableForm"}],
-            [tableTag(
-               [{class,"centeredLogin"}],
-               [trTag([tdTag([{id, "eTodoImg"}],
-                             imgTag([{src, "/priv/Icons/ETodo-300.png"},
-                                     {alt, "eTodo heading"},
-                                     {id,  "eTodoHeading"}]))]),
-                trTag([tdTag([{class, "loginHdr"}], "UserName")]),
-                trTag([tdTag([inputTag([{class, "loginInput"},
-                                        {type,  "text"},
-                                        {value, User},
-                                        {name,  "username"}])])]),
-                trTag([tdTag([{class, "loginHdr"}], "Password")]),
-                trTag([tdTag([{class, "loginValue"}],
-                             inputTag([{class, "loginInput"},
-                                       {type,  "password"},
-                                       {name,  "password"}]))]),
-                trTag([tdTag([inputTag([{type,  "submit"},
-                                        {name,  "login"},
-                                        {id,    "login"},
-                                        {value, "Login"}])])])])]).
 
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-createTaskForm(User, ?subTaskList ++ TaskList) ->
-    createTaskForm(User, TaskList);
-createTaskForm(User, TaskList) ->
-    UserCfg   = eTodoDB:readUserCfg(User),
-    TaskList1 = default(UserCfg#userCfg.lists, [?defTaskList]),
-    TaskLists = lists:sort([TaskList | lists:delete(TaskList, TaskList1)]),
-    formTag([{action, "/eTodo/eWeb:createTask"},
-             {'accept-charset', "UTF-8"},
-             {method, "post"},
-             {id, "createTableForm"}],
-            [tableTag([{id, "createTable"}],
-                      [trTag([thTag([{colspan, 4},
-                                     {class,   "formHeader"}],
-                                    ["Create task"])]),
-                       trTag(tdTag([{colspan, 4}, {class, "formDiv"}], "")),
-                       trTag(
-                         [tdTag([{class, "header"}], "Set task list"),
-                          tdTag([{class, "value"}, {colspan, 3}],
-                                [selectTag([{class,  "selects"},
-                                            {name,   "list"}],
-                                           createForm2(TaskLists,
-                                                       TaskList))])]),
-                       trTag(
-                         [tdTag([{class, "header"}], "Set status"),
-                          tdTag([{class, "value"}],
-                                [selectTag([{class, "selects"},
-                                            {name, "status"}],
-                                           createForm2([?descPlanning,
-                                                        ?descInProgress,
-                                                        ?descDone,
-                                                        ?descNA],
-                                                       ?descNA)
-                                          )]),
-                          tdTag([{class, "header"}], "Set prio"),
-                          tdTag([{class, "value"}],
-                                selectTag([{class, "selects"},
-                                           {name, "prio"}],
-                                          createForm2([?descLow,
-                                                       ?descMedium,
-                                                       ?descHigh,
-                                                       ?descNA],
-                                                      ?descNA)))]),
-                       trTag(
-                         [tdTag([{class, "header"}], "Description"),
-                          tdTag([{class, "longvalue"},
-                                 {colspan, 3}],
-                                inputTag([{class, "textField"},
-                                          {type,  "text"},
-                                          {name,  "desc"}]))]),
-                       trTag(
-                         [tdTag([{class, "header"}], "Comment"),
-                          tdTag([{class, "longvalue"},
-                                 {colspan, 3}],
-                                inputTag([{class, "textField"},
-                                          {type,  "text"},
-                                          {name,  "comment"}]))]),
-                       trTag(
-                         [tdTag([{colspan, 4}],
-                                inputTag([{type,  "submit"},
-                                          {name,  "submit"},
-                                          {id,    "createTask"},
-                                          {value, "Create task"}]))])])]).
 
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-deleteTaskListForm(User, TaskList) ->
-    UserCfg       = eTodoDB:readUserCfg(User),
-    TaskList1     = default(UserCfg#userCfg.lists, []),
-    TaskLists     = lists:sort([TaskList | lists:delete(TaskList, TaskList1)]),
-    TaskLists2    = lists:delete(?defTaskList, TaskLists),
-    YesNoQuestion =
-        [spanTag([{class, "yesno"}],
-                 ["Are you sure?"]),
-         inputTag([{type,    "button"},
-                   {id,      "yesBtn"},
-                   {value,   "Yes"},
-                   {onclick, "eTodo.deleteListYes(event, 'dlist');"}]),
-         inputTag([{type,    "button"},
-                   {id,      "noBtn"},
-                   {value,   "No"},
-                   {onclick, "eTodo.deleteListNo(event, '" ++ TaskList ++ "');"}])],
-    [tableTag(
-       [{id, deleteTaskList}],
-       [trTag([thTag([{colspan, 4},
-                      {class,   "formHeader"}],
-                     ["Delete task list"])]),
-        trTag(tdTag([{colspan, 4}, {class, "formDiv"}], "")),
-        trTag(
-          [tdTag([{class, "header"}], "List name"),
-           tdTag([{class, "longValue"}, {colspan, 3}],
-                 [selectTag([{class,  "selects"},
-                             {name,   "dlist"},
-                             {id,     "dlist"}],
-                            createForm2(TaskLists2,
-                                        TaskList))]),
-           trTag([{id, "dListRow"}],
-                 [tdTag([{colspan, 4}],
-                        inputTag([{type,     "button"},
-                                  {onclick,  "eTodo.deleteList(event);"},
-                                  {id,       "deleteTaskListBtn"},
-                                  {value,    "Delete list"}]))]),
-           trTag([{id, "yesNoDList"}, {class,   "hide"}],
-                 [tdTag([{colspan, 4}],
-                        YesNoQuestion)])])])].
-
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-createTaskListForm() ->
-    formTag([{action, "/eTodo/eWeb:createTaskList"},
-             {'accept-charset', "UTF-8"},
-             {method, "post"},
-             {id, "createTaskListForm"}],
-            [tableTag([{id, createTaskList}],
-                      [trTag([thTag([{colspan, 4},
-                                     {class,   "formHeader"}],
-                                    ["Create task list"])]),
-                       trTag(tdTag([{colspan, 4}, {class, "formDiv"}], "")),
-                       trTag(
-                         [tdTag([{class, "header"}], "List name"),
-                          tdTag([{class, "longvalue"},
-                                 {colspan, 3}],
-                                inputTag([{class,  "textField"},
-                                          {type,   "text"},
-                                          {id,     "listName"},
-                                          {name,   "listName"}]))]),
-                       trTag(
-                         [tdTag([{colspan, 4}],
-                                inputTag([{type,     "submit"},
-                                          {id,       "createTaskListBtn"},
-                                          {value,    "Create list"}]))])])]).
-
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-makeTaskList(User, List, Filter, SearchText, Cfg) ->
-    ETodos       = eTodoDB:getETodos(User, List, Filter, SearchText, Cfg),
-    SortedETodos = sortETodos(User, ETodos),
-    [makeHtmlTaskCSS(ETodo, User) || ETodo <- SortedETodos].
-
-sortETodos(User, ETodos) ->
-    UserCfg  = eTodoDB:readUserCfg(User),
-    Settings = default(UserCfg#userCfg.webSettings, []),
-    Sorting1 = proplists:get_value("sortOrder",    Settings, ?descDef),
-    Sorting2 = proplists:get_value("sortOrderSec", Settings, ?descDef),
-    ETodos2  = doSortETodos(Sorting2, ETodos), %% Secondary sort order
-    doSortETodos(Sorting1, ETodos2).
 
 %% Sorting alternatives
 %% ?descDef, ?status, ?prio, ?description, ?createTime
 
-doSortETodos(?descDef, ETodos) ->
-    ETodos;
-doSortETodos(?status, ETodos) ->
-    L1 = [{ETodo, makeSortValue(?status, ETodo#etodo.status)} ||
-             ETodo <- ETodos, is_record(ETodo, etodo)],
-    L2 = lists:keysort(2, L1),
-    [ETodo || {ETodo, _} <- L2];
-doSortETodos(?prio, ETodos) ->
-    L1 = [{ETodo, makeSortValue(?prio, ETodo#etodo.priority)} ||
-             ETodo <- ETodos, is_record(ETodo, etodo)],
-    L2 = lists:keysort(2, L1),
-    [ETodo || {ETodo, _} <- L2];
-doSortETodos(?description, ETodos) ->
-    L1 = [{ETodo, string:to_lower(ETodo#etodo.description)} ||
-             ETodo <- ETodos, is_record(ETodo, etodo)],
-    L2 = lists:keysort(2, L1),
-    [ETodo || {ETodo, _} <- L2];
-doSortETodos(?comment, ETodos) ->
-    L1 = [{ETodo, string:to_lower(ETodo#etodo.comment)} ||
-             ETodo <- ETodos, is_record(ETodo, etodo)],
-    L2 = lists:keysort(2, L1),
-    [ETodo || {ETodo, _} <- L2];
-doSortETodos(?createTime, ETodos) ->
-    lists:keysort(#etodo.createTime, ETodos);
-doSortETodos(?dueTime, ETodos) ->
-    lists:keysort(#etodo.dueTime, ETodos);
-doSortETodos(?doneTimestamp, ETodos) ->
-    lists:keysort(#etodo.doneTime, ETodos).
 
-makeSortValue(?status, ?descInProgress) -> 1;
-makeSortValue(?status, ?descPlanning)   -> 2;
-makeSortValue(?status, ?descDone)       -> 4;
-makeSortValue(?status, _)               -> 3;
-makeSortValue(?prio,   ?descHigh)       -> 1;
-makeSortValue(?prio,   ?descMedium)     -> 2;
-makeSortValue(?prio,   ?descLow)        -> 3;
-makeSortValue(?prio,   _)               -> 4.
 
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-makeHtmlTaskCSS(#etodo{hasSubTodo  = true,
-                       uid         = Uid,
-                       status      = Status,
-                       statusDB    = StatusDB,
-                       priority    = Priority,
-                       dueTime     = DueTime,
-                       description = Description,
-                       comment     = Comment,
-                       sharedWith  = SharedWith,
-                       createTime  = CreateTime,
-                       doneTime    = DoneTime,
-                       progress    = Progress,
-                       owner       = Owner}, User) ->
-    ProgStr = toStr(Progress),
-    StStr   = atom_to_list(StatusDB),
-    Users1 = [{_User, string:to_lower(_User)} || _User <- eTodoDB:getUsers()],
-    Users2 = lists:keysort(2, Users1),
-    Users3 = [_User || {_User, _} <- Users2],
-    {Estimate, Remaining} = eTodoDB:getTime(Uid),
 
-    {InputTags, YesNoQuestion} = makeButtons(noDelete, Uid),
-
-    [makeTableHeader(User, Uid, true),
-     trTag(
-       [headerCellCSS(?status), createStatusDataCell(Status, Uid),
-        headerCellCSS(?prio), createPriorityDataCell(Priority, Uid)]),
-     trTag(
-       [headerCellCSS(?sharedWith), dataCellCSS(SharedWith, []),
-        headerCellCSS(?owner), createOwnerDataCell(Owner, Users3, Uid)]),
-     trTag(
-       [headerCellCSS(?createTime), dataCellCSS2(CreateTime, []),
-        headerCellCSS(?dueTime), dataCellCSS2(DueTime, [])]),
-     trTag(
-       [headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, []),
-        headerCellCSS(?progress),
-        dataCellCSS4(?progress, ProgStr, [], StStr, Uid)]),
-     trTag(
-       [headerCellCSS(?estimate),
-        dataCellCSS4(?estimate, toStr(Estimate), [], StStr, Uid),
-        headerCellCSS(?remaining),
-        dataCellCSS4(?remaining, toStr(Remaining), [], StStr, Uid)]),
-     trTag(
-       [headerCellCSS(?description),
-        dataCellCSS4(?description, Description, [{colspan, 3}], StStr, Uid)]),
-     trTag(
-       [headerCellCSS(?comment),
-        dataCellCSS4(?comment, Comment, [{colspan, 3}], StStr, Uid)]),
-     trTag([{class, "btnRow"}], [tdTag([{colspan, 4}], InputTags)]),
-     trTag([{class, "hide"}],   [tdTag([{colspan, 4}], YesNoQuestion)]),
-     "</table>"];
-makeHtmlTaskCSS(#etodo{uid         = Uid,
-                       status      = Status,
-                       statusDB    = StatusDB,
-                       priority    = Priority,
-                       dueTime     = DueTime,
-                       description = Description,
-                       comment     = Comment,
-                       sharedWith  = SharedWith,
-                       createTime  = CreateTime,
-                       doneTime    = DoneTime,
-                       progress    = Progress,
-                       owner       = Owner,
-                       hasSubTodo  = HasSubTodo}, User) ->
-    ProgStr = toStr(Progress),
-    StStr   = atom_to_list(StatusDB),
-    {Estimate, Remaining} = eTodoDB:getTime(Uid),
-    CompactTable = case compactTable(User) of
-                       true ->
-                           [{class, "hide"}];
-                       false ->
-                           []
-                   end,
-    CompactTable2 = case compactTable(User) of
-                        false ->
-                            [{class, "hide"}];
-                        true ->
-                            []
-                    end,
-
-    {InputTags, YesNoQuestion} = makeButtons(Uid),
-
-    [makeTableHeader(User, Uid, HasSubTodo),
-     trTag(
-       CompactTable2,
-       [createStatusDataCell2(Status, Uid),
-        dataCellCSS3(Description, [{colspan, 3}], StStr, Uid)]),
-     trTag(
-       CompactTable,
-       [headerCellCSS(?status), createStatusDataCell(Status, Uid),
-        headerCellCSS(?prio), createPriorityDataCell(Priority, Uid)]),
-     trTag(
-       [{class, "hide"}],
-       [headerCellCSS(?sharedWith), dataCellCSS(SharedWith, []),
-        headerCellCSS(?owner), createOwnerDataCell(Owner, [Owner], Uid)]),
-     trTag(
-       [{class, "hide"}],
-       [headerCellCSS(?createTime), dataCellCSS2(CreateTime, []),
-        headerCellCSS(?dueTime), dateCellCSS(DueTime, Uid, [])]),
-     trTag(
-       [{class, "hide"}],
-       [headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, []),
-        headerCellCSS(?progress), dataCellCSS4(?progress, ProgStr, [], StStr, Uid)]),
-     trTag(
-       [{class, "hide"}],
-       [headerCellCSS(?estimate),
-        dataCellCSS4(?estimate, toStr(Estimate), [], StStr, Uid),
-        headerCellCSS(?remaining),
-        dataCellCSS4(?remaining, toStr(Remaining), [], StStr, Uid)]),
-     trTag(
-       CompactTable,
-       [headerCellCSS(?description),
-        dataCellCSS4(?description, Description, [{colspan, 3}], StStr, Uid)]),
-     trTag(
-       [{class, "hide"}],
-       [headerCellCSS(?comment),
-        dataCellCSS4(?comment, Comment, [{colspan, 3}], StStr, Uid)]),
-     trTag([{class, "hide"}], [tdTag([{colspan, 4}], InputTags)]),
-     trTag([{class, "hide"}], [tdTag([{colspan, 4}], YesNoQuestion)]),
-     "</table>"].
-
-makeHtmlTaskCSS2(#etodo{uid = Uid,
-                        status = Status,
-                        priority = Priority,
-                        dueTime = DueTime,
-                        description = Description,
-                        comment = Comment,
-                        sharedWith = SharedWith,
-                        createTime = CreateTime,
-                        doneTime = DoneTime,
-                        progress = Progress,
-                        owner = Owner,
-                        hasSubTodo = HasSubTodo}, User) ->
-    ProgStr = toStr(Progress),
-    {Estimate, Remaining} = eTodoDB:getTime(Uid),
-    [makeTableHeader(User, Uid, HasSubTodo),
-     trTag(
-       [headerCellCSS(?status), dataCellCSS2(Status, []),
-        headerCellCSS(?prio), dataCellCSS2(Priority, [])]),
-     trTag(
-       [headerCellCSS(?sharedWith), dataCellCSS(SharedWith, []),
-        headerCellCSS(?owner), dataCellCSS(Owner, [])]),
-     trTag(
-       [headerCellCSS(?createTime), dataCellCSS2(CreateTime, []),
-        headerCellCSS(?dueTime), dataCellCSS2(DueTime, [])]),
-     trTag(
-       [headerCellCSS(?doneTimestamp), dataCellCSS(DoneTime, []),
-        headerCellCSS(?progress), dataCellCSS2(ProgStr, [])]),
-     trTag(
-       [headerCellCSS(?estimate), dataCellCSS(toStr(Estimate), []),
-        headerCellCSS(?remaining), dataCellCSS2(toStr(Remaining), [])]),
-     trTag(
-       [headerCellCSS(?description), dataCellCSS(Description, [{colspan, 3}])]),
-     nonEmpty(
-       Comment,
-       [trTag([headerCellCSS(?comment), dataCellCSS(Comment, [{colspan, 3}])])]),
-     "</table>"].
 
 nonEmpty([], _) ->
     [];
@@ -1081,143 +417,17 @@ nonEmpty(undefined, _) ->
 nonEmpty(_, Value) ->
     Value.
 
-makeTableHeader(User, Uid, false) ->
-    case compactTable(User) of
-        true ->
-            ["<table class='todoTable tCompact ttCompact' id='table", Uid, "' ",
-             "OnClick=\"eTodo.showDetails(", Uid, ");\">"];
-        false ->
-            ["<table class='todoTable tCompact' id='table", Uid, "' ",
-             "OnClick=\"eTodo.showDetails(", Uid, ");\">"]
-    end;
-makeTableHeader(_User, Uid, true) ->
-    ["<table class='subTodoTable' id='table", Uid, "' "
-     "OnClick=\"eTodo.openLink('/eTodo/eWeb:listTodos",
-     "?list=", Uid, "&search=&submit=Search');\">"].
 
-makeButtons(Uid) ->
-    makeButtons(withDelete, Uid).
 
-makeButtons(Type, Uid) ->
-    InputTags = [inputTag([{type,    "button"},
-                           {id,      "applyBtn"},
-                           {value,   "Apply"},
-                           {onclick, "eTodo.saveTaskChanges(event, '" ++ Uid ++ "');"}]),
-                 inputTag([{type,    "button"},
-                           {id,      "cancelBtn"},
-                           {value,   "Cancel"},
-                           {onclick, "eTodo.cancelBtn(event);"}])],
 
-    DeleteTag = [inputTag([{type,    "button"},
-                           {id,      "deleteBtn"},
-                           {value,   "Delete"},
-                           {onclick, "eTodo.deleteTask(event, '" ++ Uid ++ "');"}])],
 
-    YesNoQuestion = [spanTag([{class, "yesno"}],
-                             ["Are you sure?"]),
-                     inputTag([{type,    "button"},
-                               {id,      "yesBtn"},
-                               {value,   "Yes"},
-                               {onclick, "eTodo.deleteYes(event, '" ++ Uid ++ "');"}]),
-                     inputTag([{type,    "button"},
-                               {id,      "noBtn"},
-                               {value,   "No"},
-                               {onclick, "eTodo.deleteNo(event, '" ++ Uid ++ "');"}])],
-    case Type of
-        noDelete ->
-            {InputTags, []};
-        withDelete ->
-            {InputTags ++ DeleteTag, YesNoQuestion}
-    end.
 
-headerCellCSS(Text) ->
-    tdTag([{class, "header"}], [Text]).
 
-dateCellCSS(Text, Uid, Extra) ->
-    tdTag([{class,   "date"}] ++ Extra,
-          [inputTag([{class, "dateInput"},
-                     {type,  date},
-                     {id,    "date_" ++ Uid},
-                     {onclick, "eTodo.stopPropagation(event);"},
-                     {value, Text}])]).
 
-dataCellCSS(Text, Extra) ->
-    tdTag([{class, "data"}] ++ Extra, [makeHtml(Text, "/priv")]).
 
-dataCellCSS2(Text, Extra) ->
-    tdTag([{class, "data2"}] ++ Extra, [makeHtml(Text, "/priv")]).
 
-dataCellCSS3(Text, Extra, "done", Uid) ->
-    CompactId = "compactDesc" ++ toStr(Uid),
-    tdTag([{class, "data3 done"},
-           {id, CompactId}] ++ Extra, [makeHtml(Text, "/priv")]);
-dataCellCSS3(Text, Extra, _StStr, Uid) ->
-    CompactId = "compactDesc" ++ toStr(Uid),
-    tdTag([{class, "data3"},
-           {id, CompactId}] ++ Extra, [makeHtml(Text, "/priv")]).
 
-dataCellCSS4(Type, Text, Extra, "done", Uid) ->
-    Id = Type ++ toStr(Uid),
-    tdTag(
-      [{class, "data done"},
-       {id,    Id},
-       "contenteditable",
-       {onclick, "eTodo.stopPropagation(event);"}]
-      ++ Extra, [makeHtml(Text, "/priv")]);
-dataCellCSS4(Type, Text, Extra, _StStr, Uid) ->
-    Id = Type ++ toStr(Uid),
-    tdTag(
-      [{class, "data"},
-       {id,    Id},
-       "contenteditable",
-       {onclick, "eTodo.stopPropagation(event);"}]
-      ++ Extra, [makeHtml(Text, "/priv")]).
 
-createStatusDataCell(Status, Uid) ->
-    SelectId   = "idStatus" ++ toStr(Uid),
-    SendStatus = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
-    tdTag(
-      selectTag(
-        [{class,    "status"},
-         {id,       SelectId},
-         {onchange, "eTodo.sendStatus(" ++ SendStatus ++ ");"},
-         {onclick,  "eTodo.stopPropagation(event);"}],
-        createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
-                    default(Status, ?descNA)))).
-createStatusDataCell2(Status, Uid) ->
-    SelectId   = "idStatusc" ++ toStr(Uid),
-    SendStatus = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
-    tdTag([{class, "cstatus"}],
-          selectTag(
-            [{class,    "status cstatus"},
-             {id,       SelectId},
-             {onchange, "eTodo.sendStatus(" ++ SendStatus ++ ");"},
-             {onclick,  "eTodo.stopPropagation(event);"}],
-            createForm2([?descPlanning, ?descInProgress, ?descDone, ?descNA],
-                        default(Status, ?descNA)))).
-
-createPriorityDataCell(Prio, Uid) ->
-    SelectId = "idPriority" ++ toStr(Uid),
-    SendPrio = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
-    tdTag(
-      selectTag(
-        [{class,    "priority"},
-         {id,       SelectId},
-         {onchange, "eTodo.sendPriority(" ++ SendPrio ++ ");"},
-         {onclick,  "eTodo.stopPropagation(event);"}],
-        createForm2([?descLow, ?descMedium, ?descHigh, ?descNA],
-                    default(Prio, ?descNA)))).
-
-createOwnerDataCell(Owner, Users, Uid) ->
-    SelectId  = "idOwner" ++ toStr(Uid),
-    SendOwner = "'" ++ SelectId ++ "', '" ++ toStr(Uid) ++ "'",
-    tdTag(
-      selectTag(
-        [{class,    "owner"},
-         {id,       SelectId},
-         {onchange, "eTodo.sendOwner(" ++ SendOwner ++ ");"},
-         {onclick,  "eTodo.stopPropagation(event);"}],
-        createForm2(Users, Owner))).
 
 %%======================================================================
 %% Function :
@@ -1421,13 +631,13 @@ generateSystemMsgEmail(User, Uid, Text) ->
 
 constructExternalUrl(User, Uid) ->
     UidStr   = eTodoUtils:convertUid(Uid),
-    PortStr  = toStr(eWeb:getPort()),
+    Port     = application:get_env(eTodo, mistWebPort, 9003),
     ConCfg   = default(eTodoDB:getConnection(User),
                        #conCfg{host = "localhost"}),
     Host     = default(ConCfg#conCfg.host, "localhost"),
 
-    "https://" ++ Host ++ ":" ++ PortStr ++
-        "/eTodo/eWeb:showTask?uid=" ++ uri_string:quote(UidStr).
+    "https://" ++ Host ++ ":" ++ integer_to_list(Port) ++
+        "/#task-" ++ uri_string:quote(UidStr).
 
 %%======================================================================
 %% Function :
@@ -1518,32 +728,6 @@ generateAlarmMsgEmail(User, Uid, Text) ->
                          imgTag([{src, WPortrait}, {class, "portrait"}])),
                    tdTag(eMd2Html:convert(Text, "/priv"))])]).
 
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-createSendMsg(Default, Users) ->
-    UserList = ["All" | Users],
-    Script = "eTodo.sendMsg(\"userSelect\", \"sendMessage\");",
-    tableTag([{id, "footer"}],
-             [trTag(
-                [tdTag(
-                   [selectTag([{id, "userSelect"},
-                               {name, "users"}],
-                              createForm2(UserList, Default)),
-                    inputTag([{type, "submit"},
-                              {name, "submit"},
-                              {id, "sendButton"},
-                              {value, "Send"},
-                              {onclick, Script}]),
-                    inputTag([{type, "text"},
-                              {name, "sendMsg"},
-                              {onkeydown, "return eTodo.checkForEnter(event);"},
-                              {id, "sendMessage"},
-                              {class, "rounded"}])])])]).
 
 %%%===================================================================
 %%% Callbacks
@@ -1744,78 +928,8 @@ mischief(Dir, Txt) -> smileHdr(Dir, Txt) ++ "mischief.png' align=bottom>&nbsp;".
 smileHdr(Dir, Txt) ->
     "&nbsp;<img class='emote' alt='" ++ Txt ++ "' src='" ++ Dir ++ "/Icons/".
 
-makeText(Text) ->
-    makeText(Text, text, [], []).
 
-makeText([], _State, Alt, SoFar) ->
-    lists:reverse(Alt ++ SoFar);
-makeText("<br>" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [10|SoFar]);
-makeText("<br />" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [10|SoFar]);
-makeText("&aring;" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [229|SoFar]);
-makeText("&auml;" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [228|SoFar]);
-makeText("&ouml;" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [246|SoFar]);
-makeText("&Aring;" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [197|SoFar]);
-makeText("&Auml;" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [196|SoFar]);
-makeText("&Ouml;" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [214|SoFar]);
-makeText("&lt;" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [$<|SoFar]);
-makeText("&gt;" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [$>|SoFar]);
-makeText("&amp;" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [$&|SoFar]);
-makeText("&quot;" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [$"|SoFar]);
-%% Remove extra inserted white space.
-makeText("&nbsp;" ++ Rest, text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, SoFar);
 
-makeText([$<|Rest], text, _Alt, SoFar) ->
-    makeText(Rest, tag, [], SoFar);
-makeText([Char|Rest], text, Alt, SoFar) ->
-    makeText(Rest, text, Alt, [Char|SoFar]);
-
-makeText([$>|Rest], tag, Alt, SoFar) ->
-    makeText(Rest, text, Alt, SoFar);
-makeText("alt='" ++ Rest, tag, _Alt, SoFar) ->
-    makeText(Rest, alt, [], SoFar);
-makeText("alt=\"" ++ Rest, tag, _Alt, SoFar) ->
-    makeText(Rest, alt, [], SoFar);
-makeText([_Char|Rest], tag, _Alt, SoFar) ->
-    makeText(Rest, tag, [], SoFar);
-
-makeText([$'|Rest], alt, Alt, SoFar) ->
-    makeText(Rest, tag, [], Alt ++ SoFar);
-makeText([$"|Rest], alt, Alt, SoFar) ->
-    makeText(Rest, tag, [], Alt ++ SoFar);
-makeText([Char|Rest], alt, Alt, SoFar) ->
-    makeText(Rest, alt, [Char|Alt], SoFar).
-
-%%======================================================================
-%% Function :
-%% Purpose  :
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-showStatus(User, Status, StatusMsg) ->
-    OnLoad =
-        "OnLoad=\"setInterval(eTodo.checkStatus, 1000); "
-        "eTodoData.fetchSettingsFromSrv();\" id='theBody'",
-    [pageHeader(OnLoad, User),
-     divTag([{id, "timerContainer"}],
-            [divTag([{id, "timerUser"}], [User]),
-             divTag([{id, "timerStatus"}], [Status]),
-             divTag([{id, "timerStatusMsg"}], [makeHtml(StatusMsg)]),
-             divTag([{id, "timerField"}], [])]),
-     pageFooter()].
 
 %%======================================================================
 %% Function : makeTimeLogReport(User, Rows) -> Html
@@ -1875,51 +989,8 @@ makeTimeLogReport2([], Result) ->
             tdTag(Opts, heading("Time left(h)"))
            ]) | lists:reverse(Result)].
 
-%%======================================================================
-%% Function : showTimeReport(User) -> Html
-%% Purpose  : Make time html report.
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-showTimeReport(User) ->
-    {ok, Rows, AllTask} = eTodo:getTimeReportData(),
-    Uids1 = [ETodo#etodo.uid || ETodo <- eRows:toList(Rows)],
-    showTimeReport(User, Uids1, AllTask).
 
-showTimeReport(_User, Uids1, AllTask) ->
-    Uids2 = case AllTask of
-                true ->
-                    Uids1; %% Subtodos all ready in list.
-                false ->
-                    addSubTodos(Uids1)
-            end,
-    Uids3 = removeEmptyAndDone(Uids2),
-    {EstimateSum, SpentSum, RemainingSum} = sum(Uids3),
-    tableTag([showTimeReport2(Uids3, []),
-              trTag([{class, "timeReportTable"}],
-                    [tdTag([{class, "timeReportDesc timeReportSum"}], "Total"),
-                     tdTag([{class, "timeReportSum timeReportColumn"}], EstimateSum),
-                     tdTag([{class, "timeReportSum timeReportColumn"}], SpentSum),
-                     tdTag([{class, "timeReportSum timeReportColumn"}], RemainingSum)
-                    ])]).
 
-showTimeReport(_User, Uids1, AllTask, SharedUids) ->
-    Uids2 = case AllTask of
-                true ->
-                    Uids1; %% Subtodos all ready in list.
-                false ->
-                    addSubTodos(Uids1, SharedUids)
-            end,
-    Uids3 = removeEmptyAndDone(Uids2),
-    {EstimateSum, SpentSum, RemainingSum} = sum(Uids3),
-    tableTag([showTimeReport2(Uids3, []),
-              trTag([{class, "timeReportTable"}],
-                    [tdTag([{class, "timeReportDesc timeReportSum"}], "Total"),
-                     tdTag([{class, "timeReportSum timeReportColumn"}], EstimateSum),
-                     tdTag([{class, "timeReportSum timeReportColumn"}], SpentSum),
-                     tdTag([{class, "timeReportSum timeReportColumn"}], RemainingSum)
-                    ])]).
 
 removeEmptyAndDone(Uids) ->
     removeEmptyAndDone(Uids, []).
@@ -1942,32 +1013,6 @@ removeEmptyAndDone([Uid | Rest], Acc) ->
             removeEmptyAndDone(Rest, [Uid | Acc])
     end.
 
-showTimeReport2([Uid | Rest], Acc) ->
-    {Estimate, Remaining} = eTodoDB:getTime(Uid),
-    AllLogged = eTodoDB:getAllLoggedWork(Uid),
-    UidInt = tryInt(Uid),
-    Desc = eTodoDB:getWorkDesc(Uid),
-    Odd = ((length(Acc) rem 2) =/= 0),
-    Opts = if Odd -> [{class, "trOdd"}];
-              true -> [{class, "trEven"}]
-           end,
-    Opts2 = [{class, "timeReportValue"}],
-    UidStr = eTodoUtils:convertUid(UidInt),
-    showTimeReport2(Rest,
-                    [trTag(Opts,
-                           [tdTag(aTag([{href, "/eTodo/eWeb:showTodo?uid=" ++
-                                             uri_string:quote(UidStr)}], empty(Desc, Uid))),
-                            tdTag(Opts2, time(Estimate) ++ ":00"),
-                            tdTag(Opts2, AllLogged),
-                            tdTag(Opts2, time(Remaining) ++ ":00")]) | Acc]);
-showTimeReport2([], Result) ->
-    Opts = [{class, "timeReportColumn"}],
-    [trTag([{class, "timeReportHeading"}],
-           [tdTag([{class, "timeReportDesc"}], "Task description"),
-            tdTag(Opts, "Time estimate(h)"),
-            tdTag(Opts, "Time spent(h)"),
-            tdTag(Opts, "Time left(h)")
-           ]) | lists:reverse(Result)].
 
 sum(Uids) ->
     sum(Uids, {0, {0, 0}, 0}).
@@ -1993,19 +1038,7 @@ sum([Uid | Rest], {Est, {Hours, Min}, Rem}) ->
 addSubTodos(Uids) ->
     addSubTodos2(Uids, []).
 
-addSubTodos(Uids, SharedUids) ->
-    Uids2 = addSubTodos2(Uids, []),
-    filterNotInShared(Uids2, SharedUids, []).
 
-filterNotInShared([], _SharedUids, Acc) ->
-    lists:reverse(Acc);
-filterNotInShared([Uid | Rest], SharedUids, Acc) ->
-    case lists:member(Uid, SharedUids) of
-        true ->
-            filterNotInShared(Rest, SharedUids, [Uid | Acc]);
-        false ->
-            filterNotInShared(Rest, SharedUids, Acc)
-    end.
 
 addSubTodos2([], Acc) ->
     lists:reverse(Acc);
@@ -2019,57 +1052,7 @@ addToAccNoDuplicate([], Acc) ->
 addToAccNoDuplicate([Uid | Rest], Acc) ->
     addToAccNoDuplicate(Rest, [toStr(Uid) | lists:delete(Uid, Acc)]).
 
-%%======================================================================
-%% Function : showScheduleReport(User) -> Html
-%% Purpose  : Show schedule report in web gui.
-%% Types    :
-%%----------------------------------------------------------------------
-%% Notes    :
-%%======================================================================
-showScheduleReport(User) ->
-    Alarms = getAlarmList(User),
-    ETodos = getTodoInfo(User),
-    TimeMarkers = getTimeMarkers(),
-    Events = lists:reverse(lists:keysort(1, TimeMarkers ++ Alarms ++ ETodos)),
-    tableTag([trTag([{class, "scheduleReportTable"}],
-                    [tdTag([{class, "scheduleDesc scheduleHeading"}],
-                           "Description"),
-                     tdTag([{class, "scheduleColumn scheduleHeading"}],
-                           "Next alarm"),
-                     tdTag([{class, "scheduleColumn scheduleHeading"}],
-                           "Due date"),
-                     tdTag([{class, "scheduleColumn scheduleHeading"}],
-                           "Time left(h)")]) |
-              showScheduleReport2(Events, [])]).
 
-showScheduleReport2([], Acc) ->
-    Acc;
-showScheduleReport2([{_Key, Desc} | Rest], Acc) ->
-    Odd  = ((length(Rest) rem 2) =/= 0),
-    Opts = if Odd ->  [{class, "trOdd"}];
-              true -> [{class, "trEven"}]
-           end,
-    showScheduleReport2(Rest, [trTag(Opts,
-                                     [tdTag([{class, "scheduleDesc"}],   Desc),
-                                      tdTag([{class, "scheduleColumn"}], ""),
-                                      tdTag([{class, "scheduleColumn"}], ""),
-                                      tdTag([{class, "scheduleColumn"}], "")]) | Acc]);
-showScheduleReport2([{_Key, DateTime, DueDate,
-                      UidStr, Desc, RemTime} | Rest], Acc) ->
-    Odd  = ((length(Rest) rem 2) =/= 0),
-    Opts = if Odd ->  [{class, "trOdd"}];
-              true -> [{class, "trEven"}]
-           end,
-    Href = "/eTodo/eWeb:showTodo?uid=" ++ uri_string:quote(UidStr),
-    showScheduleReport2(Rest, [trTag(Opts,
-                                     [tdTag([{class, "scheduleDescTask"}],
-                                            [aTag([{href, Href}], makeHtml(Desc))]),
-                                      tdTag([{class, "scheduleColumn"}],
-                                            toStr(DateTime)),
-                                      tdTag([{class, "scheduleColumn"}],
-                                            toStr(DueDate)),
-                                      tdTag([{class, "scheduleColumn"}],
-                                            toStr(RemTime))]) | Acc]).
 
 %%======================================================================
 %% Function : makeSceduleReport(User) -> Html
@@ -2199,20 +1182,4 @@ repairTime({H, M}) -> {H, M, 0};
 repairTime(undefined) -> {0, 0, 0};
 repairTime(Time) -> Time.
 
-guiName(TaskList) ->
-    case catch list_to_integer(TaskList) of
-        {'EXIT', _} ->
-            TaskList;
-        _ ->
-            ?subTaskList ++ TaskList
-    end.
 
-compactTable(User) ->
-    UserCfg  = eTodoDB:readUserCfg(User),
-    Settings = default(UserCfg#userCfg.webSettings, []),
-    case proplists:get_value("listType", Settings, ?descDef) of
-        ?descDef ->
-            false;
-        ?descCompact ->
-            true
-    end.

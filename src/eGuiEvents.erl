@@ -156,8 +156,6 @@
          userOkEvent/4,
          userStatusChoiceEvent/4,
          userStatusMsgEvent/4,
-         webProxyEnabledEvent/4,
-         webUIEnabledEvent/4,
          workDateEvent/4,
          workLogReportEvent/4,
          workLogStartDateEvent/4
@@ -349,11 +347,11 @@ loginToCircle(Default, OldUser, User, Circle, Password, Md5Pwd,
     ePeerEM:del_handler(eTodoEH, User),
     ePeerEM:add_handler(eTodoEH, User),
     ePeerEM:connectToCircle(User, Circle, Password),
+    %% The web UI and the tunnel need to know the local account.
+    application:set_env(eTodo, user, User),
     eTodoAlarm:loggedIn(User),
     UserCfg = eTodoDB:readUserCfg(User),
     ePluginServer:setConfiguredPlugins(default(UserCfg#userCfg.plugins, [])),
-    %% Start web gui
-    eWeb:start_link(User),
     State3 = updateTodoWindow(State2),
     State4 = userStatusAvailable(State3),
     State5 = setUnreadMsgs(User, State4),
@@ -911,7 +909,7 @@ timerOkEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
     end,
 
     ePluginServer:eTimerStarted(User, MsgTxt, Hours, Minutes, Seconds),
-    eWeb:setTimerRef(User, TimerRef),
+    eTodoStatus:set_timer(User, TimerRef, MsgTxt),
 
     wxDialog:hide(TimerDlg),
     cancelTimer(OldTimerRef),
@@ -924,7 +922,7 @@ timerCancelEvent(_Type, _Id, _Frame, State = #guiState{timerDlg = TimerDlg,
     cancelTimer(TimerRef),
 
     ePluginServer:eTimerStopped(User),
-    eWeb:setTimerRef(User, undefined),
+    eTodoStatus:clear_timer(User),
 
     State#guiState{timerRef = undefined, timerDlgOpen = false}.
 
@@ -1405,53 +1403,72 @@ smileyWinkEvent(_Type, _Id, _Frame, State) ->
 smileyHeartEvent(_Type, _Id, _Frame, State) ->
     insertMsgText("<3", State).
 
-linkFileButtonEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
-    PortStr = toStr(eWeb:getPort()),
-
-    case {getFileToLink(State), PortStr} of
-        {{?wxID_OK, Path, File}, PortStr} when PortStr =/= "-1" ->
-            Reference    = toStr(makeRef()),
-            Args         =
-                "?filename="  ++ uri_string:quote(File) ++
-                "&reference=" ++ uri_string:quote(Reference),
-
-            ConCfg = default(eTodoDB:getConnection(User),
-                             #conCfg{host = "localhost"}),
-            Host   = default(ConCfg#conCfg.host, "localhost"),
-
-            UserCfg  = eTodoDB:readUserCfg(State#guiState.user),
-
-            {Host2, Port2, ProxyArg} =
-                case UserCfg#userCfg.webProxyEnabled of
-                    true ->
-                        {UserCfg#userCfg.webProxyHost,
-                         toStr(UserCfg#userCfg.webProxyPort),
-                         "&proxy=" ++ User};
-                    false ->
-                        {Host, PortStr, ""}
-                end,
-
-            {ok, Bin} = file:read_file(Path),
-            ZBin      = zlib:gzip(Bin),
-            FileName  = filename:join([eTodoUtils:getUserCfgDir(), "linkedFiles",
-                                       Reference ++ "_" ++ File]),
-            filelib:ensure_dir(FileName),
-            file:write_file(FileName, ZBin),
-            MimeType    = eTodoUtils:mime_type(File),
-            Disposition = eTodoUtils:getDisposition(MimeType, File),
-            Url  = "https://" ++ Host2 ++ ":" ++ Port2 ++
-                "/eTodo/eWeb:link" ++ Args ++ ProxyArg,
-            Link = case Disposition of
-                       "inline" ->
-                           "![" ++ File ++ "](" ++ Url ++ ")";
-                       _ ->
-                           "[" ++ File ++ "](" ++ Url ++ ")"
+linkFileButtonEvent(_Type, _Id, _Frame, State) ->
+    case makeFileLink(State) of
+        {ok, File, Url, Inline} ->
+            Link = case Inline of
+                       true  -> "![" ++ File ++ "](" ++ Url ++ ")";
+                       false -> "[" ++ File ++ "](" ++ Url ++ ")"
                    end,
             insertMsgText(Link, State);
-        _->
+        _ ->
+            State
+    end.
+
+%% Stores a gzipped copy of a file and returns the web link to it.
+makeFileLink(State = #guiState{user = User}) ->
+    case webBaseUrl(User, "https://") of
+        undefined ->
             eTodo:systemEntry(system, "Failed to link file, "
                               "web server not running"),
-            State
+            error;
+        Base ->
+            case getFileToLink(State) of
+                {?wxID_OK, Path, File} ->
+                    Reference = binary_to_list(
+                                  binary:encode_hex(
+                                    crypto:strong_rand_bytes(16), lowercase)),
+                    {ok, Bin} = file:read_file(Path),
+                    Stored = filename:join([eTodoUtils:getUserCfgDir(),
+                                            "linkedFiles",
+                                            Reference ++ "_" ++ File]),
+                    filelib:ensure_dir(Stored),
+                    file:write_file(Stored, zlib:gzip(Bin)),
+                    Url = Base ++ "/file?filename=" ++ uri_string:quote(File) ++
+                        "&reference=" ++ Reference,
+                    Inline = eTodoUtils:getDisposition(
+                               eTodoUtils:mime_type(File), File) =:= "inline",
+                    {ok, File, Url, Inline};
+                _ ->
+                    error
+            end
+    end.
+
+getFileToLink(#guiState{frame = Frame, updateFile = undefined}) ->
+    FileDlg = wxFileDialog:new(Frame, [{message, "Select file to link"}]),
+    Result  = wxDialog:showModal(FileDlg),
+    {Result,
+     wxFileDialog:getPath(FileDlg),
+     wxFileDialog:getFilename(FileDlg)};
+getFileToLink(#guiState{updateFile = FileName}) ->
+    {?wxID_OK, FileName, filename:basename(FileName)}.
+
+%% Base URL of the web UI of this installation, undefined if it is disabled.
+webBaseUrl(User, Scheme) ->
+    case application:get_env(eTodo, mistWebEnabled, false) of
+        true ->
+            case application:get_env(eTodo, mistWebLinkHost) of
+                {ok, HostPort} when is_list(HostPort) ->
+                    Scheme ++ HostPort;
+                _ ->
+                    Port   = application:get_env(eTodo, mistWebPort, 9003),
+                    ConCfg = default(eTodoDB:getConnection(User),
+                                     #conCfg{host = "localhost"}),
+                    Host   = default(ConCfg#conCfg.host, "localhost"),
+                    Scheme ++ Host ++ ":" ++ toStr(Port)
+            end;
+        _ ->
+            undefined
     end.
 
 insertMsgText(Text, State) ->
@@ -1979,149 +1996,61 @@ getFileURI() ->
 %%====================================================================
 %% Construct proxy link
 %%====================================================================
-proxyLinkMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
-    UserCfg  = eTodoDB:readUserCfg(State#guiState.user),
-    WebPwd   = default(UserCfg#userCfg.webPassword, ""),
-    Token    = base64:encode_to_string(crypto:hash(sha, User ++ "@" ++ WebPwd)),
-    {Host, Port} =
-        case UserCfg#userCfg.webProxyEnabled of
-            true ->
-                {UserCfg#userCfg.webProxyHost,
-                 toStr(UserCfg#userCfg.webProxyPort)};
-            false ->
-                {"ServerNameHere", "PortHere"}
-        end,
-    Args     =
-        "?proxy="    ++ uri_string:quote(User)   ++
-        "&token="    ++ uri_string:quote(Token),
-    Link = "https://" ++ Host ++ ":" ++ Port ++ "/eTodo/eWeb:index" ++ Args,
-    eTodo:systemEntry(system, "<" ++ Link ++ "> Can be used to access web gui"
-                      " through a proxy host. Link added to clipboard."),
-    toClipboard(Link, State).
+proxyLinkMenuEvent(_Type, _Id, _Frame, State) ->
+    case application:get_env(eTodo, mistWebLinkHost) of
+        {ok, HostPort} when is_list(HostPort) ->
+            Link = "https://" ++ HostPort ++ "/",
+            eTodo:systemEntry(system, "<" ++ Link ++ "> opens the web UI "
+                              "through the relay. Link added to clipboard."),
+            toClipboard(Link, State);
+        _ ->
+            eTodo:systemEntry(system, "No relay link, mistWebLinkHost is "
+                              "not configured."),
+            State
+    end.
 
 %%====================================================================
 %% Link view
 %%====================================================================
-linkViewMenuEvent(_Type, _Id, _Frame, State = #guiState{searchCfg = Cfg,
-                                                        filter    = Flt,
-                                                        user      = User}) ->
-    case toStr(eWeb:getPort()) of
-        "-1" ->
+linkViewMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
+    case webBaseUrl(User, "https://") of
+        undefined ->
             eTodo:systemEntry(system, "Failed to link view, "
                               "web server not running"),
             State;
-        PortStr ->
-            List      = toStr(getTaskList(State)),
-            Search    = wxComboBox:getValue(obj("searchText", State)),
-            SearchCfg = makeStr(Cfg),
-            Filter    = makeStr(useFilter(getTaskList(State), Flt, State)),
-            Args      =
-                "?list="      ++ uri_string:quote(List)      ++
-                "&search="    ++ uri_string:quote(Search)    ++
-                "&searchCfg=" ++ uri_string:quote(SearchCfg) ++
-                "&filter="    ++ uri_string:quote(Filter),
-
-            ConCfg = default(eTodoDB:getConnection(User),
-                             #conCfg{host = "localhost"}),
-            Host   = default(ConCfg#conCfg.host, "localhost"),
-            Link   = "https://" ++ Host ++ ":" ++ PortStr ++
-                "/eTodo/eWeb:show" ++ Args,
-
-            eTodo:systemEntry(system, "<" ++ Link ++ "> shows configured view "
-                              "in a browser. Link added to clipboard."),
+        Base ->
+            List   = toStr(getTaskList(State)),
+            Search = wxComboBox:getValue(obj("searchText", State)),
+            Link   = Base ++ "/?list=" ++ uri_string:quote(List) ++
+                case Search of
+                    "" -> "";
+                    _  -> "&q=" ++ uri_string:quote(Search)
+                end,
+            eTodo:systemEntry(system, "<" ++ Link ++ "> shows the view in a "
+                              "browser. Link added to clipboard."),
             toClipboard(Link, State)
     end.
 
-linkTimeReportMenuEvent(_Type, _Id, _Frame, State = #guiState{searchCfg = Cfg,
-                                                              filter    = Flt,
-                                                              user      = User}) ->
-    case toStr(eWeb:getPort()) of
-        "-1" ->
-            eTodo:systemEntry(system, "Failed to link time report, "
-                              "web server not running"),
-            State;
-        PortStr ->
-            List      = toStr(getTaskList(State)),
-            Search    = wxComboBox:getValue(obj("searchText", State)),
-            SearchCfg = makeStr(Cfg),
-            Filter    = makeStr(useFilter(getTaskList(State), Flt, State)),
-            Args      =
-                "?list="      ++ uri_string:quote(List)      ++
-                "&search="    ++ uri_string:quote(Search)    ++
-                "&searchCfg=" ++ uri_string:quote(SearchCfg) ++
-                "&filter="    ++ uri_string:quote(Filter),
-
-            ConCfg = default(eTodoDB:getConnection(User),
-                             #conCfg{host = "localhost"}),
-            Host   = default(ConCfg#conCfg.host, "localhost"),
-            Link   = "https://" ++ Host ++ ":" ++ PortStr ++
-                "/eTodo/eWeb:showTimeReport" ++ Args,
-
-            eTodo:systemEntry(system, "<" ++ Link ++ "> shows configured time "
-                              "report in a browser. Link added to clipboard."),
-            toClipboard(Link, State)
-    end.
+linkTimeReportMenuEvent(_Type, _Id, _Frame, State) ->
+    webClientRemoved(State).
 
 checkBoxUseFilterEvent(_Type, _Id, _Frame, State) ->
     updateTodoWindow(State).
 
-linkFileMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
-    PortStr = toStr(eWeb:getPort()),
-
-    case {getFileToLink(State), PortStr} of
-        {{?wxID_OK, Path, File}, PortStr} when PortStr =/= "-1" ->
-            Reference    = toStr(makeRef()),
-            Args         =
-                "?filename="  ++ uri_string:quote(File) ++
-                "&reference=" ++ uri_string:quote(Reference),
-
-            ConCfg   = default(eTodoDB:getConnection(User),
-                               #conCfg{host = "localhost"}),
-            Host     = default(ConCfg#conCfg.host, "localhost"),
-            UserCfg  = eTodoDB:readUserCfg(State#guiState.user),
-
-            {Host2, Port2, ProxyArg} =
-                case UserCfg#userCfg.webProxyEnabled of
-                    true ->
-                        {UserCfg#userCfg.webProxyHost,
-                         toStr(UserCfg#userCfg.webProxyPort),
-                         "&proxy=" ++ User};
-                    false ->
-                        {Host, PortStr, ""}
-                end,
-
-            {ok, Bin} = file:read_file(Path),
-            ZBin      = zlib:gzip(Bin),
-            FileName  = filename:join([eTodoUtils:getUserCfgDir(), "linkedFiles",
-                                       Reference ++ "_" ++ File]),
-            filelib:ensure_dir(FileName),
-            file:write_file(FileName, ZBin),
-            Scheme = case State#guiState.updateFile of
-                         undefined ->
-                             "https://";
-                         _ ->
-                             "etodo-update://"
-                     end,
-            Link = Scheme ++ Host2 ++ ":" ++ Port2 ++
-                "/eTodo/eWeb:link" ++ Args ++ ProxyArg,
-
-            eTodo:systemEntry(system, "<" ++ Link ++
+linkFileMenuEvent(_Type, _Id, _Frame, State) ->
+    Scheme = case State#guiState.updateFile of
+                 undefined -> "https://";
+                 _         -> "etodo-update://"
+             end,
+    case makeFileLink(State) of
+        {ok, _File, Url0, _Inline} ->
+            Url = Scheme ++ string:prefix(Url0, "https://"),
+            eTodo:systemEntry(system, "<" ++ Url ++
                                   "> link to file added to clipboard."),
-            toClipboard(Link, State#guiState{updateFile = undefined});
-        _->
-            eTodo:systemEntry(system, "Failed to link file, "
-                              "web server not running"),
+            toClipboard(Url, State#guiState{updateFile = undefined});
+        _ ->
             State
     end.
-
-getFileToLink(#guiState{frame = Frame, updateFile = undefined}) ->
-    FileDlg = wxFileDialog:new(Frame, [{message, "Select file to link"}]),
-    Result  = wxDialog:showModal(FileDlg),
-    {Result,
-     wxFileDialog:getPath(FileDlg),
-     wxFileDialog:getFilename(FileDlg)};
-getFileToLink(#guiState{updateFile = FileName}) ->
-    {?wxID_OK, FileName, filename:basename(FileName)}.
 
 %%====================================================================
 %% Copy
@@ -2544,38 +2473,6 @@ settingsMenuEvent(_Type, _Id, _Frame,
     wxDialog:show(Settings),
     State.
 
-webUIEnabledEvent(_Type, _Id, _Frame,
-                  State = #guiState{settingsDlg = Settings}) ->
-    WOnObj   = wxXmlResource:xrcctrl(Settings, "webUIEnabled",  wxCheckBox),
-    WPwdObj  = wxXmlResource:xrcctrl(Settings, "webPassword",   wxTextCtrl),
-    WPortObj = wxXmlResource:xrcctrl(Settings, "webPort",       wxTextCtrl),
-
-    case wxCheckBox:isChecked(WOnObj) of
-        true ->
-            wxTextCtrl:enable(WPwdObj),
-            wxTextCtrl:enable(WPortObj);
-        false ->
-            wxTextCtrl:disable(WPwdObj),
-            wxTextCtrl:disable(WPortObj)
-    end,
-    State.
-
-webProxyEnabledEvent(_Type, _Id, _Frame,
-                     State = #guiState{settingsDlg = Settings}) ->
-    WPOnObj   = wxXmlResource:xrcctrl(Settings, "webProxyEnabled",  wxCheckBox),
-    WPHostObj = wxXmlResource:xrcctrl(Settings, "webProxyHost",     wxTextCtrl),
-    WPPortObj = wxXmlResource:xrcctrl(Settings, "webProxyPort",     wxTextCtrl),
-
-    case wxCheckBox:isChecked(WPOnObj) of
-        true ->
-            wxTextCtrl:enable(WPHostObj),
-            wxTextCtrl:enable(WPPortObj);
-        false ->
-            wxTextCtrl:disable(WPHostObj),
-            wxTextCtrl:disable(WPPortObj)
-    end,
-    State.
-
 smtpEnabledEvent(_Type, _Id, _Frame,
                  State = #guiState{settingsDlg = Settings}) ->
     SMTPOnObj   = wxXmlResource:xrcctrl(Settings, "smtpEnabled",   wxCheckBox),
@@ -2622,15 +2519,10 @@ msgFilterEvent(_Type, _Id, _Frame,
 
 setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
     WPwdObj     = wxXmlResource:xrcctrl(Settings, "webPassword",      wxTextCtrl),
-    WPortObj    = wxXmlResource:xrcctrl(Settings, "webPort",          wxTextCtrl),
     EPortObj    = wxXmlResource:xrcctrl(Settings, "eTodoPort",        wxTextCtrl),
-    WOnObj      = wxXmlResource:xrcctrl(Settings, "webUIEnabled",     wxCheckBox),
-    WPOnObj     = wxXmlResource:xrcctrl(Settings, "webProxyEnabled",  wxCheckBox),
     SMTPOnObj   = wxXmlResource:xrcctrl(Settings, "smtpEnabled",      wxCheckBox),
     SMTPSrvObj  = wxXmlResource:xrcctrl(Settings, "smtpServer",       wxTextCtrl),
     SMTPPortObj = wxXmlResource:xrcctrl(Settings, "smtpPort",         wxTextCtrl),
-    WPHostObj   = wxXmlResource:xrcctrl(Settings, "webProxyHost",     wxTextCtrl),
-    WPPortObj   = wxXmlResource:xrcctrl(Settings, "webProxyPort",     wxTextCtrl),
     EHostObj    = wxXmlResource:xrcctrl(Settings, "eTodoHostName",    wxTextCtrl),
     ThemeObj    = wxXmlResource:xrcctrl(Settings, "themeRadioBox",    wxRadioBox),
     SMTPUserObj = wxXmlResource:xrcctrl(Settings, "smtpUser",         wxTextCtrl),
@@ -2645,12 +2537,7 @@ setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
 
     wxTextCtrl:setValue(EHostObj, default(UConCfg#conCfg.host, IPAddr)),
 
-    #userCfg{webEnabled       = WEnabled,
-             webPort          = WPort,
-             webPassword      = WPasswd,
-             webProxyEnabled  = WPEnabled,
-             webProxyHost     = WPHost,
-             webProxyPort     = WPPort,
+    #userCfg{webPassword      = WPasswd,
              smtpEnabled      = SMTPOn,
              smtpServer       = SMTPServer,
              smtpPort         = SMTPPort,
@@ -2668,22 +2555,15 @@ setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
     wxTextCtrl:setValue(SMTPSrvObj,   default(SMTPServer, "")),
     wxTextCtrl:setValue(SMTPPwdObj,   default(SMTPPwd, "")),
     wxTextCtrl:setValue(SMTPUserObj,  default(SMTPUser, "")),
-    wxTextCtrl:setValue(WPortObj,     toStr(default(WPort,  8099))),
-    wxTextCtrl:setValue(WPPortObj,    toStr(default(WPPort, 8099))),
     wxTextCtrl:setValue(EPortObj,     toStr(default(EPort,  19000))),
     wxTextCtrl:setValue(WPwdObj,      default(WPasswd, "")),
-    wxTextCtrl:setValue(WPHostObj,    default(WPHost,  "")),
-    wxCheckBox:setValue(WOnObj,       default(WEnabled,  false)),
-    wxCheckBox:setValue(WPOnObj,      default(WPEnabled, false)),
     wxRadioBox:setSelection(ThemeObj, default(Selected, 0)),
     wxRadioBox:setSelection(OrderObj, default(Order, 0)),
     wxSpinCtrl:setValue(NotTimeObj,   default(NTime, ?NotificationTime)),
     wxSpinCtrl:setValue(NumMailsObj,  default(NumOfEmails, 5)),
     wxChoice:setStringSelection(SMTPAuthObj, default(SMTPAuth, "None")),
 
-    webUIEnabledEvent(undefined, undefined, undefined, State),
-    smtpEnabledEvent(undefined, undefined, undefined, State),
-    webProxyEnabledEvent(undefined, undefined, undefined, State).
+    smtpEnabledEvent(undefined, undefined, undefined, State).
 
 setDefaultValues(ConCfg, #guiState{user = User, settingsDlg = Settings}) ->
     PeerObj  = wxXmlResource:xrcctrl(Settings, "peerUserName",  wxTextCtrl),
@@ -2707,14 +2587,9 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     HostObj     = wxXmlResource:xrcctrl(Settings, "hostName",         wxTextCtrl),
     PortObj     = wxXmlResource:xrcctrl(Settings, "peerPort",         wxTextCtrl),
     WPwdObj     = wxXmlResource:xrcctrl(Settings, "webPassword",      wxTextCtrl),
-    WPortObj    = wxXmlResource:xrcctrl(Settings, "webPort",          wxTextCtrl),
     EPortObj    = wxXmlResource:xrcctrl(Settings, "eTodoPort",        wxTextCtrl),
     EHostObj    = wxXmlResource:xrcctrl(Settings, "eTodoHostName",    wxTextCtrl),
     EmailObj    = wxXmlResource:xrcctrl(Settings, "emailAddress",     wxTextCtrl),
-    WOnObj      = wxXmlResource:xrcctrl(Settings, "webUIEnabled",     wxCheckBox),
-    WPOnObj     = wxXmlResource:xrcctrl(Settings, "webProxyEnabled",  wxCheckBox),
-    WPHostObj   = wxXmlResource:xrcctrl(Settings, "webProxyHost",     wxTextCtrl),
-    WPPortObj   = wxXmlResource:xrcctrl(Settings, "webProxyPort",     wxTextCtrl),
     SMTPOnObj   = wxXmlResource:xrcctrl(Settings, "smtpEnabled",      wxCheckBox),
     SMTPSrvObj  = wxXmlResource:xrcctrl(Settings, "smtpServer",       wxTextCtrl),
     SMTPPortObj = wxXmlResource:xrcctrl(Settings, "smtpPort",         wxTextCtrl),
@@ -2732,13 +2607,7 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     PeerHost    = wxTextCtrl:getValue(HostObj),
     PeerPort    = wxTextCtrl:getValue(PortObj),
 
-    WEnabled    = wxCheckBox:isChecked(WOnObj),
     WPwd        = wxTextCtrl:getValue(WPwdObj),
-    WebPort     = wxTextCtrl:getValue(WPortObj),
-
-    WPEnabled   = wxCheckBox:isChecked(WPOnObj),
-    WPHost      = wxTextCtrl:getValue(WPHostObj),
-    WPPort      = wxTextCtrl:getValue(WPPortObj),
 
     SMTPEnabled = wxCheckBox:isChecked(SMTPOnObj),
     SMTPServer  = wxTextCtrl:getValue(SMTPSrvObj),
@@ -2768,12 +2637,7 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
 
     UserCfg  = eTodoDB:readUserCfg(User),
     UserCfg2 = UserCfg#userCfg{peerUser         = PeerUser,
-                               webEnabled       = WEnabled,
                                webPassword      = WPwd,
-                               webPort          = toInt(WebPort),
-                               webProxyEnabled  = WPEnabled,
-                               webProxyHost     = WPHost,
-                               webProxyPort     = toInt(WPPort),
                                smtpEnabled      = SMTPEnabled,
                                smtpServer       = SMTPServer,
                                smtpPort         = toInt(SMTPPort),
@@ -2787,7 +2651,6 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
                                notifOrder       = EmailOrder},
     setStyleSheet(User, UserCfg2),
     eTodoDB:saveUserCfg(UserCfg2),
-    executeChanges(UserCfg, UserCfg2),
     wxDialog:hide(Settings),
     eSMTP:updateConfig(),
 
@@ -2814,25 +2677,10 @@ toInt(Value) when is_list(Value) ->
         Integer ->
             Integer
     end.
-executeChanges(#userCfg{webEnabled  = WEnabled,
-                        webPassword = WPwd,
-                        webPort     = WPort},
-               #userCfg{webEnabled  = WEnabled,
-                        webPassword = WPwd,
-                        webPort     = WPort}) ->
-    %% No changes, done.
-    ok;
-executeChanges(#userCfg{webEnabled = false},
-               UserCfg = #userCfg{webEnabled = true}) ->
-    {ok, Pid} = eWeb:start_link(UserCfg#userCfg.userName),
-    monitor(process, Pid),
-    {ok, Pid};
-executeChanges(_, UserCfg) ->
-    eWeb:stop(),
-    timer:sleep(1000),
-    {ok, Pid} = eWeb:start_link(UserCfg#userCfg.userName),
-    monitor(process, Pid),
-    {ok, Pid}.
+webClientRemoved(State) ->
+    eTodo:systemEntry(system, "The old web client has been removed, "
+                      "links to it are no longer available."),
+    State.
 
 settingsCancelEvent(_Type, _Id, _Frame,
                     State = #guiState{settingsDlg = Settings}) ->

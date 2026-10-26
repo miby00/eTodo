@@ -1,539 +1,192 @@
-var eTodoData = {
-    users: [],
-    settings: {},
+(function () {
+  "use strict";
 
-    setUsers: function (_users) {
-        this.users = _users;
-    },
+  function updateCount() {
+    var count = document.getElementById("todo-count");
+    if (count) {
+      var visible = document.querySelectorAll(
+        "#todo-items > li[data-uid]:not([hidden])"
+      ).length;
+      count.textContent = visible + " shown";
+    }
+  }
 
-    getUsers: function () {
-        return this.users;
-    },
-
-    getSettings: function () {
-        return this.settings;
-    },
-
-    setSettings: function (_settings) {
-        this.settings = _settings;
-    },
-
-    fetchFromSrv: function () {
-        "use strict";
-        var url  = '/eTodo/eWeb:getUsersJSON',
-            AJAX = eTodo.newAJAX();
-
-        eTodo.sendCall(AJAX, url, function () {
-            if (AJAX.readyState === 4 || AJAX.readyState === "complete") {
-                var obj = JSON.parse(AJAX.responseText);
-
-                eTodoData.setUsers(obj.Users);
-            }})},
-
-    fetchSettingsFromSrv: function () {
-        "use strict";
-        var url  = '/eTodo/eWeb:getWebSettingsJSON',
-            AJAX = eTodo.newAJAX();
-
-        eTodo.sendCall(AJAX, url, function () {
-            if (AJAX.readyState === 4 || AJAX.readyState === "complete") {
-                var obj = JSON.parse(AJAX.responseText);
-                    eTodoData.setSettings(obj);
-            }
+  var filterBox = document.getElementById("todo-filter");
+  if (filterBox) {
+    var applyFilter = function () {
+      var words = filterBox.value.toLowerCase().split(/\s+/).filter(Boolean);
+      document
+        .querySelectorAll("#todo-items > li[data-uid]")
+        .forEach(function (item) {
+          var text = (item.getAttribute("data-search") || "").toLowerCase();
+          item.hidden = !words.every(function (word) {
+            return text.indexOf(word) !== -1;
+          });
         });
-    }
-};
+      updateCount();
+    };
+    filterBox.addEventListener("input", applyFilter);
+    applyFilter();
+  }
 
-var eTodo;
-
-(function (eTodo) {
-    function isInt(value) {
-        "use strict";
-        var x;
-
-        if (isNaN(value)) {
-            return false;
-        }
-        x = parseFloat(value);
-        return (x | 0) === x;
-    }
-
-    function newAJAX() {
-        "use strict";
-        var AJAX = null;
-
-        if (window.XMLHttpRequest) {
-            AJAX = new XMLHttpRequest();
-        } else {
-            AJAX = new ActiveXObject("Microsoft.XMLHTTP");
-        }
-        return AJAX;
-    }
-    eTodo.newAJAX = newAJAX;
-
-    function sendCall(AJAX, url, callback) {
-        "use strict";
-        if (AJAX === null) {
-            alert("Initialisation of AJAX failed.");
-            return false;
-        }
-
-        if (typeof callback === "function") {
-            AJAX.onreadystatechange = callback;
-        }
-
-        AJAX.open("GET", url, true);
-        AJAX.send(null);
-    }
-    eTodo.sendCall = sendCall;
-
-    function stopPropagation(evt) {
-        "use strict";
-        evt = evt || window.event; // For IE
-
-        if (typeof evt.stopPropagation === "function") {
-            evt.stopPropagation();
-        } else {
-            evt.cancelBubble = true;
-        }
-    }
-    eTodo.stopPropagation = stopPropagation;
-
-    function openLink(url) {
-        "use strict";
-        window.open(url, '_self');
-        /* window.open(url, '_blank') */
-        /* window.focus(); */
-    }
-    eTodo.openLink = openLink;
-
-    function addClass(element, elementClass) {
-        "use strict";
-        if (element.classList.contains(elementClass) === false) {
-            element.classList.add(elementClass);
-        }
-    }
-
-    function saveChanges(type, uid) {
-        "use strict";
-        var element = document.getElementById(type + uid),
-            compactDesc,
-            progress,
-            fieldValue,
-            AJAX,
-            data,
-            url;
-
-        if ((type === 'Description') &&
-            document.getElementById('compactDesc' + uid)) {
-            compactDesc = document.getElementById('compactDesc' + uid);
-            if (compactDesc.innerHTML !== element.innerHTML) {
-                compactDesc.innerHTML = element.innerHTML;
-            } else {
-                return;
-            }
-        }
-
-        if (type === 'Progress(%)') {
-            progress = parseInt(element.innerHTML);
-            if (!(progress >= 0 && progress <= 100) || !(isInt(progress))) {
-                return;
-            }
-        }
-
-        if (type === 'Estimate(%)' || type === 'Remaining(h)') {
-            fieldValue = parseInt(element.innerHTML);
-            if (!isInt(fieldValue)) {
-                return;
-            }
-        }
-
-        AJAX = newAJAX();
-        if (type === 'Due date') {
-            data = document.getElementById('date_' + uid).value;
-        } else {
-            data = element.innerHTML;
-        }
-        url  = '/eTodo/eWeb:sendFieldChange?field=' + type +
-            '&value=' + encodeURIComponent(data) + '&uid=' + uid;
-
-        sendCall(AJAX, url);
-    }
-
-    function cancelBtn(event) {
-        "use strict";
-        stopPropagation(event);
-
-        location.reload(true);
-    }
-    eTodo.cancelBtn = cancelBtn;
-
-    function saveTaskChanges(event, uid) {
-        "use strict";
-        stopPropagation(event);
-
-        saveChanges('Comment',      uid);
-        saveChanges('Description',  uid);
-        saveChanges('Estimate(h)',  uid);
-        saveChanges('Progress(%)',  uid);
-        saveChanges('Remaining(h)', uid);
-        saveChanges('Due date',     uid);
-
-        showDetails(uid);
-    }
-    eTodo.saveTaskChanges = saveTaskChanges;
-
-    function deleteList(event) {
-        "use strict";
-        stopPropagation(event);
-        var element1 = document.getElementById('dListRow'),
-            element2 = document.getElementById('yesNoDList');
-
-        addClass(element1, 'hide');
-        element2.classList.remove('hide');
-    }
-    eTodo.deleteList = deleteList;
-
-    function deleteListYes(event, id) {
-        "use strict";
-        stopPropagation(event);
-        var list = document.getElementById(id).value,
-            AJAX = newAJAX();
-
-        sendCall(AJAX, '/eTodo/eWeb:deleteTaskList?dlist=' + encodeURIComponent(list),
-            function () {
-                if (AJAX.readyState === 4 || AJAX.readyState === "complete") {
-                    openLink('/eTodo/eWeb:index');
-                }
-            });
-    }
-    eTodo.deleteListYes = deleteListYes;
-
-    function deleteListNo(event, uid) {
-        "use strict";
-        stopPropagation(event);
-        var element1 = document.getElementById('dListRow'),
-            element2 = document.getElementById('yesNoDList');
-
-        element1.classList.remove('hide');
-        addClass(element2, 'hide');
-    }
-    eTodo.deleteListNo = deleteListNo;
-
-
-    function deleteTask(event, uid) {
-        "use strict";
-        stopPropagation(event);
-        var element = document.getElementById('table' + uid);
-
-        addClass(element.childNodes[0].childNodes[8], 'hide');
-        if (element.childNodes[0].childNodes[9].classList !== undefined) {
-            element.childNodes[0].childNodes[9].classList.remove('hide');
-        }
-    }
-    eTodo.deleteTask = deleteTask;
-
-    function deleteYes(event, uid) {
-        "use strict";
-        stopPropagation(event);
-        var element  = document.getElementById('table' + uid),
-            AJAX = newAJAX();
-
-        addClass(element.childNodes[0].childNodes[9], 'hide');
-        element.childNodes[0].childNodes[8].classList.remove('hide');
-        sendCall(AJAX, '/eTodo/eWeb:deleteTask?uid=' + uid,
-            function () {
-                if (AJAX.readyState === 4 || AJAX.readyState === "complete") {
-                    location.reload(true);
-                }
-            });
-    }
-    eTodo.deleteYes = deleteYes;
-
-    function deleteNo(event, uid) {
-        "use strict";
-        stopPropagation(event);
-        var element = document.getElementById('table' + uid);
-
-        addClass(element.childNodes[0].childNodes[9], 'hide');
-        element.childNodes[0].childNodes[8].classList.remove('hide');
-    }
-    eTodo.deleteNo = deleteNo;
-
-    function showDetails(uid) {
-        "use strict";
-        var element = document.getElementById('table' + uid);
-        if (element.classList.contains('tCompact')) {
-            element.classList.remove('tCompact');
-            element.childNodes[0].childNodes[1].classList.remove('hide');
-            element.childNodes[0].childNodes[2].classList.remove('hide');
-            element.childNodes[0].childNodes[3].classList.remove('hide');
-            element.childNodes[0].childNodes[4].classList.remove('hide');
-            element.childNodes[0].childNodes[5].classList.remove('hide');
-            element.childNodes[0].childNodes[6].classList.remove('hide');
-            element.childNodes[0].childNodes[7].classList.remove('hide');
-            element.childNodes[0].childNodes[8].classList.remove('hide');
-            fillOwnerSelectBox(uid);
-            if (element.classList.contains('ttCompact')) {
-                addClass(element.childNodes[0].childNodes[0], 'hide');
-            }
-        } else {
-            element.classList.add('tCompact');
-            addClass(element.childNodes[0].childNodes[2], 'hide');
-            addClass(element.childNodes[0].childNodes[3], 'hide');
-            addClass(element.childNodes[0].childNodes[4], 'hide');
-            addClass(element.childNodes[0].childNodes[5], 'hide');
-            addClass(element.childNodes[0].childNodes[7], 'hide');
-            addClass(element.childNodes[0].childNodes[8], 'hide');
-            if (element.classList.contains('ttCompact')) {
-                element.childNodes[0].childNodes[0].classList.remove('hide');
-                addClass(element.childNodes[0].childNodes[1], 'hide');
-                addClass(element.childNodes[0].childNodes[6], 'hide');
-            }
-        }
-    }
-    eTodo.showDetails = showDetails;
-
-    function fillOwnerSelectBox(uid) {
-        "use strict";
-
-        var user, i, len,
-            ownerSelect = document.getElementById('idOwner' + uid),
-            owner = ownerSelect.options[0].value;
-
-        // Remove all options
-        ownerSelect.innerHTML = "";
-
-        // Fill with new users, set owner as default.
-        for (i = 0, len = eTodoData.getUsers().length; i < len; i++) {
-            user = eTodoData.getUsers()[i];
-            ownerSelect.options[ownerSelect.options.length] = new Option(user);
-            if (user === owner) {
-                ownerSelect.options[i].selected = true;
-            }
-        }
-    }
-
-    function submitForm(value) {
-        "use strict";
-        var formElement = document.getElementById(value);
-
-        console.log(value);
-        formElement.submit();
-    }
-    eTodo.submitForm = submitForm;
-
-    function sendSetting(Id) {
-        "use strict";
-        var AJAX = newAJAX(),
-            data = document.getElementById(Id).value,
-            url = '/eTodo/eWeb:sendSetting?key=' + Id + '&value=' + data;
-
-        sendCall(AJAX, url, function () {
-            eTodoData.fetchSettingsFromSrv();
+  document.addEventListener("submit", function (event) {
+    var form = event.target;
+    if (form.classList && form.classList.contains("etodo-delete-form")) {
+      if (!window.confirm("Delete this task permanently?")) {
+        event.preventDefault();
+        return;
+      }
+      event.preventDefault();
+      var button = document.querySelector(
+        'button[form="' + form.id + '"][type=submit]'
+      );
+      var card = form.closest("li");
+      button.disabled = true;
+      fetch(form.action, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-Etodo-Fetch": "1"
+        },
+        body: new URLSearchParams(new FormData(form)).toString()
+      })
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+          card.remove();
+          var tasks = document.querySelectorAll("#todo-items > li[data-uid]");
+          updateCount();
+          if (tasks.length === 0) {
+            var empty = document.createElement("li");
+            empty.className =
+              "card border-0 shadow-sm text-center etodo-empty-state";
+            var body = document.createElement("div");
+            body.className = "card-body p-4 p-md-5";
+            var mark = document.createElement("div");
+            mark.className = "etodo-empty-mark mb-3";
+            mark.textContent = "\u2713";
+            var heading = document.createElement("h3");
+            heading.className = "h5 fw-semibold";
+            heading.textContent = "All clear";
+            var message = document.createElement("p");
+            message.className = "text-body-secondary mb-0";
+            message.textContent = "There are no todos in this list yet.";
+            body.append(mark, heading, message);
+            empty.append(body);
+            document.getElementById("todo-items").append(empty);
+          }
+        })
+        .catch(function () {
+          button.disabled = false;
+          window.alert("Could not delete the task. Please try again.");
         });
+      return;
     }
-    eTodo.sendSetting = sendSetting;
+    if (!form.classList || !form.classList.contains("etodo-done-form")) {
+      return;
+    }
+    event.preventDefault();
 
-    function sendMsg(ToId, MsgId) {
-        "use strict";
-        var msg  = encodeURIComponent(document.getElementById(MsgId).value),
-            AJAX = newAJAX(),
-            to,
-            url;
+    var done = form.elements["done"];
+    var wantDone = done.value === "true";
+    var button = form.querySelector(".etodo-check");
+    var title = form.parentNode.querySelector(".etodo-title");
+    button.disabled = true;
 
-        if (msg !== '') {
-            document.getElementById(MsgId).value = '';
-            to  = encodeURIComponent(document.getElementById(ToId).value);
-            url = '/eTodo/eWeb:sendMsg?to=' + to + '&msg=' + msg;
-            sendCall(AJAX, url);
+    fetch(form.action, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Etodo-Fetch": "1"
+      },
+      body: new URLSearchParams(new FormData(form)).toString()
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
         }
+        return response.text();
+      })
+      .then(function (doneTime) {
+        var card = form.closest("li");
+        var setField = function (name, text) {
+          var cell = card.querySelector('[data-field="' + name + '"]');
+          if (cell) {
+            cell.textContent = text || "-";
+          }
+        };
+        setField("status", wantDone ? "Done" : "Planning");
+        setField("done-time", wantDone ? doneTime : "");
+        button.classList.toggle("etodo-check-on", wantDone);
+        button.setAttribute("aria-checked", wantDone ? "true" : "false");
+        var label = wantDone ? "Mark as not done" : "Mark as done";
+        button.setAttribute("aria-label", label);
+        button.title = label;
+        button.textContent = wantDone ? "\u2713" : "";
+        title.classList.toggle("etodo-done", wantDone);
+        done.value = wantDone ? "false" : "true";
+        button.disabled = false;
+      })
+      .catch(function () {
+        // Fall back to a normal form post, which reloads the page.
+        form.submit();
+      });
+  });
+})();
+
+(function () {
+  var page = document.getElementById("status-page");
+  if (!page) {
+    return;
+  }
+  var filled = false;
+  var set = function (id, text) {
+    document.getElementById(id).textContent = text;
+  };
+  var pad = function (n) {
+    return (n < 10 ? "0" : "") + n;
+  };
+  var show = function (data) {
+    document.body.className =
+      "etodo-status etodo-status-" +
+      String(data.status).toLowerCase().replace(/[^a-z]+/g, "-");
+    set("status-user", data.user);
+    var select = document.getElementById("status-select");
+    if (select && !filled) {
+      filled = true;
+      select.value = data.status;
+      document.getElementById("status-message").value = data.status_msg;
     }
-    eTodo.sendMsg = sendMsg;
-
-    function checkForEnter(event) {
-        "use strict";
-
-        var keyCode = (event.hasOwnProperty('which')) ? event.which : event.keyCode;
-
-        if (keyCode == '13') {
-            sendMsg('userSelect', 'sendMessage');
+    set("status-state", data.status);
+    set("status-msg", data.status_msg);
+    set("status-timer-desc", data.timer_desc);
+    var s = data.timer;
+    set(
+      "status-timer",
+      s > 0
+        ? pad(Math.floor(s / 3600)) + ":" + pad(Math.floor(s / 60) % 60) + ":" + pad(s % 60)
+        : "",
+    );
+  };
+  var poll = function () {
+    fetch("/status.json", { credentials: "same-origin", cache: "no-store" })
+      .then(function (response) {
+        if (response.status === 401) {
+          window.location.href = "/";
         }
-        return true;
-    }
-    eTodo.checkForEnter = checkForEnter;
-
-    function setTextDecoration(Data, Uid) {
-        "use strict";
-
-        if (Data === 'Done') {
-            addClass(document.getElementById('compactDesc' + Uid), 'done');
-            addClass(document.getElementById('Comment' + Uid),     'done');
-            addClass(document.getElementById('Description' + Uid), 'done');
-        } else {
-            document.getElementById('compactDesc' + Uid).classList.remove('done');
-            document.getElementById('Comment' + Uid).classList.remove('done');
-            document.getElementById('Description' + Uid).classList.remove('done');
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
         }
-    }
-
-    function sendStatus(Id, Uid) {
-        "use strict";
-        var data = document.getElementById(Id).value,
-            AJAX,
-            url;
-
-        if (Id === 'idStatus' + Uid) {
-            document.getElementById('idStatusc' + Uid).value = data;
-        } else {
-            document.getElementById('idStatus' + Uid).value = data;
-        }
-
-        setTextDecoration(data, Uid);
-        AJAX = newAJAX();
-        url = '/eTodo/eWeb:sendStatus?status=' + data + '&uid=' + Uid;
-        sendCall(AJAX, url);
-    }
-    eTodo.sendStatus = sendStatus;
-
-    function sendPriority(Id, Uid) {
-        "use strict";
-        var AJAX = newAJAX(),
-            data = document.getElementById(Id).value,
-            url  = '/eTodo/eWeb:sendPriority?priority=' + data + '&uid=' + Uid;
-        sendCall(AJAX, url);
-    }
-    eTodo.sendPriority = sendPriority;
-
-    function sendOwner(Id, Uid) {
-        "use strict";
-        var AJAX = newAJAX(),
-            data = document.getElementById(Id).value,
-            url  = '/eTodo/eWeb:sendOwner?owner=' + data + '&uid=' + Uid;
-        sendCall(AJAX, url);
-    }
-    eTodo.sendOwner = sendOwner;
-
-    function handleResult(responseText, status) {
-        "use strict";
-        if (responseText === "noAccess") {
-            window.open('/eTodo/eWeb:index', '_self');
-            return;
-        } else if (status === 200 && responseText !== "noMessages") {
-            document.getElementById('messageField').innerHTML = responseText;
-        }
-        setTimeout(checkForMessage, 1000);
-    }
-
-    function checkForMessage() {
-        "use strict";
-        var AJAX = newAJAX(),
-            url  = '/eTodo/eWeb:checkForMessage';
-
-        sendCall(AJAX, url, function () {
-            if (AJAX.readyState === 4 || AJAX.readyState === "complete") {
-                handleResult(AJAX.responseText, AJAX.status);
-            }
-        });
-    }
-    eTodo.checkForMessage = checkForMessage;
-
-    function toHoursMinSec(seconds) {
-        "use strict";
-        var hour = parseInt(seconds / 3600, 10),
-            min  = parseInt(seconds / 60 - hour * 60, 10),
-            sec  = seconds % 60;
-
-        sec = sec < 10 ? ("0" + sec) : sec;
-
-        if (hour === 0) {
-            return min + ":" + sec;
-        }
-        min = min < 10 ? ("0" + min) : min;
-        return hour + ":" + min + ":" + sec;
-    }
-
-    function handleStatusResult(responseText, status) {
-        "use strict";
-        var obj     = JSON.parse(responseText),
-            seconds = parseInt(obj.timer, 10),
-            element;
-
-        if (status === 200) {
-            document.getElementById('timerField').innerHTML = toHoursMinSec(seconds);
-            document.getElementById('timerStatus').innerHTML = obj.status;
-            document.getElementById('timerStatusMsg').innerHTML = obj.statusMsg;
-
-            element = document.getElementById('theBody');
-
-            if (seconds === 0) {
-                element.classList.remove('timerBusy');
-                addClass(element, 'timerAvailable');
-            } else {
-                element.classList.remove('timerAvailable');
-                addClass(element, 'timerBusy');
-            }
-
-            if (obj.status === 'Available') {
-                element.classList.remove('statusAway');
-                element.classList.remove('statusBusy');
-                addClass(element, 'statusAvailable');
-            } else if (obj.status === 'Away') {
-                element.classList.remove('statusAvailable');
-                element.classList.remove('statusBusy');
-                addClass(element, 'statusAway');
-            } else {
-                element.classList.remove('statusAvailable');
-                element.classList.remove('statusAway');
-                addClass(element, 'statusBusy');
-            }
-        }
-    }
-
-    function checkStatus() {
-        "use strict";
-        var AJAX = newAJAX(),
-            url  = '/eTodo/eWeb:checkStatus';
-
-        sendCall(AJAX, url, function () {
-            if (AJAX.readyState === 4 || AJAX.readyState === "complete") {
-                handleStatusResult(AJAX.responseText, AJAX.status);
-            }
-        });
-    }
-    eTodo.checkStatus = checkStatus;
-
-    function enableButton(id1, id2) {
-        "use strict";
-        var val = document.getElementById(id1).value;
-
-        document.getElementById(id2).disabled = (val === '');
-    }
-
-
-    function osType() {
-        "use strict";
-        // "Windows"    for all versions of Windows
-        // "MacOS"      for all versions of Macintosh OS
-        // "Linux"      for all versions of Linux
-        // "UNIX"       for all other UNIX flavors
-        // "Unknown OS" indicates failure to detect the OS
-
-        if (navigator.appVersion.indexOf("Win") !== -1) {
-            return "Windows";
-        }
-        if (navigator.appVersion.indexOf("Mac") !== -1) {
-            return "MacOS";
-        }
-        if (navigator.appVersion.indexOf("X11") !== -1) {
-            return "UNIX";
-        }
-        if (navigator.appVersion.indexOf("Linux") !== -1) {
-            return "Linux";
-        }
-
-        return "Unknown OS";
-    }
-})(eTodo || (eTodo = {}));
-
-
+        return response.json();
+      })
+      .then(show)
+      .catch(function () {
+        set("status-state", "Not connected");
+      });
+  };
+  poll();
+  setInterval(poll, 1000);
+})();

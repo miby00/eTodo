@@ -1,0 +1,336 @@
+:root {
+  color-scheme: light;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.etodo-page,
+.etodo-login-page {
+  --bs-primary-rgb: 83, 75, 207;
+}
+
+.etodo-page {
+  background: #f5f7fb;
+}
+
+.etodo-container {
+  max-width: 54rem;
+}
+
+.etodo-page .navbar-brand {
+  color: #3932a8;
+  font-size: 1.35rem;
+  letter-spacing: -0.05em;
+}
+
+.etodo-eyebrow {
+  letter-spacing: 0.12em;
+}
+
+.etodo-list-submit {
+  min-width: 9rem;
+}
+
+.etodo-task-card {
+  border-radius: 1rem;
+}
+
+.etodo-login-page {
+  background:
+    radial-gradient(ellipse at top left, rgba(83, 75, 207, 0.12), transparent 42%),
+    #f5f7fb;
+}
+
+.etodo-login-card {
+  border-radius: 1.25rem;
+}
+
+.etodo-login-logo {
+  display: block;
+  height: auto;
+  margin: 0 auto 1.5rem;
+  max-width: 100%;
+  width: 15rem;
+}
+
+.etodo-empty-mark {
+  align-items: center;
+  background: #e8e7fb;
+  border-radius: 50%;
+  color: #3932a8;
+  display: flex;
+  font-size: 1.4rem;
+  font-weight: 700;
+  height: 3rem;
+  justify-content: center;
+  margin-inline: auto;
+  width: 3rem;
+}
+
+.etodo-page .btn-primary,
+.etodo-login-page .btn-primary {
+  --bs-btn-bg: #534bcf;
+  --bs-btn-border-color: #534bcf;
+  --bs-btn-hover-bg: #3932a8;
+  --bs-btn-hover-border-color: #3932a8;
+  --bs-btn-active-bg: #302990;
+  --bs-btn-active-border-color: #302990;
+}
+
+html {
+  scroll-padding-top: 1rem;
+}
+
+.min-w-0 {
+  min-width: 0;
+}
+
+.etodo-check {
+  align-items: center;
+  background: #fff;
+  border: 2px solid #aeb4c4;
+  border-radius: 0.6rem;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  font-size: 1.5rem;
+  font-weight: 700;
+  height: 2.25rem;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 2.25rem;
+}
+
+.etodo-check:hover {
+  border-color: #534bcf;
+}
+
+.etodo-check:focus-visible {
+  outline: 3px solid rgba(83, 75, 207, 0.4);
+  outline-offset: 2px;
+}
+
+.etodo-check-on {
+  background: #534bcf;
+  border-color: #534bcf;
+}
+
+.etodo-done {
+  color: #7b8194;
+  text-decoration: line-through;
+}
+
+.etodo-row {
+  padding: 0.5rem 0.75rem;
+}
+
+.etodo-title {
+  flex: 1 1 auto;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.etodo-check {
+  flex-shrink: 0;
+}
+
+.etodo-toggle {
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  width: 1px;
+}
+
+.etodo-info {
+  align-items: center;
+  border-radius: 50%;
+  color: #534bcf;
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  font-size: 1.25rem;
+  height: 2.5rem;
+  justify-content: center;
+  transition: transform 0.15s;
+  user-select: none;
+  width: 2.5rem;
+}
+
+.etodo-info:hover {
+  background: #e8e7fb;
+}
+
+.etodo-toggle:focus-visible + .etodo-row .etodo-info {
+  outline: 3px solid rgba(83, 75, 207, 0.4);
+}
+
+.etodo-toggle:checked + .etodo-row .etodo-info {
+  transform: rotate(180deg);
+}
+
+.etodo-details {
+  border-top: 1px solid #e5e7f0;
+  display: none;
+  margin: 0 0.75rem;
+  padding: 0.75rem 0;
+}
+
+.etodo-toggle:checked ~ .etodo-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.etodo-comment {
+  white-space: pre-wrap;
+}
+
+@media (max-width: 575.98px) {
+  .etodo-list-submit {
+    width: 100%;
+  }
+}
+
+.etodo-logo-banner {
+  background: linear-gradient(135deg, #1b2263, #2e3a9e);
+  border-radius: 1rem;
+  box-shadow: 0 0.5rem 1.25rem rgba(27, 34, 99, 0.25);
+  padding: 1rem;
+}
+
+.etodo-login-page .etodo-logo-banner {
+  padding: 0;
+}
+
+.etodo-login-logo {
+  margin-bottom: 0;
+}
+
+.etodo-logo-small {
+  border-radius: 0.6rem;
+  box-shadow: none;
+  display: inline-block;
+  line-height: 0;
+  padding: 0.3rem 0.8rem;
+}
+
+.etodo-logo-small img {
+  height: 2rem;
+  width: auto;
+}
+
+.etodo-details form button[type=submit].btn:not(.btn-sm){min-width:9rem}
+
+.etodo-new-summary {
+  cursor: pointer;
+}
+
+/* Full screen status and timer page, meant to be left open on a screen. */
+.etodo-status {
+  min-height: 100vh;
+  background: #6c757d;
+  color: #fff;
+  text-align: center;
+  transition: background-color 0.3s;
+}
+
+.etodo-status-available {
+  background: #198754;
+}
+
+.etodo-status-busy {
+  background: #dc3545;
+}
+
+.etodo-status-away {
+  background: #fd7e14;
+}
+
+#status-page {
+  padding-top: 8vh;
+}
+
+#status-user {
+  font-size: 10vh;
+}
+
+#status-state {
+  font-size: 8vh;
+}
+
+#status-msg {
+  font-size: 6vh;
+  overflow-wrap: anywhere;
+}
+
+#status-timer {
+  font-size: 18vh;
+  font-variant-numeric: tabular-nums;
+}
+
+#status-timer-desc {
+  font-size: 4vh;
+}
+
+#status-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* The controls stay out of the way so the status display is not affected. */
+#status-controls {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  opacity: 0.55;
+  transition: opacity 0.2s;
+}
+
+#status-controls:hover,
+#status-controls:focus-within,
+#status-controls:has(details[open]) {
+  opacity: 1;
+}
+
+#status-back,
+#status-edit summary {
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+}
+
+#status-edit {
+  text-align: right;
+}
+
+#status-form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+#status-form input[type="text"] {
+  flex: 1 1 14rem;
+}
+
+#status-form select,
+#status-form input[type="text"],
+#status-form button {
+  padding: 0.4rem 0.6rem;
+  border: 0;
+  border-radius: 0.4rem;
+  font-size: 0.9rem;
+}
