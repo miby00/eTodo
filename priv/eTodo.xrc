@@ -339,7 +339,7 @@
 										</object>
 										<object class="sizeritem">
 											<option>0</option>
-											<flag>wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+											<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
 											<border>5</border>
 											<object class="wxCheckBox" name="checkBoxUseFilter">
 												<enabled>0</enabled>
@@ -948,7 +948,7 @@
 																			<orient>wxVERTICAL</orient>
 																			<object class="sizeritem">
 																				<option>0</option>
-																				<flag>wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+																				<flag>wxALIGN_CENTER_HORIZONTAL|wxALL</flag>
 																				<border>5</border>
 																				<object class="wxStaticBitmap" name="portraitUserIcon">
 																					<bitmap>./Icons/portrait.png</bitmap>
@@ -1010,7 +1010,7 @@
 																			<orient>wxVERTICAL</orient>
 																			<object class="sizeritem">
 																				<option>0</option>
-																				<flag>wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+																				<flag>wxALIGN_CENTER_HORIZONTAL|wxALL</flag>
 																				<border>0</border>
 																				<object class="wxStaticBitmap" name="portraitPeerIcon">
 																					<bitmap>./Icons/portrait.png</bitmap>
@@ -1139,7 +1139,7 @@
 																														<orient>wxVERTICAL</orient>
 																														<object class="sizeritem">
 																															<option>1</option>
-																															<flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
+																															<flag>wxALL|wxEXPAND</flag>
 																															<border>5</border>
 																															<object class="wxHtmlWindow" name="msgTextWin">
 																																<style>wxHW_SCROLLBAR_AUTO</style>
@@ -1157,7 +1157,7 @@
 																														<orient>wxVERTICAL</orient>
 																														<object class="sizeritem">
 																															<option>1</option>
-																															<flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
+																															<flag>wxALL|wxEXPAND</flag>
 																															<border>5</border>
 																															<object class="wxHtmlWindow" name="remTextWin">
 																																<style>wxHW_SCROLLBAR_AUTO</style>
@@ -1175,7 +1175,7 @@
 																														<orient>wxVERTICAL</orient>
 																														<object class="sizeritem">
 																															<option>1</option>
-																															<flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
+																															<flag>wxALL|wxEXPAND</flag>
 																															<border>5</border>
 																															<object class="wxHtmlWindow" name="systemTextWin">
 																																<style>wxHW_SCROLLBAR_AUTO</style>
@@ -1200,7 +1200,7 @@
 																											</object>
 																											<object class="sizeritem">
 																												<option>0</option>
-																												<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+																												<flag>wxALL</flag>
 																												<border>5</border>
 																												<object class="wxBitmapButton" name="msgSettingsButton">
 																													<style>wxBU_AUTODRAW</style>
@@ -1238,7 +1238,7 @@
 																														<orient>wxVERTICAL</orient>
 																														<object class="sizeritem">
 																															<option>1</option>
-																															<flag>wxALIGN_CENTER_VERTICAL|wxEXPAND</flag>
+																															<flag>wxEXPAND</flag>
 																															<border>5</border>
 																															<object class="unknown" name="msgTextCtrlSTC" />
 																														</object>
@@ -1279,7 +1279,7 @@
 																											</object>
 																											<object class="sizeritem">
 																												<option>0</option>
-																												<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+																												<flag>wxALL</flag>
 																												<border>5</border>
 																												<object class="wxBitmapButton" name="sendChatMsg">
 																													<style>wxBU_AUTODRAW</style>
@@ -1291,7 +1291,7 @@
 																											</object>
 																											<object class="sizeritem">
 																												<option>0</option>
-																												<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+																												<flag>wxALL</flag>
 																												<border>5</border>
 																												<object class="wxBitmapButton" name="linkFileButton">
 																													<style>wxBU_AUTODRAW</style>
@@ -1806,7 +1806,7 @@
 									<label>Show task in report</label>
 									<object class="sizeritem">
 										<option>0</option>
-										<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+										<flag>wxALL</flag>
 										<border>5</border>
 										<object class="wxCheckBox" name="timeLogCheckBox">
 											<label>Show done task in &quot;Time log&quot;</label>
@@ -1815,7 +1815,7 @@
 									</object>
 									<object class="sizeritem">
 										<option>0</option>
-										<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+										<flag>wxALL</flag>
 										<border>5</border>
 										<object class="wxCheckBox" name="workLogCheckBox">
 											<label>Show task with no time in &quot;Work log&quot;</label>
@@ -2497,7 +2497,7 @@
 			</object>
 			<object class="sizeritem">
 				<option>0</option>
-				<flag>wxALIGN_BOTTOM|wxEXPAND</flag>
+				<flag>wxEXPAND</flag>
 				<border>5</border>
 				<object class="wxBoxSizer">
 					<orient>wxHORIZONTAL</orient>
@@ -3142,13 +3142,13 @@
 			</object>
 			<object class="sizeritem">
 				<option>0</option>
-				<flag>wxALIGN_BOTTOM|wxEXPAND</flag>
+				<flag>wxEXPAND</flag>
 				<border>5</border>
 				<object class="wxBoxSizer">
 					<orient>wxHORIZONTAL</orient>
 					<object class="spacer">
 						<option>1</option>
-						<flag>wxALIGN_BOTTOM|wxEXPAND</flag>
+						<flag>wxEXPAND</flag>
 						<border>5</border>
 						<size>0,0</size>
 					</object>
@@ -3271,13 +3271,13 @@
 			</object>
 			<object class="sizeritem">
 				<option>0</option>
-				<flag>wxALIGN_BOTTOM|wxEXPAND</flag>
+				<flag>wxEXPAND</flag>
 				<border>5</border>
 				<object class="wxBoxSizer">
 					<orient>wxHORIZONTAL</orient>
 					<object class="spacer">
 						<option>1</option>
-						<flag>wxALIGN_BOTTOM|wxEXPAND</flag>
+						<flag>wxEXPAND</flag>
 						<border>5</border>
 						<size>0,0</size>
 					</object>
@@ -3668,7 +3668,7 @@
 																	</object>
 																	<object class="sizeritem">
 																		<option>1</option>
-																		<flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
+																		<flag>wxALL|wxEXPAND</flag>
 																		<border>5</border>
 																		<object class="wxChoice" name="ownerChoice1">
 																			<enabled>0</enabled>
@@ -3979,7 +3979,7 @@
 															</object>
 															<object class="sizeritem">
 																<option>1</option>
-																<flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
+																<flag>wxALL|wxEXPAND</flag>
 																<border>5</border>
 																<object class="wxChoice" name="ownerChoice2">
 																	<selection>0</selection>
@@ -4450,7 +4450,7 @@
 																	</object>
 																	<object class="sizeritem">
 																		<option>3</option>
-																		<flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
+																		<flag>wxALL|wxEXPAND</flag>
 																		<border>5</border>
 																		<object class="wxTextCtrl" name="createExternalTxt">
 																			<value></value>
@@ -4476,7 +4476,7 @@
 																	</object>
 																	<object class="sizeritem">
 																		<option>3</option>
-																		<flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
+																		<flag>wxALL|wxEXPAND</flag>
 																		<border>5</border>
 																		<object class="wxTextCtrl" name="createExternalEmail">
 																			<value></value>
@@ -4508,7 +4508,7 @@
 											<orient>wxVERTICAL</orient>
 											<object class="sizeritem">
 												<option>0</option>
-												<flag>wxALIGN_TOP|wxALL|wxEXPAND</flag>
+												<flag>wxALL|wxEXPAND</flag>
 												<border>5</border>
 												<object class="wxButton" name="createExternalButton">
 													<label>Add</label>

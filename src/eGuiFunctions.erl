@@ -570,14 +570,19 @@ setRowInfo(List, #etodo{priority       = Priority,
     end.
 
 setColor(List, Row) ->
-    case Row rem 2 of
-        0 ->
-            Color = {230, 230, 230, 255},
-            wxListCtrl:setItemBackgroundColour(List, Row, Color);
-        _ ->
-            Color = {255, 255, 255, 255},
-            wxListCtrl:setItemBackgroundColour(List, Row, Color)
-    end.
+    {BR, BG, BB, _} = wxSystemSettings:getColour(?wxSYS_COLOUR_LISTBOX),
+    Text = wxSystemSettings:getColour(?wxSYS_COLOUR_LISTBOXTEXT),
+    Back = case Row rem 2 of
+               0 -> {BR, BG, BB, 255};
+               _ -> {Rr, Gg, Bb, _} = Text,
+                    {shade(BR, Rr), shade(BG, Gg), shade(BB, Bb), 255}
+           end,
+    wxListCtrl:setItemBackgroundColour(List, Row, Back),
+    wxListCtrl:setItemTextColour(List, Row, Text).
+
+%% Move a background channel 6% towards the text colour for striping.
+shade(Back, Text) ->
+    Back + round((Text - Back) * 0.06).
 
 colFormat(ColumnText) ->
     colFormat(ColumnText, 160, []).

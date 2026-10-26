@@ -1197,47 +1197,43 @@ fn authenticated_page(
                         ),
                       ],
                       [
-                        html.div(
-                          [attribute.attribute("class", "col-12 col-sm")],
-                          [
-                            html.label(
-                              [
-                                attribute.attribute(
-                                  "class",
-                                  "form-label fw-semibold",
-                                ),
-                                attribute.attribute("for", "todo-list"),
-                              ],
-                              [html.text("Todo list")],
-                            ),
-                            html.select(
-                              [
-                                attribute.name("list"),
-                                attribute.attribute("id", "todo-list"),
-                                attribute.attribute(
-                                  "class",
-                                  "form-select form-select-lg",
-                                ),
-                              ],
-                              list_options,
-                            ),
-                          ],
-                        ),
-                        html.div(
-                          [attribute.attribute("class", "col-12 col-sm-auto")],
-                          [
-                            html.button(
-                              [
-                                attribute.attribute("type", "submit"),
-                                attribute.attribute(
-                                  "class",
-                                  "btn btn-primary btn-lg etodo-list-submit",
-                                ),
-                              ],
-                              [html.text("Show list")],
-                            ),
-                          ],
-                        ),
+                        html.div([attribute.attribute("class", "col")], [
+                          html.label(
+                            [
+                              attribute.attribute(
+                                "class",
+                                "form-label fw-semibold",
+                              ),
+                              attribute.attribute("for", "todo-list"),
+                            ],
+                            [html.text("Todo list")],
+                          ),
+                          html.select(
+                            [
+                              attribute.name("list"),
+                              attribute.attribute("id", "todo-list"),
+                              attribute.attribute(
+                                "class",
+                                "form-select form-select-lg",
+                              ),
+                            ],
+                            list_options,
+                          ),
+                        ]),
+                        html.div([attribute.attribute("class", "col-auto")], [
+                          html.button(
+                            [
+                              attribute.attribute("type", "submit"),
+                              attribute.attribute(
+                                "class",
+                                "btn btn-primary btn-lg etodo-list-submit",
+                              ),
+                              attribute.title("Refresh list"),
+                              attribute.attribute("aria-label", "Refresh list"),
+                            ],
+                            [html.text("↻")],
+                          ),
+                        ]),
                       ],
                     ),
                   ],
@@ -1494,6 +1490,23 @@ fn settings_page(
   |> secure_headers
 }
 
+const max_title_length = 90
+
+// Line breaks count as spaces; the details section shows the full text.
+fn truncate_description(description: String) -> String {
+  let text =
+    description
+    |> string.replace("\r", " ")
+    |> string.replace("\n", " ")
+    |> string.split(" ")
+    |> list.filter(fn(word) { word != "" })
+    |> string.join(" ")
+  case string.length(text) > max_title_length {
+    True -> string.trim_end(string.slice(text, 0, max_title_length)) <> "..."
+    False -> text
+  }
+}
+
 fn todo_item(task: Todo, data: TodoPageData) {
   let title_class = case task.done {
     True -> "etodo-title text-break etodo-done"
@@ -1503,7 +1516,7 @@ fn todo_item(task: Todo, data: TodoPageData) {
 
   let title =
     html.span([attribute.attribute("class", title_class)], [
-      html.text(task.description),
+      html.text(truncate_description(task.description)),
     ])
 
   let toggle_label =

@@ -410,10 +410,8 @@ launchListener(Port, MaxPort) when Port =< MaxPort ->
     Root      = getRootDir(),
     CertFile  = filename:join([Root, "server_cert.pem"]),
     ServerKey = filename:join([Root, "server_key.pem"]),
-    CACert    = filename:join([Root, "chain_cert.pem"]),
     case catch ePortListener:start_link(ePeerProtocol, Port, all,
                                         [{certfile, CertFile},
-                                         {cacertfile, CACert},
                                          {keyfile, ServerKey}]) of
         {ok, Pid} ->
             {ok, Port, Pid};

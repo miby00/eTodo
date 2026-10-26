@@ -11,6 +11,13 @@
     }
   }
 
+  var listSelect = document.getElementById("todo-list");
+  if (listSelect && listSelect.form) {
+    listSelect.addEventListener("change", function () {
+      listSelect.form.submit();
+    });
+  }
+
   var filterBox = document.getElementById("todo-filter");
   if (filterBox) {
     var applyFilter = function () {

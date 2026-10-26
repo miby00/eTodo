@@ -1,5 +1,6 @@
 :root {
   color-scheme: light;
+  --etodo-pattern: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160' fill='none' stroke='%23534bcf' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' opacity='0.07'><rect x='18' y='20' width='22' height='22' rx='5'/><path d='M23 31l5 5 8-10'/><path d='M52 31h40'/><rect x='88' y='92' width='22' height='22' rx='5'/><path d='M120 103h26'/><rect x='20' y='110' width='18' height='18' rx='4'/><path d='M46 119h24'/><path d='M110 38l4 4 7-9'/></svg>");
 }
 
 body {
@@ -12,7 +13,9 @@ body {
 }
 
 .etodo-page {
-  background: #f5f7fb;
+  background-color: #f5f7fb;
+  background-image: var(--etodo-pattern);
+  background-size: 160px 160px;
 }
 
 .etodo-container {
@@ -30,7 +33,8 @@ body {
 }
 
 .etodo-list-submit {
-  min-width: 9rem;
+  min-width: 3.5rem;
+  line-height: 1.5;
 }
 
 .etodo-task-card {
@@ -38,9 +42,11 @@ body {
 }
 
 .etodo-login-page {
-  background:
+  background-color: #f5f7fb;
+  background-image:
     radial-gradient(ellipse at top left, rgba(83, 75, 207, 0.12), transparent 42%),
-    #f5f7fb;
+    var(--etodo-pattern);
+  background-size: auto, 160px 160px;
 }
 
 .etodo-login-card {
@@ -187,12 +193,6 @@ html {
 
 .etodo-comment {
   white-space: pre-wrap;
-}
-
-@media (max-width: 575.98px) {
-  .etodo-list-submit {
-    width: 100%;
-  }
 }
 
 .etodo-logo-banner {

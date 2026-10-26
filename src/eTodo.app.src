@@ -2,7 +2,7 @@
  [{description, "ETodo a task manager written in Erlang"},
   {vsn, "1.0.1"},
   {modules, [
-	  	 eLang,
+	     eLang,
 	     eGuiEvents,
 	     eGuiFunctions,
 	     eHtml,
@@ -17,7 +17,7 @@
 	     ePeerServer,
 	     ePlugin,
 	     ePluginServer,
-		 eRows,
+             eRows,
 	     eRows_lists,
 	     eTodo,
 	     eTodoAPI,
@@ -35,7 +35,7 @@
 	    ]},
   {maxT, infinity},
   {registered, [
-	    eLang,
+	        eLang,
 		ePeerCircle,
 		ePeerEM,
 		ePeerLock,
