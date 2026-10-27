@@ -1,4 +1,4 @@
-# ![eTodo](https://rawgit.com/miby00/eTodo/master/priv/www/docs/graphics/eTodo.png)
+# ![eTodo](priv/www/docs/graphics/eTodo.png)
 eTodo is a P2P task manager written in Erlang. 
 
 Key functionality include:
@@ -137,8 +137,6 @@ page does. Its responsive interface uses locally served Bootstrap components,
 eTodo styling and a tiny same-origin script that updates the checkbox in place
 (without it, the form falls back to a normal page reload); it does not depend on
 a CDN.
-
-[Getting started with eTodo](https://rawgit.com/miby00/eTodo/master/priv/www/docs/eTodo.html)
 
 ### Status
 
