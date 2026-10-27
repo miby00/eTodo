@@ -244,6 +244,7 @@ handle_cast({connectToCircle, User, CircleName, Password}, State) ->
         {ok, Port, Pid} ->
             ePeerEM:acceptingIncCon(User, CircleName, Port),
             updateOwnConfig(User, Port),
+            announceWebGui(User),
             ePeerServer:connectedToCircle(User, CircleName),
             Connections = getClearedConnections(),
             ConQueue    = queueAdd(User, Connections, []),
@@ -392,6 +393,31 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+%% Tells the user where the web GUI can be reached.
+announceWebGui(User) ->
+    case application:get_env(eTodo, mistWebEnabled, false) of
+        true ->
+            Port = integer_to_list(application:get_env(eTodo, mistWebPort,
+                                                       9003)),
+            Host = case eTodoDB:getConnection(User) of
+                       #conCfg{host = H} when is_list(H), H =/= "" -> H;
+                       _ -> "localhost"
+                   end,
+            ePeerEM:sendMsg(system, [User], systemEntry,
+                            "<https://" ++ Host ++ ":" ++ Port ++ "/> opens "
+                            "the web GUI in a browser."),
+            case application:get_env(eTodo, mistWebLinkHost) of
+                {ok, Link} when is_list(Link) ->
+                    ePeerEM:sendMsg(system, [User], systemEntry,
+                                    "<https://" ++ Link ++ "/> opens the web "
+                                    "GUI through the relay.");
+                _ ->
+                    ok
+            end;
+        _ ->
+            ok
+    end.
 
 %%--------------------------------------------------------------------
 %% @private

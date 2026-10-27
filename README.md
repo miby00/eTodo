@@ -97,6 +97,8 @@ default. It serves HTTPS only. To enable it, add the following entries to the
     {mistWebCert, "server_cert.pem.fullchain.pem"},
     {mistWebKey, "server_key.pem"}
 
+When enabled, eTodo adds a system message with the web address each time you connect to the circle. It uses the host from your own connection entry, and also the relay link when `mistWebLinkHost` is set.
+
 If neither `server_cert.pem` nor `server_key.pem` exists in `priv`, eTodo
 creates a self-signed certificate (valid for 10 years) on first start, so a
 fresh install works without setup. Browsers will warn about it; replace the
