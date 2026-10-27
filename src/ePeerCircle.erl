@@ -409,7 +409,11 @@ launchListener(User) ->
 launchListener(Port, MaxPort) when Port =< MaxPort ->
     Root      = getRootDir(),
     _         = eTodoCerts:ensure(Root),
-    CertFile  = filename:join([Root, "server_cert.pem"]),
+    FullChain = filename:join([Root, "server_cert.pem.fullchain.pem"]),
+    CertFile  = case filelib:is_file(FullChain) of
+                    true  -> FullChain;
+                    false -> filename:join([Root, "server_cert.pem"])
+                end,
     ServerKey = filename:join([Root, "server_key.pem"]),
     case catch ePortListener:start_link(ePeerProtocol, Port, all,
                                         [{certfile, CertFile},
