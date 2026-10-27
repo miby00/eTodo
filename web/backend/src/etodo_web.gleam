@@ -21,6 +21,8 @@ import mist.{type Connection, type ResponseData}
 
 const session_cookie = "etodo_session"
 
+const oidc_cookie = "etodo_oidc"
+
 const list_cookie = "etodo_list"
 
 const session_max_age = 28_800
@@ -79,6 +81,19 @@ fn authenticate(username: String, password: String) -> Result(String, Nil)
 
 @external(erlang, "eTodoMistAuth", "session_user")
 fn session_user(token: String) -> Result(String, Nil)
+
+@external(erlang, "eTodoOidc", "enabled")
+fn oidc_enabled() -> Bool
+
+@external(erlang, "eTodoOidc", "start")
+fn oidc_start() -> #(String, String)
+
+@external(erlang, "eTodoOidc", "finish")
+fn oidc_finish(
+  code: String,
+  state: String,
+  cookie: String,
+) -> Result(String, String)
 
 @external(erlang, "eTodoMistAuth", "logout")
 fn logout(token: String) -> Nil
@@ -199,6 +214,8 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
         Get, [] -> serve_home(request)
         Get, ["settings"] -> serve_settings(request)
         Post, ["settings"] -> save_settings_request(request)
+        Get, ["auth", "google"] -> google_start()
+        Get, ["auth", "google", "callback"] -> google_callback(request)
         Post, ["login"] -> login(request)
         Post, ["logout"] -> logout_request(request)
         Post, ["todo", "done"] -> todo_done(request)
@@ -471,6 +488,87 @@ fn remember_list(
       ),
     ),
   )
+}
+
+fn oidc_cookie_header(value: String, max_age: Int) -> String {
+  // Lax, not Strict: the cookie has to come back on the redirect from Google.
+  cookie.set_header(
+    oidc_cookie,
+    value,
+    cookie.Attributes(
+      max_age: Some(max_age),
+      domain: None,
+      path: Some("/auth"),
+      secure: True,
+      http_only: True,
+      same_site: Some(cookie.Lax),
+    ),
+  )
+}
+
+fn google_start() -> Response(ResponseData) {
+  case oidc_enabled() {
+    False -> response(404, "Not found")
+    True -> {
+      let #(url, cookie_value) = oidc_start()
+      response.new(303)
+      |> response.set_header("location", url)
+      |> response.prepend_header(
+        "set-cookie",
+        oidc_cookie_header(cookie_value, 600),
+      )
+      |> response_data
+    }
+  }
+}
+
+fn google_callback(request: Request(Connection)) -> Response(ResponseData) {
+  let query = request.get_query(request) |> result.unwrap([])
+  let cookies =
+    request
+    |> request.get_header("cookie")
+    |> result.unwrap("")
+    |> cookie.parse
+  let clear =
+    response.new(303)
+    |> response.set_header("location", "/")
+    |> response.prepend_header("set-cookie", oidc_cookie_header("", 0))
+
+  case
+    oidc_enabled(),
+    list.key_find(query, "code"),
+    list.key_find(query, "state"),
+    list.key_find(cookies, oidc_cookie)
+  {
+    False, _, _, _ -> response(404, "Not found")
+    True, Ok(code), Ok(state), Ok(cookie_value) ->
+      case oidc_finish(code, state, cookie_value) {
+        Ok(token) ->
+          clear
+          |> response.prepend_header(
+            "set-cookie",
+            cookie.set_header(
+              session_cookie,
+              token,
+              cookie.Attributes(
+                max_age: Some(session_max_age),
+                domain: None,
+                path: Some("/"),
+                secure: True,
+                http_only: True,
+                same_site: Some(cookie.Strict),
+              ),
+            ),
+          )
+          |> response_data
+        Error(message) ->
+          login_page(message)
+          |> response.prepend_header("set-cookie", oidc_cookie_header("", 0))
+      }
+    True, _, _, _ ->
+      login_page("Google sign-in was cancelled or failed.")
+      |> response.prepend_header("set-cookie", oidc_cookie_header("", 0))
+  }
 }
 
 fn login(request: Request(Connection)) -> Response(ResponseData) {
@@ -864,6 +962,27 @@ fn login_page(error_message: String) -> Response(ResponseData) {
         ],
       ),
     ])
+    |> list.append(case oidc_enabled() {
+      False -> []
+      True -> [
+        html.div(
+          [attribute.attribute("class", "text-center text-body-secondary my-3")],
+          [
+            html.text("or"),
+          ],
+        ),
+        html.a(
+          [
+            attribute.attribute(
+              "class",
+              "btn btn-outline-secondary btn-lg w-100",
+            ),
+            attribute.href("/auth/google"),
+          ],
+          [html.text("Sign in with Google")],
+        ),
+      ]
+    })
 
   let document =
     html.html([attribute.lang("en")], [

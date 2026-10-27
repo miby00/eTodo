@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/0, login/2, session_user/1, logout/1, todo_data/3,
+-export([start_link/0, login/2, external_login/1, session_user/1, logout/1, todo_data/3,
          set_done/4, update_task/12, delete_task/3, create_task/11, settings_data/1,
          save_settings/6, status_form/1, set_status/4]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -17,6 +17,11 @@ start_link() ->
 
 login(UserName, Password) ->
     gen_server:call(?MODULE, {login, UserName, Password}).
+
+%% Session for a user already authenticated elsewhere (Google sign-in).
+%% The user must be the local account or one of its peers.
+external_login(UserName) ->
+    gen_server:call(?MODULE, {external_login, UserName}).
 
 session_user(Token) ->
     gen_server:call(?MODULE, {session_user, Token}).
@@ -109,6 +114,7 @@ delete_task(Token, Csrf, Uid) ->
     end.
 
 init([]) ->
+    eTodoOidc:init(),
     {ok, #{}}.
 
 handle_call({login, UserName0, Password0}, _From, Sessions) ->
@@ -116,6 +122,20 @@ handle_call({login, UserName0, Password0}, _From, Sessions) ->
     Password = to_binary(Password0),
     case UserName =/= [] andalso Password =/= <<>> andalso
          valid_credentials(UserName, Password) of
+        true ->
+            Now = erlang:system_time(second),
+            Sessions1 = remove_expired_sessions(Sessions, Now),
+            Token = binary:encode_hex(crypto:strong_rand_bytes(32)),
+            Csrf = binary:encode_hex(crypto:strong_rand_bytes(32)),
+            Session = {unicode:characters_to_binary(UserName),
+                       Now + ?SESSION_LIFETIME, Csrf},
+            {reply, {ok, Token}, maps:put(Token, Session, Sessions1)};
+        false ->
+            {reply, {error, nil}, Sessions}
+    end;
+handle_call({external_login, UserName0}, _From, Sessions) ->
+    UserName = to_list(UserName0),
+    case known_user(UserName) of
         true ->
             Now = erlang:system_time(second),
             Sessions1 = remove_expired_sessions(Sessions, Now),
@@ -198,6 +218,16 @@ terminate(_Reason, _Sessions) ->
 
 code_change(_OldVersion, Sessions, _Extra) ->
     {ok, Sessions}.
+
+known_user(UserName) ->
+    case application:get_env(eTodo, user) of
+        {ok, Owner0} ->
+            Owner = to_list(Owner0),
+            UserName =:= Owner orelse
+                lists:member(UserName, guest_users(Owner));
+        undefined ->
+            false
+    end.
 
 valid_credentials(UserName, Password) ->
     case application:get_env(eTodo, user) of

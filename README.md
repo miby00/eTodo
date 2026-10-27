@@ -138,6 +138,25 @@ eTodo styling and a tiny same-origin script that updates the checkbox in place
 (without it, the form falls back to a normal page reload); it does not depend on
 a CDN.
 
+### Sign in with Google
+
+The web login page can offer "Sign in with Google" (OpenID Connect). Google
+accounts are mapped to eTodo users in `config/sys.config`; only the listed
+addresses can sign in, and they must be verified Google accounts:
+
+    {mistGoogleClientId,     "1234.apps.googleusercontent.com"},
+    {mistGoogleClientSecret, "..."},
+    {mistGoogleRedirectUri,  "https://etodo.example.org:9003/auth/google/callback"},
+    {mistGoogleUsers, [{"someone@gmail.com", "Ann"}]}
+
+Create the client ID in the Google Cloud console (APIs & Services >
+Credentials > OAuth client ID, type "Web application") and add the redirect
+URI above as an authorized redirect URI. The address must be reachable from
+your browser over HTTPS. The button only appears when all four settings are
+present. The user name must be the local account or one of its peers (peers
+are read-only, as with password login). The node needs outbound HTTPS access
+to Google. Keep the client secret out of git (`config/sys.config` is local).
+
 ### Status
 
 eTodo isn't finished, when I feel inspired I code on it during my spare time.
