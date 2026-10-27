@@ -113,10 +113,11 @@ exchange_code(Code) ->
                {customize_hostname_check,
                 [{match_fun, public_key:pkix_verify_hostname_match_fun(https)}]}],
     _ = application:ensure_all_started(inets),
+    Profile = http_profile(),
     case httpc:request(post,
                        {Url, [], "application/x-www-form-urlencoded", Body},
                        [{ssl, SslOpts}, {timeout, 10000}],
-                       [{body_format, binary}]) of
+                       [{body_format, binary}], Profile) of
         {ok, {{_, 200, _}, _, Resp}} ->
             case jsx:decode(Resp, [return_maps]) of
                 #{<<"id_token">> := IdToken} -> IdToken;
@@ -126,6 +127,51 @@ exchange_code(Code) ->
             fail({token_endpoint_status, Status});
         {error, Reason} ->
             fail({token_endpoint_error, Reason})
+    end.
+
+http_profile() ->
+    {Profile, Options} = case google_proxy() of
+                             {undefined, []} -> {eTodoOidcDirect, []};
+                             Proxy -> {?MODULE, [{https_proxy, Proxy}]}
+                         end,
+    case inets:start(httpc, [{profile, Profile}]) of
+        {ok, _Pid} -> ok;
+        {error, {already_started, _Pid}} -> ok;
+        {error, _Reason} -> fail(http_profile_start_failed)
+    end,
+    ok = httpc:set_options(Options, Profile),
+    Profile.
+
+google_proxy() ->
+    case env(mistGoogleProxy) of
+        undefined -> environment_proxy();
+        false -> {undefined, []};
+        {Host, Port} when is_list(Host), is_integer(Port),
+                          Port > 0, Port =< 65535 ->
+            {{Host, Port}, ["localhost", "127.0.0.1", "::1"]};
+        _ -> fail(invalid_google_proxy)
+    end.
+
+environment_proxy() ->
+    case os:getenv("https_proxy") of
+        false -> proxy_url(os:getenv("HTTPS_PROXY"));
+        "" -> proxy_url(os:getenv("HTTPS_PROXY"));
+        Url -> proxy_url(Url)
+    end.
+
+proxy_url(false) -> {undefined, []};
+proxy_url("") -> {undefined, []};
+proxy_url(Url) ->
+    case uri_string:parse(Url) of
+        #{scheme := "http", host := Host} = Parsed when Host =/= "" ->
+            Port = maps:get(port, Parsed, 80),
+            case {maps:is_key(userinfo, Parsed), Port} of
+                {false, Port} when is_integer(Port),
+                                   Port > 0, Port =< 65535 ->
+                    {{Host, Port}, ["localhost", "127.0.0.1", "::1"]};
+                _ -> fail(invalid_google_proxy)
+            end;
+        _ -> fail(invalid_google_proxy)
     end.
 
 %% The token comes straight from Google's token endpoint over verified TLS,
@@ -178,3 +224,48 @@ env(Key) ->
 
 env(Key, Default) ->
     application:get_env(eTodo, Key, Default).
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+proxy_url_test() ->
+    ?assertEqual({undefined, []}, proxy_url(false)),
+    ?assertEqual({undefined, []}, proxy_url("")),
+    ?assertEqual({{"proxy.example", 8080},
+                  ["localhost", "127.0.0.1", "::1"]},
+                 proxy_url("http://proxy.example:8080")),
+    ?assertEqual({{"proxy.example", 80},
+                  ["localhost", "127.0.0.1", "::1"]},
+                 proxy_url("http://proxy.example")),
+    lists:foreach(
+      fun(Url) ->
+              ?assertThrow({oidc_failed, invalid_google_proxy}, proxy_url(Url))
+      end,
+      ["not a URL", "https://proxy.example", "http://proxy.example:0",
+       "http://proxy.example:65536", "http://user:secret@proxy.example:8080"]).
+
+profile_proxy_test() ->
+    {ok, _} = application:ensure_all_started(inets),
+    Previous = application:get_env(eTodo, mistGoogleProxy),
+    {ok, Default} = httpc:get_options([https_proxy]),
+    try
+        application:set_env(eTodo, mistGoogleProxy, {"proxy.example", 8080}),
+        ?assertEqual(?MODULE, http_profile()),
+        ?assertEqual({ok, [{https_proxy,
+                           {{"proxy.example", 8080},
+                            ["localhost", "127.0.0.1", "::1"]}}]},
+                     httpc:get_options([https_proxy], ?MODULE)),
+        application:set_env(eTodo, mistGoogleProxy, false),
+        ?assertEqual(eTodoOidcDirect, http_profile()),
+        ?assertEqual({ok, [{https_proxy, {undefined, []}}]},
+                 httpc:get_options([https_proxy], eTodoOidcDirect)),
+        ?assertEqual({ok, Default}, httpc:get_options([https_proxy]))
+    after
+        inets:stop(httpc, ?MODULE),
+        inets:stop(httpc, eTodoOidcDirect),
+        case Previous of
+            {ok, Value} -> application:set_env(eTodo, mistGoogleProxy, Value);
+            undefined -> application:unset_env(eTodo, mistGoogleProxy)
+        end
+    end.
+-endif.

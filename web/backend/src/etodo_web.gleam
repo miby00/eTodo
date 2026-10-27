@@ -556,7 +556,7 @@ fn google_callback(request: Request(Connection)) -> Response(ResponseData) {
                 path: Some("/"),
                 secure: True,
                 http_only: True,
-                same_site: Some(cookie.Strict),
+                same_site: Some(cookie.Lax),
               ),
             ),
           )
