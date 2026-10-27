@@ -493,7 +493,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 doConnectToPeer(EPeerServerPid, PeerUser, PeerHost, PeerPort,
                 User, Port, Circle) ->
-    case ePort:start(ePeerProtocol, PeerHost, PeerPort, []) of
+    case ePeerTls:start(ePeerProtocol, PeerUser, PeerHost, PeerPort) of
         {ok, EPortPid} ->
             Args      = {EPortPid, PeerUser, PeerHost, PeerPort,
                          User, Port, Circle},

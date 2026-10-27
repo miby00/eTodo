@@ -754,9 +754,54 @@ handle_call(loggedIn, _From, State = #guiState{loggedIn = false}) ->
     {reply, false, State};
 handle_call(loggedIn, _From, State = #guiState{user = User}) ->
     {reply, {true, User}, State};
+handle_call({trustPeerCertificate, Peer, Host, Port, OldPin, Pin}, _From,
+            State = #guiState{frame = Frame}) ->
+    Key = {peerCertificate, Host, Port, Pin},
+    Reply = case get(Key) of
+                undefined ->
+                    Approved = peerCertificateDialog(Frame, Peer, Host, Port,
+                                                     OldPin, Pin),
+                    put(Key, Approved),
+                    Approved;
+                Approved -> Approved
+            end,
+    {reply, Reply, State};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
+
+peerCertificateDialog(Frame, Peer, Host, Port, undefined, Pin) ->
+    Message = lists:flatten(
+                io_lib:format("The certificate for peer ~s (~s:~p) is not "
+                              "trusted by a CA or does not match its address."
+                              "~n~nSHA-256 fingerprint:~n~s~n~n"
+                              "Verify this fingerprint with the peer's owner "
+                              "through another trusted channel. Trust and "
+                              "remember this exact certificate?",
+                              [Peer, Host, Port, Pin])),
+    Dialog = wxMessageDialog:new(Frame, Message,
+                 [{caption, "Unknown peer certificate"},
+                  {style, ?wxYES_NO bor ?wxNO_DEFAULT bor ?wxICON_WARNING}]),
+    try wxMessageDialog:showModal(Dialog) =:= ?wxID_YES
+    after wxMessageDialog:destroy(Dialog)
+    end;
+peerCertificateDialog(Frame, Peer, Host, Port, OldPin, Pin) ->
+    Message = lists:flatten(
+                io_lib:format("The certificate for peer ~s (~s:~p) has changed."
+                              "~nThe connection has been blocked. This could "
+                              "indicate impersonation.~n~n"
+                              "Remembered SHA-256:~n~s~n~n"
+                              "Received SHA-256:~n~s~n~n"
+                              "Verify the change with the peer's owner "
+                              "before removing its entry from "
+                              "peer_known_hosts in your database directory.",
+                              [Peer, Host, Port, OldPin, Pin])),
+    Dialog = wxMessageDialog:new(Frame, Message,
+                 [{caption, "Peer certificate changed"},
+                  {style, ?wxOK bor ?wxICON_ERROR}]),
+    try wxMessageDialog:showModal(Dialog), false
+    after wxMessageDialog:destroy(Dialog)
+    end.
 
 %%--------------------------------------------------------------------
 %% @private
