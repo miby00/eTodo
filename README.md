@@ -56,6 +56,30 @@ it in the background and `./eTodo stop` to stop it.
 
 Have patience: The first startup needs to create an empty TODO database.
 
+### Peer Certificate Trust
+
+Outgoing peer connections verify certificates using the system CA store.
+For a self-signed or private certificate, the desktop GUI displays the host,
+port and SHA-256 certificate fingerprint. Verify the fingerprint with the
+peer's owner through another trusted channel before choosing Yes. No is the
+default. No task or login data is sent during certificate inspection.
+
+On the peer, display the fingerprint of its configured TLS certificate with:
+
+    openssl x509 -in server_cert.pem -noout -fingerprint -sha256
+
+Approved certificates are pinned to their host and port in `peer_known_hosts`
+in the configured Mnesia database directory. A pinned certificate identifies
+the peer even when its certificate does not list its LAN address. Expired
+certificates remain rejected. Headless nodes never approve unknown
+certificates automatically.
+
+If an approved certificate changes, the connection is blocked and the GUI
+shows both fingerprints. Verify legitimate replacements independently, then
+stop the client and remove that host/port entry from `peer_known_hosts` to
+approve the replacement on restart. Rejections are remembered until restart
+to avoid repeated prompts. Public CA-trusted peers do not need approval.
+
 ### Mist/Lustre web backend
 
 The Mist/Lustre backend is a separate Gleam project in `web/backend`. `make release`
