@@ -79,6 +79,12 @@ default. It serves HTTPS only. To enable it, add the following entries to the
     {mistWebCert, "server_cert.pem.fullchain.pem"},
     {mistWebKey, "server_key.pem"}
 
+If neither `server_cert.pem` nor `server_key.pem` exists in `priv`, eTodo
+creates a self-signed certificate (valid for 10 years) on first start, so a
+fresh install works without setup. Browsers will warn about it; replace the
+files with a real certificate to avoid that. Existing files are never
+overwritten.
+
 Certificate and key filenames are resolved relative to the application's
 `priv` directory; absolute paths are also accepted. The certificate file must
 contain the complete chain for browsers to trust it. Use `"0.0.0.0"` as

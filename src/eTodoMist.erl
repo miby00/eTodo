@@ -52,7 +52,15 @@ start_server(Port, Host, Cert, Key)
   when is_integer(Port), Port > 0, Port < 65536,
        is_list(Host), is_list(Cert), is_list(Key) ->
     PrivDir = code:priv_dir(eTodo),
-    CertFile = resolve_tls_file(PrivDir, Cert),
+    _ = eTodoCerts:ensure(PrivDir),
+    CertFile = case resolve_tls_file(PrivDir, Cert) of
+                   Missing when Cert =:= "server_cert.pem.fullchain.pem" ->
+                       case filelib:is_file(Missing) of
+                           true  -> Missing;
+                           false -> resolve_tls_file(PrivDir, "server_cert.pem")
+                       end;
+                   Found -> Found
+               end,
     KeyFile = resolve_tls_file(PrivDir, Key),
     case {filelib:is_file(CertFile), filelib:is_file(KeyFile)} of
         {true, true} ->

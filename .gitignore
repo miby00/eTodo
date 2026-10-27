@@ -1,3 +1,16 @@
 _build/
 /web/backend/build/
 /pwd.txt
+priv/ePlugins/plugin_debug.beam
+priv/ePlugins/plugin_httplink.beam
+priv/ePlugins/plugin_jira.beam
+priv/ePlugins/plugin_notify.beam
+priv/ePlugins/plugin_sap.beam
+priv/ePlugins/plugin_slack.beam
+priv/ePlugins/plugin_template.beam
+priv/ePlugins/plugin_thunderlink.beam
+priv/server_cert.pem
+priv/server_cert.pem.fullchain.pem
+priv/server_key.pem
+deploy.sh
+priv/chain_cert.pem
