@@ -1500,16 +1500,6 @@ fn authenticated_page(
                                   ],
                                   [html.text("Add list")],
                                 ),
-                                html.label(
-                                  [
-                                    attribute.attribute("for", "newlist-toggle"),
-                                    attribute.attribute(
-                                      "class",
-                                      "btn btn-outline-secondary btn-lg ms-2",
-                                    ),
-                                  ],
-                                  [html.text("Cancel")],
-                                ),
                               ],
                             ),
                           ],
