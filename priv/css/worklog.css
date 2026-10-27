@@ -47,6 +47,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: var(--app-height, 100dvh);
   margin: 0;
   background: var(--etodo-pattern) 0 0 / 160px 160px, var(--background);
   color: var(--foreground);
