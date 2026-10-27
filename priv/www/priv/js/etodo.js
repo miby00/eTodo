@@ -241,3 +241,240 @@
     }
   });
 })();
+
+(function () {
+  "use strict";
+  var panels = document.querySelector("main.panels");
+  if (!panels) {
+    return;
+  }
+  var tabs = document.querySelectorAll(".kinds a[href^='#']");
+  var current = function () {
+    var index = Math.round(panels.scrollLeft / Math.max(panels.clientWidth, 1));
+    return panels.children[Math.min(index, panels.children.length - 1)];
+  };
+  var markTab = function () {
+    var panel = current();
+    if (panel && window.location.hash !== "#" + panel.id) {
+      history.replaceState(null, "", "#" + panel.id);
+    }
+    tabs.forEach(function (tab) {
+      if (panel && tab.getAttribute("href") === "#" + panel.id) {
+        tab.setAttribute("aria-current", "page");
+      } else {
+        tab.removeAttribute("aria-current");
+      }
+    });
+  };
+  var initial = document.getElementById(
+    window.location.hash.slice(1) || panels.getAttribute("data-selected")
+  );
+  if (initial && initial.parentElement === panels) {
+    panels.scrollLeft = initial.offsetLeft;
+  }
+  markTab();
+  panels.addEventListener("scroll", function () {
+    window.requestAnimationFrame(markTab);
+  }, { passive: true });
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function (event) {
+      var panel = document.getElementById(tab.getAttribute("href").slice(1));
+      if (panel) {
+        event.preventDefault();
+        panels.scrollTo({ left: panel.offsetLeft, behavior: "smooth" });
+        history.replaceState(null, "", "#" + panel.id);
+      }
+    });
+  });
+})();
+
+(function () {
+  "use strict";
+  // Page-level swipe: body data-swipe-next/data-swipe-prev hold the targets.
+  var body = document.body;
+  if (!body || !("ontouchstart" in window)) {
+    return;
+  }
+  var start = null;
+  var scrollState = function (element) {
+    var found = [];
+    for (var node = element; node && node !== body; node = node.parentElement) {
+      var overflow = window.getComputedStyle(node).overflowX;
+      if ((overflow === "auto" || overflow === "scroll") &&
+          node.scrollWidth > node.clientWidth + 1) {
+        found.push({
+          back: node.scrollLeft > 1,
+          forward: node.scrollLeft + node.clientWidth < node.scrollWidth - 1
+        });
+      }
+    }
+    return found;
+  };
+  document.addEventListener("touchstart", function (event) {
+    var target = event.target;
+    if (event.touches.length !== 1 ||
+        target.closest("input, textarea, select, [contenteditable]")) {
+      start = null;
+      return;
+    }
+    var touch = event.touches[0];
+    start = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+      scrollers: scrollState(target)
+    };
+  }, { passive: true });
+  document.addEventListener("touchend", function (event) {
+    var swipe = start;
+    start = null;
+    if (!swipe) {
+      return;
+    }
+    var touch = event.changedTouches[0];
+    var dx = touch.clientX - swipe.x;
+    var dy = touch.clientY - swipe.y;
+    if (Math.abs(dx) < 80 || Math.abs(dx) < 2 * Math.abs(dy) ||
+        Date.now() - swipe.time > 800) {
+      return;
+    }
+    var forward = dx < 0;
+    // Let horizontally scrollable content (panels, tables) take the swipe first.
+    var inner = swipe.scrollers.some(function (state) {
+      return forward ? state.forward : state.back;
+    });
+    var target = body.getAttribute(forward ? "data-swipe-next" : "data-swipe-prev");
+    if (!inner && target) {
+      window.location.href = target;
+    }
+  }, { passive: true });
+})();
+
+(function () {
+  "use strict";
+  // Viewing the messages page marks everything up to "seen" as read.
+  var seenKey = "etodo-messages-seen";
+  var onMessages = !!document.querySelector("main.panels");
+  var button = document.querySelector("a.etodo-header-button[href^='/messages']");
+  if (!onMessages && !button) {
+    return;
+  }
+  var baseTitle = document.title;
+  var loaded = null;
+  var draft = document.querySelector(".composer textarea");
+  var typing = function () {
+    return !!draft && (draft.value.trim() !== "" || document.activeElement === draft);
+  };
+  if (draft && !("ontouchstart" in window)) {
+    draft.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+        event.preventDefault();
+        if (draft.value.trim() !== "") {
+          draft.form.requestSubmit();
+        }
+      }
+    });
+  }
+  var latestOf = function (data) {
+    return Math.max(data.chat.latest, data.reminders.latest, data.system.latest);
+  };
+  var showBadge = function (count) {
+    var badge = button.querySelector(".etodo-badge");
+    if (count > 0) {
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "etodo-badge";
+        button.appendChild(badge);
+      }
+      badge.textContent = count > 99 ? "99+" : String(count);
+      button.setAttribute("aria-label", "Messages, " + count + " new");
+      document.title = "(" + count + ") " + baseTitle;
+    } else {
+      if (badge) {
+        badge.remove();
+      }
+      button.setAttribute("aria-label", "Messages");
+      document.title = baseTitle;
+    }
+  };
+  var poll = function () {
+    var stored = window.localStorage.getItem(seenKey);
+    var since = stored === null ? 0 : Number(stored);
+    fetch("/messages.json?since=" + since, {
+      credentials: "same-origin",
+      cache: "no-store"
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        var latest = latestOf(data);
+        if (onMessages) {
+          window.localStorage.setItem(seenKey, String(latest));
+          if (loaded === null) {
+            loaded = latest;
+          } else if (latest !== loaded && !typing()) {
+            window.location.reload();
+          }
+        } else if (stored === null) {
+          // First visit: start counting from now instead of flagging history.
+          window.localStorage.setItem(seenKey, String(latest));
+        } else {
+          showBadge(data.chat["new"] + data.reminders["new"] + data.system["new"]);
+        }
+      })
+      .catch(function () {});
+  };
+  poll();
+  // The server pushes "messages" events; polling is only a slow safety net.
+  if (window.EventSource) {
+    var events = new EventSource("/events");
+    events.addEventListener("messages", poll);
+    events.addEventListener("open", poll);
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") {
+      poll();
+    }
+  });
+  window.setInterval(poll, 60000);
+})();
+
+(function () {
+  "use strict";
+  // Work log, Time log and Schedule reload when logged time or alarms change.
+  if (document.body.getAttribute("data-live") !== "reports" || !window.EventSource) {
+    return;
+  }
+  var pending = null;
+  var busy = function () {
+    var active = document.activeElement;
+    return !!active && /^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName);
+  };
+  var reload = function () {
+    pending = null;
+    if (busy() || document.visibilityState !== "visible") {
+      pending = true;
+      return;
+    }
+    window.location.reload();
+  };
+  var events = new EventSource("/events");
+  events.addEventListener("reports", function () {
+    window.clearTimeout(pending);
+    pending = window.setTimeout(reload, 300);
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (pending === true && document.visibilityState === "visible") {
+      reload();
+    }
+  });
+  document.addEventListener("focusout", function () {
+    if (pending === true) {
+      window.setTimeout(reload, 0);
+    }
+  });
+})();

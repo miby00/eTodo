@@ -20,6 +20,8 @@
          getMessages/1,
          getMessages/2,
          getMessagesFromOrTo/2,
+         getMessageList/3,
+         getMessageSummary/2,
          assignLists/3,
          clearUndo/0,
          delMessages/2,
@@ -133,10 +135,10 @@ removeConnection(ConCfg) ->
     gen_server:call(?MODULE, {removeConnection, ConCfg}).
 
 addReminder(AlarmCfg) ->
-    gen_server:call(?MODULE, {addReminder, AlarmCfg}).
+    reportsChanged(gen_server:call(?MODULE, {addReminder, AlarmCfg})).
 
 addTodo(UserInfo, Todo) when Todo#todo.uid =/= undefined ->
-    gen_server:call(?MODULE, {addTodo, toList(UserInfo), Todo}).
+    reportsChanged(gen_server:call(?MODULE, {addTodo, toList(UserInfo), Todo})).
 
 appendToPage(User, Type, From, To, Html) ->
     gen_server:cast(?MODULE, {appendToPage, User, Type, From, To, Html}).
@@ -150,6 +152,14 @@ getMessages(User, Type) ->
 getMessagesFromOrTo(User, FromOrTo) ->
     gen_server:call(?MODULE, {getMessagesFromOrTo, User, FromOrTo}).
 
+%% Returns [{Timestamp, Type, From, To, Html}], oldest first.
+getMessageList(User, Types, FromOrTo) ->
+    gen_server:call(?MODULE, {getMessageList, User, Types, FromOrTo}).
+
+%% Returns #{Type => {LatestMs, NewerThanSinceCount}} without unzipping.
+getMessageSummary(User, SinceMs) ->
+    gen_server:call(?MODULE, {getMessageSummary, User, SinceMs}).
+
 assignLists(User, Uid, Lists) ->
     gen_server:call(?MODULE, {assignLists, User, Uid, Lists}).
 
@@ -160,7 +170,7 @@ delMessagesFromOrTo(User, FromOrTo) ->
     gen_server:call(?MODULE, {delMessagesFromOrTo, User, FromOrTo}).
 
 delReminder(AlarmCfg) ->
-    gen_server:call(?MODULE, {delReminder, AlarmCfg}).
+    reportsChanged(gen_server:call(?MODULE, {delReminder, AlarmCfg})).
 
 delTodo(Uid, User) ->
     case catch ePeerLock:getLock(Uid, User) of
@@ -168,7 +178,7 @@ delTodo(Uid, User) ->
             ErrorTxt = io_lib:format("Failed to get lock for task: ~p~n", [Uid]),
             eTodo:systemEntry(system, ErrorTxt);
         _ ->
-            gen_server:call(?MODULE, {delTodo, Uid}),
+            reportsChanged(gen_server:call(?MODULE, {delTodo, Uid})),
             ePeerLock:releaseLock(Uid, User)
     end.
 
@@ -178,7 +188,8 @@ delTodo(Uid, Parent, User) ->
             ErrorTxt = io_lib:format("Failed to get lock for task: ~p~n", [Uid]),
             eTodo:systemEntry(system, ErrorTxt);
         _ ->
-            gen_server:call(?MODULE, {delTodo, Uid, toList(Parent)}),
+            reportsChanged(
+              gen_server:call(?MODULE, {delTodo, Uid, toList(Parent)})),
             ePeerLock:releaseLock(Uid, User)
     end.
 
@@ -188,7 +199,9 @@ delTodo(Uid, Parent, User, RemoveAll) ->
             ErrorTxt = io_lib:format("Failed to get lock for task: ~p~n", [Uid]),
             eTodo:systemEntry(system, ErrorTxt);
         _ ->
-            gen_server:call(?MODULE, {delTodo, Uid, toList(Parent), RemoveAll}),
+            reportsChanged(
+              gen_server:call(?MODULE,
+                              {delTodo, Uid, toList(Parent), RemoveAll})),
             ePeerLock:releaseLock(Uid, User)
     end.
 
@@ -268,10 +281,12 @@ hasSubTodo(Uid) ->
     gen_server:call(?MODULE, {hasSubTodo, Uid}).
 
 insertTodo(UserInfo, Todo) ->
-    gen_server:call(?MODULE, {insertTodo, toList(UserInfo), Todo}).
+    reportsChanged(
+      gen_server:call(?MODULE, {insertTodo, toList(UserInfo), Todo})).
 
 logWork(User, Uid, Date, Hours, Minutes) ->
-    gen_server:call(?MODULE, {logWork, User, Uid, Date, Hours, Minutes}).
+    reportsChanged(
+      gen_server:call(?MODULE, {logWork, User, Uid, Date, Hours, Minutes})).
 
 moveUp(User, Parent, Uid1, Uid2) ->
     gen_server:call(?MODULE, {moveUp, User, toList(Parent), Uid1, Uid2}).
@@ -306,10 +321,18 @@ saveUserCfg(UserCfg) ->
     gen_server:call(?MODULE, {saveUserCfg, UserCfg}).
 
 saveWorkDesc(Uid, Desc, ShowInWL, ShowInTL) ->
-    gen_server:call(?MODULE, {saveWorkDesc, Uid, Desc, ShowInWL, ShowInTL}).
+    reportsChanged(
+      gen_server:call(?MODULE, {saveWorkDesc, Uid, Desc, ShowInWL, ShowInTL})).
 
 saveTime(Uid, Estimate, Remaining) ->
-    gen_server:call(?MODULE, {saveTime, Uid, Estimate, Remaining}).
+    reportsChanged(
+      gen_server:call(?MODULE, {saveTime, Uid, Estimate, Remaining})).
+
+%% Lets the GUI reload the visible Work log, Time log or Schedule.
+reportsChanged(Result) ->
+    gen_server:cast(eTodo, reportsChanged),
+    eTodoPush:broadcast(<<"reports">>),
+    Result.
 
 updateTodoNoDiff(User, Todo = #todo{sharedWith = Users}) ->
     Users2 = default(Users, []),
@@ -319,7 +342,7 @@ updateTodoNoDiff(User, Todo = #todo{sharedWith = Users}) ->
                                      [Todo#todo.uid]),
             eTodo:systemEntry(system, ErrorTxt);
         _ ->
-            gen_server:call(?MODULE, {updateTodo, Todo}),
+            reportsChanged(gen_server:call(?MODULE, {updateTodo, Todo})),
             ePeerEM:todoUpdated(User, Users2, Todo),
             ePeerLock:releaseLocks(Todo#todo.uid, User, Users2)
     end.
@@ -333,7 +356,7 @@ updateTodo(User, Todo = #todo{sharedWith = Users})
                                      [Todo#todo.uid]),
             eTodo:systemEntry(system, ErrorTxt);
         _ ->
-            Diff = gen_server:call(?MODULE, {updateTodo, Todo}),
+            Diff = reportsChanged(gen_server:call(?MODULE, {updateTodo, Todo})),
             case Diff of
                 #diff{diff = []} ->
                     %% No difference, do not send todoUpdated signal.
@@ -346,21 +369,21 @@ updateTodo(User, Todo = #todo{sharedWith = Users})
     end.
 
 updateTodoNoLocks(Todo) when Todo#todo.uid =/= undefined ->
-    gen_server:call(?MODULE, {updateTodo, Todo});
+    reportsChanged(gen_server:call(?MODULE, {updateTodo, Todo}));
 updateTodoNoLocks(Todo) when Todo#diff.uid =/= undefined ->
-    gen_server:call(?MODULE, {updateTodo, Todo}).
+    reportsChanged(gen_server:call(?MODULE, {updateTodo, Todo})).
 
 clearUndo() ->
     gen_server:call(?MODULE, clearUndo).
 
 undo() ->
-    gen_server:call(?MODULE, undo).
+    reportsChanged(gen_server:call(?MODULE, undo)).
 
 undoStatus() ->
     gen_server:call(?MODULE, undoStatus).
 
 redo() ->
-    gen_server:call(?MODULE, redo).
+    reportsChanged(gen_server:call(?MODULE, redo)).
 
 appendColumn(Table) ->
     appendColumns(Table, [undefined]).
@@ -636,6 +659,7 @@ handle_call({delMessages, User, Type}, _From, State) ->
                        [mnesia:delete_object(Message) || Message <- Messages]
                end,
     Result   = mnesia:transaction(DelFun),
+    eTodoPush:messages_changed(User, Type),
     {reply, Result, State};
 handle_call({delMessagesFromOrTo, User, FromOrTo}, _From, State) ->
     Result1  = match(#messages{userName = User, type = msgEntry, _ = '_'}),
@@ -644,6 +668,7 @@ handle_call({delMessagesFromOrTo, User, FromOrTo}, _From, State) ->
                        [mnesia:delete_object(Message) || Message <- Messages]
                end,
     Result   = mnesia:transaction(DelFun),
+    eTodoPush:messages_changed(User, msgEntry),
     {reply, Result, State};
 handle_call({delReminder, Reminder}, _From, State) ->
     Result = mnesia:transaction(fun() -> delete_object(Reminder) end),
@@ -785,6 +810,34 @@ handle_call({getMessagesFromOrTo, User, FromOrTo}, _From, State) ->
     Result4 = [zlib:unzip(Msg#messages.message) || Msg <- Result3],
     Result5 = unicode:characters_to_list(Result4),
     {reply, Result5, State};
+handle_call({getMessageList, User, Types, FromOrTo}, _From, State) ->
+    Result1 = match(#messages{userName = User, _ = '_'}),
+    Result2 = lists:keysort(#messages.timestamp, Result1),
+    Result3 = filterMessagesWithType(Types, Result2),
+    Result4 = case FromOrTo of
+                  all   -> Result3;
+                  Peers -> filterMessages(Peers, Result3)
+              end,
+    Result5 = [{TS, Type, From, To, zlib:unzip(Msg)}
+               || #messages{timestamp = TS, type = Type, from = From,
+                            to = To, message = Msg} <- Result4],
+    {reply, Result5, State};
+handle_call({getMessageSummary, User, Since}, _From, State) ->
+    Summarize = fun(#messages{type = Type, timestamp = {Mega, Sec, Micro}},
+                    Acc) ->
+                        Ms = (Mega * 1000000 + Sec) * 1000 + Micro div 1000,
+                        {Latest, New} = maps:get(Type, Acc, {0, 0}),
+                        Newer = case Ms > Since of
+                                    true  -> 1;
+                                    false -> 0
+                                end,
+                        Acc#{Type => {max(Latest, Ms), New + Newer}};
+                   (_Other, Acc) ->
+                        Acc
+                end,
+    Summary = lists:foldl(Summarize, #{},
+                          match(#messages{userName = User, _ = '_'})),
+    {reply, Summary, State};
 handle_call({saveWorkDesc, Uid, WorkDesc, ShowInWorkLog, ShowInTimeLog},
             _From, State) ->
     TS = fun() ->
@@ -993,6 +1046,7 @@ handle_cast({appendToPage, User, Type, From, To, Html}, State) ->
                                         message   = zlib:zip(HtmlUtf8)})
          end,
     mnesia:transaction(TS),
+    eTodoPush:messages_changed(User, Type),
     {noreply, State};
 handle_cast(stop, State) ->
     {stop, normal, State};

@@ -181,6 +181,21 @@ present. The user name must be the local account or one of its peers (peers
 are read-only, as with password login). The node needs outbound HTTPS access
 to Google. Keep the client secret out of git (`config/sys.config` is local).
 
+Behind a corporate proxy, the token exchange uses `https_proxy` (or
+`HTTPS_PROXY`) from the node's environment. The proxy URL must use the HTTP
+scheme, for example `http://proxy.example.org:8080`; HTTPS to Google is
+tunnelled through it and certificate verification stays enabled. This does
+not change the proxy settings used by other eTodo features.
+
+For launches that do not inherit these environment variables, configure the
+Google login proxy explicitly in the `eTodo` settings:
+
+    {mistGoogleProxy, {"proxy.example.org", 8080}}
+
+Set `mistGoogleProxy` to `false` to force a direct connection regardless of
+the environment. Proxy authentication and automatic PAC evaluation are not
+supported. Restart the node after changing its configuration or environment.
+
 ### Status
 
 eTodo isn't finished, when I feel inspired I code on it during my spare time.

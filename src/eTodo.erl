@@ -33,6 +33,7 @@
          loggedIn/1,
          loggedOut/1,
          msgEntry/3,
+         webMsgSent/2,
          start/0,
          start/1,
          statusUpdate/2,
@@ -91,7 +92,6 @@
                         saveMsg/2,
                         setColumnWidth/4,
                         setDoneTimeStamp/3,
-                        setScrollBar/1,
                         setOwner/3,
                         setPeerStatusIfNeeded/1,
                         setSelection/1,
@@ -162,6 +162,10 @@ delayedUpdateGui(ETodo, Index) ->
 
 msgEntry(User, Users, Text) ->
     wx_object:cast(?MODULE, {msgEntry, User, Users, Text}), ok.
+
+%% A chat message sent from the web GUI, shown as sent by this user.
+webMsgSent(Users, Text) ->
+    wx_object:cast(?MODULE, {webMsgSent, Users, Text}), ok.
 
 appendToPage(Html) ->
     wx_object:cast(?MODULE, {appendToPage, Html}), ok.
@@ -310,6 +314,15 @@ initGUI(Arg) ->
     wxXmlResource:loadDialog(Xrc,  SortCols, Frame, "sortColumnsDlg"),
     wxXmlResource:loadDialog(Xrc,  Conflict, Frame, "conflictDlg"),
     wxXmlResource:loadDialog(Xrc,  About,    Frame, "aboutDlg"),
+
+    WorkLogView = eWorkLogView:new(Frame),
+    TimeLogView = eWorkLogView:new(Frame),
+    ScheduleView = eWorkLogView:new(Frame),
+    wxXmlResource:attachUnknownControl(Xrc, "workLogReport", WorkLogView),
+    wxXmlResource:attachUnknownControl(Xrc, "timeLogReport", TimeLogView),
+    wxXmlResource:attachUnknownControl(Xrc, "scheduleReport", ScheduleView),
+    [wxXmlResource:attachUnknownControl(Xrc, Name, eWorkLogView:new(Frame))
+     || Name <- ["msgTextWin", "remTextWin", "systemTextWin"]],
 
     %% Attach wxStyledTextCtrl
     DescArea    = wxStyledTextCtrl:new(Frame),
@@ -703,8 +716,18 @@ setEditStyle(Ed) ->
     wxStyledTextCtrl:setCodePage(Ed, ?wxSTC_CP_UTF8),
     Sz = getTextSize(),
     FixedFont = wxFont:new(Sz, ?wxFONTFAMILY_TELETYPE, ?wxNORMAL, ?wxNORMAL,[]),
-    wxStyledTextCtrl:styleClearAll(Ed),
+    Background = wxSystemSettings:getColour(?wxSYS_COLOUR_WINDOW),
+    Foreground = wxSystemSettings:getColour(?wxSYS_COLOUR_WINDOWTEXT),
+    Selection  = wxSystemSettings:getColour(?wxSYS_COLOUR_HIGHLIGHT),
+    Selected   = wxSystemSettings:getColour(?wxSYS_COLOUR_HIGHLIGHTTEXT),
+    wxStyledTextCtrl:setBackgroundColour(Ed, Background),
+    wxStyledTextCtrl:styleSetBackground(Ed, ?wxSTC_STYLE_DEFAULT, Background),
+    wxStyledTextCtrl:styleSetForeground(Ed, ?wxSTC_STYLE_DEFAULT, Foreground),
     wxStyledTextCtrl:styleSetFont(Ed, ?wxSTC_STYLE_DEFAULT, FixedFont),
+    wxStyledTextCtrl:styleClearAll(Ed),
+    wxStyledTextCtrl:setCaretForeground(Ed, Foreground),
+    wxStyledTextCtrl:setSelBackground(Ed, true, Selection),
+    wxStyledTextCtrl:setSelForeground(Ed, true, Selected),
     wxStyledTextCtrl:setLexer(Ed, ?wxSTC_LEX_AUTOMATIC),
     wxStyledTextCtrl:setMarginType(Ed, 0, ?wxSTC_MARGIN_NUMBER),
     wxStyledTextCtrl:setUseTabs(Ed, false),
@@ -822,6 +845,13 @@ handle_cast({acceptingIncCon, User, Circle, Port}, State) ->
     wxStatusBar:setStatusText(StatusBarObj, User,   [{number, 0}]),
     wxStatusBar:setStatusText(StatusBarObj, ConnectionInfo, [{number, 1}]),
     {noreply, State};
+handle_cast({workLogAction, Action, Shift, Ctrl}, State) ->
+    Link = case Action of
+               {uid, Uid} -> convertUid(Uid);
+               {uidAndDate, Uid, Date} -> eTodoUtils:convertUid(Uid, Date)
+           end,
+    Event = #wx{event = #wxHtmlLink{linkInfo = #wxHtmlLinkInfo{href = Link}}},
+    handle_event(Event, State#guiState{shiftMod = Shift, ctrlMod = Ctrl});
 handle_cast({appendToPage, Html}, State) ->
     MsgObj = obj("systemTextWin", State),
     State2 = appendToPage(MsgObj, systemEntry, {Html, ""}, State),
@@ -838,6 +868,12 @@ handle_cast({msgEntry, User, Users, Text},
     ReplyAll = lists:delete(UserName, Users),
     saveMsg(UserName, State3),
     {noreply, State3#guiState{reply = User, replyAll = ReplyAll}};
+handle_cast(webMessagesRead, State) ->
+    {noreply, eGuiFunctions:markMessagesRead(State)};
+handle_cast({webMsgSent, Users, Text}, State = #guiState{user = User}) ->
+    MsgObj = obj("msgTextWin", State),
+    {noreply, appendToPage(MsgObj, msgEntry, User, Users,
+                           eHtml:generateMsg(User, User, Users, Text), State)};
 handle_cast({systemEntry, system, Text}, State) ->
     MsgObj       = obj("systemTextWin",    State),
     State2 = appendToPage(MsgObj, systemEntry,
@@ -1042,16 +1078,22 @@ handle_cast({updateStatus, Status, StatusMsg}, State) ->
     wxComboBox:setValue(obj("userStatusMsg", State), StatusMsg),
 
     MsgTop   = obj("msgTopPanel",   State),
-    CHtmlWin = obj("msgTextWin",    State),
-    RHtmlWin = obj("remTextWin",    State),
-    SHtmlWin = obj("systemTextWin", State),
 
     wxPanel:layout(MsgTop),
     wxPanel:refresh(MsgTop),
-
-    setScrollBar(CHtmlWin),
-    setScrollBar(RHtmlWin),
-    setScrollBar(SHtmlWin),
+    {noreply, State};
+handle_cast(messageMenu, State = #guiState{frame   = Frame,
+                                           msgMenu = MsgMenu}) ->
+    wxWindow:popupMenu(Frame, MsgMenu),
+    {noreply, State};
+handle_cast(reportsChanged, State) ->
+    %% Several DB writes usually arrive together; reload once.
+    case get(reportRefresh) of
+        undefined ->
+            put(reportRefresh, erlang:send_after(300, self(), refreshReports));
+        _ ->
+            ok
+    end,
     {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -1263,6 +1305,9 @@ handle_info({removeStatus, StatusBarObj, Text, Col}, State) ->
             ok
     end,
     {noreply, State};
+handle_info(refreshReports, State) ->
+    erase(reportRefresh),
+    {noreply, eGuiFunctions:refreshVisibleReport(State)};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -1364,19 +1409,27 @@ handle_cmd(Name, Type, Index, Id, Frame, State) ->
 %% Notes    :
 %%======================================================================
 connectMsgFrame(Frame, Dict) ->
-    ChatMsgObj  = wxXmlResource:xrcctrl(Frame, "msgTextWin",     wxHtmlWindow),
-    RemMsgObj   = wxXmlResource:xrcctrl(Frame, "remTextWin",     wxHtmlWindow),
-    SysMsgObj   = wxXmlResource:xrcctrl(Frame, "systemTextWin",  wxHtmlWindow),
-    WorkLogObj  = wxXmlResource:xrcctrl(Frame, "workLogReport",  wxHtmlWindow),
+    ChatMsgObj  = wxXmlResource:xrcctrl(Frame, "msgTextWin",     wxWebView),
+    RemMsgObj   = wxXmlResource:xrcctrl(Frame, "remTextWin",     wxWebView),
+    SysMsgObj   = wxXmlResource:xrcctrl(Frame, "systemTextWin",  wxWebView),
+    WorkLogObj  = wxXmlResource:xrcctrl(Frame, "workLogReport",  wxWebView),
+    TimeLogObj  = wxXmlResource:xrcctrl(Frame, "timeLogReport", wxWebView),
+    ScheduleObj = wxXmlResource:xrcctrl(Frame, "scheduleReport", wxWebView),
     MsgTextObj  = wxXmlResource:xrcctrl(Frame, "msgTextCtrlSTC", wxStyledTextCtrl),
     OfflineObj  = wxXmlResource:xrcctrl(Frame, "emailCheckBox",  wxCheckListBox),
 
-    wxHtmlWindow:connect(ChatMsgObj, right_down),
-    wxHtmlWindow:connect(RemMsgObj,  right_down),
-    wxHtmlWindow:connect(SysMsgObj,  right_down),
-    wxHtmlWindow:connect(WorkLogObj, right_down),
-    wxHtmlWindow:connect(WorkLogObj, key_down, [{skip, true}]),
-    wxHtmlWindow:connect(WorkLogObj, key_up,   [{skip, true}]),
+    wxWebView:connect(ChatMsgObj, right_down),
+    wxWebView:connect(RemMsgObj,  right_down),
+    wxWebView:connect(SysMsgObj,  right_down),
+    wxWebView:connect(WorkLogObj, right_down),
+    wxWebView:connect(WorkLogObj, key_down, [{skip, true}]),
+    wxWebView:connect(WorkLogObj, key_up,   [{skip, true}]),
+    wxWebView:connect(TimeLogObj, right_down),
+    wxWebView:connect(TimeLogObj, key_down, [{skip, true}]),
+    wxWebView:connect(TimeLogObj, key_up,   [{skip, true}]),
+    wxWebView:connect(ScheduleObj, right_down),
+    wxWebView:connect(ScheduleObj, key_down, [{skip, true}]),
+    wxWebView:connect(ScheduleObj, key_up,   [{skip, true}]),
 
     wxCheckListBox:connect(OfflineObj, right_down),
 
@@ -1386,10 +1439,14 @@ connectMsgFrame(Frame, Dict) ->
 
     Dict2  = connectItems(["msgTextCtrlSTC"], [stc_change], Frame, Dict),
     Dict3  = connectItems(["sendChatMsg"], command_button_clicked, Frame, Dict2),
-    connectItems(["msgTextWin", "remTextWin", "systemTextWin",
-                  "timeLogReport", "scheduleReport", "workLogReport",
-                  "descAreaPreview", "commentAreaPreview", "msgAreaPreview"],
-                 command_html_link_clicked, Frame, Dict3).
+    Dict4  = Dict3#{xrcId("workLogReport") => "workLogReport",
+                    xrcId("timeLogReport") => "timeLogReport",
+                    xrcId("scheduleReport") => "scheduleReport",
+                    xrcId("msgTextWin") => "msgTextWin",
+                    xrcId("remTextWin") => "remTextWin",
+                    xrcId("systemTextWin") => "systemTextWin"},
+    connectItems(["descAreaPreview", "commentAreaPreview", "msgAreaPreview"],
+                 command_html_link_clicked, Frame, Dict4).
 
 connectMainFrame(Frame, Dict) ->
     ok = wxFrame:connect(Frame, close_window),
@@ -1806,7 +1863,7 @@ showLogWork(Uid, Date, State = #guiState{shiftMod = true, user = User}) ->
     UidStr = integer_to_list(Uid),
     {Date, Hours, Minutes} = eTodoDB:getLoggedWork(User, UidStr, Date),
     eTodoDB:logWork(User, UidStr, Date, Hours + 1, Minutes),
-    eGuiFunctions:generateWorkLog(State);
+    State;
 showLogWork(Uid, Date, State = #guiState{ctrlMod = true, user = User}) ->
     UidStr = integer_to_list(Uid),
     {Date, Hours, Minutes} = eTodoDB:getLoggedWork(User, UidStr, Date),
@@ -1816,7 +1873,7 @@ showLogWork(Uid, Date, State = #guiState{ctrlMod = true, user = User}) ->
         false ->
             eTodoDB:logWork(User, UidStr, Date, 0, 0)
     end,
-    eGuiFunctions:generateWorkLog(State);
+    State;
 showLogWork(Uid, Date, State) ->
     %% ETodo link clicked, open log work dialog.
     Todo    = eTodoDB:getTodo(Uid),

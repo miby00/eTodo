@@ -43,6 +43,8 @@
 -include_lib("inets/include/httpd.hrl").
 
 -define(Background,  "#E0E0E0").
+-export([themeMessages/5]).
+
 -define(TextColor,   "#303030").
 -define(HdrOptions1, [{color, ?TextColor}, {size, 3},
                       {face, "Impact, Charcoal, sans-serif"}]).
@@ -65,6 +67,36 @@
 %%%=====================================================================
 %%% API
 %%%=====================================================================
+
+themeMessages(Html, Background, Foreground, Bubble, Link) ->
+    Content = unicode:characters_to_binary(Html),
+    Tree = mochiweb_html:parse(
+             <<"<html><body>", Content/binary, "</body></html>">>),
+    Theme = #{background => Background, foreground => Foreground,
+              bubble => Bubble, link => Link},
+    mochiweb_html:to_html(themeMessageNode(Tree, Theme)).
+
+themeMessageNode({<<"body">>, _Attributes, Children}, Theme) ->
+    Attributes = [{<<"bgcolor">>, maps:get(background, Theme)},
+                  {<<"text">>, maps:get(foreground, Theme)},
+                  {<<"link">>, maps:get(link, Theme)}],
+    {<<"body">>, Attributes,
+     [themeMessageNode(Child, Theme) || Child <- Children]};
+themeMessageNode({Tag, Attributes, Children}, Theme) ->
+    {Tag, [themeMessageAttribute(Attribute, Theme)
+           || Attribute <- Attributes],
+     [themeMessageNode(Child, Theme) || Child <- Children]};
+themeMessageNode(Node, _Theme) -> Node.
+
+themeMessageAttribute({Name, Value} = Attribute, Theme) ->
+    case {Name, string:lowercase(Value)} of
+        {<<"bgcolor">>, <<"#e0e0e0">>} ->
+            {Name, maps:get(bubble, Theme)};
+        {<<"color">>, Color} when Color =:= <<"#303030">>;
+                                  Color =:= <<"black">> ->
+            {Name, maps:get(foreground, Theme)};
+        _ -> Attribute
+    end.
 
 %%======================================================================
 %% Make functions of HTML tags so we can produce html by calling them.
@@ -327,7 +359,7 @@ makeWorkLogReport(Date, [{Act, Desc} | Rest],
                   Days = {D1, D2, D3, D4, D5}, SoFar) ->
     Odd = ((length(Rest) rem 2) == 0),
     Opts = [{align, center}],
-    Uid = list_to_integer(Act),
+    Uid = tryInt(Act),
     UidStr = convertUid(Uid),
 
     Link1 = makeLink(Uid, Date, Act, D1),

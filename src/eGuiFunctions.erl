@@ -37,6 +37,7 @@
          focusAndSelect/1,
          focusAndSelect/2,
          generateSchedule/1,
+         refreshVisibleReport/1,
          generateTimeLog/1,
          generateWorkLog/1,
          getCheckedItems/1,
@@ -55,11 +56,12 @@
          setColor/2,
          setColumnWidth/4,
          setDoneTimeStamp/3,
+         setMessagePage/2,
          setMsgCounter/2,
+         markMessagesRead/1,
          setOwner/3,
          setPeerStatusIfNeeded/1,
          setPortrait/2,
-         setScrollBar/1,
          setSelection/1,
          setSelection/2,
          setSelection/4,
@@ -139,27 +141,28 @@ appendToPage(MsgObj, Type, {Html, _HtmlCSS}, State) ->
     appendToPage(MsgObj, Type, "", "", {Html, _HtmlCSS}, State).
 
 appendToPage(MsgObj, Type, From, To, {Html, _HtmlCSS}, State) ->
-    State3 = case evalShow(Type, From, To, State#guiState.msgCfg) of
-                 true ->
-                     wxHtmlWindow:appendToPage(MsgObj, Html),
-                     State;
-                 false ->
-                     Notebook1 = obj("mainNotebook",   State),
-                     Notebook2 = obj("msgWinNotebook", State),
-                     State2 = increaseMsgCounter(State, Notebook1),
-                     increaseMsgCounter(Type, State2, Notebook2)
-             end,
-    eTodoDB:appendToPage(State3#guiState.user, Type, From, To, Html),
-    setScrollBar(MsgObj),
-    State3.
+    eTodoDB:appendToPage(State#guiState.user, Type, From, To, Html),
+    case evalShow(Type, From, To, State#guiState.msgCfg) of
+        true ->
+            loadMessages(MsgObj, Type, State),
+            State;
+        false ->
+            Notebook1 = obj("mainNotebook",   State),
+            Notebook2 = obj("msgWinNotebook", State),
+            State2 = increaseMsgCounter(State, Notebook1),
+            increaseMsgCounter(Type, State2, Notebook2)
+    end.
 
 evalShow(_, UserName, To, {true, Users}) ->
     lists:member(UserName, Users) or (Users =/= (Users -- To));
 evalShow(_,  _From, _To, _msgCfg)       -> true.
 
-setScrollBar(MsgObj) ->
-    Range = wxHtmlWindow:getScrollRange(MsgObj, ?wxVERTICAL),
-    wxHtmlWindow:scroll(MsgObj, 0, Range).
+loadMessages(View, msgEntry, #guiState{user = User, msgCfg = Cfg}) ->
+    eWorkLogView:load_messages(View, User, "chat", Cfg);
+loadMessages(View, alarmEntry, #guiState{user = User}) ->
+    eWorkLogView:load_messages(View, User, "reminders", all);
+loadMessages(View, _SystemEntry, #guiState{user = User}) ->
+    eWorkLogView:load_messages(View, User, "system", all).
 
 %%======================================================================
 %% Function :
@@ -171,6 +174,7 @@ setScrollBar(MsgObj) ->
 doLogout(_User, State = #guiState{loggedIn = false}) ->
     State;
 doLogout(User, State) ->
+    eWorkLogView:revoke(),
     StatusBar = obj("mainStatusBar", State),
     wxStatusBar:setStatusText(StatusBar, User,           [{number, 0}]),
     wxStatusBar:setStatusText(StatusBar, ?sbNotLoggedIn, [{number, 1}]),
@@ -1071,9 +1075,6 @@ userStatusUpdate(State = #guiState{userStatus = UserList,
                                    user       = User}) ->
     Obj          = obj("userStatusChoice", State),
     Obj2         = obj("userStatusMsg",    State),
-    CHtmlWin     = obj("msgTextWin",    State),
-    RHtmlWin     = obj("remTextWin",    State),
-    SHtmlWin     = obj("systemTextWin", State),
     Index        = wxChoice:getSelection(Obj),
     Status       = wxChoice:getString(Obj, Index),
     case Status of
@@ -1095,9 +1096,6 @@ userStatusUpdate(State = #guiState{userStatus = UserList,
             MsgTop = obj("msgTopPanel", State),
             wxPanel:layout(MsgTop),
             wxPanel:refresh(MsgTop),
-            setScrollBar(CHtmlWin),
-            setScrollBar(RHtmlWin),
-            setScrollBar(SHtmlWin),
             State
     end.
 
@@ -1710,8 +1708,7 @@ generateWorkLog(State = #guiState{user = User}) ->
     {Date, _} = DateTime,
     ePluginServer:eSetWorkLogDate(User, Date),
 
-    Report    = eHtml:makeWorkLogReport(User, Date),
-    wxHtmlWindow:setPage(Obj2, Report),
+    eWorkLogView:load(Obj2, User, Date),
     State.
 
 %%--------------------------------------------------------------------
@@ -1722,9 +1719,7 @@ generateWorkLog(State = #guiState{user = User}) ->
 generateTimeLog(State = #guiState{user = User}) ->
     Obj      = obj("timeLogReport", State),
     TaskList = getTaskList(State),
-    AllTask  = TaskList == ?defTaskList,
-    Report   = eHtml:makeTimeLogReport(User, State#guiState.rows, AllTask),
-    wxHtmlWindow:setPage(Obj, Report),
+    eWorkLogView:load(Obj, User, "time-log", TaskList),
     State.
 
 %%--------------------------------------------------------------------
@@ -1734,9 +1729,23 @@ generateTimeLog(State = #guiState{user = User}) ->
 %%--------------------------------------------------------------------
 generateSchedule(State = #guiState{user = User}) ->
     Obj    = obj("scheduleReport", State),
-    Report = eHtml:makeScheduleReport(User),
-    wxHtmlWindow:setPage(Obj, Report),
+    eWorkLogView:load(Obj, User, "schedule", ?defTaskList),
     State.
+
+%% Hidden report tabs are regenerated when they are selected.
+refreshVisibleReport(State = #guiState{loggedIn = false}) ->
+    State;
+refreshVisibleReport(State) ->
+    Notebook = obj("mainNotebook", State),
+    Current  = wxNotebook:getCurrentPage(Notebook),
+    Reports  = [{2, fun generateWorkLog/1},
+                {3, fun generateTimeLog/1},
+                {4, fun generateSchedule/1}],
+    case [Generate || {Index, Generate} <- Reports,
+                      wxNotebook:getPage(Notebook, Index) =:= Current] of
+        [Generate] -> Generate(State);
+        []         -> State
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -1765,23 +1774,32 @@ smartSplit([Char|Rest], SoFar) ->
 %% @spec
 %% @end
 %%--------------------------------------------------------------------
-saveMsg(UserName, State) ->
-    UserCfg  = eTodoDB:readUserCfg(UserName),
-    Unread   = default(UserCfg#userCfg.unreadMsgs, 0),
-    Notebook = obj("mainNotebook",  State),
-    CurrPage = wxNotebook:getCurrentPage(Notebook),
-    MsgPage  = wxNotebook:getPage(Notebook, 1),
-    UserCfg2 = case CurrPage of
-                   MsgPage ->
-                       UserCfg#userCfg{unreadMsgs = 0};
-                   _ when is_integer(Unread) ->
-                       Unread2 = Unread + 1,
-                       UserCfg#userCfg{unreadMsgs = Unread2};
-                   _ when is_list(Unread) ->
-                       Unread2 = length(Unread) + 1,
-                       UserCfg#userCfg{unreadMsgs = Unread2}
-               end,
-    eTodoDB:saveUserCfg(UserCfg2).
+saveMsg(_UserName, State) ->
+    saveMsgCounters(State).
+
+%% Total and per-tab counters are stored together so a restart restores both.
+saveMsgCounters(State = #guiState{user = User, unreadMsgs2 = {C1, C2, C3}}) ->
+    UserCfg = eTodoDB:readUserCfg(User),
+    eTodoDB:saveUserCfg(UserCfg#userCfg{unreadMsgs  = C1 + C2 + C3,
+                                        unreadMsgs2 = {C1, C2, C3}}),
+    State.
+
+showMsgCounters(State = #guiState{unreadMsgs2 = {C1, C2, C3}}) ->
+    Notebook1 = obj("mainNotebook",   State),
+    Notebook2 = obj("msgWinNotebook", State),
+    setMsgCounter(Notebook1, C1 + C2 + C3),
+    wxNotebook:setPageText(Notebook2, 0, counterText("Chat",     C1)),
+    wxNotebook:setPageText(Notebook2, 1, counterText("Reminder", C2)),
+    wxNotebook:setPageText(Notebook2, 2, counterText("System",   C3)),
+    State#guiState{unreadMsgs = C1 + C2 + C3}.
+
+counterText(Label, 0)     -> Label;
+counterText(Label, Count) -> Label ++ "(" ++ integer_to_list(Count) ++ ")".
+
+%% Messages were read elsewhere, e.g. in the web GUI.
+markMessagesRead(State) ->
+    State2 = clearNotificationTimer(State#guiState{unreadMsgs2 = {0, 0, 0}}),
+    saveMsgCounters(showMsgCounters(State2)).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -1881,31 +1899,36 @@ getUsersWithEmail([User|Rest], Acc) ->
 %%----------------------------------------------------------------------
 %% Notes    :
 %%======================================================================
-updateMsgWindow(State, User) ->
-    CHtmlWin  = obj("msgTextWin",    State),
-    RHtmlWin  = obj("remTextWin",    State),
-    SHtmlWin  = obj("systemTextWin", State),
-    MsgTop    = obj("msgTopPanel",  State),
-
-    Chats     = getMessages(User, State),
-    Reminders = eTodoDB:getMessages(User, [alarmEntry]),
-    System    = eTodoDB:getMessages(User, [systemEntry]),
-
-    wxHtmlWindow:setPage(CHtmlWin, Chats),
-    wxHtmlWindow:setPage(RHtmlWin, Reminders),
-    wxHtmlWindow:setPage(SHtmlWin, System),
-
+updateMsgWindow(State, _User) ->
+    MsgTop = obj("msgTopPanel", State),
+    loadMessages(obj("msgTextWin",    State), msgEntry,    State),
+    loadMessages(obj("remTextWin",    State), alarmEntry,  State),
+    loadMessages(obj("systemTextWin", State), systemEntry, State),
     wxPanel:layout(MsgTop),
     wxPanel:refresh(MsgTop),
-    setScrollBar(CHtmlWin),
-    setScrollBar(RHtmlWin),
-    setScrollBar(SHtmlWin),
     State.
 
-getMessages(User, #guiState{msgCfg = {true, Users}}) ->
-    eTodoDB:getMessagesFromOrTo(User, Users);
-getMessages(User, #guiState{msgCfg = {false, _Users}}) ->
-    eTodoDB:getMessages(User, [msgEntry]).
+setMessagePage(Window, Html) ->
+    {Background, Page} = messagePage(Html),
+    wxHtmlWindow:setBackgroundColour(Window, Background),
+    wxHtmlWindow:setPage(Window, Page).
+
+messagePage(Html) ->
+    Background = wxSystemSettings:getColour(?wxSYS_COLOUR_WINDOW),
+    Foreground = wxSystemSettings:getColour(?wxSYS_COLOUR_WINDOWTEXT),
+    Link       = wxSystemSettings:getColour(?wxSYS_COLOUR_HOTLIGHT),
+    {BR, BG, BB, _} = Background,
+    {FR, FG, FB, _} = Foreground,
+    Bubble = {shade(BR, FR), shade(BG, FG), shade(BB, FB), 255},
+    Page = eHtml:themeMessages(Html, htmlColour(Background),
+                               htmlColour(Foreground), htmlColour(Bubble),
+                               htmlColour(Link)),
+    {Background, Page}.
+
+htmlColour({Red, Green, Blue, _Alpha}) ->
+    iolist_to_binary(io_lib:format("#~2.16.0B~2.16.0B~2.16.0B",
+                                   [Red, Green, Blue])).
+
 
 clearMsgCounter(State = #guiState{user = User,
                                   unreadMsgs2 = {C1, C2, C3}}) ->
@@ -1979,14 +2002,14 @@ chatMsgStatusBar(MsgType, Msg, State) ->
                     State3 = increaseMsgCounter(MsgType, State2, Notebook2),
                     StatusBarObj = obj("mainStatusBar", State3),
                     wxStatusBar:setStatusText(StatusBarObj, Msg, [{number, 2}]),
-                    State3
+                    saveMsgCounters(State3)
             end;
         _ ->
             State2 = increaseMsgCounter(State, Notebook1),
             State3 = increaseMsgCounter(MsgType, State2, Notebook2),
             StatusBarObj = obj("mainStatusBar", State3),
             wxStatusBar:setStatusText(StatusBarObj, Msg, [{number, 2}]),
-            State3
+            saveMsgCounters(State3)
     end.
 
 getMessagePage(msgEntry, Notebook) ->
@@ -2033,24 +2056,18 @@ getNotificationTime(User) ->
 %% @end
 %%--------------------------------------------------------------------
 setUnreadMsgs(UserName, State) ->
-    Notebook = obj("mainNotebook",  State),
-    CurrPage = wxNotebook:getCurrentPage(Notebook),
-    MsgPage  = wxNotebook:getPage(Notebook, 1),
-    case CurrPage of
-        MsgPage ->
-            clearStatusBar(State);
-        _ ->
-            UserCfg    = eTodoDB:readUserCfg(UserName),
-            UnreadMsgs = UserCfg#userCfg.unreadMsgs,
-            case  UnreadMsgs > 0 of
-                true ->
-                    Notebook = obj("mainNotebook",  State),
-                    wxNotebook:setPageText(Notebook, 1,
-                                           "Messages(" ++ integer_to_list(UnreadMsgs) ++ ")");
-                false ->
-                    ok
-            end,
-            State#guiState{unreadMsgs = UnreadMsgs}
+    UserCfg  = eTodoDB:readUserCfg(UserName),
+    Counters = case UserCfg#userCfg.unreadMsgs2 of
+                   {C1, C2, C3} when is_integer(C1), is_integer(C2),
+                                     is_integer(C3) -> {C1, C2, C3};
+                   _ -> {0, 0, 0}
+               end,
+    State2   = showMsgCounters(State#guiState{unreadMsgs2 = Counters}),
+    Notebook = obj("mainNotebook", State2),
+    case wxNotebook:getCurrentPage(Notebook) =:=
+        wxNotebook:getPage(Notebook, 1) of
+        true  -> clearMsgCounter(clearStatusBar(State2));
+        false -> State2
     end.
 
 %%--------------------------------------------------------------------

@@ -59,7 +59,10 @@ init([User]) ->
 handle_event({loggedOut, User}, State = #state{mode = noGui}) ->
     ePluginServer:eLoggedOutMsg(User),
     {ok, State};
-handle_event({alarmEntry, _Uid, Description}, State = #state{mode = noGui}) ->
+handle_event({alarmEntry, Uid, Description},
+             State = #state{mode = noGui, user = User}) ->
+    {Html, _} = eHtml:generateAlarmMsg(Uid, Description),
+    eTodoDB:appendToPage(User, alarmEntry, "", [], Html),
     ePluginServer:eReceivedAlarmMsg(Description),
     {ok, State};
 handle_event({loggedIn, User}, State) ->
@@ -207,8 +210,14 @@ sendMsg(_Sender, _Users, {systemEntry, Uid}, Text, State) ->
     sendToGui(systemEntry, [Uid, Text], State),
     ePluginServer:eReceivedSysMsg(Text).
 
-sendToGui(msgEntry, _Args, #state{mode = noGui}) ->
+%% Without a desktop GUI the web GUI is the only reader, so store directly.
+sendToGui(msgEntry, [Sender, Users, Text], #state{mode = noGui, user = User}) ->
+    {Html, _} = eHtml:generateMsg(User, Sender, Users, Text),
+    eTodoDB:appendToPage(User, msgEntry, Sender, Users, Html),
     eTodo:eWebNotification();
+sendToGui(systemEntry, [Source, Text], #state{mode = noGui, user = User}) ->
+    {Html, _} = eHtml:generateSystemMsg(Source, Text),
+    eTodoDB:appendToPage(User, systemEntry, "", [], Html);
 sendToGui(_Function, _Args, #state{mode = noGui}) ->
     ok;
 sendToGui(Function, Args, _State) ->

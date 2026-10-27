@@ -1,3 +1,4 @@
+{"1.2.0",
 [{<<"cowlib">>,
   {git,"https://github.com/ninenines/cowlib",
        {ref,"0e0e21c0df66c0bb88172a47e024240f61aa6c61"}},
@@ -18,7 +19,14 @@
   {git,"https://github.com/talentdeficit/jsx.git",
        {ref,"aaf915e173d0ea7e1201c0edd4930dc6c3cd179d"}},
   0},
+ {<<"mochiweb">>,{pkg,<<"mochiweb">>,<<"3.3.0">>},0},
  {<<"ranch">>,
   {git,"https://github.com/ninenines/ranch",
        {ref,"7ec436dae11e91431f5f8d46f586aa8696975c71"}},
-  1}].
+  1}]}.
+[
+{pkg_hash,[
+ {<<"mochiweb">>, <<"2898AD0BFEEE234E4CBAE623C7052ABC3FF0D73D499BA6E6FFEF445B13FFD07A">>}]},
+{pkg_hash_ext,[
+ {<<"mochiweb">>, <<"AA85B777FB23E9972EBC424E40B5D35106F19BC998873E026DEDD876DF8EE50C">>}]}
+].

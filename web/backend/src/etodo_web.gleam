@@ -11,8 +11,10 @@ import gleam/int
 import gleam/json
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/otp/actor
 import gleam/result
 import gleam/string
+import gleam/string_tree
 import gleam/uri
 import lustre/attribute
 import lustre/element
@@ -26,6 +28,11 @@ const oidc_cookie = "etodo_oidc"
 const list_cookie = "etodo_list"
 
 const session_max_age = 28_800
+
+const desktop_cookie = "etodo_desktop"
+
+// Earlier builds persisted this with Path=/work-log, which shadowed newer cookies.
+const legacy_desktop_cookie = "etodo_worklog"
 
 type Todo {
   Todo(
@@ -81,6 +88,71 @@ fn authenticate(username: String, password: String) -> Result(String, Nil)
 
 @external(erlang, "eTodoMistAuth", "session_user")
 fn session_user(token: String) -> Result(String, Nil)
+
+@external(erlang, "eWorkLogView", "report_page")
+fn report_page(
+  token: String,
+  report: String,
+  date: String,
+  list_name: String,
+) -> Result(String, String)
+
+@external(erlang, "eWorkLogView", "listener_started")
+fn desktop_listener_started(owner: process.Pid, port: Int) -> Nil
+
+@external(erlang, "eWorkLogView", "valid_host")
+fn desktop_host_allowed(host: String) -> Bool
+
+@external(erlang, "eWorkLogView", "bootstrap")
+fn desktop_bootstrap_token(ticket: String) -> Result(String, Nil)
+
+@external(erlang, "eWorkLogView", "desktop_report_page")
+fn desktop_report_page(
+  token: String,
+  report: String,
+  date: String,
+  list_name: String,
+  background: String,
+  foreground: String,
+  accent: String,
+) -> Result(String, String)
+
+@external(erlang, "eWorkLogView", "desktop_messages_page")
+fn desktop_messages_page(
+  token: String,
+  kind: String,
+  filter: String,
+  peers: String,
+  background: String,
+  foreground: String,
+  accent: String,
+) -> Result(String, String)
+
+@external(erlang, "eWorkLogView", "messages_page")
+fn messages_page(token: String, kind: String) -> Result(String, String)
+
+@external(erlang, "eTodoPush", "subscribe")
+fn push_subscribe(user: String, subject: process.Subject(String)) -> Nil
+
+@external(erlang, "eWorkLogView", "messages_summary")
+fn messages_summary(token: String, since: String) -> Result(String, String)
+
+@external(erlang, "eTodoMistAuth", "send_message")
+fn send_message(
+  token: String,
+  csrf: String,
+  to: String,
+  message: String,
+) -> Result(Nil, Dynamic)
+
+@external(erlang, "eWorkLogView", "avatar")
+fn read_avatar(token: String, user: String) -> Result(BitArray, String)
+
+@external(erlang, "eWorkLogView", "desktop_avatar")
+fn read_desktop_avatar(
+  tokens: List(String),
+  user: String,
+) -> Result(BitArray, String)
 
 @external(erlang, "eTodoOidc", "enabled")
 fn oidc_enabled() -> Bool
@@ -224,6 +296,14 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
         Get, ["file"] -> serve_linked_file(request)
         Get, ["status"] -> serve_status(request)
         Get, ["status.json"] -> serve_status_json(request)
+        Get, ["work-log"] -> serve_report(request, "work-log")
+        Get, ["time-log"] -> serve_report(request, "time-log")
+        Get, ["schedule"] -> serve_report(request, "schedule")
+        Get, ["messages"] -> serve_messages(request)
+        Get, ["messages.json"] -> serve_messages_json(request)
+        Get, ["events"] -> serve_events(request)
+        Post, ["messages", "send"] -> send_message_request(request)
+        Get, ["avatar"] -> serve_avatar(request)
         Post, ["status"] -> save_status_request(request)
         Get, [] -> serve_home(request)
         Get, ["settings"] -> serve_settings(request)
@@ -250,6 +330,194 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
   process.sleep_forever()
 }
 
+pub fn start_work_log(owner: process.Pid) {
+  let assert Ok(_) =
+    fn(request: Request(Connection)) -> Response(ResponseData) {
+      let host = request.get_header(request, "host") |> result.unwrap("")
+      case desktop_host_allowed(host) {
+        False -> response(403, "Forbidden")
+        True ->
+          case request.method, request.path_segments(request) {
+            Get, ["assets", "bootstrap.min.css"] ->
+              stylesheet_response(read_bootstrap_stylesheet())
+            Get, ["desktop", ticket] ->
+              desktop_bootstrap(request, "work-log", ticket)
+            Get, ["desktop", report, ticket] ->
+              desktop_bootstrap(request, report, ticket)
+            Get, ["work-log"] -> desktop_report(request, "work-log")
+            Get, ["time-log"] -> desktop_report(request, "time-log")
+            Get, ["schedule"] -> desktop_report(request, "schedule")
+            Get, ["messages"] -> desktop_messages(request)
+            Get, ["avatar"] ->
+              logo_response(read_desktop_avatar(
+                cookie_values(request, desktop_cookie),
+                query_value(request, "user"),
+              ))
+            _, _ -> response(404, "Not found")
+          }
+      }
+    }
+    |> mist.new
+    |> mist.bind("127.0.0.1")
+    |> mist.port(0)
+    |> mist.after_start(fn(port, _, _) { desktop_listener_started(owner, port) })
+    |> mist.start
+
+  process.sleep_forever()
+}
+
+fn desktop_bootstrap(
+  request: Request(Connection),
+  report: String,
+  ticket: String,
+) -> Response(ResponseData) {
+  case desktop_bootstrap_token(ticket) {
+    Ok(token) -> {
+      let query =
+        [
+          "date", "list", "kind", "filter", "peers", "background", "foreground",
+          "accent",
+        ]
+        |> list.map(fn(name) {
+          name <> "=" <> uri.percent_encode(query_value(request, name))
+        })
+        |> string.join("&")
+      // Messages open scrolled to the newest entry.
+      let fragment = case report {
+        "messages" -> "#end"
+        _ -> ""
+      }
+      response.new(303)
+      |> response.set_header(
+        "location",
+        "/" <> report <> "?" <> query <> fragment,
+      )
+      |> response.set_header("cache-control", "no-store")
+      |> response.set_header("referrer-policy", "no-referrer")
+      |> response.prepend_header(
+        "set-cookie",
+        desktop_cookie_header(desktop_cookie, token, None, "/"),
+      )
+      |> response.prepend_header(
+        "set-cookie",
+        desktop_cookie_header(legacy_desktop_cookie, "", Some(0), "/"),
+      )
+      |> response.prepend_header(
+        "set-cookie",
+        desktop_cookie_header(legacy_desktop_cookie, "", Some(0), "/work-log"),
+      )
+      |> response_data
+    }
+    Error(_) -> response(401, "Desktop sign-in expired")
+  }
+}
+
+fn desktop_cookie_header(
+  name: String,
+  value: String,
+  max_age: Option(Int),
+  path: String,
+) -> String {
+  cookie.set_header(
+    name,
+    value,
+    cookie.Attributes(
+      max_age: max_age,
+      domain: None,
+      path: Some(path),
+      secure: False,
+      http_only: True,
+      same_site: Some(cookie.Strict),
+    ),
+  )
+}
+
+fn desktop_report(
+  request: Request(Connection),
+  report: String,
+) -> Response(ResponseData) {
+  let render = fn(token) {
+    desktop_report_page(
+      token,
+      report,
+      query_value(request, "date"),
+      query_value(request, "list"),
+      query_value(request, "background"),
+      query_value(request, "foreground"),
+      query_value(request, "accent"),
+    )
+  }
+  case
+    first_valid_desktop_page(cookie_values(request, desktop_cookie), render)
+  {
+    Ok(page) -> work_log_response(page)
+    Error("invalid_session") -> response(401, "Desktop sign-in expired")
+    Error(_) -> response(400, "Could not load report")
+  }
+}
+
+fn desktop_messages(request: Request(Connection)) -> Response(ResponseData) {
+  let render = fn(token) {
+    desktop_messages_page(
+      token,
+      query_value(request, "kind"),
+      query_value(request, "filter"),
+      query_value(request, "peers"),
+      query_value(request, "background"),
+      query_value(request, "foreground"),
+      query_value(request, "accent"),
+    )
+  }
+  case
+    first_valid_desktop_page(cookie_values(request, desktop_cookie), render)
+  {
+    Ok(page) -> work_log_response(page)
+    Error("invalid_session") -> response(401, "Desktop sign-in expired")
+    Error(_) -> response(400, "Could not load messages")
+  }
+}
+
+fn serve_messages(request: Request(Connection)) -> Response(ResponseData) {
+  case current_session(request) {
+    Ok(#(token, _)) ->
+      case messages_page(token, query_value(request, "kind")) {
+        Ok(page) -> messages_response(page)
+        Error(_) -> response(400, "Could not load messages")
+      }
+    Error(_) -> login_page("")
+  }
+}
+
+fn messages_response(page: String) -> Response(ResponseData) {
+  work_log_response(page)
+  |> response.set_header(
+    "content-security-policy",
+    "default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+  )
+}
+
+fn serve_avatar(request: Request(Connection)) -> Response(ResponseData) {
+  case current_session(request) {
+    Ok(#(token, _)) ->
+      logo_response(read_avatar(token, query_value(request, "user")))
+    Error(_) -> response(401, "Not signed in")
+  }
+}
+
+fn first_valid_desktop_page(
+  tokens: List(String),
+  render: fn(String) -> Result(String, String),
+) -> Result(String, String) {
+  case tokens {
+    [] -> Error("invalid_session")
+    [token, ..rest] ->
+      case render(token) {
+        Error("invalid_session") -> first_valid_desktop_page(rest, render)
+        result -> result
+      }
+  }
+}
+
 fn serve_home(request: Request(Connection)) -> Response(ResponseData) {
   case current_session(request) {
     Ok(#(token, username)) ->
@@ -270,6 +538,80 @@ fn serve_home(request: Request(Connection)) -> Response(ResponseData) {
         Error(_) -> response(400, "Invalid list selection")
       }
     Error(_) -> login_page("")
+  }
+}
+
+fn serve_report(
+  request: Request(Connection),
+  report: String,
+) -> Response(ResponseData) {
+  case current_session(request) {
+    Ok(#(token, _)) -> {
+      // Without an explicit choice, follow the list last used on the task page.
+      let list_name = case requested_list(request) {
+        Ok(#(name, _)) -> name
+        Error(_) -> "All tasks"
+      }
+      case report_page(token, report, query_value(request, "date"), list_name) {
+        // Same policy as Messages: the page script listens for pushes.
+        Ok(page) -> messages_response(page)
+        Error(_) -> response(400, "Could not load report")
+      }
+    }
+    Error(_) -> login_page("")
+  }
+}
+
+fn work_log_response(page: String) -> Response(ResponseData) {
+  response(200, page)
+  |> response.set_header("content-type", "text/html; charset=utf-8")
+  |> response.set_header("cache-control", "no-store")
+  |> response.set_header("referrer-policy", "no-referrer")
+  |> response.set_header(
+    "content-security-policy",
+    "default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+  )
+}
+
+// One Server-Sent Events stream per open tab; eTodoPush feeds it.
+fn serve_events(request: Request(Connection)) -> Response(ResponseData) {
+  case current_session(request) {
+    Ok(#(_, username)) ->
+      mist.server_sent_events(
+        request,
+        response.new(200)
+          |> response.set_header("cache-control", "no-store")
+          |> response.set_header("x-accel-buffering", "no"),
+        init: fn(subject) { push_subscribe(username, subject) },
+        loop: fn(state, event, connection) {
+          let message =
+            mist.event(string_tree.from_string(event))
+            |> mist.event_name(case event {
+              "ping" -> "ping"
+              "reports" -> "reports"
+              _ -> "messages"
+            })
+          case mist.send_event(connection, message) {
+            Ok(Nil) -> actor.continue(state)
+            Error(Nil) -> actor.stop()
+          }
+        },
+      )
+    Error(_) -> response(401, "Not signed in")
+  }
+}
+
+fn serve_messages_json(request: Request(Connection)) -> Response(ResponseData) {
+  case current_session(request) {
+    Ok(#(token, _)) ->
+      case messages_summary(token, query_value(request, "since")) {
+        Ok(body) ->
+          response(200, body)
+          |> response.set_header("content-type", "application/json")
+          |> response.set_header("cache-control", "no-store")
+        Error(_) -> response(500, "Could not read messages")
+      }
+    Error(_) -> response(401, "Not signed in")
   }
 }
 
@@ -295,6 +637,24 @@ fn serve_status(request: Request(Connection)) -> Response(ResponseData) {
         Error(_) -> login_page("Session expired. Sign in again.")
       }
     Error(_) -> login_page("")
+  }
+}
+
+fn send_message_request(
+  request: Request(Connection),
+) -> Response(ResponseData) {
+  case session_cookie_value(request), form_fields(request) {
+    Some(token), Ok(fields) -> {
+      let field = fn(name) { list.key_find(fields, name) |> result.unwrap("") }
+      case send_message(token, field("csrf"), field("to"), field("msg")) {
+        Ok(Nil) ->
+          response.new(303)
+          |> response.set_header("location", "/messages#chat")
+          |> response_data
+        Error(_) -> response(400, "Could not send the message")
+      }
+    }
+    _, _ -> response(400, "Invalid request")
   }
 }
 
@@ -931,6 +1291,19 @@ fn cookie_value(request: Request(Connection), name: String) -> Option(String) {
   }
 }
 
+fn cookie_values(request: Request(Connection), name: String) -> List(String) {
+  request
+  |> request.get_header("cookie")
+  |> result.unwrap("")
+  |> cookie.parse
+  |> list.filter_map(fn(pair) {
+    case pair {
+      #(key, value) if key == name -> Ok(value)
+      _ -> Error(Nil)
+    }
+  })
+}
+
 fn session_cookie_value(request: Request(Connection)) -> Option(String) {
   let cookies =
     request
@@ -1196,6 +1569,19 @@ fn logo_response(logo: Result(BitArray, String)) -> Response(ResponseData) {
   }
 }
 
+const header_button_class =
+  "btn btn-outline-primary btn-lg text-nowrap etodo-header-button"
+
+// Narrow screens show only the icon; the label returns from the md breakpoint.
+fn header_button_content(icon: String, label: String) {
+  [
+    html.span([attribute.attribute("aria-hidden", "true")], [html.text(icon)]),
+    html.span([attribute.attribute("class", "d-none d-md-inline ms-1")], [
+      html.text(label),
+    ]),
+  ]
+}
+
 fn authenticated_page(
   username: String,
   data: TodoPageData,
@@ -1272,416 +1658,436 @@ fn authenticated_page(
           "",
         ),
       ]),
-      html.body([attribute.attribute("class", "etodo-page")], [
-        html.header([attribute.attribute("class", "bg-white border-bottom")], [
-          html.div(
-            [
-              attribute.attribute(
-                "class",
-                "container etodo-container py-3 d-flex align-items-center gap-3",
-              ),
-            ],
-            [
-              html.a(
-                [
-                  attribute.href("/"),
-                  attribute.attribute(
-                    "class",
-                    "etodo-logo-banner etodo-logo-small",
-                  ),
-                ],
-                [
-                  html.img([
-                    attribute.src("/assets/etodo-logo.png"),
-                    attribute.alt("eTodo"),
-                  ]),
-                ],
-              ),
-              html.div(
-                [
-                  attribute.attribute(
-                    "class",
-                    "ms-auto d-flex align-items-center gap-3",
-                  ),
-                ],
-                [
-                  html.span(
-                    [
-                      attribute.attribute(
-                        "class",
-                        "small text-body-secondary d-none d-sm-inline",
-                      ),
-                    ],
-                    [
-                      html.text("Signed in as "),
-                      html.strong([], [html.text(username)]),
-                    ],
-                  ),
-                  html.a(
-                    [
-                      attribute.href("/status"),
-                      attribute.attribute(
-                        "class",
-                        "btn btn-outline-secondary btn-sm",
-                      ),
-                    ],
-                    [html.text("Status")],
-                  ),
-                  html.a(
-                    [
-                      attribute.href("/settings"),
-                      attribute.attribute(
-                        "class",
-                        "btn btn-outline-secondary btn-sm",
-                      ),
-                    ],
-                    [html.text("⚙ Settings")],
-                  ),
-                  html.form(
-                    [
-                      attribute.attribute("action", "/logout"),
-                      attribute.attribute("method", "post"),
-                      attribute.attribute("class", "m-0"),
-                    ],
-                    [
-                      html.button(
-                        [
-                          attribute.attribute(
-                            "class",
-                            "btn btn-outline-secondary btn-sm",
-                          ),
-                          attribute.attribute("type", "submit"),
-                        ],
-                        [html.text("Sign out")],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ]),
-        html.main(
-          [
-            attribute.attribute(
-              "class",
-              "container etodo-container py-4 py-md-5",
-            ),
-          ],
-          [
-            html.section(
-              [
-                attribute.attribute("class", "card border-0 shadow-sm mb-4"),
-                attribute.attribute("aria-label", "Choose a todo list"),
-              ],
-              [
-                html.div(
-                  [attribute.attribute("class", "card-body p-3 p-md-4")],
-                  [
-                    case data.can_edit {
-                      True ->
-                        html.input([
-                          attribute.attribute("type", "checkbox"),
-                          attribute.attribute("id", "newlist-toggle"),
-                          attribute.attribute("class", "etodo-newlist-check"),
-                          attribute.attribute(
-                            "aria-label",
-                            "Show the new list form",
-                          ),
-                        ])
-                      False -> element.none()
-                    },
-                    case can_delete {
-                      True ->
-                        html.input([
-                          attribute.attribute("type", "checkbox"),
-                          attribute.attribute("id", "dellist-toggle"),
-                          attribute.attribute("class", "etodo-newlist-check"),
-                          attribute.attribute(
-                            "aria-label",
-                            "Show the delete list form",
-                          ),
-                        ])
-                      False -> element.none()
-                    },
-                    html.form(
-                      [
-                        attribute.attribute("action", "/"),
-                        attribute.attribute("method", "get"),
-                        attribute.attribute(
-                          "class",
-                          "row g-3 align-items-end etodo-list-form",
-                        ),
-                      ],
-                      [
-                        html.div([attribute.attribute("class", "col")], [
-                          html.label(
-                            [
-                              attribute.attribute(
-                                "class",
-                                "form-label fw-semibold",
-                              ),
-                              attribute.attribute("for", "todo-list"),
-                            ],
-                            [html.text("Todo list")],
-                          ),
-                          html.select(
-                            [
-                              attribute.name("list"),
-                              attribute.attribute("id", "todo-list"),
-                              attribute.attribute(
-                                "class",
-                                "form-select form-select-lg",
-                              ),
-                            ],
-                            list_options,
-                          ),
-                        ]),
-                        html.div([attribute.attribute("class", "col-auto")], [
-                          html.button(
-                            [
-                              attribute.attribute("type", "submit"),
-                              attribute.attribute(
-                                "class",
-                                "btn btn-primary btn-lg etodo-list-submit",
-                              ),
-                              attribute.title("Refresh list"),
-                              attribute.attribute("aria-label", "Refresh list"),
-                            ],
-                            [html.text("↻")],
-                          ),
-                          case data.can_edit {
-                            True ->
-                              html.label(
-                                [
-                                  attribute.attribute("for", "newlist-toggle"),
-                                  attribute.attribute(
-                                    "class",
-                                    "btn btn-outline-primary btn-lg ms-2 etodo-newlist-button",
-                                  ),
-                                  attribute.title("New list"),
-                                ],
-                                [
-                                  html.span(
-                                    [
-                                      attribute.attribute(
-                                        "class",
-                                        "etodo-newlist-open",
-                                      ),
-                                    ],
-                                    [html.text("+")],
-                                  ),
-                                  html.span(
-                                    [
-                                      attribute.attribute(
-                                        "class",
-                                        "etodo-newlist-close",
-                                      ),
-                                    ],
-                                    [html.text("×")],
-                                  ),
-                                ],
-                              )
-                            False -> element.none()
-                          },
-                          case can_delete {
-                            True ->
-                              html.label(
-                                [
-                                  attribute.attribute("for", "dellist-toggle"),
-                                  attribute.attribute(
-                                    "class",
-                                    "btn btn-outline-danger btn-lg ms-2 etodo-dellist-button",
-                                  ),
-                                  attribute.title("Delete list"),
-                                ],
-                                [
-                                  html.span(
-                                    [
-                                      attribute.attribute(
-                                        "class",
-                                        "etodo-dellist-open",
-                                      ),
-                                    ],
-                                    [html.text("−")],
-                                  ),
-                                  html.span(
-                                    [
-                                      attribute.attribute(
-                                        "class",
-                                        "etodo-dellist-close",
-                                      ),
-                                    ],
-                                    [html.text("×")],
-                                  ),
-                                ],
-                              )
-                            False -> element.none()
-                          },
-                        ]),
-                      ],
-                    ),
-                    case data.can_edit {
-                      True ->
-                        html.form(
-                          [
-                            attribute.attribute("action", "/list/create"),
-                            attribute.attribute("method", "post"),
-                            attribute.attribute(
-                              "class",
-                              "etodo-newlist-panel row g-2 mt-2",
-                            ),
-                          ],
-                          [
-                            html.input([
-                              attribute.attribute("type", "hidden"),
-                              attribute.name("csrf"),
-                              attribute.attribute("value", data.csrf),
-                            ]),
-                            html.div([attribute.attribute("class", "col")], [
-                              html.input([
-                                attribute.attribute(
-                                  "class",
-                                  "form-control form-control-lg",
-                                ),
-                                attribute.attribute("type", "text"),
-                                attribute.name("name"),
-                                attribute.attribute("maxlength", "100"),
-                                attribute.attribute("required", "required"),
-                                attribute.attribute(
-                                  "placeholder",
-                                  "New list name",
-                                ),
-                                attribute.attribute(
-                                  "aria-label",
-                                  "New list name",
-                                ),
-                                attribute.attribute("autocomplete", "off"),
-                              ]),
-                            ]),
-                            html.div(
-                              [attribute.attribute("class", "col-auto")],
-                              [
-                                html.button(
-                                  [
-                                    attribute.attribute(
-                                      "class",
-                                      "btn btn-primary btn-lg",
-                                    ),
-                                    attribute.attribute("type", "submit"),
-                                  ],
-                                  [html.text("Add list")],
-                                ),
-                              ],
-                            ),
-                          ],
-                        )
-                      False -> element.none()
-                    },
-                    case can_delete {
-                      True ->
-                        html.form(
-                          [
-                            attribute.attribute("action", "/list/delete"),
-                            attribute.attribute("method", "post"),
-                            attribute.attribute(
-                              "class",
-                              "etodo-dellist-panel row g-2 mt-2 align-items-center",
-                            ),
-                          ],
-                          [
-                            html.input([
-                              attribute.attribute("type", "hidden"),
-                              attribute.name("csrf"),
-                              attribute.attribute("value", data.csrf),
-                            ]),
-                            html.input([
-                              attribute.attribute("type", "hidden"),
-                              attribute.name("name"),
-                              attribute.attribute("value", data.selected_list),
-                            ]),
-                            html.div([attribute.attribute("class", "col")], [
-                              html.text("Delete the list \""),
-                              html.strong([], [html.text(data.selected_list)]),
-                              html.text("\"? Its tasks stay in \"All tasks\"."),
-                            ]),
-                            html.div(
-                              [attribute.attribute("class", "col-auto")],
-                              [
-                                html.button(
-                                  [
-                                    attribute.attribute(
-                                      "class",
-                                      "btn btn-danger btn-lg",
-                                    ),
-                                    attribute.attribute("type", "submit"),
-                                  ],
-                                  [html.text("Delete list")],
-                                ),
-                              ],
-                            ),
-                          ],
-                        )
-                      False -> element.none()
-                    },
-                  ],
-                ),
-              ],
-            ),
-            case data.can_edit {
-              True -> new_todo_form(data)
-              False -> element.none()
-            },
-            html.div([attribute.attribute("class", "mb-4")], [
-              html.input([
-                attribute.attribute("type", "search"),
-                attribute.attribute("id", "todo-filter"),
-                attribute.attribute("class", "form-control form-control-lg"),
-                attribute.attribute("placeholder", "Filter todos"),
-                attribute.attribute("aria-label", "Filter todos"),
-                attribute.attribute("autocomplete", "off"),
-                attribute.value(data.search),
-              ]),
-            ]),
+      html.body(
+        [
+          attribute.attribute("class", "etodo-page"),
+          attribute.attribute("data-swipe-next", "/messages#chat"),
+        ],
+        [
+          html.header([attribute.attribute("class", "bg-white border-bottom")], [
             html.div(
               [
                 attribute.attribute(
                   "class",
-                  "d-flex align-items-center justify-content-between gap-3 mb-3",
+                  "container etodo-container py-3 d-flex align-items-center gap-3",
                 ),
               ],
               [
-                html.h2(
-                  [attribute.attribute("class", "h4 fw-bold mb-0 text-break")],
-                  [html.text(data.selected_list)],
+                html.a(
+                  [
+                    attribute.href("/"),
+                    attribute.attribute(
+                      "class",
+                      "etodo-logo-banner etodo-logo-small",
+                    ),
+                  ],
+                  [
+                    html.img([
+                      attribute.src("/assets/etodo-logo.png"),
+                      attribute.alt("eTodo"),
+                    ]),
+                  ],
                 ),
-                html.span(
+                html.div(
                   [
                     attribute.attribute(
                       "class",
-                      "badge rounded-pill text-bg-primary",
+                      "ms-auto d-flex align-items-center gap-2",
                     ),
-                    attribute.attribute("id", "todo-count"),
                   ],
                   [
-                    html.text(
-                      int.to_string(list.length(data.todos)) <> " shown",
+                    html.span(
+                      [
+                        attribute.attribute(
+                          "class",
+                          "small text-body-secondary d-none d-lg-inline me-1",
+                        ),
+                      ],
+                      [
+                        html.text("Signed in as "),
+                        html.strong([], [html.text(username)]),
+                      ],
+                    ),
+                    html.a(
+                      [
+                        attribute.href("/messages#chat"),
+                        attribute.attribute("class", header_button_class),
+                        attribute.attribute("aria-label", "Messages"),
+                        attribute.title("Messages"),
+                      ],
+                      header_button_content("💬", "Messages"),
+                    ),
+                    html.a(
+                      [
+                        attribute.href("/status"),
+                        attribute.attribute("class", header_button_class),
+                        attribute.attribute("aria-label", "Status"),
+                        attribute.title("Status"),
+                      ],
+                      header_button_content("🟢", "Status"),
+                    ),
+                    html.a(
+                      [
+                        attribute.href("/settings"),
+                        attribute.attribute("class", header_button_class),
+                        attribute.attribute("aria-label", "Settings"),
+                        attribute.title("Settings"),
+                      ],
+                      header_button_content("⚙️", "Settings"),
+                    ),
+                    html.form(
+                      [
+                        attribute.attribute("action", "/logout"),
+                        attribute.attribute("method", "post"),
+                        attribute.attribute("class", "m-0"),
+                      ],
+                      [
+                        html.button(
+                          [
+                            attribute.attribute("class", header_button_class),
+                            attribute.attribute("type", "submit"),
+                            attribute.attribute("aria-label", "Sign out"),
+                            attribute.title("Sign out"),
+                          ],
+                          header_button_content("🚪", "Sign out"),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                filtered_badge(data),
               ],
             ),
-            html.ul(
-              [
-                attribute.attribute("id", "todo-items"),
-                attribute.attribute("class", "list-unstyled d-grid gap-3 mb-0"),
-              ],
-              todo_items,
-            ),
-          ],
-        ),
-      ]),
+          ]),
+          html.main(
+            [
+              attribute.attribute(
+                "class",
+                "container etodo-container py-4 py-md-5",
+              ),
+            ],
+            [
+              html.section(
+                [
+                  attribute.attribute("class", "card border-0 shadow-sm mb-4"),
+                  attribute.attribute("aria-label", "Choose a todo list"),
+                ],
+                [
+                  html.div(
+                    [attribute.attribute("class", "card-body p-3 p-md-4")],
+                    [
+                      case data.can_edit {
+                        True ->
+                          html.input([
+                            attribute.attribute("type", "checkbox"),
+                            attribute.attribute("id", "newlist-toggle"),
+                            attribute.attribute("class", "etodo-newlist-check"),
+                            attribute.attribute(
+                              "aria-label",
+                              "Show the new list form",
+                            ),
+                          ])
+                        False -> element.none()
+                      },
+                      case can_delete {
+                        True ->
+                          html.input([
+                            attribute.attribute("type", "checkbox"),
+                            attribute.attribute("id", "dellist-toggle"),
+                            attribute.attribute("class", "etodo-newlist-check"),
+                            attribute.attribute(
+                              "aria-label",
+                              "Show the delete list form",
+                            ),
+                          ])
+                        False -> element.none()
+                      },
+                      html.form(
+                        [
+                          attribute.attribute("action", "/"),
+                          attribute.attribute("method", "get"),
+                          attribute.attribute(
+                            "class",
+                            "row g-3 align-items-end etodo-list-form",
+                          ),
+                        ],
+                        [
+                          html.div([attribute.attribute("class", "col")], [
+                            html.label(
+                              [
+                                attribute.attribute(
+                                  "class",
+                                  "form-label fw-semibold",
+                                ),
+                                attribute.attribute("for", "todo-list"),
+                              ],
+                              [html.text("Todo list")],
+                            ),
+                            html.select(
+                              [
+                                attribute.name("list"),
+                                attribute.attribute("id", "todo-list"),
+                                attribute.attribute(
+                                  "class",
+                                  "form-select form-select-lg",
+                                ),
+                              ],
+                              list_options,
+                            ),
+                          ]),
+                          html.div([attribute.attribute("class", "col-auto")], [
+                            html.button(
+                              [
+                                attribute.attribute("type", "submit"),
+                                attribute.attribute(
+                                  "class",
+                                  "btn btn-primary btn-lg etodo-list-submit",
+                                ),
+                                attribute.title("Refresh list"),
+                                attribute.attribute(
+                                  "aria-label",
+                                  "Refresh list",
+                                ),
+                              ],
+                              [html.text("↻")],
+                            ),
+                            case data.can_edit {
+                              True ->
+                                html.label(
+                                  [
+                                    attribute.attribute("for", "newlist-toggle"),
+                                    attribute.attribute(
+                                      "class",
+                                      "btn btn-outline-primary btn-lg ms-2 etodo-newlist-button",
+                                    ),
+                                    attribute.title("New list"),
+                                  ],
+                                  [
+                                    html.span(
+                                      [
+                                        attribute.attribute(
+                                          "class",
+                                          "etodo-newlist-open",
+                                        ),
+                                      ],
+                                      [html.text("+")],
+                                    ),
+                                    html.span(
+                                      [
+                                        attribute.attribute(
+                                          "class",
+                                          "etodo-newlist-close",
+                                        ),
+                                      ],
+                                      [html.text("×")],
+                                    ),
+                                  ],
+                                )
+                              False -> element.none()
+                            },
+                            case can_delete {
+                              True ->
+                                html.label(
+                                  [
+                                    attribute.attribute("for", "dellist-toggle"),
+                                    attribute.attribute(
+                                      "class",
+                                      "btn btn-outline-danger btn-lg ms-2 etodo-dellist-button",
+                                    ),
+                                    attribute.title("Delete list"),
+                                  ],
+                                  [
+                                    html.span(
+                                      [
+                                        attribute.attribute(
+                                          "class",
+                                          "etodo-dellist-open",
+                                        ),
+                                      ],
+                                      [html.text("−")],
+                                    ),
+                                    html.span(
+                                      [
+                                        attribute.attribute(
+                                          "class",
+                                          "etodo-dellist-close",
+                                        ),
+                                      ],
+                                      [html.text("×")],
+                                    ),
+                                  ],
+                                )
+                              False -> element.none()
+                            },
+                          ]),
+                        ],
+                      ),
+                      case data.can_edit {
+                        True ->
+                          html.form(
+                            [
+                              attribute.attribute("action", "/list/create"),
+                              attribute.attribute("method", "post"),
+                              attribute.attribute(
+                                "class",
+                                "etodo-newlist-panel row g-2 mt-2",
+                              ),
+                            ],
+                            [
+                              html.input([
+                                attribute.attribute("type", "hidden"),
+                                attribute.name("csrf"),
+                                attribute.attribute("value", data.csrf),
+                              ]),
+                              html.div([attribute.attribute("class", "col")], [
+                                html.input([
+                                  attribute.attribute(
+                                    "class",
+                                    "form-control form-control-lg",
+                                  ),
+                                  attribute.attribute("type", "text"),
+                                  attribute.name("name"),
+                                  attribute.attribute("maxlength", "100"),
+                                  attribute.attribute("required", "required"),
+                                  attribute.attribute(
+                                    "placeholder",
+                                    "New list name",
+                                  ),
+                                  attribute.attribute(
+                                    "aria-label",
+                                    "New list name",
+                                  ),
+                                  attribute.attribute("autocomplete", "off"),
+                                ]),
+                              ]),
+                              html.div(
+                                [attribute.attribute("class", "col-auto")],
+                                [
+                                  html.button(
+                                    [
+                                      attribute.attribute(
+                                        "class",
+                                        "btn btn-primary btn-lg",
+                                      ),
+                                      attribute.attribute("type", "submit"),
+                                    ],
+                                    [html.text("Add list")],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          )
+                        False -> element.none()
+                      },
+                      case can_delete {
+                        True ->
+                          html.form(
+                            [
+                              attribute.attribute("action", "/list/delete"),
+                              attribute.attribute("method", "post"),
+                              attribute.attribute(
+                                "class",
+                                "etodo-dellist-panel row g-2 mt-2 align-items-center",
+                              ),
+                            ],
+                            [
+                              html.input([
+                                attribute.attribute("type", "hidden"),
+                                attribute.name("csrf"),
+                                attribute.attribute("value", data.csrf),
+                              ]),
+                              html.input([
+                                attribute.attribute("type", "hidden"),
+                                attribute.name("name"),
+                                attribute.attribute("value", data.selected_list),
+                              ]),
+                              html.div([attribute.attribute("class", "col")], [
+                                html.text("Delete the list \""),
+                                html.strong([], [html.text(data.selected_list)]),
+                                html.text(
+                                  "\"? Its tasks stay in \"All tasks\".",
+                                ),
+                              ]),
+                              html.div(
+                                [attribute.attribute("class", "col-auto")],
+                                [
+                                  html.button(
+                                    [
+                                      attribute.attribute(
+                                        "class",
+                                        "btn btn-danger btn-lg",
+                                      ),
+                                      attribute.attribute("type", "submit"),
+                                    ],
+                                    [html.text("Delete list")],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          )
+                        False -> element.none()
+                      },
+                    ],
+                  ),
+                ],
+              ),
+              case data.can_edit {
+                True -> new_todo_form(data)
+                False -> element.none()
+              },
+              html.div([attribute.attribute("class", "mb-4")], [
+                html.input([
+                  attribute.attribute("type", "search"),
+                  attribute.attribute("id", "todo-filter"),
+                  attribute.attribute("class", "form-control form-control-lg"),
+                  attribute.attribute("placeholder", "Filter todos"),
+                  attribute.attribute("aria-label", "Filter todos"),
+                  attribute.attribute("autocomplete", "off"),
+                  attribute.value(data.search),
+                ]),
+              ]),
+              html.div(
+                [
+                  attribute.attribute(
+                    "class",
+                    "d-flex align-items-center justify-content-between gap-3 mb-3",
+                  ),
+                ],
+                [
+                  html.h2(
+                    [attribute.attribute("class", "h4 fw-bold mb-0 text-break")],
+                    [html.text(data.selected_list)],
+                  ),
+                  html.span(
+                    [
+                      attribute.attribute(
+                        "class",
+                        "badge rounded-pill text-bg-primary",
+                      ),
+                      attribute.attribute("id", "todo-count"),
+                    ],
+                    [
+                      html.text(
+                        int.to_string(list.length(data.todos)) <> " shown",
+                      ),
+                    ],
+                  ),
+                  filtered_badge(data),
+                ],
+              ),
+              html.ul(
+                [
+                  attribute.attribute("id", "todo-items"),
+                  attribute.attribute(
+                    "class",
+                    "list-unstyled d-grid gap-3 mb-0",
+                  ),
+                ],
+                todo_items,
+              ),
+            ],
+          ),
+        ],
+      ),
     ])
     |> element.to_document_string_tree
     |> bytes_tree.from_string_tree

@@ -21,6 +21,7 @@
 	     eRows_lists,
 	     eTodo,
 	     eTodoAPI,
+	     eWorkLogView,
 	     eTodoAlarm,
 	     eTodoDB,
 	     eTodoMistAuth,
@@ -47,7 +48,7 @@
 		eTodoSup,
 		ePluginServer
 	       ]},
-  {applications, [kernel, stdlib, compiler, sasl, mnesia, inets, crypto, asn1, public_key, ssl, wx, jsx, gun, eLog, ePort, etodo_web]},
+	{applications, [kernel, stdlib, compiler, sasl, mnesia, inets, crypto, asn1, public_key, ssl, wx, jsx, mochiweb, gun, eLog, ePort, etodo_web]},
   {included_applications, []},
   {env, []},
   {mod, {eTodoApp, []}

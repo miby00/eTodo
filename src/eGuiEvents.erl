@@ -189,7 +189,6 @@
                         setOwner/3,
                         setPeerStatusIfNeeded/1,
                         setPortrait/2,
-                        setScrollBar/1,
                         setSelection/1,
                         setSelection/2,
                         setTaskLists/2,
@@ -1925,9 +1924,7 @@ logWorkOkEvent(_Type, _Id, _Frame, State = #guiState{logWorkDlg = LWDlg,
     eTodoDB:saveWorkDesc(Uid, Desc, ShowInWL, ShowInTL),
 
     wxDialog:hide(LWDlg),
-    State2 = eGuiFunctions:generateWorkLog(State),
-    State3 = eGuiFunctions:generateTimeLog(State2),
-    clearActive(State3).
+    clearActive(State).
 
 workDateEvent(Type, Id, Frame, State) ->
     logWorkButtonEvent(Type, Id, Frame, State).
@@ -3067,7 +3064,8 @@ msgNotebookEvent(_Type, _Id, _Frame, State) ->
             CommentObj = obj("msgTextCtrlSTC", State),
             Comment    = wxStyledTextCtrl:getText(CommentObj),
             Page       = eMd2Html:convert(Comment),
-            wxHtmlWindow:setPage(Obj, unicode:characters_to_list(Page, utf8));
+                        eGuiFunctions:setMessagePage(
+                            Obj, unicode:characters_to_list(Page, utf8));
         _ ->
             ok
     end,

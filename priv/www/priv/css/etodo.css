@@ -219,16 +219,64 @@ html {
 }
 
 .etodo-logo-small {
-  border-radius: 0.6rem;
+  border-radius: var(--bs-border-radius-lg);
   box-shadow: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  /* Same height as the header buttons; width follows the logo's aspect. */
+  height: calc(1.5 * 1.25rem + 1rem + 2px);
   line-height: 0;
-  padding: 0.3rem 0.8rem;
+  padding: 0.3rem 0.7rem;
 }
 
 .etodo-logo-small img {
-  height: 2rem;
+  height: 100%;
   width: auto;
+}
+
+.etodo-header-button {
+  align-items: center;
+  display: inline-flex;
+  /* Same square shape as the list refresh and add buttons. */
+  height: calc(1.5 * 1.25rem + 1rem + 2px);
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: calc(1.5 * 1.25rem + 1rem + 2px);
+}
+
+@media (min-width: 768px) {
+  .etodo-header-button {
+    width: auto;
+    padding-inline: 1rem;
+    font-size: 1rem;
+  }
+}
+
+.etodo-header-button { position: relative; }
+
+.etodo-badge {
+  position: absolute;
+  top: -0.45rem;
+  right: -0.45rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: #e03131;
+  box-shadow: 0 0 0 2px #fff;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.25rem;
+  text-align: center;
+  animation: etodo-badge-pop 0.3s ease-out;
+}
+
+@keyframes etodo-badge-pop {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
 .etodo-details form button[type=submit].btn:not(.btn-sm){min-width:9rem}

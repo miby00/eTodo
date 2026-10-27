@@ -1,0 +1,178 @@
+:root {
+  color-scheme: light dark;
+  --background: #ffffff;
+  --foreground: #202327;
+  --muted: #687078;
+  --line: #dce1e5;
+  --header: #f0f3f5;
+  --stripe: #f7f9fa;
+  --hover: #eaf3fb;
+  --accent: #0965a8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1b1e20;
+    --foreground: #edf0f2;
+    --muted: #a4adb5;
+    --line: #3a4045;
+    --header: #292f33;
+    --stripe: #22272a;
+    --hover: #283944;
+    --accent: #87c9f8;
+  }
+}
+
+/* Same task pattern as the web GUI; the dark variant is a faint light stroke. */
+:root {
+  --etodo-pattern-light: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160' fill='none' stroke='%23534bcf' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' opacity='0.07'><rect x='18' y='20' width='22' height='22' rx='5'/><path d='M23 31l5 5 8-10'/><path d='M52 31h40'/><rect x='88' y='92' width='22' height='22' rx='5'/><path d='M120 103h26'/><rect x='20' y='110' width='18' height='18' rx='4'/><path d='M46 119h24'/><path d='M110 38l4 4 7-9'/></svg>");
+  --etodo-pattern-dark: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160' fill='none' stroke='%23b4b0ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' opacity='0.07'><rect x='18' y='20' width='22' height='22' rx='5'/><path d='M23 31l5 5 8-10'/><path d='M52 31h40'/><rect x='88' y='92' width='22' height='22' rx='5'/><path d='M120 103h26'/><rect x='20' y='110' width='18' height='18' rx='4'/><path d='M46 119h24'/><path d='M110 38l4 4 7-9'/></svg>");
+  --etodo-pattern: var(--etodo-pattern-light);
+}
+@media (prefers-color-scheme: dark) {
+  :root { --etodo-pattern: var(--etodo-pattern-dark); }
+}
+html[data-bs-theme="dark"] { --etodo-pattern: var(--etodo-pattern-dark); }
+html[data-bs-theme="light"] { --etodo-pattern: var(--etodo-pattern-light); }
+
+* { box-sizing: border-box; }
+html[data-embedded] {
+  --muted: color-mix(in srgb, var(--foreground) 60%, var(--background));
+  --line: color-mix(in srgb, var(--foreground) 18%, var(--background));
+  --header: color-mix(in srgb, var(--foreground) 9%, var(--background));
+  --stripe: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  --hover: color-mix(in srgb, var(--accent) 12%, var(--background));
+}
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  margin: 0;
+  background: var(--etodo-pattern) 0 0 / 160px 160px, var(--background);
+  color: var(--foreground);
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+main {
+  flex: 1;
+  min-height: 0;
+  padding: 12px;
+  overflow: auto;
+}
+.report-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  min-height: 56px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--background) 94%, transparent);
+}
+.report-header nav, .report-header form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.main-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.main-nav .nav-icon { display: none; }
+/* Phones: icons only, plus the label of the current page. */
+@media (max-width: 600px) {
+  .main-nav { flex-wrap: nowrap; gap: 2px; }
+  .main-nav a { padding: 6px 9px; }
+  .main-nav .nav-icon { display: inline; font-size: 17px; line-height: 1; }
+  .main-nav .nav-label { display: none; }
+  .main-nav a[aria-current] .nav-label { display: inline; }
+}
+.main-nav a:hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  text-decoration: none;
+}
+.main-nav a[aria-current] {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  font-weight: 600;
+}
+.report-header form { gap: 6px; }
+.report-header input,
+.report-header select {
+  background-color: var(--background);
+  color: var(--foreground);
+  border-color: var(--line);
+}
+.report-header select { max-width: 16rem; }
+.report-header button {
+  color: var(--foreground);
+  border-color: var(--line);
+  min-width: 32px;
+}
+.table {
+  --bs-table-bg: var(--background);
+  --bs-table-color: var(--foreground);
+  --bs-table-border-color: var(--line);
+  --bs-table-striped-bg: var(--stripe);
+  --bs-table-striped-color: var(--foreground);
+  --bs-table-hover-bg: var(--hover);
+  --bs-table-hover-color: var(--foreground);
+  margin-bottom: 0;
+  width: 100%;
+  min-width: 720px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+.table > :not(caption) > * > * {
+  padding: 11px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  vertical-align: middle;
+}
+th:first-child, td:first-child {
+  width: 40%;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--header);
+  font-weight: 600;
+}
+tbody tr:nth-child(even) { background: var(--stripe); }
+tbody tr:hover { background: var(--hover); }
+.table tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: var(--header);
+  border-top: 1px solid var(--line);
+  font-weight: 600;
+}
+a { color: var(--accent); text-decoration: none; }
+td a { display: block; padding: 3px 0; }
+a:hover { text-decoration: underline; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.zero { color: var(--muted); }
+td.empty { width: auto; padding: 40px 12px; text-align: center; color: var(--muted); }
+
+@media (max-width: 600px) {
+  .report-header { padding: 8px; }
+  main { padding: 8px; }
+  /* Keep columns readable; main scrolls sideways instead of squeezing. */
+  .table { min-width: 640px; table-layout: auto; }
+  .table > :not(caption) > * > * { padding: 10px 8px; white-space: nowrap; }
+  th:first-child, td:first-child { width: 12rem; min-width: 12rem; white-space: normal; }
+}

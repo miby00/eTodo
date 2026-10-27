@@ -1614,7 +1614,7 @@
                                             <property name="validator_variable"></property>
                                             <property name="window_extra_style"></property>
                                             <property name="window_name"></property>
-                                            <property name="window_style">wxRAISED_BORDER</property>
+                                            <property name="window_style">wxBORDER_NONE</property>
                                             <event name="OnChar"></event>
                                             <event name="OnEnterWindow"></event>
                                             <event name="OnEraseBackground"></event>
@@ -1667,7 +1667,7 @@
                                                         <property name="sashsize">-1</property>
                                                         <property name="size"></property>
                                                         <property name="splitmode">wxSPLIT_HORIZONTAL</property>
-                                                        <property name="style">wxSP_3D</property>
+                                                        <property name="style">wxSP_3DSASH</property>
                                                         <property name="subclass"></property>
                                                         <property name="tooltip"></property>
                                                         <property name="validator_data_type"></property>
@@ -1676,7 +1676,7 @@
                                                         <property name="validator_variable"></property>
                                                         <property name="window_extra_style"></property>
                                                         <property name="window_name"></property>
-                                                        <property name="window_style">wxFULL_REPAINT_ON_RESIZE</property>
+                                                        <property name="window_style">wxBORDER_NONE|wxFULL_REPAINT_ON_RESIZE</property>
                                                         <event name="OnChar"></event>
                                                         <event name="OnEnterWindow"></event>
                                                         <event name="OnEraseBackground"></event>
@@ -1841,7 +1841,7 @@
                                                                                         <property name="validator_variable"></property>
                                                                                         <property name="window_extra_style"></property>
                                                                                         <property name="window_name"></property>
-                                                                                        <property name="window_style">wxFULL_REPAINT_ON_RESIZE</property>
+                                                                                        <property name="window_style">wxBORDER_NONE|wxFULL_REPAINT_ON_RESIZE</property>
                                                                                         <event name="OnChar"></event>
                                                                                         <event name="OnEnterWindow"></event>
                                                                                         <event name="OnEraseBackground"></event>
@@ -2576,7 +2576,7 @@
                                                                             <property name="sashsize">-1</property>
                                                                             <property name="size"></property>
                                                                             <property name="splitmode">wxSPLIT_VERTICAL</property>
-                                                                            <property name="style">wxSP_3D</property>
+                                                                            <property name="style">wxSP_3DSASH</property>
                                                                             <property name="subclass"></property>
                                                                             <property name="tooltip"></property>
                                                                             <property name="validator_data_type"></property>
@@ -2585,7 +2585,7 @@
                                                                             <property name="validator_variable"></property>
                                                                             <property name="window_extra_style"></property>
                                                                             <property name="window_name"></property>
-                                                                            <property name="window_style">wxFULL_REPAINT_ON_RESIZE</property>
+                                                                            <property name="window_style">wxBORDER_NONE|wxFULL_REPAINT_ON_RESIZE</property>
                                                                             <event name="OnChar"></event>
                                                                             <event name="OnEnterWindow"></event>
                                                                             <event name="OnEraseBackground"></event>
@@ -2637,7 +2637,7 @@
                                                                                     <property name="validator_variable"></property>
                                                                                     <property name="window_extra_style"></property>
                                                                                     <property name="window_name"></property>
-                                                                                    <property name="window_style">wxSUNKEN_BORDER</property>
+                                                                                    <property name="window_style">wxBORDER_NONE</property>
                                                                                     <event name="OnChar"></event>
                                                                                     <event name="OnEnterWindow"></event>
                                                                                     <event name="OnEraseBackground"></event>
@@ -2983,7 +2983,7 @@
                                                                                     <property name="validator_variable"></property>
                                                                                     <property name="window_extra_style"></property>
                                                                                     <property name="window_name"></property>
-                                                                                    <property name="window_style">wxSUNKEN_BORDER</property>
+                                                                                    <property name="window_style">wxBORDER_NONE</property>
                                                                                     <event name="OnChar"></event>
                                                                                     <event name="OnEnterWindow"></event>
                                                                                     <event name="OnEraseBackground"></event>
@@ -4421,7 +4421,7 @@
                                                                     <property name="sashsize">-1</property>
                                                                     <property name="size"></property>
                                                                     <property name="splitmode">wxSPLIT_VERTICAL</property>
-                                                                    <property name="style">wxSP_3D</property>
+                                                                    <property name="style">wxSP_3DSASH</property>
                                                                     <property name="subclass"></property>
                                                                     <property name="tooltip"></property>
                                                                     <property name="validator_data_type"></property>
@@ -4430,7 +4430,7 @@
                                                                     <property name="validator_variable"></property>
                                                                     <property name="window_extra_style"></property>
                                                                     <property name="window_name"></property>
-                                                                    <property name="window_style">wxFULL_REPAINT_ON_RESIZE</property>
+                                                                    <property name="window_style">wxBORDER_NONE|wxFULL_REPAINT_ON_RESIZE</property>
                                                                     <event name="OnChar"></event>
                                                                     <event name="OnEnterWindow"></event>
                                                                     <event name="OnEraseBackground"></event>
@@ -4482,7 +4482,7 @@
                                                                             <property name="validator_variable"></property>
                                                                             <property name="window_extra_style"></property>
                                                                             <property name="window_name"></property>
-                                                                            <property name="window_style">wxSUNKEN_BORDER</property>
+                                                                            <property name="window_style">wxBORDER_NONE</property>
                                                                             <event name="OnChar"></event>
                                                                             <event name="OnEnterWindow"></event>
                                                                             <event name="OnEraseBackground"></event>
@@ -4648,7 +4648,7 @@
                                                                                         <property name="sashsize">-1</property>
                                                                                         <property name="size"></property>
                                                                                         <property name="splitmode">wxSPLIT_HORIZONTAL</property>
-                                                                                        <property name="style">wxSP_3D</property>
+                                                                                        <property name="style">wxSP_3DSASH</property>
                                                                                         <property name="subclass"></property>
                                                                                         <property name="tooltip"></property>
                                                                                         <property name="validator_data_type"></property>
@@ -4657,7 +4657,7 @@
                                                                                         <property name="validator_variable"></property>
                                                                                         <property name="window_extra_style"></property>
                                                                                         <property name="window_name"></property>
-                                                                                        <property name="window_style"></property>
+                                                                                        <property name="window_style">wxBORDER_NONE</property>
                                                                                         <event name="OnChar"></event>
                                                                                         <event name="OnEnterWindow"></event>
                                                                                         <event name="OnEraseBackground"></event>
@@ -4767,7 +4767,7 @@
                                                                                                             <property name="validator_variable"></property>
                                                                                                             <property name="window_extra_style"></property>
                                                                                                             <property name="window_name"></property>
-                                                                                                            <property name="window_style"></property>
+                                                                                                            <property name="window_style">wxBORDER_NONE</property>
                                                                                                             <event name="OnChar"></event>
                                                                                                             <event name="OnCheckListBox"></event>
                                                                                                             <event name="OnCheckListBoxDClick"></event>
@@ -4881,7 +4881,7 @@
                                                                                                             <property name="validator_variable"></property>
                                                                                                             <property name="window_extra_style"></property>
                                                                                                             <property name="window_name"></property>
-                                                                                                            <property name="window_style"></property>
+                                                                                                            <property name="window_style">wxBORDER_NONE</property>
                                                                                                             <event name="OnChar"></event>
                                                                                                             <event name="OnCheckListBox"></event>
                                                                                                             <event name="OnCheckListBoxDClick"></event>
@@ -5055,7 +5055,7 @@
                                                                             <property name="validator_variable"></property>
                                                                             <property name="window_extra_style"></property>
                                                                             <property name="window_name"></property>
-                                                                            <property name="window_style">wxSUNKEN_BORDER</property>
+                                                                            <property name="window_style">wxBORDER_NONE</property>
                                                                             <event name="OnChar"></event>
                                                                             <event name="OnEnterWindow"></event>
                                                                             <event name="OnEraseBackground"></event>
@@ -5164,7 +5164,7 @@
                                                                                                     <property name="sashsize">-1</property>
                                                                                                     <property name="size"></property>
                                                                                                     <property name="splitmode">wxSPLIT_HORIZONTAL</property>
-                                                                                                    <property name="style">wxSP_3D</property>
+                                                                                                    <property name="style">wxSP_3DSASH</property>
                                                                                                     <property name="subclass"></property>
                                                                                                     <property name="tooltip"></property>
                                                                                                     <property name="validator_data_type"></property>
@@ -5173,7 +5173,7 @@
                                                                                                     <property name="validator_variable"></property>
                                                                                                     <property name="window_extra_style"></property>
                                                                                                     <property name="window_name"></property>
-                                                                                                    <property name="window_style"></property>
+                                                                                                    <property name="window_style">wxBORDER_NONE</property>
                                                                                                     <event name="OnChar"></event>
                                                                                                     <event name="OnEnterWindow"></event>
                                                                                                     <event name="OnEraseBackground"></event>
@@ -5720,22 +5720,26 @@
                                                                                                                                                 <property name="border">5</property>
                                                                                                                                                 <property name="flag">wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</property>
                                                                                                                                                 <property name="proportion">1</property>
-                                                                                                                                                <object class="wxHtmlWindow" expanded="0">
+                                                                                                                                                <object class="CustomControl" expanded="0">
                                                                                                                                                     <property name="bg"></property>
+                                                                                                                                                    <property name="class">unknown</property>
+                                                                                                                                                    <property name="construction"></property>
                                                                                                                                                     <property name="context_help"></property>
                                                                                                                                                     <property name="context_menu">1</property>
+                                                                                                                                                    <property name="declaration"></property>
                                                                                                                                                     <property name="enabled">1</property>
                                                                                                                                                     <property name="fg"></property>
                                                                                                                                                     <property name="font"></property>
                                                                                                                                                     <property name="hidden"></property>
                                                                                                                                                     <property name="id">wxID_ANY</property>
+                                                                                                                                                    <property name="include"></property>
                                                                                                                                                     <property name="maximum_size"></property>
                                                                                                                                                     <property name="minimum_size"></property>
                                                                                                                                                     <property name="name">msgTextWin</property>
                                                                                                                                                     <property name="permission">protected</property>
                                                                                                                                                     <property name="pos"></property>
+                                                                                                                                                    <property name="settings"></property>
                                                                                                                                                     <property name="size"></property>
-                                                                                                                                                    <property name="style">wxHW_SCROLLBAR_AUTO</property>
                                                                                                                                                     <property name="subclass"></property>
                                                                                                                                                     <property name="tooltip"></property>
                                                                                                                                                     <property name="validator_data_type"></property>
@@ -5748,9 +5752,6 @@
                                                                                                                                                     <event name="OnChar"></event>
                                                                                                                                                     <event name="OnEnterWindow"></event>
                                                                                                                                                     <event name="OnEraseBackground"></event>
-                                                                                                                                                    <event name="OnHtmlCellClicked"></event>
-                                                                                                                                                    <event name="OnHtmlCellHover"></event>
-                                                                                                                                                    <event name="OnHtmlLinkClicked"></event>
                                                                                                                                                     <event name="OnKeyDown"></event>
                                                                                                                                                     <event name="OnKeyUp"></event>
                                                                                                                                                     <event name="OnKillFocus"></event>
@@ -5836,22 +5837,26 @@
                                                                                                                                                 <property name="border">5</property>
                                                                                                                                                 <property name="flag">wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</property>
                                                                                                                                                 <property name="proportion">1</property>
-                                                                                                                                                <object class="wxHtmlWindow" expanded="0">
+                                                                                                                                                <object class="CustomControl" expanded="0">
                                                                                                                                                     <property name="bg"></property>
+                                                                                                                                                    <property name="class">unknown</property>
+                                                                                                                                                    <property name="construction"></property>
                                                                                                                                                     <property name="context_help"></property>
                                                                                                                                                     <property name="context_menu">1</property>
+                                                                                                                                                    <property name="declaration"></property>
                                                                                                                                                     <property name="enabled">1</property>
                                                                                                                                                     <property name="fg"></property>
                                                                                                                                                     <property name="font"></property>
                                                                                                                                                     <property name="hidden"></property>
                                                                                                                                                     <property name="id">wxID_ANY</property>
+                                                                                                                                                    <property name="include"></property>
                                                                                                                                                     <property name="maximum_size"></property>
                                                                                                                                                     <property name="minimum_size"></property>
                                                                                                                                                     <property name="name">remTextWin</property>
                                                                                                                                                     <property name="permission">protected</property>
                                                                                                                                                     <property name="pos"></property>
+                                                                                                                                                    <property name="settings"></property>
                                                                                                                                                     <property name="size"></property>
-                                                                                                                                                    <property name="style">wxHW_SCROLLBAR_AUTO</property>
                                                                                                                                                     <property name="subclass"></property>
                                                                                                                                                     <property name="tooltip"></property>
                                                                                                                                                     <property name="validator_data_type"></property>
@@ -5864,9 +5869,6 @@
                                                                                                                                                     <event name="OnChar"></event>
                                                                                                                                                     <event name="OnEnterWindow"></event>
                                                                                                                                                     <event name="OnEraseBackground"></event>
-                                                                                                                                                    <event name="OnHtmlCellClicked"></event>
-                                                                                                                                                    <event name="OnHtmlCellHover"></event>
-                                                                                                                                                    <event name="OnHtmlLinkClicked"></event>
                                                                                                                                                     <event name="OnKeyDown"></event>
                                                                                                                                                     <event name="OnKeyUp"></event>
                                                                                                                                                     <event name="OnKillFocus"></event>
@@ -5952,22 +5954,26 @@
                                                                                                                                                 <property name="border">5</property>
                                                                                                                                                 <property name="flag">wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</property>
                                                                                                                                                 <property name="proportion">1</property>
-                                                                                                                                                <object class="wxHtmlWindow" expanded="0">
+                                                                                                                                                <object class="CustomControl" expanded="0">
                                                                                                                                                     <property name="bg"></property>
+                                                                                                                                                    <property name="class">unknown</property>
+                                                                                                                                                    <property name="construction"></property>
                                                                                                                                                     <property name="context_help"></property>
                                                                                                                                                     <property name="context_menu">1</property>
+                                                                                                                                                    <property name="declaration"></property>
                                                                                                                                                     <property name="enabled">1</property>
                                                                                                                                                     <property name="fg"></property>
                                                                                                                                                     <property name="font"></property>
                                                                                                                                                     <property name="hidden"></property>
                                                                                                                                                     <property name="id">wxID_ANY</property>
+                                                                                                                                                    <property name="include"></property>
                                                                                                                                                     <property name="maximum_size"></property>
                                                                                                                                                     <property name="minimum_size"></property>
                                                                                                                                                     <property name="name">systemTextWin</property>
                                                                                                                                                     <property name="permission">protected</property>
                                                                                                                                                     <property name="pos"></property>
+                                                                                                                                                    <property name="settings"></property>
                                                                                                                                                     <property name="size"></property>
-                                                                                                                                                    <property name="style">wxHW_SCROLLBAR_AUTO</property>
                                                                                                                                                     <property name="subclass"></property>
                                                                                                                                                     <property name="tooltip"></property>
                                                                                                                                                     <property name="validator_data_type"></property>
@@ -5980,9 +5986,6 @@
                                                                                                                                                     <event name="OnChar"></event>
                                                                                                                                                     <event name="OnEnterWindow"></event>
                                                                                                                                                     <event name="OnEraseBackground"></event>
-                                                                                                                                                    <event name="OnHtmlCellClicked"></event>
-                                                                                                                                                    <event name="OnHtmlCellHover"></event>
-                                                                                                                                                    <event name="OnHtmlLinkClicked"></event>
                                                                                                                                                     <event name="OnKeyDown"></event>
                                                                                                                                                     <event name="OnKeyUp"></event>
                                                                                                                                                     <event name="OnKillFocus"></event>
@@ -6416,7 +6419,7 @@
                                                                                                                                                     <property name="validator_variable"></property>
                                                                                                                                                     <property name="window_extra_style"></property>
                                                                                                                                                     <property name="window_name"></property>
-                                                                                                                                                    <property name="window_style"></property>
+                                                                                                                                                    <property name="window_style">wxBORDER_NONE</property>
                                                                                                                                                     <event name="OnChar"></event>
                                                                                                                                                     <event name="OnEnterWindow"></event>
                                                                                                                                                     <event name="OnEraseBackground"></event>
@@ -7617,22 +7620,26 @@
                                                 <property name="border">5</property>
                                                 <property name="flag">wxALL|wxEXPAND</property>
                                                 <property name="proportion">1</property>
-                                                <object class="wxHtmlWindow" expanded="0">
+                                                <object class="CustomControl" expanded="0">
                                                     <property name="bg"></property>
+                                                    <property name="class">unknown</property>
+                                                    <property name="construction"></property>
                                                     <property name="context_help"></property>
                                                     <property name="context_menu">1</property>
+                                                    <property name="declaration"></property>
                                                     <property name="enabled">1</property>
                                                     <property name="fg"></property>
                                                     <property name="font"></property>
                                                     <property name="hidden"></property>
                                                     <property name="id">wxID_ANY</property>
+                                                    <property name="include"></property>
                                                     <property name="maximum_size"></property>
                                                     <property name="minimum_size"></property>
                                                     <property name="name">workLogReport</property>
                                                     <property name="permission">protected</property>
                                                     <property name="pos"></property>
+                                                    <property name="settings"></property>
                                                     <property name="size"></property>
-                                                    <property name="style">wxHW_SCROLLBAR_AUTO</property>
                                                     <property name="subclass"></property>
                                                     <property name="tooltip"></property>
                                                     <property name="validator_data_type"></property>
@@ -7645,9 +7652,6 @@
                                                     <event name="OnChar"></event>
                                                     <event name="OnEnterWindow"></event>
                                                     <event name="OnEraseBackground"></event>
-                                                    <event name="OnHtmlCellClicked"></event>
-                                                    <event name="OnHtmlCellHover"></event>
-                                                    <event name="OnHtmlLinkClicked"></event>
                                                     <event name="OnKeyDown"></event>
                                                     <event name="OnKeyUp"></event>
                                                     <event name="OnKillFocus"></event>
@@ -7744,22 +7748,25 @@
                                                 <property name="border">5</property>
                                                 <property name="flag">wxALL|wxEXPAND</property>
                                                 <property name="proportion">1</property>
-                                                <object class="wxHtmlWindow" expanded="0">
+                                                <object class="CustomControl" expanded="0">
                                                     <property name="bg"></property>
+                                                    <property name="class">unknown</property>
                                                     <property name="context_help"></property>
                                                     <property name="context_menu">1</property>
+                                                    <property name="construction"></property>
                                                     <property name="enabled">1</property>
                                                     <property name="fg"></property>
                                                     <property name="font"></property>
                                                     <property name="hidden"></property>
                                                     <property name="id">wxID_ANY</property>
+                                                    <property name="include"></property>
                                                     <property name="maximum_size"></property>
                                                     <property name="minimum_size"></property>
                                                     <property name="name">timeLogReport</property>
                                                     <property name="permission">protected</property>
                                                     <property name="pos"></property>
+                                                    <property name="settings"></property>
                                                     <property name="size"></property>
-                                                    <property name="style">wxHW_SCROLLBAR_AUTO</property>
                                                     <property name="subclass"></property>
                                                     <property name="tooltip"></property>
                                                     <property name="validator_data_type"></property>
@@ -7772,9 +7779,6 @@
                                                     <event name="OnChar"></event>
                                                     <event name="OnEnterWindow"></event>
                                                     <event name="OnEraseBackground"></event>
-                                                    <event name="OnHtmlCellClicked"></event>
-                                                    <event name="OnHtmlCellHover"></event>
-                                                    <event name="OnHtmlLinkClicked"></event>
                                                     <event name="OnKeyDown"></event>
                                                     <event name="OnKeyUp"></event>
                                                     <event name="OnKillFocus"></event>
@@ -7870,23 +7874,26 @@
                                             <object class="sizeritem" expanded="0">
                                                 <property name="border">5</property>
                                                 <property name="flag">wxALL|wxEXPAND</property>
-                                                <property name="proportion">1</property>
-                                                <object class="wxHtmlWindow" expanded="0">
+                                                    <property name="proportion">1</property>
+                                                <object class="CustomControl" expanded="0">
                                                     <property name="bg"></property>
+                                                    <property name="class">unknown</property>
                                                     <property name="context_help"></property>
                                                     <property name="context_menu">1</property>
+                                                    <property name="construction"></property>
                                                     <property name="enabled">1</property>
                                                     <property name="fg"></property>
                                                     <property name="font"></property>
                                                     <property name="hidden"></property>
                                                     <property name="id">wxID_ANY</property>
+                                                    <property name="include"></property>
                                                     <property name="maximum_size"></property>
                                                     <property name="minimum_size"></property>
                                                     <property name="name">scheduleReport</property>
                                                     <property name="permission">protected</property>
                                                     <property name="pos"></property>
+                                                    <property name="settings"></property>
                                                     <property name="size"></property>
-                                                    <property name="style">wxHW_SCROLLBAR_AUTO</property>
                                                     <property name="subclass"></property>
                                                     <property name="tooltip"></property>
                                                     <property name="validator_data_type"></property>
@@ -7899,9 +7906,6 @@
                                                     <event name="OnChar"></event>
                                                     <event name="OnEnterWindow"></event>
                                                     <event name="OnEraseBackground"></event>
-                                                    <event name="OnHtmlCellClicked"></event>
-                                                    <event name="OnHtmlCellHover"></event>
-                                                    <event name="OnHtmlLinkClicked"></event>
                                                     <event name="OnKeyDown"></event>
                                                     <event name="OnKeyUp"></event>
                                                     <event name="OnKillFocus"></event>

@@ -407,7 +407,7 @@
 							<flag>wxEXPAND|wxALL</flag>
 							<border>5</border>
 							<object class="wxPanel" name="taskListPanel">
-								<style>wxRAISED_BORDER</style>
+								<style>wxBORDER_NONE</style>
 								<object class="wxBoxSizer">
 									<orient>wxVERTICAL</orient>
 									<object class="sizeritem">
@@ -415,7 +415,7 @@
 										<flag>wxEXPAND</flag>
 										<border>5</border>
 										<object class="wxSplitterWindow" name="splitterMain">
-											<style>wxSP_3D|wxFULL_REPAINT_ON_RESIZE</style>
+											<style>wxSP_3DSASH|wxBORDER_NONE|wxFULL_REPAINT_ON_RESIZE</style>
 											<sashpos>-1</sashpos>
 											<gravity>1</gravity>
 											<minsize>85</minsize>
@@ -437,7 +437,7 @@
 																	<flag>wxALL|wxEXPAND</flag>
 																	<border>5</border>
 																	<object class="wxListCtrl" name="mainTaskList">
-																		<style>wxLC_REPORT|wxLC_SINGLE_SEL|wxFULL_REPAINT_ON_RESIZE</style>
+																		<style>wxLC_REPORT|wxLC_SINGLE_SEL|wxBORDER_NONE|wxFULL_REPAINT_ON_RESIZE</style>
 																	</object>
 																</object>
 															</object>
@@ -586,13 +586,13 @@
 														<flag>wxEXPAND</flag>
 														<border>5</border>
 														<object class="wxSplitterWindow" name="splitterComment">
-															<style>wxSP_3D|wxFULL_REPAINT_ON_RESIZE</style>
+															<style>wxSP_3DSASH|wxBORDER_NONE|wxFULL_REPAINT_ON_RESIZE</style>
 															<sashpos>380</sashpos>
 															<gravity>1</gravity>
 															<minsize>250</minsize>
 															<orientation>vertical</orientation>
 															<object class="wxPanel" name="m_panel14">
-																<style>wxSUNKEN_BORDER</style>
+																<style>wxBORDER_NONE</style>
 																<object class="wxBoxSizer">
 																	<orient>wxVERTICAL</orient>
 																	<object class="sizeritem">
@@ -640,7 +640,7 @@
 																</object>
 															</object>
 															<object class="wxPanel" name="m_panel15">
-																<style>wxSUNKEN_BORDER</style>
+																<style>wxBORDER_NONE</style>
 																<object class="wxBoxSizer">
 																	<orient>wxVERTICAL</orient>
 																	<object class="sizeritem">
@@ -929,13 +929,13 @@
 													<flag>wxEXPAND</flag>
 													<border>5</border>
 													<object class="wxSplitterWindow" name="splitVerMsg">
-														<style>wxSP_3D|wxFULL_REPAINT_ON_RESIZE</style>
+														<style>wxSP_3DSASH|wxBORDER_NONE|wxFULL_REPAINT_ON_RESIZE</style>
 														<sashpos>125</sashpos>
 														<gravity>0</gravity>
 														<minsize>100</minsize>
 														<orientation>vertical</orientation>
 														<object class="wxPanel" name="m_panel9">
-															<style>wxSUNKEN_BORDER</style>
+															<style>wxBORDER_NONE</style>
 															<object class="wxBoxSizer">
 																<orient>wxVERTICAL</orient>
 																<object class="sizeritem">
@@ -962,7 +962,7 @@
 																	<flag>wxEXPAND</flag>
 																	<border>5</border>
 																	<object class="wxSplitterWindow" name="splitHorizUsers">
-																		<style>wxSP_3D</style>
+																		<style>wxSP_3DSASH|wxBORDER_NONE</style>
 																		<sashpos>0</sashpos>
 																		<gravity>0</gravity>
 																		<minsize>0</minsize>
@@ -976,7 +976,7 @@
 																					<flag>wxALL|wxEXPAND</flag>
 																					<border>5</border>
 																					<object class="wxCheckListBox" name="userCheckBox">
-																						<style>wxLB_NEEDED_SB</style>
+																						<style>wxLB_NEEDED_SB|wxBORDER_NONE</style>
 																						<tooltip>Online users</tooltip>
 																						<content />
 																					</object>
@@ -992,6 +992,7 @@
 																					<flag>wxALL|wxEXPAND</flag>
 																					<border>5</border>
 																					<object class="wxCheckListBox" name="emailCheckBox">
+																						<style>wxBORDER_NONE</style>
 																						<tooltip>Offline users with email and external users.</tooltip>
 																						<content />
 																					</object>
@@ -1022,7 +1023,7 @@
 															</object>
 														</object>
 														<object class="wxPanel" name="splitVerPanel">
-															<style>wxSUNKEN_BORDER</style>
+															<style>wxBORDER_NONE</style>
 															<object class="wxBoxSizer">
 																<orient>wxVERTICAL</orient>
 																<object class="sizeritem">
@@ -1038,7 +1039,7 @@
 																				<flag>wxEXPAND</flag>
 																				<border>5</border>
 																				<object class="wxSplitterWindow" name="splitHorizMsg">
-																					<style>wxSP_3D</style>
+																					<style>wxSP_3DSASH|wxBORDER_NONE</style>
 																					<sashpos>0</sashpos>
 																					<gravity>0</gravity>
 																					<minsize>0</minsize>
@@ -1141,9 +1142,7 @@
 																															<option>1</option>
 																															<flag>wxALL|wxEXPAND</flag>
 																															<border>5</border>
-																															<object class="wxHtmlWindow" name="msgTextWin">
-																																<style>wxHW_SCROLLBAR_AUTO</style>
-																															</object>
+																															<object class="unknown" name="msgTextWin" />
 																														</object>
 																													</object>
 																												</object>
@@ -1159,9 +1158,7 @@
 																															<option>1</option>
 																															<flag>wxALL|wxEXPAND</flag>
 																															<border>5</border>
-																															<object class="wxHtmlWindow" name="remTextWin">
-																																<style>wxHW_SCROLLBAR_AUTO</style>
-																															</object>
+																															<object class="unknown" name="remTextWin" />
 																														</object>
 																													</object>
 																												</object>
@@ -1177,9 +1174,7 @@
 																															<option>1</option>
 																															<flag>wxALL|wxEXPAND</flag>
 																															<border>5</border>
-																															<object class="wxHtmlWindow" name="systemTextWin">
-																																<style>wxHW_SCROLLBAR_AUTO</style>
-																															</object>
+																															<object class="unknown" name="systemTextWin" />
 																														</object>
 																													</object>
 																												</object>
@@ -1257,7 +1252,7 @@
 																															<flag>wxALL|wxEXPAND</flag>
 																															<border>0</border>
 																															<object class="wxHtmlWindow" name="msgTextPreview">
-																																<style>wxHW_SCROLLBAR_AUTO</style>
+																																<style>wxHW_SCROLLBAR_AUTO|wxBORDER_NONE</style>
 																															</object>
 																														</object>
 																													</object>
@@ -1529,9 +1524,7 @@
 									<option>1</option>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>5</border>
-									<object class="wxHtmlWindow" name="workLogReport">
-										<style>wxHW_SCROLLBAR_AUTO</style>
-									</object>
+									<object class="unknown" name="workLogReport" />
 								</object>
 							</object>
 						</object>
@@ -1555,9 +1548,7 @@
 									<option>1</option>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>5</border>
-									<object class="wxHtmlWindow" name="timeLogReport">
-										<style>wxHW_SCROLLBAR_AUTO</style>
-									</object>
+									<object class="unknown" name="timeLogReport" />
 								</object>
 							</object>
 						</object>
@@ -1581,9 +1572,7 @@
 									<option>1</option>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>5</border>
-									<object class="wxHtmlWindow" name="scheduleReport">
-										<style>wxHW_SCROLLBAR_AUTO</style>
-									</object>
+									<object class="unknown" name="scheduleReport" />
 								</object>
 							</object>
 						</object>

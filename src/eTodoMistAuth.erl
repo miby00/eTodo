@@ -4,7 +4,7 @@
 
 -export([start_link/0, login/2, external_login/1, session_user/1, logout/1, todo_data/3,
          set_done/4, create_list/3, delete_list/3, update_task/12, delete_task/3, create_task/11, settings_data/1,
-         save_settings/6, status_form/1, set_status/4]).
+         save_settings/6, status_form/1, set_status/4, send_message/4]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
@@ -56,6 +56,43 @@ set_status(Token, Csrf, Status0, Message0) ->
             end;
         {error, _} = Error ->
             Error
+    end.
+
+%% Chat from the web GUI. Only the local account may send, and only to
+%% peers that are online right now ("All" means every online peer).
+send_message(Token, Csrf, To0, Text0) ->
+    case gen_server:call(?MODULE, {authorize_write, Token, Csrf}) of
+        {ok, UserName} ->
+            User  = unicode:characters_to_list(UserName),
+            Text  = string:trim(unicode:characters_to_list(
+                                  string:replace(to_list(Text0), "\r\n", "\n",
+                                                 all))),
+            Peers = eMessagesView:online_peers(User),
+            Users = case to_list(To0) of
+                        "All" -> Peers;
+                        Peer  -> [P || P <- Peers, P =:= Peer]
+                    end,
+            case is_owner(User) andalso Users =/= [] andalso Text =/= ""
+                andalso length(Text) =< 4000 of
+                true ->
+                    deliver_message(User, Users, Text),
+                    {ok, nil};
+                false ->
+                    {error, invalid_message}
+            end;
+        {error, _} = Error ->
+            Error
+    end.
+
+deliver_message(User, Users, Text) ->
+    ePeerEM:sendMsg(User, Users, msgEntry, Text),
+    ePluginServer:eSendMsg(User, Users, Text),
+    case application:get_env(eTodo, mode) of
+        {ok, "noGui"} ->
+            {Html, _} = eHtml:generateMsg(User, User, Users, Text),
+            eTodoDB:appendToPage(User, msgEntry, User, Users, Html);
+        _ ->
+            eTodo:webMsgSent(Users, Text)
     end.
 
 clean_status_message(Message) ->
