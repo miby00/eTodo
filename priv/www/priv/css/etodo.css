@@ -32,9 +32,16 @@ body {
   letter-spacing: 0.12em;
 }
 
-.etodo-list-submit {
-  min-width: 3.5rem;
-  line-height: 1.5;
+.etodo-list-submit,
+.etodo-newlist-button,
+.etodo-dellist-button {
+  align-items: center;
+  display: inline-flex;
+  height: 3rem;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 3.5rem;
 }
 
 .etodo-task-card {
