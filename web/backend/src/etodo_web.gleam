@@ -149,6 +149,13 @@ fn create_list(
   name: String,
 ) -> Result(String, Dynamic)
 
+@external(erlang, "eTodoMistAuth", "delete_list")
+fn delete_list(
+  token: String,
+  csrf: String,
+  name: String,
+) -> Result(Nil, Dynamic)
+
 @external(erlang, "eTodoMistAuth", "create_task")
 fn create_task(
   token: String,
@@ -230,6 +237,7 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
         Post, ["todo", "delete"] -> todo_delete(request)
         Post, ["todo", "create"] -> todo_create(request)
         Post, ["list", "create"] -> list_create(request)
+        Post, ["list", "delete"] -> list_delete(request)
         _, _ -> response(404, "Not found")
       }
     }
@@ -770,6 +778,22 @@ fn list_create(request: Request(Connection)) -> Response(ResponseData) {
   }
 }
 
+fn list_delete(request: Request(Connection)) -> Response(ResponseData) {
+  case session_cookie_value(request), form_fields(request) {
+    Some(token), Ok(fields) -> {
+      let field = fn(name) { list.key_find(fields, name) |> result.unwrap("") }
+      case delete_list(token, field("csrf"), field("name")) {
+        Ok(_) ->
+          response.new(303)
+          |> response.set_header("location", "/?list=All%20tasks")
+          |> response_data
+        Error(_) -> response(400, "Could not delete the list")
+      }
+    }
+    _, _ -> response(400, "Invalid request")
+  }
+}
+
 fn todo_create(request: Request(Connection)) -> Response(ResponseData) {
   case session_cookie_value(request), form_fields(request) {
     Some(token), Ok(fields) -> {
@@ -1176,6 +1200,7 @@ fn authenticated_page(
   username: String,
   data: TodoPageData,
 ) -> Response(ResponseData) {
+  let can_delete = data.can_edit && data.selected_list != "All tasks"
   let list_options =
     list.map(data.lists, fn(list_name) {
       let attributes = case list_name == data.selected_list {
@@ -1366,6 +1391,19 @@ fn authenticated_page(
                         ])
                       False -> element.none()
                     },
+                    case can_delete {
+                      True ->
+                        html.input([
+                          attribute.attribute("type", "checkbox"),
+                          attribute.attribute("id", "dellist-toggle"),
+                          attribute.attribute("class", "etodo-newlist-check"),
+                          attribute.attribute(
+                            "aria-label",
+                            "Show the delete list form",
+                          ),
+                        ])
+                      False -> element.none()
+                    },
                     html.form(
                       [
                         attribute.attribute("action", "/"),
@@ -1446,6 +1484,40 @@ fn authenticated_page(
                               )
                             False -> element.none()
                           },
+                          case can_delete {
+                            True ->
+                              html.label(
+                                [
+                                  attribute.attribute("for", "dellist-toggle"),
+                                  attribute.attribute(
+                                    "class",
+                                    "btn btn-outline-danger btn-lg ms-2 etodo-dellist-button",
+                                  ),
+                                  attribute.title("Delete list"),
+                                ],
+                                [
+                                  html.span(
+                                    [
+                                      attribute.attribute(
+                                        "class",
+                                        "etodo-dellist-open",
+                                      ),
+                                    ],
+                                    [html.text("−")],
+                                  ),
+                                  html.span(
+                                    [
+                                      attribute.attribute(
+                                        "class",
+                                        "etodo-dellist-close",
+                                      ),
+                                    ],
+                                    [html.text("×")],
+                                  ),
+                                ],
+                              )
+                            False -> element.none()
+                          },
                         ]),
                       ],
                     ),
@@ -1499,6 +1571,52 @@ fn authenticated_page(
                                     attribute.attribute("type", "submit"),
                                   ],
                                   [html.text("Add list")],
+                                ),
+                              ],
+                            ),
+                          ],
+                        )
+                      False -> element.none()
+                    },
+                    case can_delete {
+                      True ->
+                        html.form(
+                          [
+                            attribute.attribute("action", "/list/delete"),
+                            attribute.attribute("method", "post"),
+                            attribute.attribute(
+                              "class",
+                              "etodo-dellist-panel row g-2 mt-2 align-items-center",
+                            ),
+                          ],
+                          [
+                            html.input([
+                              attribute.attribute("type", "hidden"),
+                              attribute.name("csrf"),
+                              attribute.attribute("value", data.csrf),
+                            ]),
+                            html.input([
+                              attribute.attribute("type", "hidden"),
+                              attribute.name("name"),
+                              attribute.attribute("value", data.selected_list),
+                            ]),
+                            html.div([attribute.attribute("class", "col")], [
+                              html.text("Delete the list \""),
+                              html.strong([], [html.text(data.selected_list)]),
+                              html.text("\"? Its tasks stay in \"All tasks\"."),
+                            ]),
+                            html.div(
+                              [attribute.attribute("class", "col-auto")],
+                              [
+                                html.button(
+                                  [
+                                    attribute.attribute(
+                                      "class",
+                                      "btn btn-danger btn-lg",
+                                    ),
+                                    attribute.attribute("type", "submit"),
+                                  ],
+                                  [html.text("Delete list")],
                                 ),
                               ],
                             ),

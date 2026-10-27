@@ -351,25 +351,36 @@ html {
   width: 1px;
 }
 
-.etodo-newlist-panel {
+.etodo-newlist-panel,
+.etodo-dellist-panel {
   display: none;
 }
 
-.etodo-newlist-check:checked ~ .etodo-newlist-panel {
+#newlist-toggle:checked ~ .etodo-newlist-panel,
+#dellist-toggle:checked ~ .etodo-dellist-panel {
   display: flex;
 }
 
-.etodo-newlist-check:checked ~ form .etodo-newlist-button,
-.etodo-newlist-check:focus-visible ~ form .etodo-newlist-button {
+#newlist-toggle:checked ~ form .etodo-newlist-button,
+#newlist-toggle:focus-visible ~ form .etodo-newlist-button {
   background-color: var(--bs-primary);
   color: #fff;
 }
 
+#dellist-toggle:checked ~ form .etodo-dellist-button,
+#dellist-toggle:focus-visible ~ form .etodo-dellist-button {
+  background-color: var(--bs-danger);
+  color: #fff;
+}
+
 .etodo-newlist-close,
-.etodo-newlist-check:checked ~ form .etodo-newlist-open {
+.etodo-dellist-close,
+#newlist-toggle:checked ~ form .etodo-newlist-open,
+#dellist-toggle:checked ~ form .etodo-dellist-open {
   display: none;
 }
 
-.etodo-newlist-check:checked ~ form .etodo-newlist-close {
+#newlist-toggle:checked ~ form .etodo-newlist-close,
+#dellist-toggle:checked ~ form .etodo-dellist-close {
   display: inline;
 }

@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 -export([start_link/0, login/2, external_login/1, session_user/1, logout/1, todo_data/3,
-         set_done/4, create_list/3, update_task/12, delete_task/3, create_task/11, settings_data/1,
+         set_done/4, create_list/3, delete_list/3, update_task/12, delete_task/3, create_task/11, settings_data/1,
          save_settings/6, status_form/1, set_status/4]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -92,6 +92,37 @@ create_list(Token, Csrf, Name0) ->
                      string:trim(to_list(Name0)));
         {error, _} = Error ->
             Error
+    end.
+
+%% Removes a list from the local account. Its tasks stay in "All tasks".
+delete_list(Token, Csrf, Name0) ->
+    case gen_server:call(?MODULE, {authorize_write, Token, Csrf}) of
+        {ok, UserName} ->
+            remove_list(unicode:characters_to_list(UserName), to_list(Name0));
+        {error, _} = Error ->
+            Error
+    end.
+
+remove_list(UserName, Name) ->
+    UserCfg = eTodoDB:readUserCfg(UserName),
+    Current = case UserCfg#userCfg.lists of
+                  undefined -> [];
+                  Lists -> Lists
+              end,
+    Reserved = [?defTaskList, ?defInbox, ?defLoggedWork],
+    case is_owner(UserName) andalso lists:member(Name, Current)
+         andalso not lists:member(Name, Reserved) of
+        true ->
+            eTodoDB:moveTodosToTaskList(UserName, ?defTaskList, [Name]),
+            Last = case UserCfg#userCfg.lastTaskList of
+                       Name -> ?defTaskList;
+                       Other -> Other
+                   end,
+            eTodoDB:saveUserCfg(UserCfg#userCfg{lists = Current -- [Name],
+                                                lastTaskList = Last}),
+            {ok, nil};
+        false ->
+            {error, invalid_list}
     end.
 
 add_list(UserName, Name) ->
