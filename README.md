@@ -138,9 +138,8 @@ questions. The local account can also change its status (Available, Busy,
 Away) and status message there; the desktop client, if running, follows and
 peers are told. The ⚙ Settings page offers a filter (status,
 priority) and primary/secondary sort settings,
-stored in the same per-user `webSettings` as the old client. Live updates are
-not implemented yet. The new server does not replace the existing
-web server. Its responsive interface uses locally served Bootstrap components,
+stored per user in `webSettings`. The task list does not update live; the status
+page does. Its responsive interface uses locally served Bootstrap components,
 eTodo styling and a tiny same-origin script that updates the checkbox in place
 (without it, the form falls back to a normal page reload); it does not depend on
 a CDN.
