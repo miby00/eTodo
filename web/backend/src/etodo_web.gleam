@@ -522,6 +522,16 @@ fn google_start() -> Response(ResponseData) {
   }
 }
 
+fn continue_page() -> Response(ResponseData) {
+  let body =
+    "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"0;url=/\"><title>eTodo</title></head><body><p><a href=\"/\">Continue to eTodo</a></p></body></html>"
+  response.new(200)
+  |> response.set_header("content-type", "text/html; charset=utf-8")
+  |> response.set_header("cache-control", "no-store")
+  |> response.set_body(mist.Bytes(bytes_tree.from_string(body)))
+  |> secure_headers
+}
+
 fn google_callback(request: Request(Connection)) -> Response(ResponseData) {
   let query = request.get_query(request) |> result.unwrap([])
   let cookies =
@@ -529,11 +539,6 @@ fn google_callback(request: Request(Connection)) -> Response(ResponseData) {
     |> request.get_header("cookie")
     |> result.unwrap("")
     |> cookie.parse
-  let clear =
-    response.new(303)
-    |> response.set_header("location", "/")
-    |> response.prepend_header("set-cookie", oidc_cookie_header("", 0))
-
   case
     oidc_enabled(),
     list.key_find(query, "code"),
@@ -544,7 +549,11 @@ fn google_callback(request: Request(Connection)) -> Response(ResponseData) {
     True, Ok(code), Ok(state), Ok(cookie_value) ->
       case oidc_finish(code, state, cookie_value) {
         Ok(token) ->
-          clear
+          // A redirect here would count as cross-site (it started at Google),
+          // so the browser would withhold the Strict session cookie. A page
+          // that navigates itself to "/" is same-site.
+          continue_page()
+          |> response.prepend_header("set-cookie", oidc_cookie_header("", 0))
           |> response.prepend_header(
             "set-cookie",
             cookie.set_header(
@@ -560,7 +569,6 @@ fn google_callback(request: Request(Connection)) -> Response(ResponseData) {
               ),
             ),
           )
-          |> response_data
         Error(message) ->
           login_page(message)
           |> response.prepend_header("set-cookie", oidc_cookie_header("", 0))
