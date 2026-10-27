@@ -13,16 +13,6 @@ Key functionality include:
 * Non intrusive reminders
 * Local storage (no central server)
 
-## Installing eTodo as a release
-I have made prebuilt binary releases of eTodo for a few OS I run at home:
-
-* [Mac 64-bit](https://cdn.rawgit.com/miby00/eTodo-releases/v.1.0.0/Mac/eTodo.dmg)
-* [Windows 32-bit](https://cdn.rawgit.com/miby00/eTodo-releases/v.1.0.0/Windows%207/eTodo.exe)
-* [Ubuntu 64-bit](https://cdn.rawgit.com/miby00/eTodo-releases/v.1.0.0/Ubuntu/etodo_1.0.0_amd64.deb)
-
-If no prebuilt package is available for your platform you can download and run eTodo according to 
-the instructions below.
-
 ## Installation
 
 eTodo require an Erlang installation with a working wxErlang environment. 
