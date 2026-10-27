@@ -48,8 +48,12 @@ If you made a release the release can be found in the folder:
     
 To run the release enter the bin folder of the release and use the command:
 
-    ./eTodo
-    
+    ./eTodo console
+
+This starts the node with the wx desktop GUI. To run it without a GUI
+(for example on a server), use `./eTodo foreground`, or `./eTodo start` to run
+it in the background and `./eTodo stop` to stop it.
+
 Have patience: The first startup needs to create an empty TODO database.
 
 ### Mist/Lustre web backend
