@@ -1447,6 +1447,10 @@ fn login_page(error_message: String) -> Response(ResponseData) {
           attribute.href("/assets/etodo.css"),
         ]),
         html.title([], "eTodo login"),
+        html.script(
+          [attribute.src("/assets/etodo.js"), attribute.attribute("defer", "")],
+          "",
+        ),
       ]),
       html.body([attribute.attribute("class", "etodo-login-page")], [
         html.main(
@@ -2171,6 +2175,10 @@ fn settings_page(
           attribute.href("/assets/etodo.css"),
         ]),
         html.title([], "eTodo settings"),
+        html.script(
+          [attribute.src("/assets/etodo.js"), attribute.attribute("defer", "")],
+          "",
+        ),
       ]),
       html.body([attribute.attribute("class", "etodo-page")], [
         html.header([attribute.attribute("class", "bg-white border-bottom")], [

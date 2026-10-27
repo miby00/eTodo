@@ -478,3 +478,24 @@
     }
   });
 })();
+
+// Some mobile browsers report a viewport height that includes the system
+// navigation bar, so the page is sized from the visible viewport instead.
+(function () {
+  "use strict";
+
+  var root = document.documentElement;
+
+  function setHeight() {
+    var viewport = window.visualViewport;
+    var height = viewport ? viewport.height : window.innerHeight;
+    root.style.setProperty("--app-height", Math.floor(height) + "px");
+  }
+
+  setHeight();
+  window.addEventListener("resize", setHeight);
+  window.addEventListener("orientationchange", setHeight);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", setHeight);
+  }
+})();
