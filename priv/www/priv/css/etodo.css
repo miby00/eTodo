@@ -37,11 +37,12 @@ body {
 .etodo-dellist-button {
   align-items: center;
   display: inline-flex;
-  height: 2.5rem;
+  /* Same height as the large select beside them, and square. */
+  height: calc(1.5 * 1.25rem + 1rem + 2px);
   justify-content: center;
   line-height: 1;
   padding: 0;
-  width: 2.5rem;
+  width: calc(1.5 * 1.25rem + 1rem + 2px);
 }
 
 .etodo-task-card {
