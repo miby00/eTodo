@@ -5,6 +5,7 @@
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .etodo-page,
@@ -288,6 +289,7 @@ html {
 /* Full screen status and timer page, meant to be left open on a screen. */
 .etodo-status {
   min-height: 100vh;
+  min-height: 100dvh;
   background: #6c757d;
   color: #fff;
   text-align: center;
@@ -334,6 +336,7 @@ html {
 
 #status-page {
   min-height: 100vh;
+  min-height: 100dvh;
   box-sizing: border-box;
 }
 
@@ -439,4 +442,9 @@ html {
 #newlist-toggle:checked ~ form .etodo-newlist-close,
 #dellist-toggle:checked ~ form .etodo-dellist-close {
   display: inline;
+}
+
+/* Bootstrap's min-vh-100 uses vh, which is taller than the visible area on phones. */
+.min-vh-100 {
+  min-height: 100dvh !important;
 }
