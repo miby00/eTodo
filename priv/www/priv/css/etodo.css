@@ -364,3 +364,12 @@ html {
   background-color: var(--bs-primary);
   color: #fff;
 }
+
+.etodo-newlist-close,
+.etodo-newlist-check:checked ~ form .etodo-newlist-open {
+  display: none;
+}
+
+.etodo-newlist-check:checked ~ form .etodo-newlist-close {
+  display: inline;
+}

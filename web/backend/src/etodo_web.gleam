@@ -1423,7 +1423,26 @@ fn authenticated_page(
                                   ),
                                   attribute.title("New list"),
                                 ],
-                                [html.text("+")],
+                                [
+                                  html.span(
+                                    [
+                                      attribute.attribute(
+                                        "class",
+                                        "etodo-newlist-open",
+                                      ),
+                                    ],
+                                    [html.text("+")],
+                                  ),
+                                  html.span(
+                                    [
+                                      attribute.attribute(
+                                        "class",
+                                        "etodo-newlist-close",
+                                      ),
+                                    ],
+                                    [html.text("×")],
+                                  ),
+                                ],
                               )
                             False -> element.none()
                           },
@@ -1480,6 +1499,16 @@ fn authenticated_page(
                                     attribute.attribute("type", "submit"),
                                   ],
                                   [html.text("Add list")],
+                                ),
+                                html.label(
+                                  [
+                                    attribute.attribute("for", "newlist-toggle"),
+                                    attribute.attribute(
+                                      "class",
+                                      "btn btn-outline-secondary btn-lg ms-2",
+                                    ),
+                                  ],
+                                  [html.text("Cancel")],
                                 ),
                               ],
                             ),
