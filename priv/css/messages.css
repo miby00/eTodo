@@ -46,7 +46,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  height: 100dvh;
+  height: var(--app-height, 100dvh);
   margin: 0;
   background:
     radial-gradient(circle at 12% 8%,
