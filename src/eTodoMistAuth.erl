@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 -export([start_link/0, login/2, external_login/1, session_user/1, logout/1, todo_data/3,
-         set_done/4, update_task/12, delete_task/3, create_task/11, settings_data/1,
+         set_done/4, create_list/3, update_task/12, delete_task/3, create_task/11, settings_data/1,
          save_settings/6, status_form/1, set_status/4]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -81,6 +81,44 @@ set_done(Token, Csrf, Uid, Done) when is_boolean(Done) ->
             update_done(unicode:characters_to_list(UserName), Uid, Done);
         {error, _} = Error ->
             Error
+    end.
+
+%% Adds a todo list for the local account. An existing name is not an
+%% error; the caller just selects it.
+create_list(Token, Csrf, Name0) ->
+    case gen_server:call(?MODULE, {authorize_write, Token, Csrf}) of
+        {ok, UserName} ->
+            add_list(unicode:characters_to_list(UserName),
+                     string:trim(to_list(Name0)));
+        {error, _} = Error ->
+            Error
+    end.
+
+add_list(UserName, Name) ->
+    Reserved = [?defTaskList, ?defInbox, ?defLoggedWork],
+    Valid = Name =/= [] andalso length(Name) =< 100 andalso
+        not eTodoUtils:containsIllegalChars(Name) andalso
+        lists:all(fun(C) -> C >= 32 andalso C =/= 127 end, Name) andalso
+        not lists:member(Name, Reserved) andalso
+        %% Integer names would clash with sub-task parents.
+        eTodoUtils:tryInt(Name) =:= Name,
+    case is_owner(UserName) andalso Valid of
+        true ->
+            #userCfg{lists = Configured} = eTodoDB:readUserCfg(UserName),
+            Current = case Configured of
+                          undefined -> [];
+                          Lists -> Lists
+                      end,
+            case lists:member(Name, Current) of
+                true ->
+                    {ok, unicode:characters_to_binary(Name)};
+                false ->
+                    UserCfg = eTodoDB:readUserCfg(UserName),
+                    eTodoDB:saveUserCfg(UserCfg#userCfg{lists = Current ++ [Name]}),
+                    {ok, unicode:characters_to_binary(Name)}
+            end;
+        false ->
+            {error, invalid_list}
     end.
 
 update_task(Token, Csrf, Uid, Status, Priority, Description, Comment,

@@ -142,6 +142,13 @@ fn save_settings(
   sort_order_sec: String,
 ) -> Result(Nil, Dynamic)
 
+@external(erlang, "eTodoMistAuth", "create_list")
+fn create_list(
+  token: String,
+  csrf: String,
+  name: String,
+) -> Result(String, Dynamic)
+
 @external(erlang, "eTodoMistAuth", "create_task")
 fn create_task(
   token: String,
@@ -222,6 +229,7 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
         Post, ["todo", "update"] -> todo_update(request)
         Post, ["todo", "delete"] -> todo_delete(request)
         Post, ["todo", "create"] -> todo_create(request)
+        Post, ["list", "create"] -> list_create(request)
         _, _ -> response(404, "Not found")
       }
     }
@@ -733,6 +741,29 @@ fn todo_update(request: Request(Connection)) -> Response(ResponseData) {
       {
         Ok(Nil) -> redirect_to_task(list_name, uid)
         Error(_) -> response(400, "Could not update the task")
+      }
+    }
+    _, _ -> response(400, "Invalid request")
+  }
+}
+
+fn list_create(request: Request(Connection)) -> Response(ResponseData) {
+  case session_cookie_value(request), form_fields(request) {
+    Some(token), Ok(fields) -> {
+      let field = fn(name) { list.key_find(fields, name) |> result.unwrap("") }
+      case create_list(token, field("csrf"), field("name")) {
+        Ok(name) ->
+          response.new(303)
+          |> response.set_header(
+            "location",
+            "/?list=" <> uri.percent_encode(name),
+          )
+          |> response_data
+        Error(_) ->
+          response(
+            400,
+            "Could not create the list. Use a name of at most 100 characters, without < or >, that is not a number.",
+          )
       }
     }
     _, _ -> response(400, "Invalid request")
@@ -1322,6 +1353,19 @@ fn authenticated_page(
                 html.div(
                   [attribute.attribute("class", "card-body p-3 p-md-4")],
                   [
+                    case data.can_edit {
+                      True ->
+                        html.input([
+                          attribute.attribute("type", "checkbox"),
+                          attribute.attribute("id", "newlist-toggle"),
+                          attribute.attribute("class", "etodo-newlist-check"),
+                          attribute.attribute(
+                            "aria-label",
+                            "Show the new list form",
+                          ),
+                        ])
+                      False -> element.none()
+                    },
                     html.form(
                       [
                         attribute.attribute("action", "/"),
@@ -1368,9 +1412,81 @@ fn authenticated_page(
                             ],
                             [html.text("↻")],
                           ),
+                          case data.can_edit {
+                            True ->
+                              html.label(
+                                [
+                                  attribute.attribute("for", "newlist-toggle"),
+                                  attribute.attribute(
+                                    "class",
+                                    "btn btn-outline-primary btn-lg ms-2 etodo-newlist-button",
+                                  ),
+                                  attribute.title("New list"),
+                                ],
+                                [html.text("+")],
+                              )
+                            False -> element.none()
+                          },
                         ]),
                       ],
                     ),
+                    case data.can_edit {
+                      True ->
+                        html.form(
+                          [
+                            attribute.attribute("action", "/list/create"),
+                            attribute.attribute("method", "post"),
+                            attribute.attribute(
+                              "class",
+                              "etodo-newlist-panel row g-2 mt-2",
+                            ),
+                          ],
+                          [
+                            html.input([
+                              attribute.attribute("type", "hidden"),
+                              attribute.name("csrf"),
+                              attribute.attribute("value", data.csrf),
+                            ]),
+                            html.div([attribute.attribute("class", "col")], [
+                              html.input([
+                                attribute.attribute(
+                                  "class",
+                                  "form-control form-control-lg",
+                                ),
+                                attribute.attribute("type", "text"),
+                                attribute.name("name"),
+                                attribute.attribute("maxlength", "100"),
+                                attribute.attribute("required", "required"),
+                                attribute.attribute(
+                                  "placeholder",
+                                  "New list name",
+                                ),
+                                attribute.attribute(
+                                  "aria-label",
+                                  "New list name",
+                                ),
+                                attribute.attribute("autocomplete", "off"),
+                              ]),
+                            ]),
+                            html.div(
+                              [attribute.attribute("class", "col-auto")],
+                              [
+                                html.button(
+                                  [
+                                    attribute.attribute(
+                                      "class",
+                                      "btn btn-primary btn-lg",
+                                    ),
+                                    attribute.attribute("type", "submit"),
+                                  ],
+                                  [html.text("Add list")],
+                                ),
+                              ],
+                            ),
+                          ],
+                        )
+                      False -> element.none()
+                    },
                   ],
                 ),
               ],
