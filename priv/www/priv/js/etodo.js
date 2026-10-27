@@ -197,3 +197,47 @@
   poll();
   setInterval(poll, 1000);
 })();
+
+(function () {
+  var pickerOf = function (element) {
+    return element.closest ? element.closest(".etodo-list-picker") : null;
+  };
+  var updateSummary = function (picker) {
+    var names = [];
+    picker
+      .querySelectorAll(".etodo-list-option input[type=checkbox]")
+      .forEach(function (box) {
+        if (box.checked) {
+          names.push(box.value);
+        }
+      });
+    picker.querySelector(".etodo-list-summary").textContent =
+      "In: " + names.join(", ");
+  };
+  document.addEventListener("input", function (event) {
+    if (!event.target.classList.contains("etodo-list-filter")) {
+      return;
+    }
+    var picker = pickerOf(event.target);
+    var words = event.target.value.toLowerCase().split(/\s+/).filter(Boolean);
+    picker.querySelectorAll(".etodo-list-option").forEach(function (option) {
+      var name = option.textContent.toLowerCase();
+      var show = words.every(function (word) {
+        return name.indexOf(word) !== -1;
+      });
+      option.classList.toggle("d-none", !show);
+    });
+  });
+  document.addEventListener("change", function (event) {
+    var picker = pickerOf(event.target);
+    if (picker && event.target.type === "checkbox") {
+      updateSummary(picker);
+    }
+  });
+  document.addEventListener("keydown", function (event) {
+    // Enter in the filter box must not submit the form.
+    if (event.key === "Enter" && event.target.classList.contains("etodo-list-filter")) {
+      event.preventDefault();
+    }
+  });
+})();

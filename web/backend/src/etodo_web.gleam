@@ -41,6 +41,7 @@ type Todo {
     done_time: String,
     progress: String,
     lists: String,
+    lists_db: List(String),
     estimate: String,
     remaining: String,
   )
@@ -110,6 +111,7 @@ fn update_task(
   due_time: String,
   estimate: String,
   remaining: String,
+  lists: List(String),
 ) -> Result(Nil, Dynamic)
 
 @external(erlang, "eTodoMistAuth", "settings_data")
@@ -532,7 +534,7 @@ fn form_fields(
   use _ <- result.try(case request.get_header(request, "content-length") {
     Ok(content_length) ->
       case int.parse(content_length) {
-        Ok(length) if length >= 0 && length <= 4096 -> Ok(Nil)
+        Ok(length) if length >= 0 && length <= 16_384 -> Ok(Nil)
         _ -> Error(Nil)
       }
     Error(_) -> Error(Nil)
@@ -548,7 +550,7 @@ fn form_fields(
   })
   use request <- result.try(
     request
-    |> mist.read_body(max_body_limit: 4096)
+    |> mist.read_body(max_body_limit: 16_384)
     |> result.replace_error(Nil),
   )
   use body <- result.try(bit_array.to_string(request.body))
@@ -615,6 +617,12 @@ fn todo_update(request: Request(Connection)) -> Response(ResponseData) {
           field("due_time"),
           field("estimate"),
           field("remaining"),
+          list.filter_map(fields, fn(pair) {
+            case pair {
+              #("lists", name) -> Ok(name)
+              _ -> Error(Nil)
+            }
+          }),
         )
       {
         Ok(Nil) -> redirect_to_task(list_name, uid)
@@ -1763,6 +1771,7 @@ fn task_editor(task: Todo, data: TodoPageData) {
         ),
         edit_textarea(scope, "Description", "description", task.description),
         edit_textarea(scope, "Comment", "comment", task.comment),
+        list_picker(scope, data.lists, task.lists_db),
         html.div(
           [
             attribute.attribute(
@@ -1802,6 +1811,77 @@ fn task_editor(task: Todo, data: TodoPageData) {
         hidden("csrf", data.csrf),
         hidden("list", data.selected_list),
       ],
+    ),
+  ])
+}
+
+fn list_picker(scope: String, available: List(String), selected: List(String)) {
+  let checkbox = fn(name: String, index: Int) {
+    let id = scope <> "-list-" <> int.to_string(index)
+    let always = name == "All tasks"
+    html.div([attribute.attribute("class", "form-check etodo-list-option")], [
+      html.input(
+        list.flatten([
+          [
+            attribute.attribute("class", "form-check-input"),
+            attribute.attribute("type", "checkbox"),
+            attribute.id(id),
+            attribute.attribute("value", name),
+          ],
+          case always {
+            True -> [attribute.attribute("disabled", "")]
+            False -> [attribute.name("lists")]
+          },
+          case always || list.contains(selected, name) {
+            True -> [attribute.attribute("checked", "")]
+            False -> []
+          },
+        ]),
+      ),
+      case always {
+        True ->
+          html.input([
+            attribute.attribute("type", "hidden"),
+            attribute.name("lists"),
+            attribute.attribute("value", name),
+          ])
+        False -> element.none()
+      },
+      html.label(
+        [
+          attribute.attribute("class", "form-check-label"),
+          attribute.attribute("for", id),
+        ],
+        [html.text(name)],
+      ),
+    ])
+  }
+  // Selected lists come first so they are visible without scrolling.
+  let #(chosen, others) =
+    list.partition(available, fn(name) {
+      name == "All tasks" || list.contains(selected, name)
+    })
+  let ordered = list.append(chosen, others)
+  html.div([attribute.attribute("class", "col-12 etodo-list-picker")], [
+    html.div([attribute.attribute("class", "form-label")], [
+      html.text("Lists"),
+    ]),
+    html.div([attribute.attribute("class", "etodo-list-summary small mb-1")], [
+      html.text("In: " <> string.join(chosen, ", ")),
+    ]),
+    html.input([
+      attribute.attribute(
+        "class",
+        "form-control form-control-sm mb-1 etodo-list-filter",
+      ),
+      attribute.attribute("type", "search"),
+      attribute.attribute("placeholder", "Find a list"),
+      attribute.attribute("autocomplete", "off"),
+      attribute.attribute("aria-label", "Find a list"),
+    ]),
+    html.div(
+      [attribute.attribute("class", "etodo-list-options border rounded p-2")],
+      list.index_map(ordered, fn(name, index) { checkbox(name, index) }),
     ),
   ])
 }
@@ -1995,6 +2075,7 @@ fn todo_decoder() -> decode.Decoder(Todo) {
   use done_time <- decode.field("done_time", decode.string)
   use progress <- decode.field("progress", decode.string)
   use lists <- decode.field("lists", decode.string)
+  use lists_db <- decode.field("lists_db", decode.list(decode.string))
   use estimate <- decode.field("estimate", decode.string)
   use remaining <- decode.field("remaining", decode.string)
   decode.success(Todo(
@@ -2012,6 +2093,7 @@ fn todo_decoder() -> decode.Decoder(Todo) {
     done_time:,
     progress:,
     lists:,
+    lists_db:,
     estimate:,
     remaining:,
   ))

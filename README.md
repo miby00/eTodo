@@ -123,7 +123,8 @@ compact row; its ▾ icon expands all task details. The local account (and only
 that account) can tick a task as done, or untick it to set it to Planning; peer
 logins are read-only, and writes require a CSRF token. The local account can
 also edit a task's status, priority, due date, progress, time estimates,
-description and comment, or delete it. The last viewed todo list is remembered
+description and comment, choose which lists it belongs to (a task can be in
+several lists, and is always in "All tasks"), or delete it. The last viewed todo list is remembered
 in a cookie. The Status page (`/status`) is a full screen display of your
 status, status message and countdown timer, green when Available, red when
 Busy, which can be left open on a screen so others can see when you can answer

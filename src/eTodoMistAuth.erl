@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 -export([start_link/0, login/2, session_user/1, logout/1, todo_data/3,
-         set_done/4, update_task/11, delete_task/3, create_task/11, settings_data/1,
+         set_done/4, update_task/12, delete_task/3, create_task/11, settings_data/1,
          save_settings/6, status_form/1, set_status/4]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -79,12 +79,12 @@ set_done(Token, Csrf, Uid, Done) when is_boolean(Done) ->
     end.
 
 update_task(Token, Csrf, Uid, Status, Priority, Description, Comment,
-            Progress, DueTime, Estimate, Remaining) ->
+            Progress, DueTime, Estimate, Remaining, Lists) ->
     case gen_server:call(?MODULE, {authorize_write, Token, Csrf}) of
         {ok, UserName} ->
             update_task(unicode:characters_to_list(UserName), Uid, Status,
                         Priority, Description, Comment, Progress, DueTime,
-                        Estimate, Remaining);
+                        Estimate, Remaining, Lists);
         {error, _} = Error ->
             Error
     end.
@@ -445,7 +445,8 @@ todo_json(#etodo{uid = Uid,
                  createTimeDB = CreateTimeDB,
                  doneTimeDB = DoneTimeDB,
                  progress = Progress,
-                 lists = Lists}) ->
+                 lists = Lists,
+                 listsDB = ListsDB}) ->
     {Estimate, Remaining} = eTodoDB:getTime(Uid),
     #{
         <<"uid">> => to_binary(Uid),
@@ -462,6 +463,7 @@ todo_json(#etodo{uid = Uid,
         <<"done_time">> => due_time(DoneTimeDB),
         <<"progress">> => progress(Progress),
         <<"lists">> => to_binary(Lists),
+        <<"lists_db">> => [to_binary(List) || List <- ListsDB],
         <<"estimate">> => to_binary(Estimate),
         <<"remaining">> => to_binary(Remaining)
     }.
@@ -512,7 +514,7 @@ update_done(UserName, UidBin, Done) ->
     end.
 
 update_task(UserName, UidBin, Status0, Priority0, Description0, Comment0,
-            Progress0, DueTime0, Estimate0, Remaining0) ->
+            Progress0, DueTime0, Estimate0, Remaining0, Lists0) ->
     case {is_owner(UserName) andalso parse_uid(UidBin),
           task_values(Status0, Priority0, Description0, Comment0, Progress0,
                       DueTime0, Estimate0, Remaining0)} of
@@ -534,6 +536,7 @@ update_task(UserName, UidBin, Status0, Priority0, Description0, Comment0,
                                       dueTime = DueTime, doneTime = DoneTime},
                     eTodoDB:updateTodo(UserName, Todo2),
                     eTodoDB:saveTime(Uid, Estimate, Remaining),
+                    assign_lists(UserName, Uid, Lists0),
                     try eTodo:todoUpdated(UserName, Todo2)
                     catch _:_ -> ok
                     end,
@@ -543,6 +546,32 @@ update_task(UserName, UidBin, Status0, Priority0, Description0, Comment0,
             end;
         _ ->
             {error, invalid_task}
+    end.
+
+%% A task is always in the "All tasks" list. An empty selection keeps the
+%% current lists, and lists which don't exist are ignored.
+assign_lists(_UserName, _Uid, []) ->
+    ok;
+assign_lists(UserName, Uid, Lists0) ->
+    #userCfg{lists = ConfiguredLists} = eTodoDB:readUserCfg(UserName),
+    Available = [?defTaskList |
+                 case ConfiguredLists of
+                     undefined -> [];
+                     Configured -> Configured
+                 end],
+    Requested = [to_list(List) || List <- Lists0],
+    Chosen = lists:usort([?defTaskList |
+                          [List || List <- Requested,
+                                   lists:member(List, Available)]]),
+    Current = eTodoDB:getLists(UserName, Uid),
+    %% Sub-tasks are attached to their parent task, which is not a list.
+    Extra = [List || List <- Current, not lists:member(List, Available)],
+    case lists:usort(Current) =:= lists:usort(Chosen ++ Extra) of
+        true ->
+            ok;
+        false ->
+            Parents = [eTodoUtils:tryInt(List) || List <- Extra],
+            eTodoDB:assignLists(UserName, Uid, Chosen ++ Parents)
     end.
 
 create_task(UserName, List, Status0, Priority0, Description0, Comment0,

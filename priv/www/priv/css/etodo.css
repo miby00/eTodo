@@ -334,3 +334,11 @@ html {
   border-radius: 0.4rem;
   font-size: 0.9rem;
 }
+
+.etodo-list-options {
+  max-height: 11rem;
+  overflow-y: auto;
+}
+.etodo-list-option {
+  margin-bottom: 0.15rem;
+}

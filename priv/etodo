@@ -17,17 +17,36 @@ DESC="eTodo is a task manager written in Erlang"
 
 lockfile=/var/lock/subsys/$NAME
 binpath=/usr/lib/eTodo/bin
-startcommand="$binpath/eTodo start"
+startcommand="DISPLAY=:99 $binpath/eTodo start"
 stopcommand="$binpath/eTodo stop"
 connectcommand="$binpath/eTodo attach"
+
+relroot=${binpath%/bin}
+
+# Fallbacks for systems without the RedHat function library.
+type success >/dev/null 2>&1 || success() { echo " [ OK ]"; }
+type failure >/dev/null 2>&1 || failure() { echo " [FAILED]"; }
 
 RETVAL=0
 
 # Check for installed files
 [ -d $binpath ] || exit 0
 
+# The VM of this release is recognized by the release directory in its command
+# line (-root, -boot), the node name or user name are not part of it. If that
+# finds nothing, ask the node itself.
+beam_pids() {
+    pids=$(ps -eo pid=,args= | grep "beam" | grep -F -- "$relroot/" |
+               grep -v grep | awk '{print $1}')
+    if [ "$pids" = "" ]; then
+        pids=$(su - etodo -c "$binpath/eTodo pid" 2>/dev/null |
+                   grep -E '^[0-9]+$')
+    fi
+    echo "$pids"
+}
+
 check_pid_status() {
-    pid=$(ps ax | grep beam | grep "$NAME" | grep "\-progname" | grep -v grep | awk '{print $1}')
+    pid=$(beam_pids)
     if [ "$pid" = "" ]; then
         # prog not running?
         return 1
@@ -59,7 +78,7 @@ stop() {
     echo -n $"Shutting down eTodo: "
     su - etodo -c "killall to_erl >/dev/null 2>&1"
     su - etodo -c "$stopcommand >/dev/null 2>&1"
-    for n in $(seq 1 10); do
+    for n in $(seq 1 30); do
         sleep 1
         check_pid_status
         RETVAL=$?
@@ -67,10 +86,20 @@ stop() {
             break
         fi
     done
+    if [ $RETVAL -ne 1 ]; then
+        # The node did not stop in time, kill it.
+        beam_pids | xargs -r kill -9
+        sleep 1
+        check_pid_status
+        RETVAL=$?
+    fi
     if [ $RETVAL -eq 1 ]; then
-        rm -r $lockfile
+        rm -f $lockfile
+        rm -rf /tmp/erl_pipes/eTodo@*
+        RETVAL=0
         success
     else
+        RETVAL=1
         failure $"$NAME stop"
     fi
     echo
@@ -79,7 +108,7 @@ stop() {
 
 hardstop() {
     echo -n $"Shutting down $NAME: "
-    ps -ef | grep beam | grep "$NAME" | grep '\-progname' | grep -v grep | awk '{print $2}' | xargs kill -9
+    beam_pids | xargs -r kill -9
     for n in $(seq 1 10); do
         sleep 1
         check_pid_status
@@ -89,7 +118,7 @@ hardstop() {
         fi
     done
     if [ $RETVAL -eq 1 ]; then
-        rm -r $lockfile
+        rm -f $lockfile
         success
     else
         failure $"$NAME hardstop"
@@ -139,14 +168,15 @@ case "$1" in
         ;;
     condrestart|try-restart)
         [ $running -eq 0 ] || exit 0
-        restart
+        stop
+        start
         ;;
     status)
 
         check_pid_status
         running=$?
 
-        pid=$(ps ax | grep beam | grep "$NAME" | grep "\-progname" | grep -v grep | awk '{print $1}')
+        pid=$(beam_pids)
 
         [ $running -eq 0 ] && echo "eTodo (pid $pid) is running"
         [ $running -eq 1 ] && echo 'eTodo is not running'
