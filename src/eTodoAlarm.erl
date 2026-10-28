@@ -178,9 +178,16 @@ runCmd(undefined) ->
 runCmd(Cmd) ->
     os:cmd(Cmd).
 
-sendEmail(#alarmCfg{emailReminder = false}, _Text) ->
-    ok;
-sendEmail(#alarmCfg{emailReminder = true, userName = User, uid = Uid}, Text) ->
+sendEmail(AlarmCfg = #alarmCfg{emailReminder = true}, Text) ->
+    %% Without a GUI the reminder is mailed with the unread messages.
+    case application:get_env(eTodo, mode) of
+        {ok, "noGui"} -> ok;
+        _             -> sendReminderEmail(AlarmCfg, Text)
+    end;
+sendEmail(_AlarmCfg, _Text) ->
+    ok.
+
+sendReminderEmail(#alarmCfg{userName = User, uid = Uid}, Text) ->
     case eSMTP:recipients(User) of
         [] ->
             ok;

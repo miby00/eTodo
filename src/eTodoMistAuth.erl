@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 -export([start_link/0, login/2, external_login/1, session_user/1, logout/1, todo_data/3,
-         set_done/4, create_list/3, delete_list/3, update_task/12, set_reminder/9, delete_task/3, create_task/11, settings_data/1,
+         set_done/4, create_list/3, delete_list/3, update_task/12, set_reminder/8, delete_task/3, create_task/11, settings_data/1,
          save_settings/6, status_form/1, set_status/4, send_message/4]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -189,12 +189,11 @@ add_list(UserName, Name) ->
             {error, invalid_list}
     end.
 
-set_reminder(Token, Csrf, Uid, Enabled, Date, Time, Recurrence, EndDate,
-             Email) ->
+set_reminder(Token, Csrf, Uid, Enabled, Date, Time, Recurrence, EndDate) ->
     case gen_server:call(?MODULE, {authorize_write, Token, Csrf}) of
         {ok, UserName} ->
             save_reminder(unicode:characters_to_list(UserName), Uid, Enabled,
-                          Date, Time, Recurrence, EndDate, Email);
+                          Date, Time, Recurrence, EndDate);
         {error, _} = Error ->
             Error
     end.
@@ -704,21 +703,21 @@ update_task(UserName, UidBin, Status0, Priority0, Description0, Comment0,
 
 %%--------------------------------------------------------------------
 %% Reminders, the same settings as the reminder dialog of the desktop
-%% client. The command to run is not offered on the web; an existing one
-%% is kept.
+%% client. The command to run and the email option are not offered on the
+%% web; existing values are kept. Without a GUI, reminders are mailed with
+%% the unread messages instead.
 %%--------------------------------------------------------------------
 -define(recurrences, [none, time15, time30, time1h, time2h, time4h, timeDay,
                       timeWeek, timeMonth, timeYear]).
 
 reminder_json(#alarmCfg{startDate = {_, _, _} = Date, startTime = Time,
                         recurrence = Recurrence, endDate = EndDate,
-                        emailReminder = Email, nextAlarm = Next}) ->
+                        nextAlarm = Next}) ->
     #{<<"enabled">> => true,
       <<"date">> => iso_date(Date),
       <<"time">> => iso_time(Time),
       <<"recurrence">> => atom_to_binary(recurrence_or_none(Recurrence)),
       <<"end_date">> => iso_date(EndDate),
-      <<"email">> => Email =:= true,
       <<"next">> => case Next of
                         {{_, _, _} = D, T} ->
                             <<(iso_date(D))/binary, " ",
@@ -729,7 +728,7 @@ reminder_json(#alarmCfg{startDate = {_, _, _} = Date, startTime = Time,
 reminder_json(_) ->
     #{<<"enabled">> => false, <<"date">> => <<>>, <<"time">> => <<>>,
       <<"recurrence">> => <<"none">>, <<"end_date">> => <<>>,
-      <<"email">> => false, <<"next">> => <<>>}.
+      <<"next">> => <<>>}.
 
 recurrence_or_none(Recurrence) ->
     case lists:member(Recurrence, ?recurrences) of
@@ -748,20 +747,19 @@ iso_time({H, M, _S}) when is_integer(H) ->
 iso_time(_) ->
     <<>>.
 
-save_reminder(UserName, UidBin, Enabled, Date0, Time0, Recurrence0, EndDate0,
-              Email) ->
+save_reminder(UserName, UidBin, Enabled, Date0, Time0, Recurrence0,
+              EndDate0) ->
     case {is_owner(UserName) andalso parse_uid(UidBin),
           reminder_values(Enabled, Date0, Time0, Recurrence0, EndDate0)} of
         {{ok, Uid}, {ok, {Date, Time, Recurrence, EndDate}}} ->
             Old = eTodoDB:getReminder(UserName, Uid),
             New = case Old of
                       #alarmCfg{} -> Old;
-                      _ -> #alarmCfg{uid = Uid, userName = UserName}
+                      _ -> #alarmCfg{uid = Uid, userName = UserName,
+                                     emailReminder = false}
                   end,
             New2 = New#alarmCfg{startDate = Date, startTime = Time,
                                 recurrence = Recurrence, endDate = EndDate,
-                                emailReminder = Email =:= true andalso
-                                                    Date =/= undefined,
                                 nextAlarm = undefined, lastAlarm = undefined},
             Unchanged = is_record(Old, alarmCfg) andalso
                 Old#alarmCfg{nextAlarm = undefined, lastAlarm = undefined}

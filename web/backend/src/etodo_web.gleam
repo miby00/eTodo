@@ -64,7 +64,6 @@ type Reminder {
     time: String,
     recurrence: String,
     end_date: String,
-    email: Bool,
     next: String,
   )
 }
@@ -76,7 +75,6 @@ const no_reminder =
     time: "",
     recurrence: "none",
     end_date: "",
-    email: False,
     next: "",
   )
 
@@ -233,7 +231,6 @@ fn set_reminder(
   time: String,
   recurrence: String,
   end_date: String,
-  email: Bool,
 ) -> Result(Nil, Dynamic)
 
 @external(erlang, "eTodoMistAuth", "update_task")
@@ -1170,7 +1167,6 @@ fn todo_update(request: Request(Connection)) -> Response(ResponseData) {
               field("reminder_time"),
               field("reminder_recurrence"),
               field("reminder_end_date"),
-              field("reminder_email") == "on",
             )
           {
             Ok(Nil) -> redirect_to_task(list_name, uid)
@@ -2713,15 +2709,11 @@ fn reminder_text(reminder: Reminder) -> String {
         "" -> ""
         date -> " until " <> date
       }
-      let email = case reminder.email {
-        True -> ", by email too"
-        False -> ""
-      }
       let next = case reminder.next {
         "" -> ""
         next -> " (next " <> next <> ")"
       }
-      when <> repeat <> until <> email <> next
+      when <> repeat <> until <> next
     }
   }
 }
@@ -2814,9 +2806,6 @@ fn reminder_editor(scope: String, reminder: Reminder) {
             reminder.end_date,
             "date",
           ),
-          html.div([attribute.attribute("class", "col-12")], [
-            check("reminder_email", "Also send it by email", reminder.email),
-          ]),
         ]),
       ],
     ),
@@ -3119,17 +3108,8 @@ fn reminder_decoder() -> decode.Decoder(Reminder) {
   use time <- decode.field("time", decode.string)
   use recurrence <- decode.field("recurrence", decode.string)
   use end_date <- decode.field("end_date", decode.string)
-  use email <- decode.field("email", decode.bool)
   use next <- decode.field("next", decode.string)
-  decode.success(Reminder(
-    enabled:,
-    date:,
-    time:,
-    recurrence:,
-    end_date:,
-    email:,
-    next:,
-  ))
+  decode.success(Reminder(enabled:, date:, time:, recurrence:, end_date:, next:))
 }
 
 fn response(status: Int, body: String) -> Response(ResponseData) {
