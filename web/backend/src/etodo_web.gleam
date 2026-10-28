@@ -343,6 +343,10 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
         Get, ["file"] -> serve_linked_file(request)
         Get, ["status"] -> serve_status(request)
         Get, ["status.json"] -> serve_status_json(request)
+        // Task links in messages and reports, written for the desktop client.
+        Get, ["work-log", "action", "task", uid]
+        | Get, ["work-log", "action", "time", uid, _, _, _]
+        -> open_task(uid)
         Get, ["work-log"] -> serve_report(request, "work-log")
         Get, ["time-log"] -> serve_report(request, "time-log")
         Get, ["schedule"] -> serve_report(request, "schedule")
@@ -1275,6 +1279,20 @@ fn todo_delete(request: Request(Connection)) -> Response(ResponseData) {
       }
     }
     _, _ -> response(400, "Invalid request")
+  }
+}
+
+/// Shows the task in "All tasks", including tasks the filter would hide.
+fn open_task(uid: String) -> Response(ResponseData) {
+  case int.parse(uid) {
+    Ok(_) ->
+      response.new(303)
+      |> response.set_header(
+        "location",
+        "/?list=All%20tasks&all=1#task-" <> uid,
+      )
+      |> response_data
+    Error(_) -> response(404, "Not found")
   }
 }
 

@@ -580,3 +580,18 @@
     }
   });
 })();
+
+// A link to #task-<uid> (for example "Open task" in a reminder) opens the
+// details of that task.
+(function () {
+  var hash = window.location.hash;
+  if (hash.indexOf("#task-") !== 0) {
+    return;
+  }
+  var card = document.getElementById(hash.slice(1));
+  var toggle = card && card.querySelector(".etodo-toggle");
+  if (toggle) {
+    toggle.checked = true;
+    card.scrollIntoView({ block: "start" });
+  }
+})();
