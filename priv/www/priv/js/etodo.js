@@ -352,6 +352,42 @@
 
 (function () {
   "use strict";
+  // Some browsers (notably Safari with a self-signed certificate) never
+  // manage to open the stream; stop retrying so the server isn't spammed.
+  window.etodoEvents = function (handlers) {
+    if (!window.EventSource) {
+      if (handlers.fallback) {
+        handlers.fallback();
+      }
+      return null;
+    }
+    var opened = false;
+    var failures = 0;
+    var events = new EventSource("/events");
+    Object.keys(handlers).forEach(function (name) {
+      if (name !== "fallback") {
+        events.addEventListener(name, handlers[name]);
+      }
+    });
+    events.addEventListener("open", function () {
+      opened = true;
+      failures = 0;
+    });
+    events.addEventListener("error", function () {
+      failures += 1;
+      if (!opened && failures >= 3) {
+        events.close();
+        if (handlers.fallback) {
+          handlers.fallback();
+        }
+      }
+    });
+    return events;
+  };
+})();
+
+(function () {
+  "use strict";
   // Viewing the messages page marks everything up to "seen" as read.
   var seenKey = "etodo-messages-seen";
   var onMessages = !!document.querySelector("main.panels");
@@ -429,12 +465,14 @@
       .catch(function () {});
   };
   poll();
-  // The server pushes "messages" events; polling is only a slow safety net.
-  if (window.EventSource) {
-    var events = new EventSource("/events");
-    events.addEventListener("messages", poll);
-    events.addEventListener("open", poll);
-  }
+  // The server pushes "messages" events; polling is only a safety net.
+  window.etodoEvents({
+    messages: poll,
+    open: poll,
+    fallback: function () {
+      window.setInterval(poll, 15000);
+    }
+  });
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") {
       poll();
@@ -462,11 +500,15 @@
     }
     window.location.reload();
   };
-  var events = new EventSource("/events");
-  events.addEventListener("reports", function () {
-    window.clearTimeout(pending);
-    pending = window.setTimeout(reload, 300);
+  var events = window.etodoEvents({
+    reports: function () {
+      window.clearTimeout(pending);
+      pending = window.setTimeout(reload, 300);
+    }
   });
+  if (!events) {
+    return;
+  }
   document.addEventListener("visibilitychange", function () {
     if (pending === true && document.visibilityState === "visible") {
       reload();
