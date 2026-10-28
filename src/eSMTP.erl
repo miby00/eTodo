@@ -204,19 +204,20 @@ doSendMail(From, To, Msg, State = #state{auth = Auth,
         transferMail(Socket2, Type2, Msg)
     catch
         throw:{connectFailed, Reason} -> {error, {connectFailed, Reason}};
-        throw:{smtpError, Reason}     -> {error, {smtpError, Reason}}
+        throw:{smtpError, Reason}     -> {error, {smtpError, Reason}};
+        Class:Reason                  -> {error, {Class, Reason}}
     end.
 
 connect(Host, Port, "SSL/TLS") ->
-    doConnect(Host, Port, ssl);
+    doConnect(Host, Port, ssl, tlsOptions(Host));
 connect(Host, Port, _Auth) ->
-    doConnect(Host, Port, gen_tcp).
+    doConnect(Host, Port, gen_tcp, []).
 
-doConnect(Host, Port, Type) ->
+doConnect(Host, Port, Type, TlsOptions) ->
     case Type:connect(Host, Port, [{packet,    raw},
                                    {reuseaddr, true},
                                    {active,    false},
-                                   {nodelay,   true}, binary]) of
+                                   {nodelay,   true}, binary | TlsOptions]) of
         {ok, Socket} ->
             {Socket, Type};
         Reason ->
@@ -235,7 +236,7 @@ smtpTransaction(Socket, Type, From, To, State = #state{auth = "None"}) ->
 smtpTransaction(Socket, Type, From, To, State = #state{auth = "STARTTLS"}) ->
     sendAndLog(Socket, Type, ["EHLO ", State#state.localHost, "\r\n"]),
     checkResponse(Socket, Type, doRecvLine(Socket, Type)),
-    {Type2, Socket2} = doStartTLS(Socket, Type),
+    {Type2, Socket2} = doStartTLS(Socket, Type, State#state.host),
     sendAndLog(Socket2, Type2, ["EHLO ", State#state.localHost, "\r\n"]),
     checkResponse(Socket2, Type2, doRecvLine(Socket2, Type2)),
     doAuthentication(Socket2, Type2, State),
@@ -382,13 +383,20 @@ doRcptTo(Socket, Type, [To|Rest]) ->
 %% @spec
 %% @end
 %%--------------------------------------------------------------------
-doStartTLS(Socket, Type) ->
-    try
-        sendAndLog(Socket, Type, "STARTTLS\r\n"),
-        checkResponse(Socket, Type, doRecvLine(Socket, Type)),
-        {ok, SSLSocket} = ssl:connect(Socket, []),
-        {ssl, SSLSocket}
-    catch
-        Reason ->
-            throw({smtpError, {error, Reason}})
+doStartTLS(Socket, Type, Host) ->
+    sendAndLog(Socket, Type, "STARTTLS\r\n"),
+    checkResponse(Socket, Type, doRecvLine(Socket, Type)),
+    case ssl:connect(Socket, tlsOptions(Host), 30000) of
+        {ok, SSLSocket} ->
+            {ssl, SSLSocket};
+        {error, Reason} ->
+            throw({smtpError, {error, {tls, Reason}}})
     end.
+
+%% The mail server's certificate is checked against the system CA store.
+tlsOptions(Host) ->
+    [{verify, verify_peer},
+     {cacerts, public_key:cacerts_get()},
+     {server_name_indication, Host},
+     {customize_hostname_check,
+      [{match_fun, public_key:pkix_verify_hostname_match_fun(https)}]}].
