@@ -499,3 +499,36 @@
     window.visualViewport.addEventListener("resize", setHeight);
   }
 })();
+
+// The status button in the header shows the current status as a colored dot.
+(function () {
+  "use strict";
+
+  var icon = document.getElementById("status-icon");
+  if (!icon) {
+    return;
+  }
+
+  var dots = { available: "🟢", busy: "🔴", away: "🟠" };
+
+  function update() {
+    fetch("/status.json", { credentials: "same-origin", cache: "no-store" })
+      .then(function (response) {
+        return response.ok ? response.json() : null;
+      })
+      .then(function (data) {
+        if (data) {
+          icon.textContent = dots[String(data.status).toLowerCase()] || "⚪";
+        }
+      })
+      .catch(function () {});
+  }
+
+  update();
+  window.setInterval(update, 15000);
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) {
+      update();
+    }
+  });
+})();

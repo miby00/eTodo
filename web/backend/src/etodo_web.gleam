@@ -1728,7 +1728,24 @@ fn authenticated_page(
                         attribute.attribute("aria-label", "Status"),
                         attribute.title("Status"),
                       ],
-                      header_button_content("🟢", "Status"),
+                      [
+                        html.span(
+                          [
+                            attribute.id("status-icon"),
+                            attribute.attribute("aria-hidden", "true"),
+                          ],
+                          [html.text("🟢")],
+                        ),
+                        html.span(
+                          [
+                            attribute.attribute(
+                              "class",
+                              "d-none d-md-inline ms-1",
+                            ),
+                          ],
+                          [html.text("Status")],
+                        ),
+                      ],
                     ),
                     html.a(
                       [
