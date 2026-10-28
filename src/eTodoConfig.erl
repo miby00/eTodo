@@ -192,7 +192,7 @@ value(emails, Values, Name) when is_list(Values) ->
 value(strings, Values, Name) when is_list(Values) ->
     [value(string, Value, Name) || Value <- Values];
 value(users, Users, Name) when is_map(Users) ->
-    [{text(Email), value(string, User, Name)}
+    [user(text(Email), User, Name)
      || {Email, User} <- lists:sort(maps:to_list(Users))];
 value(proxy, false, _Name) ->
     false;
@@ -209,6 +209,18 @@ value(proxy, Value, Name) when is_binary(Value) ->
     end;
 value(Type, _Value, Name) ->
     badValue(Type, Name).
+
+%% A missing [table] header above other settings ends up here, so say so.
+user(Email, User, Name) ->
+    case lists:member($@, Email) of
+        true ->
+            {Email, value(string, User, Name ++ " \"" ++ Email ++ "\"")};
+        false ->
+            throw({config,
+                   io_lib:format("~ts: ~ts is not an email address, is a "
+                                 "[table] header missing or commented out "
+                                 "above it?", [Name, Email])})
+    end.
 
 badValue(Type, Name) ->
     Expected = case Type of

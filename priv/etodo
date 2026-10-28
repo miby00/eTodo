@@ -62,7 +62,9 @@ start() {
     # Start daemons.
     echo -n $"Starting eTodo: "
 
-    su - etodo -c "$startcommand"
+    # The start command waits until the node answers; when the node fails
+    # to boot (for example a bad etodo.toml) it would wait forever.
+    timeout 120 su - etodo -c "$startcommand"
 
     RETVAL=$?
     if [ $RETVAL -eq 0 ]; then
@@ -70,6 +72,9 @@ start() {
         success
     else
         failure $"$NAME start"
+        echo
+        echo "eTodo did not start. See $relroot/log/erlang.log.* or run:"
+        echo "  sudo -u etodo sh -c 'set -a; . /etc/default/etodo; $binpath/eTodo foreground'"
     fi
     echo
     return $RETVAL
