@@ -9,7 +9,8 @@
 
 set_status(User, Status, StatusMsg) ->
     Info = get_info(User),
-    put_info(User, Info#{status => Status, status_msg => StatusMsg}).
+    put_info(User, Info#{status => Status, status_msg => StatusMsg}),
+    eTodoPush:broadcast(<<"status">>).
 
 set_timer(User, TimerRef, Description) ->
     Info = get_info(User),

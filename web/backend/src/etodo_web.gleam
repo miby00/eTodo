@@ -589,6 +589,7 @@ fn serve_events(request: Request(Connection)) -> Response(ResponseData) {
             |> mist.event_name(case event {
               "ping" -> "ping"
               "reports" -> "reports"
+              "status" -> "status"
               _ -> "messages"
             })
           case mist.send_event(connection, message) {

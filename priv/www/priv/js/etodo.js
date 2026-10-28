@@ -525,7 +525,13 @@
   }
 
   update();
-  window.setInterval(update, 15000);
+  if (window.EventSource) {
+    // The server pushes a status event when the status changes. The stream
+    // reconnects by itself, and the status is read again when it does.
+    var events = new EventSource("/events");
+    events.addEventListener("status", update);
+    events.addEventListener("open", update);
+  }
   document.addEventListener("visibilitychange", function () {
     if (!document.hidden) {
       update();
