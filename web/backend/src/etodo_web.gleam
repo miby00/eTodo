@@ -332,6 +332,7 @@ fn read_linked_file(
 pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
   let assert Ok(_) =
     fn(request: Request(Connection)) -> Response(ResponseData) {
+      use <- signed_out_guard(request)
       case request.method, request.path_segments(request) {
         Get, ["assets", "bootstrap.min.css"] -> bootstrap_response()
         Get, ["assets", "etodo.css"] ->
@@ -1303,6 +1304,34 @@ fn redirect_to_task(list_name: String, uid: String) -> Response(ResponseData) {
     "/?list=" <> uri.percent_encode(list_name) <> "#task-" <> uid,
   )
   |> response_data
+}
+
+/// After a restart of eTodo all sessions are gone. A form posted from a page
+/// opened before that goes back to the login page instead of failing, and a
+/// request from the page script gets 401 so the script can do the same.
+fn signed_out_guard(
+  request: Request(Connection),
+  next: fn() -> Response(ResponseData),
+) -> Response(ResponseData) {
+  let open = case request.path_segments(request) {
+    ["login"] | ["logout"] -> True
+    _ -> False
+  }
+  case request.method, open {
+    Post, False ->
+      case current_session(request) {
+        Ok(_) -> next()
+        Error(Nil) ->
+          case request.get_header(request, "x-etodo-fetch") {
+            Ok("1") -> response(401, "Not signed in")
+            _ ->
+              response.new(303)
+              |> response.set_header("location", "/")
+              |> response_data
+          }
+      }
+    _, _ -> next()
+  }
 }
 
 fn current_session(

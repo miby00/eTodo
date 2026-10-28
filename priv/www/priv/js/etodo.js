@@ -1,3 +1,52 @@
+// After a restart of eTodo the session is gone. Any background request
+// answered with 401, or a live update stream that is refused, sends the
+// browser to the login page instead of leaving a page that silently stops
+// updating.
+(function () {
+  "use strict";
+  if (!window.fetch || window.location.pathname === "/login") {
+    return;
+  }
+  var leaving = false;
+  function signedOut() {
+    if (!leaving) {
+      leaving = true;
+      window.location.assign("/");
+    }
+  }
+  var originalFetch = window.fetch;
+  window.fetch = function () {
+    return originalFetch.apply(this, arguments).then(function (response) {
+      if (response.status === 401) {
+        signedOut();
+      }
+      return response;
+    });
+  };
+  // An EventSource gives up (CLOSED) when it is refused, for example with
+  // 401; ask the server whether the session is still valid.
+  if (window.EventSource) {
+    var OriginalEventSource = window.EventSource;
+    var WrappedEventSource = function (url, options) {
+      var source = new OriginalEventSource(url, options);
+      source.addEventListener("error", function () {
+        if (source.readyState === OriginalEventSource.CLOSED) {
+          window.fetch("/status.json", {
+            credentials: "same-origin",
+            cache: "no-store"
+          }).catch(function () {});
+        }
+      });
+      return source;
+    };
+    WrappedEventSource.prototype = OriginalEventSource.prototype;
+    WrappedEventSource.CONNECTING = OriginalEventSource.CONNECTING;
+    WrappedEventSource.OPEN = OriginalEventSource.OPEN;
+    WrappedEventSource.CLOSED = OriginalEventSource.CLOSED;
+    window.EventSource = WrappedEventSource;
+  }
+})();
+
 (function () {
   "use strict";
 
