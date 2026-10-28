@@ -264,20 +264,20 @@ handle_cast(_Request, State) ->
 handle_info(sendNotification, State = #guiState{user = User, reply = Reply}) ->
     ConCfg1 = default(eTodoDB:getConnection(User), #conCfg{}),
     ConCfg2 = default(eTodoDB:getConnection(Reply), #conCfg{}),
-    Email   = application:get_env(eTodo, notificationEmail,
-                                  ConCfg1#conCfg.email),
+    Emails  = recipients(application:get_env(eTodo, notificationEmail,
+                                             ConCfg1#conCfg.email)),
     Since   = erase(notifySince),
-    case {Email, notificationMessages(User, Since)} of
-        {undefined, _} ->
+    case {Emails, notificationMessages(User, Since)} of
+        {[], _} ->
             ok;
         {_, []} ->
             ok;
-        {To, Messages} ->
-            ReplyTo = default(ConCfg2#conCfg.email, To),
-            Msg = eMime:constructMail(User, notificationSubject(Messages), To,
-                                      ReplyTo, [To],
+        {[From | _] = To, Messages} ->
+            ReplyTo = default(ConCfg2#conCfg.email, From),
+            Msg = eMime:constructMail(User, notificationSubject(Messages),
+                                      From, ReplyTo, To,
                                       notificationBody(Messages)),
-            eSMTP:sendMail(To, [To], Msg)
+            eSMTP:sendMail(From, To, Msg)
     end,
     {noreply, State#guiState{notificationTimer = undefined}};
 handle_info(_Info, State) ->
@@ -346,6 +346,14 @@ saveAvatar(Peer, Icon) ->
     CustomPortrait2 = getRootDir() ++ "/www/priv/Icons/portrait_" ++ Peer ++ ".png",
     file:write_file(CustomPortrait1, Icon),
     file:write_file(CustomPortrait2, Icon).
+
+%% notificationEmail is one address or a list of addresses.
+recipients(undefined) -> [];
+recipients("") -> [];
+recipients([C | _] = Email) when is_integer(C) -> [Email];
+recipients(Emails) when is_list(Emails) ->
+    [Email || Email <- Emails, is_list(Email), Email =/= ""];
+recipients(_) -> [].
 
 secondsAgo(Seconds) ->
     {Mega, Sec, Micro} = os:timestamp(),

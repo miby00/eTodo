@@ -65,7 +65,7 @@
 
 # Mail unread chat messages when running without a GUI.
 [notification]
-# email = "me@example.com"
+# email = "me@example.com"     # or a list: ["me@example.com", "you@example.com"]
 # time  = 60                    # seconds before the mail is sent
 
 [slack]

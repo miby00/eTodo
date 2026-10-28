@@ -259,6 +259,8 @@ A headless node (`mode = "noGui"`) mails the unread chat messages (sender and
 a short preview) when they stay unread for `time` seconds (`[notification]`).
 Opening the messages in the web GUI cancels the mail. The `[smtp]` settings
 and the `[notification]` `email` override the ones saved by the desktop GUI.
+`email` can also be a list, `["me@example.com", "you@example.com"]`, to
+send one mail to several people sharing the account.
 See `config/etodo.toml.example`.
 
 ### Status

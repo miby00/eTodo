@@ -54,7 +54,7 @@ settings() ->
      {"smtp", "user", eTodo, smtpUser, string},
      {"smtp", "password", eTodo, smtpPwd, string},
 
-     {"notification", "email", eTodo, notificationEmail, string},
+     {"notification", "email", eTodo, notificationEmail, emails},
      {"notification", "time", eTodo, notificationTime, integer},
 
      {"slack", "url", eTodo, slackUrl, string},
@@ -185,6 +185,10 @@ value(integer, Value, _Name) when is_integer(Value) ->
     Value;
 value(boolean, Value, _Name) when is_boolean(Value) ->
     Value;
+value(emails, Value, Name) when is_binary(Value) ->
+    [value(string, Value, Name)];
+value(emails, Values, Name) when is_list(Values) ->
+    value(strings, Values, Name);
 value(strings, Values, Name) when is_list(Values) ->
     [value(string, Value, Name) || Value <- Values];
 value(users, Users, Name) when is_map(Users) ->
@@ -212,6 +216,7 @@ badValue(Type, Name) ->
                    integer -> "a number";
                    boolean -> "true or false";
                    strings -> "a list of texts, like [\"a\", \"b\"]";
+                   emails  -> "an address or a list of addresses";
                    users   -> "a table of \"email\" = \"user\"";
                    proxy   -> "\"host:port\" or false"
                end,
