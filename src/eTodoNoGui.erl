@@ -262,10 +262,8 @@ handle_cast(_Request, State) ->
              {noreply, NewState :: #guiState{}, timeout() | hibernate} |
              {stop, Reason :: term(), NewState :: #guiState{}}).
 handle_info(sendNotification, State = #guiState{user = User, reply = Reply}) ->
-    ConCfg1 = default(eTodoDB:getConnection(User), #conCfg{}),
     ConCfg2 = default(eTodoDB:getConnection(Reply), #conCfg{}),
-    Emails  = recipients(application:get_env(eTodo, notificationEmail,
-                                             ConCfg1#conCfg.email)),
+    Emails  = eSMTP:recipients(User),
     Since   = erase(notifySince),
     case {Emails, notificationMessages(User, Since)} of
         {[], _} ->
@@ -346,14 +344,6 @@ saveAvatar(Peer, Icon) ->
     CustomPortrait2 = getRootDir() ++ "/www/priv/Icons/portrait_" ++ Peer ++ ".png",
     file:write_file(CustomPortrait1, Icon),
     file:write_file(CustomPortrait2, Icon).
-
-%% notificationEmail is one address or a list of addresses.
-recipients(undefined) -> [];
-recipients("") -> [];
-recipients([C | _] = Email) when is_integer(C) -> [Email];
-recipients(Emails) when is_list(Emails) ->
-    [Email || Email <- Emails, is_list(Email), Email =/= ""];
-recipients(_) -> [].
 
 secondsAgo(Seconds) ->
     {Mega, Sec, Micro} = os:timestamp(),

@@ -53,8 +53,46 @@ type Todo {
     lists_db: List(String),
     estimate: String,
     remaining: String,
+    reminder: Reminder,
   )
 }
+
+type Reminder {
+  Reminder(
+    enabled: Bool,
+    date: String,
+    time: String,
+    recurrence: String,
+    end_date: String,
+    email: Bool,
+    next: String,
+  )
+}
+
+const no_reminder =
+  Reminder(
+    enabled: False,
+    date: "",
+    time: "",
+    recurrence: "none",
+    end_date: "",
+    email: False,
+    next: "",
+  )
+
+/// The repeat choices of the reminder dialog in the desktop client.
+const recurrences = [
+  #("none", "Once"),
+  #("time15", "Every 15 minutes"),
+  #("time30", "Every 30 minutes"),
+  #("time1h", "Every hour"),
+  #("time2h", "Every 2 hours"),
+  #("time4h", "Every 4 hours"),
+  #("timeDay", "Every day"),
+  #("timeWeek", "Every week"),
+  #("timeMonth", "Every month"),
+  #("timeYear", "Every year"),
+]
 
 type TodoPageData {
   TodoPageData(
@@ -184,6 +222,19 @@ fn set_done(
   uid: String,
   done: Bool,
 ) -> Result(String, Dynamic)
+
+@external(erlang, "eTodoMistAuth", "set_reminder")
+fn set_reminder(
+  token: String,
+  csrf: String,
+  uid: String,
+  enabled: Bool,
+  date: String,
+  time: String,
+  recurrence: String,
+  end_date: String,
+  email: Bool,
+) -> Result(Nil, Dynamic)
 
 @external(erlang, "eTodoMistAuth", "update_task")
 fn update_task(
@@ -1108,7 +1159,27 @@ fn todo_update(request: Request(Connection)) -> Response(ResponseData) {
           }),
         )
       {
-        Ok(Nil) -> redirect_to_task(list_name, uid)
+        Ok(Nil) ->
+          case
+            set_reminder(
+              token,
+              field("csrf"),
+              uid,
+              field("reminder") == "on",
+              field("reminder_date"),
+              field("reminder_time"),
+              field("reminder_recurrence"),
+              field("reminder_end_date"),
+              field("reminder_email") == "on",
+            )
+          {
+            Ok(Nil) -> redirect_to_task(list_name, uid)
+            Error(_) ->
+              response(
+                400,
+                "The task was saved, but not the reminder: it needs a date",
+              )
+          }
         Error(_) -> response(400, "Could not update the task")
       }
     }
@@ -2446,6 +2517,7 @@ fn task_details(task: Todo, data: TodoPageData) {
       detail_row("Description", task.description),
       detail_row("Comment", task.comment),
       detail_row("Lists", task.lists),
+      detail_row("Reminder", reminder_text(task.reminder)),
       detail_row("Subtasks", case task.has_sub_todos {
         True -> "Yes"
         False -> ""
@@ -2584,6 +2656,7 @@ fn task_editor(task: Todo, data: TodoPageData) {
         edit_textarea(scope, "Description", "description", task.description),
         edit_textarea(scope, "Comment", "comment", task.comment),
         list_picker(scope, data.lists, task.lists_db),
+        reminder_editor(scope, task.reminder),
         html.div(
           [
             attribute.attribute(
@@ -2622,6 +2695,129 @@ fn task_editor(task: Todo, data: TodoPageData) {
         hidden("uid", task.uid),
         hidden("csrf", data.csrf),
         hidden("list", data.selected_list),
+      ],
+    ),
+  ])
+}
+
+fn reminder_text(reminder: Reminder) -> String {
+  case reminder.enabled {
+    False -> ""
+    True -> {
+      let when = string.trim(reminder.date <> " " <> reminder.time)
+      let repeat = case list.key_find(recurrences, reminder.recurrence) {
+        Ok("Once") | Error(_) -> ""
+        Ok(text) -> ", " <> string.lowercase(text)
+      }
+      let until = case reminder.end_date {
+        "" -> ""
+        date -> " until " <> date
+      }
+      let email = case reminder.email {
+        True -> ", by email too"
+        False -> ""
+      }
+      let next = case reminder.next {
+        "" -> ""
+        next -> " (next " <> next <> ")"
+      }
+      when <> repeat <> until <> email <> next
+    }
+  }
+}
+
+fn reminder_editor(scope: String, reminder: Reminder) {
+  let id = fn(name) { scope <> "-" <> name }
+  let check = fn(name, label, checked) {
+    html.div([attribute.attribute("class", "form-check")], [
+      html.input(
+        list.flatten([
+          [
+            attribute.attribute("class", "form-check-input"),
+            attribute.attribute("type", "checkbox"),
+            attribute.id(id(name)),
+            attribute.name(name),
+          ],
+          case checked {
+            True -> [attribute.attribute("checked", "")]
+            False -> []
+          },
+        ]),
+      ),
+      html.label(
+        [
+          attribute.attribute("class", "form-check-label"),
+          attribute.attribute("for", id(name)),
+        ],
+        [html.text(label)],
+      ),
+    ])
+  }
+  let repeat =
+    recurrences
+    |> list.map(fn(choice) {
+      let #(value, label) = choice
+      html.option(
+        list.flatten([
+          [attribute.attribute("value", value)],
+          case value == reminder.recurrence {
+            True -> [attribute.attribute("selected", "")]
+            False -> []
+          },
+        ]),
+        label,
+      )
+    })
+  let summary = case reminder_text(reminder) {
+    "" -> "Reminder: off"
+    text -> "Reminder: " <> text
+  }
+
+  html.div([attribute.attribute("class", "col-12")], [
+    html.details(
+      list.flatten([
+        [attribute.attribute("class", "etodo-reminder border rounded p-2")],
+        case reminder.enabled {
+          True -> [attribute.attribute("open", "")]
+          False -> []
+        },
+      ]),
+      [
+        html.summary([], [html.text(summary)]),
+        html.div([attribute.attribute("class", "row g-3 pt-2")], [
+          html.div([attribute.attribute("class", "col-12")], [
+            check("reminder", "Remind me", reminder.enabled),
+          ]),
+          edit_input(scope, "Date", "reminder_date", reminder.date, "date"),
+          edit_input(scope, "Time", "reminder_time", reminder.time, "time"),
+          html.div([attribute.attribute("class", "col-md-6")], [
+            html.label(
+              [
+                attribute.attribute("class", "form-label"),
+                attribute.attribute("for", id("reminder_recurrence")),
+              ],
+              [html.text("Repeat")],
+            ),
+            html.select(
+              [
+                attribute.attribute("class", "form-select"),
+                attribute.id(id("reminder_recurrence")),
+                attribute.name("reminder_recurrence"),
+              ],
+              repeat,
+            ),
+          ]),
+          edit_input(
+            scope,
+            "Repeat until",
+            "reminder_end_date",
+            reminder.end_date,
+            "date",
+          ),
+          html.div([attribute.attribute("class", "col-12")], [
+            check("reminder_email", "Also send it by email", reminder.email),
+          ]),
+        ]),
       ],
     ),
   ])
@@ -2890,6 +3086,11 @@ fn todo_decoder() -> decode.Decoder(Todo) {
   use lists_db <- decode.field("lists_db", decode.list(decode.string))
   use estimate <- decode.field("estimate", decode.string)
   use remaining <- decode.field("remaining", decode.string)
+  use reminder <- decode.optional_field(
+    "reminder",
+    no_reminder,
+    reminder_decoder(),
+  )
   decode.success(Todo(
     uid:,
     description:,
@@ -2908,6 +3109,26 @@ fn todo_decoder() -> decode.Decoder(Todo) {
     lists_db:,
     estimate:,
     remaining:,
+    reminder:,
+  ))
+}
+
+fn reminder_decoder() -> decode.Decoder(Reminder) {
+  use enabled <- decode.field("enabled", decode.bool)
+  use date <- decode.field("date", decode.string)
+  use time <- decode.field("time", decode.string)
+  use recurrence <- decode.field("recurrence", decode.string)
+  use end_date <- decode.field("end_date", decode.string)
+  use email <- decode.field("email", decode.bool)
+  use next <- decode.field("next", decode.string)
+  decode.success(Reminder(
+    enabled:,
+    date:,
+    time:,
+    recurrence:,
+    end_date:,
+    email:,
+    next:,
   ))
 }
 

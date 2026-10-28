@@ -181,17 +181,15 @@ runCmd(Cmd) ->
 sendEmail(#alarmCfg{emailReminder = false}, _Text) ->
     ok;
 sendEmail(#alarmCfg{emailReminder = true, userName = User, uid = Uid}, Text) ->
-    ConCfg = eTodoDB:getConnection(User),
-    case ConCfg#conCfg.email of
-        undefined ->
+    case eSMTP:recipients(User) of
+        [] ->
             ok;
-        EmailAddr ->
+        [From | _] = To ->
             Msg      = eHtml:generateAlarmMsgEmail(User, Uid, Text),
             Msg2     = iolist_to_binary(Msg),
             EmailMsg = eMime:constructMail(User, "eTodo reminder",
-                                           EmailAddr, EmailAddr, [EmailAddr],
-                                           Msg2),
-            eSMTP:sendMail(EmailAddr, [EmailAddr], EmailMsg)
+                                           From, From, To, Msg2),
+            eSMTP:sendMail(From, To, EmailMsg)
     end.
 
 initAlarm(AlarmCfg) ->

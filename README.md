@@ -154,7 +154,12 @@ that account) can tick a task as done, or untick it to set it to Planning; peer
 logins are read-only, and writes require a CSRF token. The local account can
 also edit a task's status, priority, due date, progress, time estimates,
 description and comment, choose which lists it belongs to (a task can be in
-several lists, and is always in "All tasks"), or delete it. The "+" button next to the list selector adds a new list, and the "−" button deletes the selected list (its tasks stay in "All tasks"). The last viewed todo list is remembered
+several lists, and is always in "All tasks"), or delete it. The edit form also sets a
+task's reminder like the desktop client's reminder dialog: date, optional
+time, repeat (every 15 minutes up to every year), an optional end date and
+whether to email it too (to the `[notification]` `email` addresses, or the
+address saved in the desktop client). The desktop dialog's "run a command"
+option is not offered on the web, but an existing command is kept. The "+" button next to the list selector adds a new list, and the "−" button deletes the selected list (its tasks stay in "All tasks"). The last viewed todo list is remembered
 in a cookie. The Status page (`/status`) is a full screen display of your
 status, status message and countdown timer, green when Available, red when
 Busy, which can be left open on a screen so others can see when you can answer

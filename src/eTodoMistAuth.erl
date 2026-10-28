@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 -export([start_link/0, login/2, external_login/1, session_user/1, logout/1, todo_data/3,
-         set_done/4, create_list/3, delete_list/3, update_task/12, delete_task/3, create_task/11, settings_data/1,
+         set_done/4, create_list/3, delete_list/3, update_task/12, set_reminder/9, delete_task/3, create_task/11, settings_data/1,
          save_settings/6, status_form/1, set_status/4, send_message/4]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -187,6 +187,16 @@ add_list(UserName, Name) ->
             end;
         false ->
             {error, invalid_list}
+    end.
+
+set_reminder(Token, Csrf, Uid, Enabled, Date, Time, Recurrence, EndDate,
+             Email) ->
+    case gen_server:call(?MODULE, {authorize_write, Token, Csrf}) of
+        {ok, UserName} ->
+            save_reminder(unicode:characters_to_list(UserName), Uid, Enabled,
+                          Date, Time, Recurrence, EndDate, Email);
+        {error, _} = Error ->
+            Error
     end.
 
 update_task(Token, Csrf, Uid, Status, Priority, Description, Comment,
@@ -401,6 +411,9 @@ make_todo_data(UserName, ListName, Csrf, ShowAll) ->
                                                  "", undefined)),
             AllCount = length(eTodoDB:getETodos(UserName, ListName, [], "",
                                                 undefined)),
+            Reminders = maps:from_list(
+                          [{R#alarmCfg.uid, R} ||
+                              R <- eTodoDB:getReminders(UserName)]),
             JsonData = #{
                 <<"lists">> => [to_binary(Name) || Name <- AvailableLists],
                 <<"selected_list">> => to_binary(ListName),
@@ -408,7 +421,7 @@ make_todo_data(UserName, ListName, Csrf, ShowAll) ->
                 <<"can_edit">> => is_owner(UserName),
                 <<"show_all">> => ShowAll,
                 <<"filtered_out">> => max(0, AllCount - length(Todos)),
-                <<"todos">> => [todo_json(Todo) || Todo <- Todos]
+                <<"todos">> => [todo_json(Todo, Reminders) || Todo <- Todos]
             },
             {ok, iolist_to_binary(json:encode(JsonData))}
     end.
@@ -568,6 +581,11 @@ prio_rank(?descMedium) -> 2;
 prio_rank(?descLow) -> 3;
 prio_rank(_) -> 4.
 
+todo_json(ETodo = #etodo{uidDB = UidDB}, Reminders) ->
+    Json = todo_json(ETodo),
+    Json#{<<"reminder">> => reminder_json(maps:get(UidDB, Reminders,
+                                                   undefined))}.
+
 todo_json(#etodo{uid = Uid,
                  description = Description,
                  status = Status,
@@ -682,6 +700,121 @@ update_task(UserName, UidBin, Status0, Priority0, Description0, Comment0,
             end;
         _ ->
             {error, invalid_task}
+    end.
+
+%%--------------------------------------------------------------------
+%% Reminders, the same settings as the reminder dialog of the desktop
+%% client. The command to run is not offered on the web; an existing one
+%% is kept.
+%%--------------------------------------------------------------------
+-define(recurrences, [none, time15, time30, time1h, time2h, time4h, timeDay,
+                      timeWeek, timeMonth, timeYear]).
+
+reminder_json(#alarmCfg{startDate = {_, _, _} = Date, startTime = Time,
+                        recurrence = Recurrence, endDate = EndDate,
+                        emailReminder = Email, nextAlarm = Next}) ->
+    #{<<"enabled">> => true,
+      <<"date">> => iso_date(Date),
+      <<"time">> => iso_time(Time),
+      <<"recurrence">> => atom_to_binary(recurrence_or_none(Recurrence)),
+      <<"end_date">> => iso_date(EndDate),
+      <<"email">> => Email =:= true,
+      <<"next">> => case Next of
+                        {{_, _, _} = D, T} ->
+                            <<(iso_date(D))/binary, " ",
+                              (iso_time(T))/binary>>;
+                        _ ->
+                            <<>>
+                    end};
+reminder_json(_) ->
+    #{<<"enabled">> => false, <<"date">> => <<>>, <<"time">> => <<>>,
+      <<"recurrence">> => <<"none">>, <<"end_date">> => <<>>,
+      <<"email">> => false, <<"next">> => <<>>}.
+
+recurrence_or_none(Recurrence) ->
+    case lists:member(Recurrence, ?recurrences) of
+        true -> Recurrence;
+        false -> none
+    end.
+
+iso_date({Y, M, D}) when is_integer(Y) ->
+    iolist_to_binary(io_lib:format("~4..0B-~2..0B-~2..0B", [Y, M, D]));
+iso_date(_) ->
+    <<>>.
+
+iso_time({H, M}) -> iso_time({H, M, 0});
+iso_time({H, M, _S}) when is_integer(H) ->
+    iolist_to_binary(io_lib:format("~2..0B:~2..0B", [H, M]));
+iso_time(_) ->
+    <<>>.
+
+save_reminder(UserName, UidBin, Enabled, Date0, Time0, Recurrence0, EndDate0,
+              Email) ->
+    case {is_owner(UserName) andalso parse_uid(UidBin),
+          reminder_values(Enabled, Date0, Time0, Recurrence0, EndDate0)} of
+        {{ok, Uid}, {ok, {Date, Time, Recurrence, EndDate}}} ->
+            Old = eTodoDB:getReminder(UserName, Uid),
+            New = case Old of
+                      #alarmCfg{} -> Old;
+                      _ -> #alarmCfg{uid = Uid, userName = UserName}
+                  end,
+            New2 = New#alarmCfg{startDate = Date, startTime = Time,
+                                recurrence = Recurrence, endDate = EndDate,
+                                emailReminder = Email =:= true andalso
+                                                    Date =/= undefined,
+                                nextAlarm = undefined, lastAlarm = undefined},
+            Unchanged = is_record(Old, alarmCfg) andalso
+                Old#alarmCfg{nextAlarm = undefined, lastAlarm = undefined}
+                =:= New2,
+            case {Old, Date} of
+                _ when Unchanged ->
+                    %% Keep when it fires next.
+                    {ok, nil};
+                {#alarmCfg{execCmd = undefined}, undefined} ->
+                    eTodoDB:delReminder(Old),
+                    {ok, nil};
+                {undefined, undefined} ->
+                    {ok, nil};
+                _ ->
+                    eTodoDB:addReminder(New2),
+                    {ok, nil}
+            end;
+        _ ->
+            {error, invalid_reminder}
+    end.
+
+reminder_values(false, _Date, _Time, _Recurrence, _EndDate) ->
+    {ok, {undefined, undefined, none, undefined}};
+reminder_values(true, Date0, Time0, Recurrence0, EndDate0) ->
+    case {date(Date0), time_of_day(Time0), recurrence(Recurrence0),
+          date(EndDate0)} of
+        {{ok, Date = {_, _, _}}, {ok, Time}, {ok, Recurrence}, {ok, EndDate}} ->
+            {ok, {Date, Time, Recurrence, EndDate}};
+        _ ->
+            error
+    end.
+
+time_of_day(Value) ->
+    case string:tokens(string:trim(to_list(Value)), ":") of
+        [] ->
+            {ok, undefined};
+        [H, M | _] ->
+            try {list_to_integer(H), list_to_integer(M)} of
+                {Hour, Min} when Hour >= 0, Hour < 24, Min >= 0, Min < 60 ->
+                    {ok, {Hour, Min}};
+                _ ->
+                    error
+            catch error:badarg -> error
+            end;
+        _ ->
+            error
+    end.
+
+recurrence(Value) ->
+    case [R || R <- ?recurrences,
+               atom_to_list(R) =:= string:trim(to_list(Value))] of
+        [Recurrence] -> {ok, Recurrence};
+        [] -> error
     end.
 
 %% A task is always in the "All tasks" list. An empty selection keeps the

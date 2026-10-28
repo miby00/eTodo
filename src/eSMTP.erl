@@ -15,6 +15,7 @@
 -export([start_link/0,
          updateConfig/0,
          setUser/1,
+         recipients/1,
          sendMail/3]).
 
 %% gen_server callbacks
@@ -50,6 +51,19 @@ start_link() ->
 
 updateConfig() ->
     gen_server:cast(?SERVER, updateConfig).
+
+%% The notificationEmail setting (one address or a list), or the address
+%% saved for the user when it is not set.
+recipients(User) ->
+    ConCfg = eTodoUtils:default(eTodoDB:getConnection(User), #conCfg{}),
+    case application:get_env(eTodo, notificationEmail, ConCfg#conCfg.email) of
+        undefined -> [];
+        "" -> [];
+        [C | _] = Email when is_integer(C) -> [Email];
+        Emails when is_list(Emails) ->
+            [Email || Email <- Emails, is_list(Email), Email =/= ""];
+        _ -> []
+    end.
 
 setUser(User) ->
     gen_server:cast(?SERVER, {setUser, User}).
