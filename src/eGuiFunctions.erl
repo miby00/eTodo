@@ -1439,9 +1439,9 @@ userStatusBusy(State) ->
     wxStaticBitmap:hide(Obj4),
     wxStaticBitmap:show(Obj2),
 
-    %% Enable and set combobox to available.
+    %% Enable and set combobox to busy.
     wxChoice:enable(Obj6),
-    setSelection(Obj6, "Away"),
+    setSelection(Obj6, "Busy"),
 
     wxPanel:layout(Obj5),
     wxPanel:refresh(Obj5),
