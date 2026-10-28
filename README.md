@@ -235,6 +235,36 @@ TOML settings map to these `sys.config` names, for example `port = 9003` under
 | `[notification]` `email`, `time` | `notificationEmail`, `notificationTime` |
 | `[slack]`, `[jira]` | `slack*`, `jira*` |
 
+#### Moving from sys.config
+
+An existing installation with its settings in `config/sys.config` moves to
+`etodo.toml` like this:
+
+1. Update the code (`git pull`) and build it once with `make release`; the
+   converter uses the compiled settings table.
+2. Convert the settings:
+
+        escript priv/sys_config_to_toml.escript config/sys.config > config/etodo.toml
+
+   Add `--env` to write passwords, client secrets and tokens as `"%NAME%"`
+   placeholders (for example `"%ETODO_PASSWORD%"`) instead of copying them.
+   Settings without a TOML name are listed on stderr; they keep working if
+   left in `sys.config`.
+3. Review `config/etodo.toml` against `config/etodo.toml.example`. Every
+   setting must be below its `[table]` header; a commented-out header puts the
+   lines below it in the previous table and the start fails.
+4. With `--env`, give the node the variables it names: on Linux in
+   `/etc/default/etodo` (sourced by `priv/etodo`), on Windows as user
+   environment variables (`setx ETODO_PASSWORD ...`, then log in again), on
+   macOS for example with `launchctl setenv`.
+5. Restore the generic `sys.config` from git (`git checkout config/sys.config`),
+   keeping the old file outside the repository if you want a backup, as it may
+   contain secrets.
+6. Run `make release` again (it copies `config/etodo.toml` into the release),
+   start eTodo and check the log for `eTodo: using settings from ...`.
+   Without a `make` (for example on Windows) put the file in one of the other
+   places listed above, for example `%APPDATA%/eTodo/etodo.toml`.
+
 A file with a syntax error or a value of the wrong type stops the start with a
 message naming the setting; unknown settings are logged and ignored.
 
