@@ -198,6 +198,32 @@ Set `mistGoogleProxy` to `false` to force a direct connection regardless of
 the environment. Proxy authentication and automatic PAC evaluation are not
 supported. Restart the node after changing its configuration or environment.
 
+### Secrets in sys.config
+
+A string setting written as `"%NAME%"` is replaced at start-up by the value of
+the environment variable `NAME`, so secrets need not be checked in:
+
+    {mistGoogleClientSecret, "%GOOGLE_CLIENT_SECRET%"},
+    {smtpPwd,                "%SMTP_PASSWORD%"}
+
+This works for any `eTodo` setting, also inside lists and tuples. A variable
+that is not set is logged as a warning and the text is left as written. The
+init script `priv/etodo` sources `/etc/default/etodo` (make it readable by the
+`etodo` user only) before starting the node:
+
+    GOOGLE_CLIENT_SECRET=...
+    SMTP_PASSWORD=...
+
+### Email notifications without a GUI
+
+A headless node (`{mode, "noGui"}`) mails the unread chat messages (sender and
+a short preview) when they stay unread for `notificationTime` seconds. Opening
+the messages in the web GUI cancels the mail. The settings normally saved by
+the desktop GUI can be set in `sys.config` instead, and take priority:
+`smtpEnabled`, `smtpServer`, `smtpPort`, `smtpAuth` (`"None"`, `"STARTTLS"` or
+other), `smtpUser`, `smtpPwd`, `notificationEmail` and `notificationTime`.
+See the commented examples in `config/sys.config`.
+
 ### Status
 
 eTodo isn't finished, when I feel inspired I code on it during my spare time.

@@ -2048,7 +2048,8 @@ increaseMsgCounter(systemEntry,
 
 getNotificationTime(User) ->
     UserCfg = eTodoDB:readUserCfg(User),
-    default(UserCfg#userCfg.notificationTime, ?NotificationTime) * 1000.
+    Saved = default(UserCfg#userCfg.notificationTime, ?NotificationTime),
+    application:get_env(eTodo, notificationTime, Saved) * 1000.
 
 %%--------------------------------------------------------------------
 %% @doc

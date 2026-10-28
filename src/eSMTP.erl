@@ -112,12 +112,12 @@ handle_cast(updateConfig, State = #state{user = undefined}) ->
 handle_cast(updateConfig, State) ->
     UserCfg = eTodoDB:readUserCfg(State#state.user),
     ConCfg  = eTodoUtils:default(eTodoDB:getConnection(State#state.user), #conCfg{}),
-    {noreply, State#state{host      = UserCfg#userCfg.smtpServer,
-                          port      = UserCfg#userCfg.smtpPort,
-                          smtpUser  = UserCfg#userCfg.smtpUser,
-                          smtpPwd   = UserCfg#userCfg.smtpPwd,
-                          auth      = UserCfg#userCfg.smtpAuth,
-                          active    = UserCfg#userCfg.smtpEnabled,
+    {noreply, State#state{host      = override(smtpServer, UserCfg#userCfg.smtpServer),
+                          port      = override(smtpPort, UserCfg#userCfg.smtpPort),
+                          smtpUser  = override(smtpUser, UserCfg#userCfg.smtpUser),
+                          smtpPwd   = override(smtpPwd, UserCfg#userCfg.smtpPwd),
+                          auth      = override(smtpAuth, UserCfg#userCfg.smtpAuth),
+                          active    = override(smtpEnabled, UserCfg#userCfg.smtpEnabled),
                           localHost = ConCfg#conCfg.host}};
 handle_cast({setUser, User}, State) ->
     {noreply, State#state{user = User}};
@@ -189,6 +189,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+%% Settings in sys.config take priority over the ones saved by the GUI.
+override(Key, Default) ->
+    application:get_env(eTodo, Key, Default).
 
 doSendMail(From, To, Msg, State = #state{auth = Auth,
                                          host = Host,

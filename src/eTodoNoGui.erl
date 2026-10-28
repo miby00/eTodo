@@ -232,10 +232,18 @@ handle_cast({statusUpdate, UserStatus, Avatar}, State) ->
 handle_cast({updateTaskList, TaskList}, State = #guiState{mode = noGui}) ->
     {noreply, State#guiState{taskList = TaskList}};
 handle_cast(eWebNotification, State = #guiState{mode = noGui}) ->
-    clearNotificationTimer(State),
+    State2 = clearNotificationTimer(State),
     NotificationTime = getNotificationTime(State#guiState.user),
     TimerRef = erlang:send_after(NotificationTime, self(), sendNotification),
-    {noreply, State#guiState{notificationTimer = TimerRef}};
+    case get(notifySince) of
+        %% The message is stored just before this cast arrives.
+        undefined -> put(notifySince, secondsAgo(2));
+        _         -> ok
+    end,
+    {noreply, State2#guiState{notificationTimer = TimerRef}};
+handle_cast(webMessagesRead, State) ->
+    erase(notifySince),
+    {noreply, clearNotificationTimer(State)};
 handle_cast(_Request, State) ->
     {noreply, State}.
 
@@ -256,15 +264,22 @@ handle_cast(_Request, State) ->
 handle_info(sendNotification, State = #guiState{user = User, reply = Reply}) ->
     ConCfg1 = default(eTodoDB:getConnection(User), #conCfg{}),
     ConCfg2 = default(eTodoDB:getConnection(Reply), #conCfg{}),
-    case ConCfg1#conCfg.email of
-        undefined ->
+    Email   = application:get_env(eTodo, notificationEmail,
+                                  ConCfg1#conCfg.email),
+    Since   = erase(notifySince),
+    case {Email, notificationMessages(User, Since)} of
+        {undefined, _} ->
             ok;
-        To ->
+        {_, []} ->
+            ok;
+        {To, Messages} ->
             ReplyTo = default(ConCfg2#conCfg.email, To),
-            Msg = eMime:constructMail(User, "eTodo notification", ReplyTo, [To]),
+            Msg = eMime:constructMail(User, notificationSubject(Messages), To,
+                                      ReplyTo, [To],
+                                      notificationBody(Messages)),
             eSMTP:sendMail(To, [To], Msg)
     end,
-    {noreply, State};
+    {noreply, State#guiState{notificationTimer = undefined}};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -331,3 +346,42 @@ saveAvatar(Peer, Icon) ->
     CustomPortrait2 = getRootDir() ++ "/www/priv/Icons/portrait_" ++ Peer ++ ".png",
     file:write_file(CustomPortrait1, Icon),
     file:write_file(CustomPortrait2, Icon).
+
+secondsAgo(Seconds) ->
+    {Mega, Sec, Micro} = os:timestamp(),
+    {Mega, Sec - Seconds, Micro}.
+
+%% Unread chat messages from others, newer than the first unread one.
+notificationMessages(_User, undefined) -> [];
+notificationMessages(User, Since) ->
+    [{From, previewText(Html)} ||
+        {TS, msgEntry, From, _To, Html} <-
+            eTodoDB:getMessageList(User, [msgEntry], all),
+        TS >= Since, From =/= User].
+
+previewText(Html) ->
+    {Title, _Link, Body} = eMessagesView:parse_legacy(Html),
+    Text = string:trim(eMessagesView:plain(Body)),
+    Text2 = case Text of
+                <<>> -> Title;
+                _    -> Text
+            end,
+    case string:length(Text2) > 300 of
+        true  -> [string:slice(Text2, 0, 300), <<"...">>];
+        false -> Text2
+    end.
+
+notificationSubject([{From, _}]) ->
+    "eTodo: new message from " ++ unicode:characters_to_list(From);
+notificationSubject(Messages) ->
+    "eTodo: " ++ integer_to_list(length(Messages)) ++ " new messages".
+
+notificationBody(Messages) ->
+    Rows = [["<p><b>", escape(From), "</b><br>", escape(Text), "</p>"]
+            || {From, Text} <- Messages],
+    iolist_to_binary(["<h3>Messages you have not read</h3>", Rows]).
+
+escape(Text) ->
+    Bin = unicode:characters_to_binary(Text),
+    lists:foldl(fun({From, To}, Acc) -> string:replace(Acc, From, To, all) end,
+                Bin, [{"&", "&amp;"}, {"<", "&lt;"}, {">", "&gt;"}]).

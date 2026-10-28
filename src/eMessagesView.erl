@@ -6,7 +6,7 @@
 -export([render/4, render_browser/3, kind/1, filter/2, avatar/1,
          online_peers/1]).
 -export([document/5, browser_document/4, browser_document/5,
-         parse_legacy/1, sanitize/1]).
+         parse_legacy/1, sanitize/1, plain/1]).
 
 -define(maxMessages, 500).
 -define(groupSeconds, 300).

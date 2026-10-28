@@ -17,7 +17,9 @@ DESC="eTodo is a task manager written in Erlang"
 
 lockfile=/var/lock/subsys/$NAME
 binpath=/usr/lib/eTodo/bin
-startcommand="DISPLAY=:99 $binpath/eTodo start"
+# /etc/default/etodo (readable by etodo only) may export secrets that
+# sys.config refers to as "%NAME%".
+startcommand="set -a; [ -r /etc/default/etodo ] && . /etc/default/etodo; set +a; DISPLAY=:99 $binpath/eTodo start"
 stopcommand="$binpath/eTodo stop"
 connectcommand="$binpath/eTodo attach"
 

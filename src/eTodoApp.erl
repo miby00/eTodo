@@ -29,6 +29,7 @@
 %% top supervisor of the tree.
 %%--------------------------------------------------------------------
 start(_Type, _StartArgs) ->
+    resolveEnv(),
     case eTodoSup:start_link() of
 	{ok, Pid} ->
 		case application:get_env(eTodo, mode) of
@@ -55,3 +56,36 @@ stop(_State) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
+%% A sys.config string written as "%NAME%" is replaced by the value of the
+%% environment variable NAME, to keep secrets out of the file.
+resolveEnv() ->
+    [application:set_env(eTodo, Key, resolveValue(Key, Value))
+     || {Key, Value} <- application:get_all_env(eTodo)],
+    ok.
+
+resolveValue(Key, [$%|_] = Value) ->
+    case lists:last(Value) =:= $% andalso length(Value) > 2 of
+        true  -> lookupEnv(Key, lists:sublist(Value, 2, length(Value) - 2),
+                           Value);
+        false -> Value
+    end;
+resolveValue(Key, Values) when is_list(Values) ->
+    [resolveValue(Key, Value) || Value <- Values];
+resolveValue(Key, Value) when is_tuple(Value) ->
+    list_to_tuple(resolveValue(Key, tuple_to_list(Value)));
+resolveValue(_Key, Value) ->
+    Value.
+
+lookupEnv(Key, Name, Original) ->
+    case lists:all(fun(C) -> C =:= $_ orelse (C >= $A andalso C =< $Z) orelse
+                             (C >= $a andalso C =< $z) orelse
+                             (C >= $0 andalso C =< $9) end, Name)
+         andalso os:getenv(Name) of
+        Value when is_list(Value) -> Value;
+        false ->
+            logger:warning("eTodo: ~p refers to unset environment "
+                           "variable ~s", [Key, Name]),
+            Original;
+        _ -> Original
+    end.
