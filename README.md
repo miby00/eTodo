@@ -255,8 +255,9 @@ readable by the `etodo` user only) before starting the node:
 
 ### Email notifications without a GUI
 
-A headless node (`mode = "noGui"`) mails the unread chat messages (sender and
-a short preview) when they stay unread for `time` seconds (`[notification]`).
+A headless node (`mode = "noGui"`) mails unread chat messages and reminders
+(sender or "Reminder", and a short preview; system messages are not mailed)
+when they stay unread for `time` seconds (`[notification]`).
 Opening the messages in the web GUI cancels the mail. The `[smtp]` settings
 and the `[notification]` `email` override the ones saved by the desktop GUI.
 `email` can also be a list, `["me@example.com", "you@example.com"]`, to

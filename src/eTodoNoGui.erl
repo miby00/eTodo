@@ -359,13 +359,17 @@ secondsAgo(Seconds) ->
     {Mega, Sec, Micro} = os:timestamp(),
     {Mega, Sec - Seconds, Micro}.
 
-%% Unread chat messages from others, newer than the first unread one.
+%% Unread chat messages from others and reminders, newer than the first
+%% unread one. System messages are not mailed.
 notificationMessages(_User, undefined) -> [];
 notificationMessages(User, Since) ->
-    [{From, previewText(Html)} ||
-        {TS, msgEntry, From, _To, Html} <-
-            eTodoDB:getMessageList(User, [msgEntry], all),
-        TS >= Since, From =/= User].
+    [{notificationType(Type), From, previewText(Html)} ||
+        {TS, Type, From, _To, Html} <-
+            eTodoDB:getMessageList(User, [msgEntry, alarmEntry], all),
+        TS >= Since, Type =:= alarmEntry orelse From =/= User].
+
+notificationType(msgEntry)   -> message;
+notificationType(alarmEntry) -> reminder.
 
 previewText(Html) ->
     {Title, _Link, Body} = eMessagesView:parse_legacy(Html),
@@ -379,15 +383,23 @@ previewText(Html) ->
         false -> Text2
     end.
 
-notificationSubject([{From, _}]) ->
+notificationSubject([{message, From, _}]) ->
     "eTodo: new message from " ++ unicode:characters_to_list(From);
-notificationSubject(Messages) ->
-    "eTodo: " ++ integer_to_list(length(Messages)) ++ " new messages".
+notificationSubject([{reminder, _, Text}]) ->
+    "eTodo reminder: " ++ unicode:characters_to_list(string:slice(Text, 0, 60));
+notificationSubject(Items) ->
+    case [Type || {Type, _, _} <- Items, Type =:= message] of
+        [] -> "eTodo: " ++ integer_to_list(length(Items)) ++ " reminders";
+        _  -> "eTodo: " ++ integer_to_list(length(Items)) ++ " unread items"
+    end.
 
-notificationBody(Messages) ->
-    Rows = [["<p><b>", escape(From), "</b><br>", escape(Text), "</p>"]
-            || {From, Text} <- Messages],
-    iolist_to_binary(["<h3>Messages you have not read</h3>", Rows]).
+notificationBody(Items) ->
+    Rows = [["<p><b>", escape(label(Type, From)), "</b><br>", escape(Text),
+             "</p>"] || {Type, From, Text} <- Items],
+    iolist_to_binary(["<h3>Unread in eTodo</h3>", Rows]).
+
+label(message, From) -> From;
+label(reminder, _)   -> "Reminder".
 
 escape(Text) ->
     Bin = unicode:characters_to_binary(Text),

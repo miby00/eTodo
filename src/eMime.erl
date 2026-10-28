@@ -49,7 +49,7 @@ doConstructMail(HeaderStart, UserName, Subject, To, Messages) ->
         [
          "Content-Type: multipart/related;", ?LF, 9,
          "boundary=\"", ?BDDef, "\"", ?LF,
-         "Subject: ", Subject, ?LF,
+         "Subject: ", encodeHeader(Subject), ?LF,
          "To: ", makeAddressHeader(To), ?LF,
          "MIME-Version: 1.0", ?LF,
          ?LF,
@@ -62,6 +62,15 @@ doConstructMail(HeaderStart, UserName, Subject, To, Messages) ->
          ?LF, ?BDEnd, ?LF,
          ?LF, ".", ?LF
         ].
+
+%% Non-ASCII header text must be MIME encoded (RFC 2047).
+encodeHeader(Text) ->
+    Bin = unicode:characters_to_binary(Text),
+    case lists:all(fun(C) -> C >= 32 andalso C < 127 end,
+                   binary_to_list(Bin)) of
+        true  -> Bin;
+        false -> ["=?UTF-8?B?", base64:encode(Bin), "?="]
+    end.
 
 body(UserName, Messages) ->
     StyleSheet   = filename:join([getRootDir(), "css", "mail.css"]),

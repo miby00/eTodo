@@ -63,6 +63,7 @@ handle_event({alarmEntry, Uid, Description},
              State = #state{mode = noGui, user = User}) ->
     {Html, _} = eHtml:generateAlarmMsg(Uid, Description),
     eTodoDB:appendToPage(User, alarmEntry, "", [], Html),
+    eTodo:eWebNotification(),
     ePluginServer:eReceivedAlarmMsg(Description),
     {ok, State};
 handle_event({loggedIn, User}, State) ->
