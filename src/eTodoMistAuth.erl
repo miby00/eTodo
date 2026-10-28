@@ -925,14 +925,19 @@ priority("High") -> {ok, high};
 priority("N/A") -> {ok, undefined};
 priority(_) -> error.
 
+%% Tasks from the desktop client may have no progress, shown as empty.
 progress_percent(Value) ->
-    case nonnegative_integer(Value) of
+    case string:trim(to_list(Value)) =:= "" orelse nonnegative_integer(Value) of
+        true -> {ok, undefined};
         {ok, Number} when Number =< 100 -> {ok, Number};
         _ -> error
     end.
 
 nonnegative_integer(Value) ->
-    try list_to_integer(string:trim(to_list(Value))) of
+    try list_to_integer(case string:trim(to_list(Value)) of
+                            "" -> "0";
+                            Text -> Text
+                        end) of
         Number when Number >= 0 -> {ok, Number};
         _ -> error
     catch error:badarg -> error
