@@ -1130,6 +1130,12 @@ handle_event(#wx{id = Id, event = #wxAuiNotebook{type = Type}},
     Name = getFromDict(Id, Dict),
     handle_cmd(Name, Type, Id, Frame, State);
 
+%% wxNotebook page changes (Messages counters, report tabs) arrive as this.
+handle_event(#wx{id = Id, event = #wxBookCtrl{type = Type}},
+             State = #guiState{frame = Frame, dict  = Dict}) ->
+    Name = getFromDict(Id, Dict),
+    handle_cmd(Name, Type, Id, Frame, State);
+
 handle_event(#wx{id = Id, event = Event = #wxKey{}},
              State = #guiState{frame = Frame, dict  = Dict}) ->
     Name = getFromDict(Id, Dict),

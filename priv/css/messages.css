@@ -64,7 +64,6 @@ main {
   min-height: 0;
   overflow: auto;
   padding: 14px 16px 6px;
-  scroll-behavior: smooth;
 }
 
 .timeline {
@@ -338,8 +337,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   height: 30px;
   border: 1px solid var(--line);
   border-radius: 50%;
-  background: color-mix(in srgb, var(--background) 85%, transparent);
-  backdrop-filter: blur(6px);
+  background: color-mix(in srgb, var(--background) 92%, transparent);
   color: var(--muted);
   font-size: 18px;
   line-height: 1;
@@ -518,6 +516,24 @@ main.panels::-webkit-scrollbar { display: none; }
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
+}
+
+/* The desktop client shows three of these views; on a Retina (2x) screen
+   every resize repaints four times the pixels, so keep painting cheap. */
+html[data-embedded] body {
+  background: var(--etodo-pattern) 0 0 / 160px 160px, var(--background);
+}
+html[data-embedded] .day span,
+html[data-embedded] .bubble,
+html[data-embedded] .card-msg { box-shadow: none; }
+/* A never-ending animation keeps the view repainting at up to 120 Hz. */
+html[data-embedded] .empty-icon { animation: none; }
+
+/* Skip layout and painting of messages that are scrolled out of view. */
+.timeline > article,
+.timeline > .day {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
 }
 
 @media (prefers-reduced-motion: reduce) {

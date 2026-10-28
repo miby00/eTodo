@@ -333,8 +333,7 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
   let assert Ok(_) =
     fn(request: Request(Connection)) -> Response(ResponseData) {
       case request.method, request.path_segments(request) {
-        Get, ["assets", "bootstrap.min.css"] ->
-          stylesheet_response(read_bootstrap_stylesheet())
+        Get, ["assets", "bootstrap.min.css"] -> bootstrap_response()
         Get, ["assets", "etodo.css"] ->
           stylesheet_response(read_etodo_stylesheet())
         Get, ["assets", "etodo.js"] -> script_response(read_etodo_script())
@@ -386,8 +385,7 @@ pub fn start_work_log(owner: process.Pid) {
         False -> response(403, "Forbidden")
         True ->
           case request.method, request.path_segments(request) {
-            Get, ["assets", "bootstrap.min.css"] ->
-              stylesheet_response(read_bootstrap_stylesheet())
+            Get, ["assets", "bootstrap.min.css"] -> bootstrap_response()
             Get, ["desktop", ticket] ->
               desktop_bootstrap(request, "work-log", ticket)
             Get, ["desktop", report, ticket] ->
@@ -1585,6 +1583,12 @@ fn script_response(script: Result(BitArray, String)) -> Response(ResponseData) {
       |> secure_headers
     Error(_) -> response(500, "Could not load script")
   }
+}
+
+// Bootstrap is a vendored, versioned file; every page reload re-fetched it.
+fn bootstrap_response() -> Response(ResponseData) {
+  stylesheet_response(read_bootstrap_stylesheet())
+  |> response.set_header("cache-control", "public, max-age=604800")
 }
 
 fn stylesheet_response(
