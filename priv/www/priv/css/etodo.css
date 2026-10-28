@@ -444,6 +444,12 @@ html {
   display: inline;
 }
 
+/* Deleting a list needs the confirmation box ticked first. */
+#dellist-confirm:not(:checked) ~ .etodo-dellist-submit {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 /* Bootstrap's min-vh-100 uses vh, which is taller than the visible area on phones. */
 .min-vh-100 {
   min-height: var(--app-height, 100dvh) !important;

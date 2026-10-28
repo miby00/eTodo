@@ -1308,12 +1308,23 @@ fn list_delete(request: Request(Connection)) -> Response(ResponseData) {
   case session_cookie_value(request), form_fields(request) {
     Some(token), Ok(fields) -> {
       let field = fn(name) { list.key_find(fields, name) |> result.unwrap("") }
-      case delete_list(token, field("csrf"), field("name")) {
-        Ok(_) ->
+      case field("confirm") {
+        "yes" ->
+          case delete_list(token, field("csrf"), field("name")) {
+            Ok(_) ->
+              response.new(303)
+              |> response.set_header("location", "/?list=All%20tasks")
+              |> response_data
+            Error(_) -> response(400, "Could not delete the list")
+          }
+        // Not confirmed: back to the list, nothing deleted.
+        _ ->
           response.new(303)
-          |> response.set_header("location", "/?list=All%20tasks")
+          |> response.set_header(
+            "location",
+            "/?list=" <> uri.percent_encode(field("name")),
+          )
           |> response_data
-        Error(_) -> response(400, "Could not delete the list")
       }
     }
     _, _ -> response(400, "Invalid request")
@@ -2243,13 +2254,41 @@ fn authenticated_page(
                                 ),
                               ]),
                               html.div(
-                                [attribute.attribute("class", "col-auto")],
                                 [
+                                  attribute.attribute(
+                                    "class",
+                                    "col-12 d-flex flex-wrap align-items-center gap-3",
+                                  ),
+                                ],
+                                [
+                                  html.input([
+                                    attribute.attribute(
+                                      "class",
+                                      "form-check-input mt-0",
+                                    ),
+                                    attribute.attribute("type", "checkbox"),
+                                    attribute.id("dellist-confirm"),
+                                    attribute.name("confirm"),
+                                    attribute.attribute("value", "yes"),
+                                  ]),
+                                  html.label(
+                                    [
+                                      attribute.attribute(
+                                        "class",
+                                        "form-check-label",
+                                      ),
+                                      attribute.attribute(
+                                        "for",
+                                        "dellist-confirm",
+                                      ),
+                                    ],
+                                    [html.text("Yes, delete this list")],
+                                  ),
                                   html.button(
                                     [
                                       attribute.attribute(
                                         "class",
-                                        "btn btn-danger btn-lg",
+                                        "btn btn-danger btn-lg etodo-dellist-submit",
                                       ),
                                       attribute.attribute("type", "submit"),
                                     ],
