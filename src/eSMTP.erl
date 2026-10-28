@@ -21,6 +21,7 @@
 -export([init/1,
          handle_call/3,
          handle_cast/2,
+         format_status/1,
          handle_info/2,
          terminate/2,
          code_change/3]).
@@ -74,9 +75,11 @@ sendMail(From, To, Msg) ->
 -spec(init(Args :: term()) ->
              {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
              {stop, Reason :: term()} | ignore).
+%% The user survives a restart of this process, otherwise mail would be
+%% silently dropped until the next login.
 init([]) ->
     updateConfig(),
-    {ok, #state{}}.
+    {ok, #state{user = persistent_term:get({?MODULE, user}, undefined)}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -120,6 +123,7 @@ handle_cast(updateConfig, State) ->
                           active    = override(smtpEnabled, UserCfg#userCfg.smtpEnabled),
                           localHost = ConCfg#conCfg.host}};
 handle_cast({setUser, User}, State) ->
+    persistent_term:put({?MODULE, user}, User),
     {noreply, State#state{user = User}};
 handle_cast(_Msg, State = #state{active = false}) ->
     {noreply, State};
@@ -169,6 +173,12 @@ handle_info(_Info, State) ->
 %%--------------------------------------------------------------------
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
                 State :: #state{}) -> term()).
+%% Keep the mail password out of crash reports and sys:get_status/1.
+format_status(Status) ->
+    maps:map(fun(state, State = #state{}) -> State#state{smtpPwd = "*****"};
+                (_, Value) -> Value
+             end, Status).
+
 terminate(_Reason, _State) ->
     ok.
 
