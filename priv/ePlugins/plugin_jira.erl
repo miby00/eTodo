@@ -40,10 +40,12 @@ getDesc() -> "Create eTodo task from JIRA issue and report work logs.".
 %% @end
 %%--------------------------------------------------------------------
 init([WX, Frame]) ->
-    {ok, Url}       = application:get_env(eTodo, jiraUrl),
-    {ok, SearchCfg} = application:get_env(eTodo, jiraSearch),
-    {ok, User}      = application:get_env(eTodo, jiraUser),
-    {ok, Pwd}       = application:get_env(eTodo, jiraPwd),
+    Url       = application:get_env(eTodo, jiraUrl, "http://JIRA:8080"),
+    SearchCfg = application:get_env(eTodo, jiraSearch,
+                                    "assignee = currentUser() and status "
+                                    "not in (Resolved, Closed)"),
+    User      = application:get_env(eTodo, jiraUser, ""),
+    Pwd       = application:get_env(eTodo, jiraPwd, ""),
 
     UserPwd         = User ++ ":" ++ Pwd,
     BAuth           = "Basic " ++ base64:encode_to_string(UserPwd),
