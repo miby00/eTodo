@@ -142,20 +142,34 @@ appendToPage(MsgObj, Type, {Html, _HtmlCSS}, State) ->
 
 appendToPage(MsgObj, Type, From, To, {Html, _HtmlCSS}, State) ->
     eTodoDB:appendToPage(State#guiState.user, Type, From, To, Html),
-    case evalShow(Type, From, To, State#guiState.msgCfg) of
-        true ->
+    case {evalShow(Type, From, To, State#guiState.msgCfg),
+          chatVisible(State)} of
+        {true, _} ->
             loadMessages(MsgObj, Type, State),
             State;
-        false ->
+        {false, true} ->
+            %% Hidden by the chat filter while Chat is open; chatMsgStatusBar
+            %% only counts messages arriving on a tab that isn't shown.
             Notebook1 = obj("mainNotebook",   State),
             Notebook2 = obj("msgWinNotebook", State),
             State2 = increaseMsgCounter(State, Notebook1),
-            increaseMsgCounter(Type, State2, Notebook2)
+            saveMsgCounters(increaseMsgCounter(Type, State2, Notebook2));
+        {false, false} ->
+            State
     end.
 
-evalShow(_, UserName, To, {true, Users}) ->
+%% The peer filter only applies to chat; reminders and system messages
+%% are always shown.
+evalShow(msgEntry, UserName, To, {true, Users}) ->
     lists:member(UserName, Users) or (Users =/= (Users -- To));
 evalShow(_,  _From, _To, _msgCfg)       -> true.
+
+chatVisible(State) ->
+    Notebook1 = obj("mainNotebook",   State),
+    Notebook2 = obj("msgWinNotebook", State),
+    wxNotebook:getCurrentPage(Notebook1) =:= wxNotebook:getPage(Notebook1, 1)
+        andalso
+        wxNotebook:getCurrentPage(Notebook2) =:= wxNotebook:getPage(Notebook2, 0).
 
 loadMessages(View, msgEntry, #guiState{user = User, msgCfg = Cfg}) ->
     eWorkLogView:load_messages(View, User, "chat", Cfg);
