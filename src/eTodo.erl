@@ -354,6 +354,7 @@ initGUI(Arg) ->
     setEditStyle(ComArea2),
 
     setIcon(Frame),
+    setDockIcon(),
     setIcon(Login),
     setIcon(Time),
     setIcon(Timer),
@@ -1321,6 +1322,19 @@ setIcon(Frame) ->
     wxIcon:copyFromBitmap(Icon, Bitmap),
     wxFrame:setIcon(Frame, Icon).
 
+%% macOS shows wx's Erlang logo in the Dock unless the app sets its own.
+setDockIcon() ->
+    case os:type() of
+        {unix, darwin} ->
+            File = filename:join([code:priv_dir(eTodo), "www", "priv",
+                                  "Icons", "etodoSuper.png"]),
+            Icon = wxIcon:new(),
+            wxIcon:copyFromBitmap(Icon, wxBitmap:new(wxImage:new(File))),
+            Dock = wxTaskBarIcon:new([{iconType, ?wxTBI_DOCK}]),
+            wxTaskBarIcon:setIcon(Dock, Icon, [{tooltip, "eTodo"}]);
+        _ ->
+            ok
+    end.
 smallIcon() ->
     case os:type() of
         {unix, _} ->
