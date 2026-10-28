@@ -32,6 +32,7 @@
 	     eTodoStatus,
 	     eTodoTunnel,
 	     eTodoApp,
+	     eTodoConfig,
 	     startETodo
 	    ]},
   {maxT, infinity},

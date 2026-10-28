@@ -14,3 +14,4 @@ priv/server_cert.pem.fullchain.pem
 priv/server_key.pem
 deploy.sh
 priv/chain_cert.pem
+/config/etodo.toml

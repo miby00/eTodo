@@ -1,0 +1,81 @@
+# eTodo configuration
+#
+# Copy this file to config/etodo.toml (copied into the release by
+# `make release`), /etc/etodo/etodo.toml or ~/.eTodo/etodo.toml, or point the
+# environment variable ETODO_CONFIG at it. The first file found is used.
+#
+# Settings here take priority over config/sys.config; anything left out keeps
+# its sys.config value. Remove the leading "# " to use a setting.
+#
+# A text written as "%NAME%" is read from the environment variable NAME,
+# so secrets do not have to be stored in this file.
+
+[storage]
+# Mac:     /Users/<user>/.eTodo
+# Linux:   /home/<user>/.eTodo
+# Windows: C:/Users/<user>/AppData/Roaming/eTodo
+# database_dir = "/home/me/.eTodo"
+# log_dir      = "/home/me/.eTodo/logs/eLog"
+
+[node]
+# mode = "gui"                # "gui" or "noGui" (headless server)
+# Used when running without a GUI:
+# user           = "UserName"
+# password       = "%ETODO_PASSWORD%"
+# circle         = "Circle"
+# status         = "Available" # "Available", "Busy" or "Away"
+# status_message = "Only using the web client"
+
+[web]
+# enabled   = true
+# port      = 9003
+# bind      = "0.0.0.0"
+# certificate = "server_cert.pem.fullchain.pem"  # relative to priv, or absolute
+# key       = "server_key.pem"
+# link_host = "relayhost:9005"  # Host used in links when reached via a relay
+
+# Relay: forward a port on this node to another user's web GUI.
+[relay]
+# port   = 9005
+# target = "OwnerUser"
+
+# Tunnel: users allowed to relay to this node's web GUI.
+[tunnel]
+# peers = ["RelayUser"]
+
+# Sign in with Google (OpenID Connect).
+[google]
+# client_id     = "1234.apps.googleusercontent.com"
+# client_secret = "%GOOGLE_CLIENT_SECRET%"
+# redirect_uri  = "https://etodo.example.org:9003/auth/google/callback"
+# proxy         = "proxy.example.org:8080"  # or false for a direct connection
+
+# Google addresses allowed to sign in, and the eTodo user they become.
+[google.users]
+# "someone@gmail.com" = "UserName"
+
+# Mail settings, override the ones saved by the desktop GUI.
+[smtp]
+# enabled  = true
+# server   = "smtp.example.com"
+# port     = 587
+# auth     = "STARTTLS"  # "None", "Plain text", "STARTTLS" or "SSL/TLS"
+# user     = "me@example.com"
+# password = "%SMTP_PASSWORD%"
+
+# Mail unread chat messages when running without a GUI.
+[notification]
+# email = "me@example.com"
+# time  = 60                    # seconds before the mail is sent
+
+[slack]
+# url           = "https://slack.com/api"
+# token         = "%SLACK_TOKEN%"
+# client_id     = ""
+# client_secret = "%SLACK_CLIENT_SECRET%"
+
+[jira]
+# url      = "http://JIRA:8080"
+# user     = "user"
+# password = "%JIRA_PASSWORD%"
+# search   = "assignee = currentUser() and status not in (Resolved, Closed)"
