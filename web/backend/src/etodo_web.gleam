@@ -167,6 +167,24 @@ fn desktop_messages_page(
 @external(erlang, "eWorkLogView", "messages_page")
 fn messages_page(token: String, kind: String) -> Result(String, String)
 
+@external(erlang, "eWorkLogView", "desktop_messages_fragment")
+fn desktop_messages_fragment(
+  token: String,
+  filter: String,
+  peers: String,
+) -> Result(String, String)
+
+@external(erlang, "eWorkLogView", "desktop_message_action")
+fn desktop_message_action(
+  token: String,
+  csrf: String,
+  action: String,
+  value: String,
+) -> Result(String, String)
+
+@external(erlang, "eWorkLogView", "desktop_user")
+fn desktop_user(token: String) -> Result(String, Nil)
+
 @external(erlang, "eTodoPush", "subscribe")
 fn push_subscribe(user: String, subject: process.Subject(String)) -> Nil
 
@@ -391,6 +409,7 @@ pub fn start_work_log(owner: process.Pid) {
         True ->
           case request.method, request.path_segments(request) {
             Get, ["assets", "bootstrap.min.css"] -> bootstrap_response()
+            Get, ["assets", "etodo.js"] -> script_response(read_etodo_script())
             Get, ["desktop", ticket] ->
               desktop_bootstrap(request, "work-log", ticket)
             Get, ["desktop", report, ticket] ->
@@ -399,6 +418,9 @@ pub fn start_work_log(owner: process.Pid) {
             Get, ["time-log"] -> desktop_report(request, "time-log")
             Get, ["schedule"] -> desktop_report(request, "schedule")
             Get, ["messages"] -> desktop_messages(request)
+            Get, ["messages", "fragment"] -> desktop_fragment(request)
+            Post, ["messages", action] -> desktop_action(request, action)
+            Get, ["events"] -> desktop_events(request)
             Get, ["avatar"] ->
               logo_response(read_desktop_avatar(
                 cookie_values(request, desktop_cookie),
@@ -522,9 +544,74 @@ fn desktop_messages(request: Request(Connection)) -> Response(ResponseData) {
   case
     first_valid_desktop_page(cookie_values(request, desktop_cookie), render)
   {
-    Ok(page) -> work_log_response(page)
+    Ok(page) -> messages_response(page)
     Error("invalid_session") -> response(401, "Desktop sign-in expired")
     Error(_) -> response(400, "Could not load messages")
+  }
+}
+
+fn desktop_fragment(request: Request(Connection)) -> Response(ResponseData) {
+  let render = fn(token) {
+    desktop_messages_fragment(
+      token,
+      query_value(request, "filter"),
+      query_value(request, "peers"),
+    )
+  }
+  case
+    first_valid_desktop_page(cookie_values(request, desktop_cookie), render)
+  {
+    Ok(body) ->
+      response(200, body)
+      |> response.set_header("content-type", "application/json")
+      |> response.set_header("cache-control", "no-store")
+    Error("invalid_session") -> response(401, "Desktop sign-in expired")
+    Error(_) -> response(500, "Could not read messages")
+  }
+}
+
+// Composer actions of the desktop Messages view: send, preview, typing,
+// linkfile and viewing.
+fn desktop_action(
+  request: Request(Connection),
+  action: String,
+) -> Response(ResponseData) {
+  case form_fields(request) {
+    Ok(fields) -> {
+      let field = fn(name) { list.key_find(fields, name) |> result.unwrap("") }
+      let run = fn(token) {
+        desktop_message_action(token, field("csrf"), action, field("value"))
+      }
+      case
+        first_valid_desktop_page(cookie_values(request, desktop_cookie), run)
+      {
+        Ok(body) ->
+          response(200, body)
+          |> response.set_header("content-type", "text/html; charset=utf-8")
+          |> response.set_header("cache-control", "no-store")
+        Error("invalid_session") -> response(401, "Desktop sign-in expired")
+        Error(reason) -> response(400, reason)
+      }
+    }
+    Error(_) -> response(400, "Invalid request")
+  }
+}
+
+fn desktop_events(request: Request(Connection)) -> Response(ResponseData) {
+  case first_desktop_user(cookie_values(request, desktop_cookie)) {
+    Ok(username) -> event_stream(request, username)
+    Error(_) -> response(401, "Desktop sign-in expired")
+  }
+}
+
+fn first_desktop_user(tokens: List(String)) -> Result(String, Nil) {
+  case tokens {
+    [] -> Error(Nil)
+    [token, ..rest] ->
+      case desktop_user(token) {
+        Ok(username) -> Ok(username)
+        Error(_) -> first_desktop_user(rest)
+      }
   }
 }
 
@@ -627,30 +714,38 @@ fn work_log_response(page: String) -> Response(ResponseData) {
 // One Server-Sent Events stream per open tab; eTodoPush feeds it.
 fn serve_events(request: Request(Connection)) -> Response(ResponseData) {
   case current_session(request) {
-    Ok(#(_, username)) ->
-      mist.server_sent_events(
-        request,
-        response.new(200)
-          |> response.set_header("cache-control", "no-store")
-          |> response.set_header("x-accel-buffering", "no"),
-        init: fn(subject) { push_subscribe(username, subject) },
-        loop: fn(state, event, connection) {
-          let message =
-            mist.event(string_tree.from_string(event))
-            |> mist.event_name(case event {
-              "ping" -> "ping"
-              "reports" -> "reports"
-              "status" -> "status"
-              _ -> "messages"
-            })
-          case mist.send_event(connection, message) {
-            Ok(Nil) -> actor.continue(state)
-            Error(Nil) -> actor.stop()
-          }
-        },
-      )
+    Ok(#(_, username)) -> event_stream(request, username)
     Error(_) -> response(401, "Not signed in")
   }
+}
+
+fn event_stream(
+  request: Request(Connection),
+  username: String,
+) -> Response(ResponseData) {
+  mist.server_sent_events(
+    request,
+    response.new(200)
+      |> response.set_header("cache-control", "no-store")
+      |> response.set_header("x-accel-buffering", "no"),
+    init: fn(subject) { push_subscribe(username, subject) },
+    loop: fn(state, event, connection) {
+      let message =
+        mist.event(string_tree.from_string(event))
+        |> mist.event_name(case event {
+          "ping" -> "ping"
+          "reports" -> "reports"
+          "status" -> "status"
+          "counts" -> "counts"
+          "recipients" -> "recipients"
+          _ -> "messages"
+        })
+      case mist.send_event(connection, message) {
+        Ok(Nil) -> actor.continue(state)
+        Error(Nil) -> actor.stop()
+      }
+    },
+  )
 }
 
 fn serve_messages_json(request: Request(Connection)) -> Response(ResponseData) {

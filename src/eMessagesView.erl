@@ -3,8 +3,8 @@
 %% Renders stored chat, reminder and system messages as a themed HTML
 %% timeline. Used by the desktop WebView and by the browser web GUI.
 
--export([render/4, render_browser/3, kind/1, filter/2, avatar/1,
-         online_peers/1]).
+-export([render/4, render_browser/3, render_desktop/6, desktop_fragment/3,
+         preview/2, kind/1, filter/2, avatar/1, online_peers/1]).
 -export([document/5, browser_document/4, browser_document/5,
          parse_legacy/1, sanitize/1, plain/1]).
 
@@ -108,6 +108,42 @@ render_browser(User, Kind, Composer) ->
                                          Composer)
                 end).
 
+%% The desktop client shows one kind at a time, with the composer in Chat.
+render_desktop(User, Kind, Filter, Theme, Csrf, Counts) ->
+    safe_render(fun() ->
+                        desktop_document(User, Kind,
+                                         desktop_panels(User, Filter),
+                                         stylesheet(), Theme, Csrf, Counts)
+                end).
+
+desktop_fragment(User, Filter, Counts) ->
+    safe_render(
+      fun() ->
+              Timelines =
+                  [{kind_name(Kind),
+                    iolist_to_binary(mochiweb_html:to_html(
+                                       timeline_node(User, Kind, Records,
+                                                     true)))}
+                   || {Kind, Records} <- desktop_panels(User, Filter)],
+              jsx:encode(maps:from_list([{<<"counts">>, Counts}
+                                         | Timelines]))
+      end).
+
+%% How a message will look once sent.
+preview(User, Text) ->
+    Name      = unicode:characters_to_list(User),
+    {Html, _} = eHtml:generateMsg(Name, Name, [],
+                                  unicode:characters_to_list(Text)),
+    Record    = {os:timestamp(), msgEntry, Name, [],
+                 unicode:characters_to_binary(Html)},
+    Message   = message(unicode:characters_to_binary(User), Record),
+    iolist_to_binary(mochiweb_html:to_html(entry(Message, false, true))).
+
+desktop_panels(User, Filter) ->
+    [{chat,      fetch(User, chat, Filter)},
+     {reminders, fetch(User, reminders, all)},
+     {system,    fetch(User, system, all)}].
+
 safe_render(Render) ->
     try
         {ok, Render()}
@@ -160,6 +196,85 @@ browser_document(User, Selected, Panels, Css, Composer) ->
             Sections},
     Header = browser_header(Selected, [Kind || {Kind, _} <- Panels]),
     page("", " data-swipe-prev=\"/\"", true, [Header, Main], Css).
+
+desktop_document(User, Selected, Panels, Css, Theme, Csrf, Counts) ->
+    Sections = [{<<"section">>,
+                 [{<<"id">>, kind_name(Kind)}, {<<"class">>, <<"panel">>},
+                  {<<"aria-label">>, kind_label(Kind)}],
+                 [{<<"div">>, [{<<"class">>, <<"panel-scroll">>}],
+                   [timeline_node(User, Kind, Records, true)]}
+                  | case Kind of
+                        chat -> desktop_composer(Csrf);
+                        _    -> []
+                    end]}
+                || {Kind, Records} <- Panels],
+    Main = {<<"main">>, [{<<"class">>, <<"panels">>},
+                         {<<"data-selected">>, kind_name(Selected)}],
+            Sections},
+    Tabs = [nav_link(<<"#", (kind_name(Kind))/binary>>,
+                     [kind_label(Kind), tab_count(Kind, Counts)],
+                     Kind =:= Selected)
+            || {Kind, _} <- Panels],
+    Header = {<<"header">>, [{<<"class">>, <<"report-header desktop">>}],
+              [{<<"nav">>, [{<<"class">>, <<"kinds">>},
+                            {<<"aria-label">>, <<"Message type">>}], Tabs},
+               menu_button()]},
+    page(eWorkLogView:theme_attributes(Theme), " data-desktop=\"messages\"",
+         true, [Header, Main], Css).
+
+tab_count(Kind, Counts) ->
+    Text = case maps:get(Kind, Counts, 0) of
+               Count when is_integer(Count), Count > 0 ->
+                   integer_to_binary(Count);
+               _ -> <<>>
+           end,
+    {<<"span">>, [{<<"class">>, <<"tab-count">>},
+                  {<<"data-kind">>, kind_name(Kind)}], [Text]}.
+
+%% Recipients are picked in the user lists next to the view.
+desktop_composer(Csrf) ->
+    Smileys = [{<<":-)">>, <<"🙂"/utf8>>, <<"Happy">>},
+               {<<":D">>,  <<"😂"/utf8>>, <<"LOL">>},
+               {<<";-)">>, <<"😉"/utf8>>, <<"Wink">>},
+               {<<":P">>,  <<"😈"/utf8>>, <<"Mischief">>},
+               {<<":O">>,  <<"😮"/utf8>>, <<"Shocked">>},
+               {<<":,(">>, <<"😭"/utf8>>, <<"Crying">>},
+               {<<"<3">>,  <<"❤️"/utf8>>, <<"Heart">>}],
+    Tools = [tool_button([{<<"data-insert">>, Code}], Emoji, Title)
+             || {Code, Emoji, Title} <- Smileys] ++
+        [tool_button([{<<"data-action">>, <<"linkfile">>}],
+                     <<"📎"/utf8>>, <<"Link a file">>),
+         tool_button([{<<"data-action">>, <<"preview">>},
+                      {<<"aria-pressed">>, <<"false">>}],
+                     <<"👁️"/utf8>>, <<"Preview">>)],
+    [{<<"form">>, [{<<"class">>, <<"composer desktop">>},
+                   {<<"method">>, <<"post">>},
+                   {<<"action">>, <<"/messages/send">>}],
+      [{<<"input">>, [{<<"type">>, <<"hidden">>},
+                      {<<"name">>, <<"csrf">>},
+                      {<<"value">>, Csrf}], []},
+       {<<"div">>, [{<<"class">>, <<"composer-tools">>}], Tools},
+       {<<"div">>, [{<<"class">>, <<"composer-preview">>},
+                    {<<"hidden">>, <<"hidden">>}], []},
+       {<<"textarea">>, [{<<"name">>, <<"value">>},
+                         {<<"class">>, <<"form-control">>},
+                         {<<"rows">>, <<"5">>},
+                         {<<"maxlength">>, <<"4000">>},
+                         {<<"placeholder">>,
+                          <<"Message (Enter sends, Shift+Enter new line)">>},
+                         {<<"aria-label">>, <<"Message">>}], []},
+       {<<"button">>, [{<<"type">>, <<"submit">>},
+                       {<<"class">>, <<"btn btn-primary">>},
+                       {<<"title">>, <<"Send">>},
+                       {<<"aria-label">>, <<"Send">>}],
+        [<<"➤"/utf8>>]},
+       {<<"p">>, [{<<"class">>, <<"composer-status">>},
+                  {<<"role">>, <<"status">>}], []}]}].
+
+tool_button(Attributes, Icon, Title) ->
+    {<<"button">>, [{<<"type">>, <<"button">>}, {<<"title">>, Title},
+                    {<<"aria-label">>, Title} | Attributes],
+     [Icon]}.
 
 page(HtmlAttributes, BodyAttributes, Script, Nodes, Css) ->
     {ScriptPolicy, ScriptTag} =

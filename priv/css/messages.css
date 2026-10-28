@@ -427,10 +427,59 @@ main.panels::-webkit-scrollbar { display: none; }
 }
 
 @media (min-width: 1100px) {
-  .panel { flex-basis: calc(100% / 3); border-right: 1px solid var(--line); }
-  .panel:last-child { border-right: 0; }
-  .report-header .kinds { display: none; }
+  html:not([data-embedded]) .panel {
+    flex-basis: calc(100% / 3);
+    border-right: 1px solid var(--line);
+  }
+  html:not([data-embedded]) .panel:last-child { border-right: 0; }
+  html:not([data-embedded]) .report-header .kinds { display: none; }
 }
+
+/* Desktop client: one kind at a time, unread counts on the tabs. */
+.report-header.desktop {
+  flex-wrap: nowrap;
+  min-height: 0;
+  padding: 6px 12px;
+}
+.report-header.desktop .menu-button { position: static; }
+.tab-count:not(:empty) {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--timer);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.composer.desktop textarea {
+  min-height: 0;
+  max-height: none;
+  border-radius: 12px;
+  field-sizing: fixed;
+}
+.composer-tools, .composer-preview, .composer-status { grid-column: 1 / -1; }
+.composer-tools { display: flex; flex-wrap: wrap; gap: 2px; }
+.composer .composer-tools button {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: none;
+  color: var(--foreground);
+  font-size: 17px;
+}
+.composer .composer-tools button:hover,
+.composer .composer-tools button[aria-pressed="true"] {
+  background: var(--surface-strong);
+}
+.composer-preview {
+  max-height: 40vh;
+  overflow-y: auto;
+  padding: 4px 0 8px;
+  border-bottom: 1px dashed var(--line);
+}
+.composer-status { margin: 0; color: var(--timer); font-size: 12px; }
+.composer-status:empty { display: none; }
 
 /* Browser header (web GUI) */
 .report-header {

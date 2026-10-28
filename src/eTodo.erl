@@ -321,21 +321,18 @@ initGUI(Arg) ->
     wxXmlResource:attachUnknownControl(Xrc, "workLogReport", WorkLogView),
     wxXmlResource:attachUnknownControl(Xrc, "timeLogReport", TimeLogView),
     wxXmlResource:attachUnknownControl(Xrc, "scheduleReport", ScheduleView),
-    [wxXmlResource:attachUnknownControl(Xrc, Name, eWorkLogView:new(Frame))
-     || Name <- ["msgTextWin", "remTextWin", "systemTextWin"]],
+    wxXmlResource:attachUnknownControl(Xrc, "msgTextWin",
+                                       eWorkLogView:new(Frame)),
 
     %% Attach wxStyledTextCtrl
     DescArea    = wxStyledTextCtrl:new(Frame),
     ComArea     = wxStyledTextCtrl:new(Frame),
-    MsgTextCtrl = wxStyledTextCtrl:new(Frame),
 
     wxXmlResource:attachUnknownControl(Xrc, "descriptionAreaSTC", DescArea),
     wxXmlResource:attachUnknownControl(Xrc, "commentAreaSTC",     ComArea),
-    wxXmlResource:attachUnknownControl(Xrc, "msgTextCtrlSTC",     MsgTextCtrl),
 
     setEditStyle(DescArea),
     setEditStyle(ComArea),
-    setEditStyle(MsgTextCtrl),
 
     %% wxStyleCtrl conflict window.
     DescArea1 = wxStyledTextCtrl:new(Conflict),
@@ -543,8 +540,8 @@ initGUI(Arg) ->
     wxToolBar:enableTool(ToolBar, Back, false),
 
     wxFrame:show(Frame),
-    %% Set size on splitterWindows.
-    setSplitterPos(UserConfig, Frame),
+    eGuiFunctions:showTaskDetails(
+      UserConfig#userCfg.splitterMain =/= hidden, Frame),
     case DefUserCfg#userCfg.showLogin of
         true ->
             eGuiEvents:loginMenuItemEvent(undefined,
@@ -583,57 +580,6 @@ setWindowSize(DefUser, Frame) ->
             ok
     end,
     UserCfg.
-
-setSplitterPos(UserCfg, Frame) ->
-    %% Set size main splitter
-    SplitterMain = obj("splitterMain", Frame),
-
-    case UserCfg#userCfg.splitterMain of
-        MainPos when is_integer(MainPos) ->
-            wxSplitterWindow:setSashPosition(SplitterMain, MainPos);
-        _ ->
-            ok
-    end,
-
-    %% Set size comment splitter
-    SplitterComment = obj("splitterComment", Frame),
-
-    case UserCfg#userCfg.splitterComment of
-        CommentPos when is_integer(CommentPos) ->
-            wxSplitterWindow:setSashPosition(SplitterComment, CommentPos);
-        _ ->
-            ok
-    end,
-
-    %% Set size message splitter
-    SplitterMsg = obj("splitVerMsg", Frame),
-
-    case UserCfg#userCfg.splitterMsg of
-        MsgPos when is_integer(MsgPos) ->
-            wxSplitterWindow:setSashPosition(SplitterMsg, MsgPos);
-        _ ->
-            ok
-    end,
-
-    %% Set size message splitter
-    SplitterMsg2 = obj("splitHorizMsg", Frame),
-
-    case UserCfg#userCfg.splitHorizMsg of
-        MsgPos2 when is_integer(MsgPos2) ->
-            wxSplitterWindow:setSashPosition(SplitterMsg2, MsgPos2);
-        _ ->
-            ok
-    end,
-
-    %% Set offline users splitter
-    SplitterUsers = obj("splitHorizUsers", Frame),
-
-    case UserCfg#userCfg.splitHorizUsers of
-        UserPos when is_integer(UserPos) ->
-            wxSplitterWindow:setSashPosition(SplitterUsers, UserPos);
-        _ ->
-            ok
-    end.
 
 saveGuiText(State = #guiState{activeTodo = {undefined, _}}) ->
     State;
@@ -789,6 +735,13 @@ handle_call({trustPeerCertificate, Peer, Host, Port, OldPin, Pin}, _From,
                 Approved -> Approved
             end,
     {reply, Reply, State};
+%% Composer of the Messages view.
+handle_call({webChatSend, Text}, _From, State) ->
+    {Reply, State2} = eGuiEvents:sendChatText(Text, State),
+    {reply, Reply, State2};
+handle_call(webLinkFile, _From, State) ->
+    {Reply, State2} = eGuiEvents:linkFileText(State),
+    {reply, Reply, State2};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -853,7 +806,7 @@ handle_cast({workLogAction, Action, Shift, Ctrl}, State) ->
     Event = #wx{event = #wxHtmlLink{linkInfo = #wxHtmlLinkInfo{href = Link}}},
     handle_event(Event, State#guiState{shiftMod = Shift, ctrlMod = Ctrl});
 handle_cast({appendToPage, Html}, State) ->
-    MsgObj = obj("systemTextWin", State),
+    MsgObj = obj("msgTextWin", State),
     State2 = appendToPage(MsgObj, systemEntry, {Html, ""}, State),
     {noreply, State2};
 handle_cast({msgEntry, User, Users, Text},
@@ -870,24 +823,28 @@ handle_cast({msgEntry, User, Users, Text},
     {noreply, State3#guiState{reply = User, replyAll = ReplyAll}};
 handle_cast(webMessagesRead, State) ->
     {noreply, eGuiFunctions:markMessagesRead(State)};
+handle_cast(webTyping, State) ->
+    {noreply, eGuiEvents:sendTyping(State)};
+handle_cast({msgKindShown, Kind}, State) ->
+    {noreply, eGuiFunctions:msgKindShown(Kind, State)};
 handle_cast({webMsgSent, Users, Text}, State = #guiState{user = User}) ->
     MsgObj = obj("msgTextWin", State),
     {noreply, appendToPage(MsgObj, msgEntry, User, Users,
                            eHtml:generateMsg(User, User, Users, Text), State)};
 handle_cast({systemEntry, system, Text}, State) ->
-    MsgObj       = obj("systemTextWin",    State),
+    MsgObj = obj("msgTextWin", State),
     State2 = appendToPage(MsgObj, systemEntry,
                           eHtml:generateSystemMsg(system, Text), State),
     State3 = chatMsgStatusBar(systemEntry, "System message received.", State2),
     {noreply, State3};
 handle_cast({systemEntry, Uid, Text}, State) ->
-    MsgObj       = obj("systemTextWin",    State),
+    MsgObj = obj("msgTextWin", State),
     State2 = appendToPage(MsgObj, systemEntry,
                           eHtml:generateSystemMsg(Uid, Text), State),
     State3 = chatMsgStatusBar(systemEntry, "System message received.", State2),
     {noreply, State3};
 handle_cast({alarmEntry, Uid, Text}, State) ->
-    MsgObj   = obj("remTextWin",    State),
+    MsgObj   = obj("msgTextWin", State),
     AlarmMsg = eHtml:generateAlarmMsg(Uid, Text),
     State2   = appendToPage(MsgObj, alarmEntry, AlarmMsg, State),
     State3   = chatMsgStatusBar(alarmEntry, "Alarm message received.", State2),
@@ -1416,17 +1373,12 @@ handle_cmd(Name, Type, Index, Id, Frame, State) ->
 %%======================================================================
 connectMsgFrame(Frame, Dict) ->
     ChatMsgObj  = wxXmlResource:xrcctrl(Frame, "msgTextWin",     wxWebView),
-    RemMsgObj   = wxXmlResource:xrcctrl(Frame, "remTextWin",     wxWebView),
-    SysMsgObj   = wxXmlResource:xrcctrl(Frame, "systemTextWin",  wxWebView),
     WorkLogObj  = wxXmlResource:xrcctrl(Frame, "workLogReport",  wxWebView),
-    TimeLogObj  = wxXmlResource:xrcctrl(Frame, "timeLogReport", wxWebView),
+    TimeLogObj  = wxXmlResource:xrcctrl(Frame, "timeLogReport",  wxWebView),
     ScheduleObj = wxXmlResource:xrcctrl(Frame, "scheduleReport", wxWebView),
-    MsgTextObj  = wxXmlResource:xrcctrl(Frame, "msgTextCtrlSTC", wxStyledTextCtrl),
     OfflineObj  = wxXmlResource:xrcctrl(Frame, "emailCheckBox",  wxCheckListBox),
 
     wxWebView:connect(ChatMsgObj, right_down),
-    wxWebView:connect(RemMsgObj,  right_down),
-    wxWebView:connect(SysMsgObj,  right_down),
     wxWebView:connect(WorkLogObj, right_down),
     wxWebView:connect(WorkLogObj, key_down, [{skip, true}]),
     wxWebView:connect(WorkLogObj, key_up,   [{skip, true}]),
@@ -1439,20 +1391,12 @@ connectMsgFrame(Frame, Dict) ->
 
     wxCheckListBox:connect(OfflineObj, right_down),
 
-    wxTextCtrl:connect(MsgTextObj, key_down,   [{skip, true}]),
-    wxTextCtrl:connect(MsgTextObj, kill_focus, [{skip, true}]),
-    wxTextCtrl:connect(MsgTextObj, set_focus,  [{skip, true}]),
-
-    Dict2  = connectItems(["msgTextCtrlSTC"], [stc_change], Frame, Dict),
-    Dict3  = connectItems(["sendChatMsg"], command_button_clicked, Frame, Dict2),
-    Dict4  = Dict3#{xrcId("workLogReport") => "workLogReport",
-                    xrcId("timeLogReport") => "timeLogReport",
-                    xrcId("scheduleReport") => "scheduleReport",
-                    xrcId("msgTextWin") => "msgTextWin",
-                    xrcId("remTextWin") => "remTextWin",
-                    xrcId("systemTextWin") => "systemTextWin"},
-    connectItems(["descAreaPreview", "commentAreaPreview", "msgAreaPreview"],
-                 command_html_link_clicked, Frame, Dict4).
+    Dict2 = Dict#{xrcId("workLogReport")  => "workLogReport",
+                  xrcId("timeLogReport")  => "timeLogReport",
+                  xrcId("scheduleReport") => "scheduleReport",
+                  xrcId("msgTextWin")     => "msgTextWin"},
+    connectItems(["descAreaPreview", "commentAreaPreview"],
+                 command_html_link_clicked, Frame, Dict2).
 
 connectMainFrame(Frame, Dict) ->
     ok = wxFrame:connect(Frame, close_window),
@@ -1472,7 +1416,7 @@ connectMainFrame(Frame, Dict) ->
                  "helpMenu1", "updateMenu", "sendChatMenu",
                  "replyMenu", "replyAllMenu", "setAvatarMenuItem",
                  "backupMenuItem", "restoreMenuItem", "pluginMenuItem",
-                 "toggleFilterMenuItem"],
+                 "toggleFilterMenuItem", "toggleDetailsMenuItem"],
 
     MenuChoice = ["userStatusChoice", "statusChoice", "priorityChoice",
                   "taskListChoice", "ownerChoice"],
@@ -1488,10 +1432,7 @@ connectMainFrame(Frame, Dict) ->
     Buttons = ["setReminderButton", "commentButton",
                "manageListsButton", "sendTaskButton","addOwnerButton",
                "configureSearch", "shareButton", "addListButton",
-               "bookmarkBtn", "logWorkButton", "linkFileButton",
-               "smileyMischief", "smileyShocked", "smileyCrying",
-               "smileyWink", "smileyHappy", "smileyLOL", "smileyHeart",
-               "msgSettingsButton"],
+               "bookmarkBtn", "logWorkButton", "msgSettingsButton"],
 
     TextFields = ["searchText", "userStatusMsg"],
 
@@ -1508,9 +1449,7 @@ connectMainFrame(Frame, Dict) ->
                           command_checkbox_clicked,             Frame, Dict9),
     Dict11 = connectItems(["mainNotebook",
                            "descNotebook",
-                           "commentNotebook",
-                           "msgWinNotebook",
-                           "msgNotebook"],
+                           "commentNotebook"],
                           command_notebook_page_changed,        Frame, Dict10),
     Dict12 = connectItems(["userCheckBox", "emailCheckBox"],
                           [command_listbox_selected,
@@ -1605,25 +1544,10 @@ setUserNameAndFocus(Login, DefUserCfg) ->
 
 saveEtodoSettings(#guiState{frame = Frame, user = User, filter = Filter}) ->
     Size            = wxFrame:getSize(Frame),
-    SplitterMain    = obj("splitterMain", Frame),
-    MainPos         = wxSplitterWindow:getSashPosition(SplitterMain),
-    SplitterComment = obj("splitterComment", Frame),
-    CommentPos      = wxSplitterWindow:getSashPosition(SplitterComment),
-    SplitterMsg     = obj("splitVerMsg", Frame),
-    MsgPos          = wxSplitterWindow:getSashPosition(SplitterMsg),
-    SplitterMsg2    = obj("splitHorizMsg", Frame),
-    SplitterUsers   = obj("splitHorizUsers", Frame),
-    MsgPos2         = wxSplitterWindow:getSashPosition(SplitterMsg2),
-    UserPos         = wxSplitterWindow:getSashPosition(SplitterUsers),
     Plugins         = ePluginServer:getConfiguredPlugins(),
     UserCfg         = eTodoDB:readUserCfg(User),
 
     eTodoDB:saveUserCfg(UserCfg#userCfg{windowSize      = Size,
-                                        splitterMain    = MainPos,
-                                        splitterComment = CommentPos,
-                                        splitterMsg     = MsgPos,
-                                        splitHorizMsg   = MsgPos2,
-                                        splitHorizUsers = UserPos,
                                         filter          = Filter,
                                         plugins         = Plugins}).
 

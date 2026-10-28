@@ -24,6 +24,9 @@
          checkUndoStatus/1,
          clearAndInitiate/2,
          clearMsgCounter/1,
+         showTaskDetails/2,
+         msgKindShown/2,
+         reloadStaleMessages/1,
          clearNotificationTimer/1,
          clearStatusBar/1,
          convertToLocal/1,
@@ -56,7 +59,6 @@
          setColor/2,
          setColumnWidth/4,
          setDoneTimeStamp/3,
-         setMessagePage/2,
          setMsgCounter/2,
          markMessagesRead/1,
          setOwner/3,
@@ -140,22 +142,18 @@ updateTodo(List, ETodo, Row, State) ->
 appendToPage(MsgObj, Type, {Html, _HtmlCSS}, State) ->
     appendToPage(MsgObj, Type, "", "", {Html, _HtmlCSS}, State).
 
-appendToPage(MsgObj, Type, From, To, {Html, _HtmlCSS}, State) ->
+%% The Messages view reloads its timelines when eTodoDB pushes the change.
+appendToPage(_MsgObj, Type, From, To, {Html, _HtmlCSS}, State) ->
     eTodoDB:appendToPage(State#guiState.user, Type, From, To, Html),
-    case {evalShow(Type, From, To, State#guiState.msgCfg),
-          chatVisible(State)} of
-        {true, _} ->
-            loadMessages(MsgObj, Type, State),
+    case evalShow(Type, From, To, State#guiState.msgCfg) orelse
+        not chatVisible(State) of
+        true ->
             State;
-        {false, true} ->
+        false ->
             %% Hidden by the chat filter while Chat is open; chatMsgStatusBar
-            %% only counts messages arriving on a tab that isn't shown.
-            Notebook1 = obj("mainNotebook",   State),
-            Notebook2 = obj("msgWinNotebook", State),
-            State2 = increaseMsgCounter(State, Notebook1),
-            saveMsgCounters(increaseMsgCounter(Type, State2, Notebook2));
-        {false, false} ->
-            State
+            %% only counts messages arriving on a kind that isn't shown.
+            State2 = increaseMsgCounter(State, obj("mainNotebook", State)),
+            saveMsgCounters(increaseKindCounter(Type, State2))
     end.
 
 %% The peer filter only applies to chat; reminders and system messages
@@ -165,18 +163,49 @@ evalShow(msgEntry, UserName, To, {true, Users}) ->
 evalShow(_,  _From, _To, _msgCfg)       -> true.
 
 chatVisible(State) ->
-    Notebook1 = obj("mainNotebook",   State),
-    Notebook2 = obj("msgWinNotebook", State),
-    wxNotebook:getCurrentPage(Notebook1) =:= wxNotebook:getPage(Notebook1, 1)
-        andalso
-        wxNotebook:getCurrentPage(Notebook2) =:= wxNotebook:getPage(Notebook2, 0).
+    messagesVisible(State) andalso msgKind() =:= msgEntry.
 
-loadMessages(View, msgEntry, #guiState{user = User, msgCfg = Cfg}) ->
-    eWorkLogView:load_messages(View, User, "chat", Cfg);
-loadMessages(View, alarmEntry, #guiState{user = User}) ->
-    eWorkLogView:load_messages(View, User, "reminders", all);
-loadMessages(View, _SystemEntry, #guiState{user = User}) ->
-    eWorkLogView:load_messages(View, User, "system", all).
+messagesVisible(State) ->
+    Notebook = obj("mainNotebook", State),
+    wxNotebook:getCurrentPage(Notebook) =:= wxNotebook:getPage(Notebook, 1).
+
+%% Message kind shown in the Messages view, reported by its page script.
+msgKind() ->
+    case get(msgKind) of
+        undefined -> msgEntry;
+        Kind      -> Kind
+    end.
+
+msgKindShown(Kind, State) ->
+    put(msgKind, Kind),
+    case messagesVisible(State) of
+        true  -> clearMsgCounter(State);
+        false -> State
+    end.
+
+%% Hiding the details gives the task list the whole height.
+showTaskDetails(Show, Frame) ->
+    wxWindow:show(obj("taskEditPanel", Frame), [{show, Show}]),
+    wxMenuBar:check(wxFrame:getMenuBar(Frame),
+                    xrcId("toggleDetailsMenuItem"), Show),
+    wxWindow:layout(obj("taskSplitPanel", Frame)).
+
+loadMessages(View, #guiState{user = User, msgCfg = Cfg}) ->
+    put(msgViewLoaded, erlang:monotonic_time(second)),
+    eWorkLogView:load_messages(View, User, kindName(msgKind()), Cfg).
+
+kindName(msgEntry)   -> "chat";
+kindName(alarmEntry) -> "reminders";
+kindName(_System)    -> "system".
+
+%% The page keeps a desktop session; renew it well before it expires.
+reloadStaleMessages(State) ->
+    Loaded = get(msgViewLoaded),
+    case is_integer(Loaded) andalso
+        erlang:monotonic_time(second) - Loaded < 3600 of
+        true  -> State;
+        false -> updateMsgWindow(State, State#guiState.user)
+    end.
 
 %%======================================================================
 %% Function :
@@ -1791,24 +1820,17 @@ smartSplit([Char|Rest], SoFar) ->
 saveMsg(_UserName, State) ->
     saveMsgCounters(State).
 
-%% Total and per-tab counters are stored together so a restart restores both.
+%% Total and per-kind counters are stored together so a restart restores both.
 saveMsgCounters(State = #guiState{user = User, unreadMsgs2 = {C1, C2, C3}}) ->
     UserCfg = eTodoDB:readUserCfg(User),
     eTodoDB:saveUserCfg(UserCfg#userCfg{unreadMsgs  = C1 + C2 + C3,
                                         unreadMsgs2 = {C1, C2, C3}}),
+    eTodoPush:notify(User, <<"counts">>),
     State.
 
 showMsgCounters(State = #guiState{unreadMsgs2 = {C1, C2, C3}}) ->
-    Notebook1 = obj("mainNotebook",   State),
-    Notebook2 = obj("msgWinNotebook", State),
-    setMsgCounter(Notebook1, C1 + C2 + C3),
-    wxNotebook:setPageText(Notebook2, 0, counterText("Chat",     C1)),
-    wxNotebook:setPageText(Notebook2, 1, counterText("Reminder", C2)),
-    wxNotebook:setPageText(Notebook2, 2, counterText("System",   C3)),
+    setMsgCounter(obj("mainNotebook", State), C1 + C2 + C3),
     State#guiState{unreadMsgs = C1 + C2 + C3}.
-
-counterText(Label, 0)     -> Label;
-counterText(Label, Count) -> Label ++ "(" ++ integer_to_list(Count) ++ ")".
 
 %% Messages were read elsewhere, e.g. in the web GUI.
 markMessagesRead(State) ->
@@ -1914,69 +1936,23 @@ getUsersWithEmail([User|Rest], Acc) ->
 %% Notes    :
 %%======================================================================
 updateMsgWindow(State, _User) ->
-    MsgTop = obj("msgTopPanel", State),
-    loadMessages(obj("msgTextWin",    State), msgEntry,    State),
-    loadMessages(obj("remTextWin",    State), alarmEntry,  State),
-    loadMessages(obj("systemTextWin", State), systemEntry, State),
-    wxPanel:layout(MsgTop),
-    wxPanel:refresh(MsgTop),
+    loadMessages(obj("msgTextWin", State), State),
     State.
 
-setMessagePage(Window, Html) ->
-    {Background, Page} = messagePage(Html),
-    wxHtmlWindow:setBackgroundColour(Window, Background),
-    wxHtmlWindow:setPage(Window, Page).
-
-messagePage(Html) ->
-    Background = wxSystemSettings:getColour(?wxSYS_COLOUR_WINDOW),
-    Foreground = wxSystemSettings:getColour(?wxSYS_COLOUR_WINDOWTEXT),
-    Link       = wxSystemSettings:getColour(?wxSYS_COLOUR_HOTLIGHT),
-    {BR, BG, BB, _} = Background,
-    {FR, FG, FB, _} = Foreground,
-    Bubble = {shade(BR, FR), shade(BG, FG), shade(BB, FB), 255},
-    Page = eHtml:themeMessages(Html, htmlColour(Background),
-                               htmlColour(Foreground), htmlColour(Bubble),
-                               htmlColour(Link)),
-    {Background, Page}.
-
-htmlColour({Red, Green, Blue, _Alpha}) ->
-    iolist_to_binary(io_lib:format("#~2.16.0B~2.16.0B~2.16.0B",
-                                   [Red, Green, Blue])).
-
-
-clearMsgCounter(State = #guiState{user = User,
-                                  unreadMsgs2 = {C1, C2, C3}}) ->
-    Notebook1 = obj("mainNotebook",   State),
-    Notebook2 = obj("msgWinNotebook", State),
-    ChatPanel = wxNotebook:getPage(Notebook2, 0),
-    RemPanel  = wxNotebook:getPage(Notebook2, 1),
-    SysPanel  = wxNotebook:getPage(Notebook2, 2),
-
-    State2 =
-        case wxNotebook:getCurrentPage(Notebook2) of
-            ChatPanel ->
-                CTot2 = C2 + C3,
-                setMsgCounter(Notebook1, CTot2),
-                wxNotebook:setPageText(Notebook2, 0, "Chat"),
-                NState = clearNotificationTimer(State),
-                NState#guiState{unreadMsgs = CTot2, unreadMsgs2 = {0, C2, C3}};
-            RemPanel ->
-                CTot2 = C1 + C3,
-                setMsgCounter(Notebook1, CTot2),
-                wxNotebook:setPageText(Notebook2, 1, "Reminder"),
-                State#guiState{unreadMsgs = CTot2, unreadMsgs2 = {C1, 0, C3}};
-            SysPanel ->
-                CTot2 = C1 + C2,
-                setMsgCounter(Notebook1, CTot2),
-                wxNotebook:setPageText(Notebook2, 2, "System"),
-                State#guiState{unreadMsgs = CTot2, unreadMsgs2 = {C1, C2, 0}}
+clearMsgCounter(State = #guiState{unreadMsgs2 = {C1, C2, C3}}) ->
+    {Counters, State2} =
+        case msgKind() of
+            msgEntry   -> {{0, C2, C3}, clearNotificationTimer(State)};
+            alarmEntry -> {{C1, 0, C3}, State};
+            _System    -> {{C1, C2, 0}, State}
         end,
-
-    UserCfg = eTodoDB:readUserCfg(User),
-    {NC1, NC2, NC3} = State2#guiState.unreadMsgs2,
-    eTodoDB:saveUserCfg(UserCfg#userCfg{unreadMsgs = NC1 + NC2 + NC3,
-                                        unreadMsgs2 = {NC1, NC2, NC3}}),
-    State2.
+    case Counters of
+        {C1, C2, C3} ->
+            State2;
+        _ ->
+            saveMsgCounters(
+              showMsgCounters(State2#guiState{unreadMsgs2 = Counters}))
+    end.
 
 clearNotificationTimer(State = #guiState{notificationTimer = undefined}) ->
     State;
@@ -2000,64 +1976,33 @@ setMsgCounter(Notebook, Num) ->
 %% Notes    :
 %%======================================================================
 chatMsgStatusBar(MsgType, Msg, State) ->
-    Notebook1 = obj("mainNotebook", State),
-    CurrPage1 = wxNotebook:getCurrentPage(Notebook1),
-    MsgPage1  = wxNotebook:getPage(Notebook1, 1),
-    Notebook2 = obj("msgWinNotebook", State),
-    CurrPage2 = wxNotebook:getCurrentPage(Notebook2),
-    MsgPage2  = getMessagePage(MsgType, Notebook2),
-    case CurrPage1 of
-        MsgPage1 ->
-            case CurrPage2 of
-                MsgPage2 ->
-                    clearStatusBar(State);
-                _ ->
-                    State2 = increaseMsgCounter(State, Notebook1),
-                    State3 = increaseMsgCounter(MsgType, State2, Notebook2),
-                    StatusBarObj = obj("mainStatusBar", State3),
-                    wxStatusBar:setStatusText(StatusBarObj, Msg, [{number, 2}]),
-                    saveMsgCounters(State3)
-            end;
-        _ ->
-            State2 = increaseMsgCounter(State, Notebook1),
-            State3 = increaseMsgCounter(MsgType, State2, Notebook2),
+    case messagesVisible(State) andalso msgKind() =:= MsgType of
+        true ->
+            clearStatusBar(State);
+        false ->
+            State2 = increaseMsgCounter(State, obj("mainNotebook", State)),
+            State3 = increaseKindCounter(MsgType, State2),
             StatusBarObj = obj("mainStatusBar", State3),
             wxStatusBar:setStatusText(StatusBarObj, Msg, [{number, 2}]),
             saveMsgCounters(State3)
     end.
-
-getMessagePage(msgEntry, Notebook) ->
-    wxNotebook:getPage(Notebook, 0);
-getMessagePage(alarmEntry, Notebook) ->
-    wxNotebook:getPage(Notebook, 1);
-getMessagePage(systemEntry, Notebook) ->
-    wxNotebook:getPage(Notebook, 2).
 
 increaseMsgCounter(State = #guiState{unreadMsgs = Before}, Notebook) ->
     setMsgCounter(Notebook, Before + 1),
     wxNotebook:setPageImage(Notebook, 1, 4),
     State#guiState{unreadMsgs = Before + 1}.
 
-increaseMsgCounter(msgEntry,
-                   State = #guiState{unreadMsgs2 = {C1, C2, C3}},
-                   Notebook) ->
+increaseKindCounter(msgEntry,
+                    State = #guiState{unreadMsgs2 = {C1, C2, C3}}) ->
     clearNotificationTimer(State),
     NotificationTime = getNotificationTime(State#guiState.user),
     TimerRef = erlang:send_after(NotificationTime, self(), sendNotification),
-    PageText = "Chat(" ++ integer_to_list(C1 + 1) ++ ")",
-    wxNotebook:setPageText(Notebook, 0, PageText),
     State#guiState{unreadMsgs2 = {C1 + 1, C2, C3}, notificationTimer = TimerRef};
-increaseMsgCounter(alarmEntry,
-                   State = #guiState{unreadMsgs2 = {C1, C2, C3}},
-                   Notebook) ->
-    PageText = "Reminder(" ++ integer_to_list(C2 + 1) ++ ")",
-    wxNotebook:setPageText(Notebook, 1, PageText),
+increaseKindCounter(alarmEntry,
+                    State = #guiState{unreadMsgs2 = {C1, C2, C3}}) ->
     State#guiState{unreadMsgs2 = {C1, C2 + 1, C3}};
-increaseMsgCounter(systemEntry,
-                   State = #guiState{unreadMsgs2 = {C1, C2, C3}},
-                   Notebook) ->
-    PageText = "System(" ++ integer_to_list(C3 + 1) ++ ")",
-    wxNotebook:setPageText(Notebook, 2, PageText),
+increaseKindCounter(systemEntry,
+                    State = #guiState{unreadMsgs2 = {C1, C2, C3}}) ->
     State#guiState{unreadMsgs2 = {C1, C2, C3 + 1}}.
 
 getNotificationTime(User) ->

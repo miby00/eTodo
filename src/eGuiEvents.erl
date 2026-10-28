@@ -46,7 +46,6 @@
          forwardToolEvent/4,
          guiEvent/4,
          helpMenu1Event/4,
-         linkFileButtonEvent/4,
          linkFileMenuEvent/4,
          linkTimeReportMenuEvent/4,
          linkViewMenuEvent/4,
@@ -81,13 +80,10 @@
          moveUpMenuEvent/4,
          moveUpToolEvent/4,
          msgFilterEvent/4,
-         msgNotebookEvent/4,
          msgSettingsButtonEvent/4,
          msgSettingsCancelEvent/4,
          msgSettingsOkEvent/4,
-         msgTextCtrlSTCEvent/4,
          msgTextWinEvent/4,
-         msgWinNotebookEvent/4,
          ownerChoiceEvent/4,
          pasteMenuEvent/4,
          pasteToolEvent/4,
@@ -105,7 +101,6 @@
          removeBookmarkButtonEvent/4,
          removeListButtonEvent/4,
          removeExternalButtonEvent/4,
-         remTextWinEvent/4,
          replyAllMenuEvent/4,
          replyMenuEvent/4,
          restoreMenuItemEvent/4,
@@ -113,7 +108,9 @@
          searchOkEvent/4,
          searchTextEvent/4,
          sendChatMenuEvent/4,
-         sendChatMsgEvent/4,
+         sendChatText/2,
+         sendTyping/1,
+         linkFileText/1,
          sendTaskButtonEvent/4,
          setAvatarMenuItemEvent/4,
          setReminderButtonEvent/4,
@@ -121,20 +118,12 @@
          settingsMenuEvent/4,
          settingsOkEvent/4,
          shareButtonEvent/4,
-         smileyCryingEvent/4,
-         smileyHappyEvent/4,
-         smileyHeartEvent/4,
-         smileyLOLEvent/4,
-         smileyMischiefEvent/4,
-         smileyShockedEvent/4,
-         smileyWinkEvent/4,
          smtpEnabledEvent/4,
          sortColumnsBoxEvent/4,
          sortColumnsCancelEvent/4,
          sortColumnsOkEvent/4,
          startDateChangedEvent/1,
          statusChoiceEvent/4,
-         systemTextWinEvent/4,
          taskListChoiceEvent/4,
          timerCancelEvent/4,
          timerOkEvent/4,
@@ -142,6 +131,7 @@
          todoDownToolEvent/4,
          todoUpToolEvent/4,
          toggleFilterMenuItemEvent/4,
+         toggleDetailsMenuItemEvent/4,
          undoMenuEvent/4,
          undoToolEvent/4,
          updateBookmarkButtonEvent/4,
@@ -609,97 +599,53 @@ startDateChangedEvent(State) ->
     State.
 
 %%====================================================================
-%% Toolbar show/hide msg window.
+%% Composer in the Messages web view.
 %%====================================================================
-msgTextCtrlSTCEvent(Event = #wxKey{}, Id, Frame, State) ->
-    MsgTextCtrl = obj("msgTextCtrlSTC",  State),
-    Empty       = isEmpty(wxStyledTextCtrl:getText(MsgTextCtrl)),
-
-    case {Empty, Event} of
-        {false, #wxKey{keyCode     = 13,
-                       controlDown = false,
-                       altDown     = false,
-                       metaDown    = false,
-                       shiftDown   = false}} ->
-            sendChatMenuEvent(Event, Id, Frame, State),
-            State;
+%% Recipients are the checked peers and email users to the left.
+sendChatText(MsgText, State = #guiState{user = User}) ->
+    Users      = getCheckedItems(obj("userCheckBox",  State)),
+    EmailUsers = getCheckedItems(obj("emailCheckBox", State)),
+    case {Users, EmailUsers, isEmpty(MsgText)} of
+        {_, _, true} ->
+            {{error, <<"empty">>}, State};
+        {[], [], false} ->
+            {{error, <<"no_recipient">>}, State};
         _ ->
-            State
-    end;
-msgTextCtrlSTCEvent(stc_change, _Id, _Frame,
-                 State = #guiState{user          = User,
-                                   msgStatusSent = SentStatus,
-                                   menuBar       = MenuBar}) ->
-    MsgTextCtrl = obj("msgTextCtrlSTC",  State),
-    SMChatObj   = xrcId("sendChatMenu"),
+            UserCfg  = eTodoDB:readUserCfg(User),
+            MsgObj   = obj("msgTextWin", State),
+            AllUsers = case UserCfg#userCfg.smtpEnabled of
+                           true  -> Users ++ EmailUsers;
+                           false -> Users
+                       end,
+            State2 = appendToPage(MsgObj, msgEntry, User, AllUsers,
+                                  eHtml:generateMsg(User, User, AllUsers,
+                                                    MsgText), State),
+            State3 = sendMsg(Users, MsgText, State2),
+            ePluginServer:eSendMsg(User, AllUsers, MsgText),
+            {ok, sendEmails(EmailUsers, MsgText, AllUsers, State3)}
+    end.
 
-    Empty       = isEmpty(wxStyledTextCtrl:getText(MsgTextCtrl)),
-    if
-        Empty ->
-            wxMenuBar:enable(MenuBar, SMChatObj, false),
-            wxBitmapButton:disable(obj("sendChatMsg", State));
-        true ->
-            wxMenuBar:enable(MenuBar, SMChatObj, true),
-            wxBitmapButton:enable(obj("sendChatMsg",  State))
-    end,
+%% Tells the checked peers once per message that the user is writing.
+sendTyping(State = #guiState{msgStatusSent = true}) ->
+    State;
+sendTyping(State = #guiState{user = User}) ->
     case getCheckedItems(obj("userCheckBox", State)) of
         [] ->
             State;
         Users ->
-            case {SentStatus, Empty} of
-                {false, false} ->
-                    ePeerEM:sendMsg(User, Users, statusEntry, writing),
-                    State#guiState{msgStatusSent = true};
-                _ ->
-                    State
-            end
-    end;
-msgTextCtrlSTCEvent(kill_focus, _Id, _Frame,
-                 State = #guiState{menuBar = MenuBar}) ->
-    SMChatObj = xrcId("sendChatMenu"),
-    wxMenuBar:enable(MenuBar, SMChatObj, false),
-    State;
-msgTextCtrlSTCEvent(set_focus, _Id, _Frame,
-                 State = #guiState{menuBar = MenuBar}) ->
-    MsgTextCtrl = obj("msgTextCtrlSTC",  State),
-    SMChatObj   = xrcId("sendChatMenu"),
-    NotEmpty    = wxStyledTextCtrl:getText(MsgTextCtrl) =/= "",
-    wxMenuBar:enable(MenuBar, SMChatObj, NotEmpty),
-    State.
+            ePeerEM:sendMsg(User, Users, statusEntry, writing),
+            State#guiState{msgStatusSent = true}
+    end.
 
-
-sendChatMsgEvent(_Event, _Id, _Frame, State = #guiState{user = User}) ->
-    UserObj  = obj("userCheckBox",  State),
-    EmailObj = obj("emailCheckBox", State),
-    MsgObj   = obj("msgTextWin",   State),
-    UserCfg  = eTodoDB:readUserCfg(User),
-    Users    = getCheckedItems(UserObj),
-    case {getCheckedItems(UserObj), getCheckedItems(EmailObj)} of
-        {[], []} ->
-            MsgDlg = wxMessageDialog:new(MsgObj, "Message has no recipient",
-                                         [{caption, "Send message failed"}]),
-            wxDialog:showModal(MsgDlg),
-            wxDialog:destroy(MsgDlg),
-            State;
-        {Users, EmailUsers} ->
-            MsgTextCtrl = obj("msgTextCtrlSTC", State),
-            MsgObj      = obj("msgTextWin",     State),
-            MsgText     = wxStyledTextCtrl:getText(MsgTextCtrl),
-
-            AllUsers    = case UserCfg#userCfg.smtpEnabled of
-                              true ->
-                                  Users ++ EmailUsers;
-                              false ->
-                                  Users
-                          end,
-            appendToPage(MsgObj, msgEntry, User, AllUsers,
-                         eHtml:generateMsg(User, User, AllUsers, MsgText), State),
-
-            wxStyledTextCtrl:clearAll(MsgTextCtrl),
-
-            State2 = sendMsg(Users, MsgText, State),
-            ePluginServer:eSendMsg(User, AllUsers, MsgText),
-            sendEmails(EmailUsers, MsgText, AllUsers, State2)
+%% Markdown link to a file the user picks, "" if cancelled.
+linkFileText(State) ->
+    case makeFileLink(State) of
+        {ok, File, Url, true} ->
+            {"![" ++ File ++ "](" ++ Url ++ ")", State};
+        {ok, File, Url, false} ->
+            {"[" ++ File ++ "](" ++ Url ++ ")", State};
+        _ ->
+            {"", State}
     end.
 
 sendMsg([], _MsgText, State) ->
@@ -766,14 +712,6 @@ isEmpty(_)         -> false.
 %% Show right click menu on message window.
 %%====================================================================
 msgTextWinEvent(_Type, _Id, Frame, State = #guiState{msgMenu = MsgMenu}) ->
-    wxWindow:popupMenu(Frame, MsgMenu),
-    State.
-
-remTextWinEvent(_Type, _Id, Frame, State = #guiState{msgMenu = MsgMenu}) ->
-    wxWindow:popupMenu(Frame, MsgMenu),
-    State.
-
-systemTextWinEvent(_Type, _Id, Frame, State = #guiState{msgMenu = MsgMenu}) ->
     wxWindow:popupMenu(Frame, MsgMenu),
     State.
 
@@ -977,6 +915,23 @@ toggleFilterMenuItemEvent(_Type, _Id, _Frame,
     setMsgFilter(State, not IsChecked, Settings, User).
 
 %%====================================================================
+%% Show or hide the task details below the task list
+%%====================================================================
+toggleDetailsMenuItemEvent(_Type, _Id, Frame,
+                           State = #guiState{menuBar = MenuBar,
+                                             user    = User}) ->
+    Show    = wxMenuBar:isChecked(MenuBar, xrcId("toggleDetailsMenuItem")),
+    eGuiFunctions:showTaskDetails(Show, Frame),
+    UserCfg = eTodoDB:readUserCfg(User),
+    %% The field once held the splitter position.
+    Details = case Show of
+                  true  -> shown;
+                  false -> hidden
+              end,
+    eTodoDB:saveUserCfg(UserCfg#userCfg{splitterMain = Details}),
+    State.
+
+%%====================================================================
 %% Toolbar Create new task at top of task list
 %%====================================================================
 todoUpToolEvent(_Type, _Id, _Frame, State = #guiState{user    = User,
@@ -1157,6 +1112,7 @@ userCancelEvent(_Type, _Id, _Frame, State = #guiState{usersDlg = Users}) ->
 
 userCheckBoxEvent(command_checklistbox_toggled, _Id, _Frame,
                   State  = #guiState{msgCfgDlg = Settings, user = User}) ->
+    eTodoPush:notify(User, <<"recipients">>),
     UseFilter = wxXmlResource:xrcctrl(Settings,  "filterMsgCBox",  wxCheckBox),
     IsChecked = wxCheckBox:isChecked(UseFilter),
 
@@ -1173,6 +1129,7 @@ emailCheckBoxEvent(right_down, Id, Frame, State) ->
     addOwnerButtonEvent(right_down, Id, Frame, State);
 emailCheckBoxEvent(command_checklistbox_toggled, _Id, _Frame,
                    State  = #guiState{msgCfgDlg = Settings, user = User}) ->
+    eTodoPush:notify(User, <<"recipients">>),
     UseFilter = wxXmlResource:xrcctrl(Settings,  "filterMsgCBox",  wxCheckBox),
     IsChecked = wxCheckBox:isChecked(UseFilter),
 
@@ -1379,41 +1336,8 @@ sortColumnsBoxEvent(_Type, _Id, _Frame,
     State.
 
 %%====================================================================
-%% Smiley buttons
+%% Link file
 %%====================================================================
-smileyHappyEvent(_Type, _Id, _Frame, State) ->
-    insertMsgText(":-)", State).
-
-smileyLOLEvent(_Type, _Id, _Frame, State) ->
-    insertMsgText(":D", State).
-
-smileyMischiefEvent(_Type, _Id, _Frame, State) ->
-    insertMsgText(":P", State).
-
-smileyShockedEvent(_Type, _Id, _Frame, State) ->
-    insertMsgText(":O", State).
-
-smileyCryingEvent(_Type, _Id, _Frame, State) ->
-    insertMsgText(":,(", State).
-
-smileyWinkEvent(_Type, _Id, _Frame, State) ->
-    insertMsgText(";-)", State).
-
-smileyHeartEvent(_Type, _Id, _Frame, State) ->
-    insertMsgText("<3", State).
-
-linkFileButtonEvent(_Type, _Id, _Frame, State) ->
-    case makeFileLink(State) of
-        {ok, File, Url, Inline} ->
-            Link = case Inline of
-                       true  -> "![" ++ File ++ "](" ++ Url ++ ")";
-                       false -> "[" ++ File ++ "](" ++ Url ++ ")"
-                   end,
-            insertMsgText(Link, State);
-        _ ->
-            State
-    end.
-
 %% Stores a gzipped copy of a file and returns the web link to it.
 makeFileLink(State = #guiState{user = User}) ->
     case webBaseUrl(User, "https://") of
@@ -1469,14 +1393,6 @@ webBaseUrl(User, Scheme) ->
         _ ->
             undefined
     end.
-
-insertMsgText(Text, State) ->
-    Obj1 = obj("msgTextCtrlSTC", State),
-    Obj2 = obj("msgNotebook", State),
-    wxNotebook:changeSelection(Obj2, 0),
-    wxStyledTextCtrl:appendText(Obj1, Text),
-    wxStyledTextCtrl:setFocus(Obj1),
-    State.
 
 %%====================================================================
 %% Manage task owners.
@@ -2367,32 +2283,29 @@ doRedo(State) ->
 %% Reply
 %%====================================================================
 replyMenuEvent(_Type, _Id, _Frame, State = #guiState{reply = []}) ->
-    Obj = obj("msgTextCtrlSTC",  State),
-    wxStyledTextCtrl:setFocus(Obj),
+    wxWindow:setFocus(obj("msgTextWin", State)),
     State;
 replyMenuEvent(_Type, _Id, _Frame, State = #guiState{reply = Reply}) ->
-    Obj1 = obj("userCheckBox",   State),
-    Obj2 = obj("msgTextCtrlSTC", State),
-    checkItemsInListWithClear(Obj1, [Reply]),
-    wxStyledTextCtrl:setFocus(Obj2),
+    checkItemsInListWithClear(obj("userCheckBox", State), [Reply]),
+    wxWindow:setFocus(obj("msgTextWin", State)),
     State.
 
 replyAllMenuEvent(_Type, _Id, _Frame, State = #guiState{replyAll = []}) ->
-    Obj = obj("msgTextCtrlSTC",  State),
-    wxStyledTextCtrl:setFocus(Obj),
+    wxWindow:setFocus(obj("msgTextWin", State)),
     State;
 replyAllMenuEvent(_Type, _Id, _Frame, State = #guiState{reply    = Sender,
                                                         replyAll = ReplyAll}) ->
-    Obj1 = obj("userCheckBox",   State),
-    Obj2 = obj("msgTextCtrlSTC", State),
-    Obj3 = obj("emailCheckBox",  State),
+    Obj1 = obj("userCheckBox",  State),
+    Obj3 = obj("emailCheckBox", State),
     checkItemsInListWithClear(Obj1, [Sender|ReplyAll]),
     checkItemsInListWithClear(Obj3, [Sender|ReplyAll]),
-    wxStyledTextCtrl:setFocus(Obj2),
+    wxWindow:setFocus(obj("msgTextWin", State)),
     State.
 
-sendChatMenuEvent(Type, Id, Frame, State) ->
-    sendChatMsgEvent(Type, Id, Frame, State).
+%% Messages are written and sent in the Messages view.
+sendChatMenuEvent(_Type, _Id, _Frame, State) ->
+    wxWindow:setFocus(obj("msgTextWin", State)),
+    State.
 
 %%====================================================================
 %% Print
@@ -3054,23 +2967,6 @@ commentNotebookEvent(_Type, _Id, _Frame, State) ->
     end,
     State.
 
-msgNotebookEvent(_Type, _Id, _Frame, State) ->
-    Notebook     = obj("msgNotebook", State),
-    CurrPage     = wxNotebook:getCurrentPage(Notebook),
-    PreviewPage  = wxNotebook:getPage(Notebook, 1),
-    case CurrPage of
-        PreviewPage ->
-            Obj        = obj("msgTextPreview", State),
-            CommentObj = obj("msgTextCtrlSTC", State),
-            Comment    = wxStyledTextCtrl:getText(CommentObj),
-            Page       = eMd2Html:convert(Comment),
-                        eGuiFunctions:setMessagePage(
-                            Obj, unicode:characters_to_list(Page, utf8));
-        _ ->
-            ok
-    end,
-    State.
-
 mainNotebookEvent(_Type, _Id, _Frame, State) ->
     Notebook     = obj("mainNotebook",  State),
     CurrPage     = wxNotebook:getCurrentPage(Notebook),
@@ -3081,7 +2977,8 @@ mainNotebookEvent(_Type, _Id, _Frame, State) ->
 
     case CurrPage of
         MsgPage ->
-            State2 = clearMsgCounter(State),
+            State2 = clearMsgCounter(
+                       eGuiFunctions:reloadStaleMessages(State)),
             clearStatusBar(State2);
         WorkReport ->
             eGuiFunctions:generateWorkLog(State);
@@ -3092,9 +2989,6 @@ mainNotebookEvent(_Type, _Id, _Frame, State) ->
         _ ->
             State
     end.
-
-msgWinNotebookEvent(_Type, _Id, _Frame, State) ->
-    clearMsgCounter(State).
 
 %%======================================================================
 %% Function :

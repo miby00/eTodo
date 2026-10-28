@@ -4,7 +4,8 @@
 // updating.
 (function () {
   "use strict";
-  if (!window.fetch || window.location.pathname === "/login") {
+  if (!window.fetch || window.location.pathname === "/login" ||
+      document.body.hasAttribute("data-desktop")) {
     return;
   }
   var leaving = false;
@@ -298,6 +299,7 @@
     return;
   }
   var tabs = document.querySelectorAll(".kinds a[href^='#']");
+  var shown = null;
   var current = function () {
     var index = Math.round(panels.scrollLeft / Math.max(panels.clientWidth, 1));
     return panels.children[Math.min(index, panels.children.length - 1)];
@@ -306,6 +308,10 @@
     var panel = current();
     if (panel && window.location.hash !== "#" + panel.id) {
       history.replaceState(null, "", "#" + panel.id);
+    }
+    if (panel && panel.id !== shown) {
+      shown = panel.id;
+      document.dispatchEvent(new CustomEvent("etodo-panel", { detail: shown }));
     }
     tabs.forEach(function (tab) {
       if (panel && tab.getAttribute("href") === "#" + panel.id) {
@@ -441,7 +447,7 @@
   var seenKey = "etodo-messages-seen";
   var onMessages = !!document.querySelector("main.panels");
   var button = document.querySelector("a.etodo-header-button[href^='/messages']");
-  if (!onMessages && !button) {
+  if ((!onMessages && !button) || document.body.hasAttribute("data-desktop")) {
     return;
   }
   var baseTitle = document.title;
@@ -528,6 +534,172 @@
     }
   });
   window.setInterval(poll, 60000);
+})();
+
+(function () {
+  "use strict";
+  // Messages view of the desktop client. Recipients are chosen in the
+  // client; the page sends, previews and reloads its timelines on push.
+  if (document.body.getAttribute("data-desktop") !== "messages") {
+    return;
+  }
+  var form = document.querySelector("form.composer");
+  var draft = form.elements.value;
+  var preview = form.querySelector(".composer-preview");
+  var previewButton = form.querySelector("[data-action=preview]");
+  var status = form.querySelector(".composer-status");
+  var send = form.querySelector("button[type=submit]");
+  var typingSent = false;
+  var errors = {
+    no_recipient: "Pick a recipient in the list to the left.",
+    too_long: "The message is too long.",
+    unavailable: "eTodo is busy, try again."
+  };
+
+  var post = function (action, value) {
+    return fetch("/messages/" + action, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        csrf: form.elements.csrf.value,
+        value: value || ""
+      }).toString()
+    }).then(function (response) {
+      return response.text().then(function (text) {
+        if (!response.ok) {
+          throw new Error(text);
+        }
+        return text;
+      });
+    });
+  };
+
+  var refresh = function () {
+    fetch("/messages/fragment" + window.location.search, {
+      credentials: "same-origin",
+      cache: "no-store"
+    })
+      .then(function (response) {
+        return response.ok ? response.json() : null;
+      })
+      .then(function (data) {
+        if (!data) {
+          return;
+        }
+        ["chat", "reminders", "system"].forEach(function (kind) {
+          var scroll = document.querySelector("#" + kind + " .panel-scroll");
+          if (scroll && typeof data[kind] === "string") {
+            scroll.innerHTML = data[kind];
+          }
+          var count = document.querySelector(
+            '.tab-count[data-kind="' + kind + '"]'
+          );
+          if (count) {
+            var n = data.counts[kind];
+            count.textContent = n > 0 ? String(n) : "";
+          }
+        });
+      })
+      .catch(function () {});
+  };
+
+  window.etodoEvents({
+    messages: refresh,
+    counts: refresh,
+    recipients: function () {
+      status.textContent = "";
+    },
+    fallback: function () {
+      window.setInterval(refresh, 15000);
+    }
+  });
+
+  document.addEventListener("etodo-panel", function (event) {
+    post("viewing", event.detail).catch(function () {});
+  });
+
+  var insert = function (text) {
+    draft.focus();
+    draft.setRangeText(text, draft.selectionStart, draft.selectionEnd, "end");
+    draft.dispatchEvent(new Event("input"));
+  };
+
+  var hidePreview = function () {
+    preview.hidden = true;
+    preview.textContent = "";
+    previewButton.setAttribute("aria-pressed", "false");
+  };
+
+  form.querySelector(".composer-tools").addEventListener("click", function (event) {
+    var tool = event.target.closest("button");
+    if (!tool) {
+      return;
+    }
+    if (tool.hasAttribute("data-insert")) {
+      insert(tool.getAttribute("data-insert"));
+    } else if (tool.getAttribute("data-action") === "linkfile") {
+      post("linkfile")
+        .then(function (link) {
+          if (link) {
+            insert(link);
+          }
+        })
+        .catch(function () {});
+    } else if (!preview.hidden) {
+      hidePreview();
+    } else if (draft.value.trim() !== "") {
+      post("preview", draft.value)
+        .then(function (html) {
+          // Rendered and sanitized by eTodo, like the timelines.
+          preview.innerHTML = html;
+          preview.hidden = false;
+          previewButton.setAttribute("aria-pressed", "true");
+        })
+        .catch(function () {});
+    }
+  });
+
+  draft.addEventListener("input", function () {
+    status.textContent = "";
+    if (!preview.hidden) {
+      hidePreview();
+    }
+    if (!typingSent && draft.value.trim() !== "") {
+      typingSent = true;
+      post("typing").catch(function () {});
+    }
+  });
+
+  draft.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    if (draft.value.trim() === "" || send.disabled) {
+      return;
+    }
+    send.disabled = true;
+    status.textContent = "";
+    post("send", draft.value)
+      .then(function () {
+        draft.value = "";
+        typingSent = false;
+        hidePreview();
+        refresh();
+      })
+      .catch(function (error) {
+        status.textContent = errors[error.message] || "Could not send the message.";
+      })
+      .then(function () {
+        send.disabled = false;
+        draft.focus();
+      });
+  });
 })();
 
 (function () {

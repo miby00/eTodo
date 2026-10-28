@@ -8,7 +8,8 @@
 -export([start_link/0, listener_started/2, bootstrap/1, valid_host/1,
          desktop_page/5, revoke/0]).
 -export([load_messages/4, desktop_messages_page/7, messages_page/2,
-         messages_summary/2,
+         messages_summary/2, desktop_messages_fragment/3,
+         desktop_message_action/4, desktop_user/1,
          avatar/2, desktop_avatar/2, theme_attributes/1, legacy_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -16,7 +17,11 @@
 -include_lib("wx/include/wx.hrl").
 -include_lib("eTodo/include/eTodo.hrl").
 
--record(state, {server, port, tickets = #{}, sessions = #{}}).
+-record(state, {server, port, key, tickets = #{}, sessions = #{}}).
+
+%% Desktop sessions are renewed while the page uses them.
+-define(sessionSeconds, 28800).
+-define(maxMessageLength, 4000).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -29,7 +34,9 @@ init([]) ->
     Owner = self(),
     Server = spawn_link(fun() -> etodo_web:start_work_log(Owner) end),
     receive
-        {desktop_port, Port} -> {ok, #state{server = Server, port = Port}}
+        {desktop_port, Port} ->
+            {ok, #state{server = Server, port = Port,
+                        key    = crypto:strong_rand_bytes(32)}}
     after 10000 ->
         exit(Server, shutdown),
         {stop, desktop_listener_timeout}
@@ -64,7 +71,7 @@ handle_call({bootstrap, Ticket}, _From,
                     {reply, {ok, Token},
                      State#state{tickets = Tickets2,
                                  sessions = Live#{Token =>
-                                     {User, Now + 28800}}}};
+                                     {User, Now + ?sessionSeconds}}}};
                 false ->
                     {reply, {error, nil}, State#state{tickets = Tickets2}}
             end;
@@ -72,17 +79,27 @@ handle_call({bootstrap, Ticket}, _From,
             {reply, {error, nil}, State}
     end;
 handle_call({session, Token}, _From, State = #state{sessions = Sessions}) ->
+    Now = erlang:monotonic_time(second),
     case maps:find(Token, Sessions) of
-        {ok, {User, Expires}} ->
-            case Expires >= erlang:monotonic_time(second) of
-                true -> {reply, {ok, User}, State};
-                false ->
-                    {reply, {error, nil},
-                     State#state{sessions = maps:remove(Token, Sessions)}}
-            end;
+        {ok, {User, Expires}} when Expires >= Now ->
+            Renewed = Sessions#{Token => {User, Now + ?sessionSeconds}},
+            {reply, {ok, User}, State#state{sessions = Renewed}};
+        {ok, _Expired} ->
+            {reply, {error, nil},
+             State#state{sessions = maps:remove(Token, Sessions)}};
         error ->
             {reply, {error, nil}, State}
+    end;
+handle_call({csrf, Token}, From, State = #state{key = Key}) ->
+    case handle_call({session, Token}, From, State) of
+        {reply, {ok, User}, State2} ->
+            {reply, {ok, User, csrf(Key, Token)}, State2};
+        Reply ->
+            Reply
     end.
+
+csrf(Key, Token) ->
+    binary:encode_hex(crypto:mac(hmac, sha256, Key, Token)).
 
 handle_cast(revoke, State) ->
     {noreply, State#state{tickets = #{}, sessions = #{}}}.
@@ -111,13 +128,88 @@ desktop_report_page(Token, Report, Date, List, Background, Foreground, Accent) -
 
 desktop_messages_page(Token, Kind, Filter, Peers,
                       Background, Foreground, Accent) ->
-    case gen_server:call(?MODULE, {session, Token}) of
-        {ok, User} ->
+    case gen_server:call(?MODULE, {csrf, Token}) of
+        {ok, User, Csrf} ->
             Theme = #{background => Background, foreground => Foreground,
                       accent => Accent},
-            eMessagesView:render(User, eMessagesView:kind(Kind),
-                                 eMessagesView:filter(Filter, Peers), Theme);
+            eMessagesView:render_desktop(
+              User, eMessagesView:kind(Kind),
+              eMessagesView:filter(Filter, Peers), Theme, Csrf,
+              unread_counts(User));
         _ -> {error, <<"invalid_session">>}
+    end.
+
+%% Timelines and unread counts, fetched by the page when pushed to.
+desktop_messages_fragment(Token, Filter, Peers) ->
+    case gen_server:call(?MODULE, {session, Token}) of
+        {ok, User} ->
+            eMessagesView:desktop_fragment(
+              User, eMessagesView:filter(Filter, Peers), unread_counts(User));
+        _ -> {error, <<"invalid_session">>}
+    end.
+
+desktop_user(Token) ->
+    case gen_server:call(?MODULE, {session, Token}) of
+        {ok, User} -> {ok, unicode:characters_to_binary(User)};
+        _          -> {error, nil}
+    end.
+
+desktop_message_action(Token, Csrf, Action, Value) ->
+    case gen_server:call(?MODULE, {csrf, Token}) of
+        {ok, User, Expected} ->
+            Valid = byte_size(Csrf) =:= byte_size(Expected) andalso
+                crypto:hash_equals(Csrf, Expected),
+            case Valid of
+                true  -> message_action(User, Action, Value);
+                false -> {error, <<"invalid_csrf">>}
+            end;
+        _ -> {error, <<"invalid_session">>}
+    end.
+
+message_action(_User, <<"send">>, Text) ->
+    Message = binary:replace(Text, <<"\r\n">>, <<"\n">>, [global]),
+    case string:length(Message) =< ?maxMessageLength of
+        true ->
+            gui_call({webChatSend, unicode:characters_to_list(Message)},
+                     30000);
+        false ->
+            {error, <<"too_long">>}
+    end;
+message_action(User, <<"preview">>, Text) ->
+    {ok, eMessagesView:preview(User, Text)};
+message_action(_User, <<"typing">>, _Value) ->
+    wx_object:cast(eTodo, webTyping),
+    {ok, <<>>};
+message_action(_User, <<"linkfile">>, _Value) ->
+    gui_call(webLinkFile, infinity);
+message_action(_User, <<"viewing">>, Kind) ->
+    Type = case eMessagesView:kind(Kind) of
+               chat      -> msgEntry;
+               reminders -> alarmEntry;
+               system    -> systemEntry
+           end,
+    wx_object:cast(eTodo, {msgKindShown, Type}),
+    {ok, <<>>};
+message_action(_User, _Action, _Value) ->
+    {error, <<"unknown_action">>}.
+
+gui_call(Request, Timeout) ->
+    try wx_object:call(eTodo, Request, Timeout) of
+        ok                        -> {ok, <<>>};
+        {error, Reason}           -> {error, Reason};
+        Text when is_list(Text)   -> {ok, unicode:characters_to_binary(Text)}
+    catch
+        exit:_ -> {error, <<"unavailable">>}
+    end.
+
+unread_counts(User) ->
+    case eTodoDB:readUserCfg(User) of
+        #userCfg{unreadMsgs2 = {C1, C2, C3}} when is_integer(C1),
+                                                  is_integer(C2),
+                                                  is_integer(C3) ->
+            #{chat => C1, reminders => C2, system => C3};
+        _ ->
+            #{chat => 0, reminders => 0, system => 0}
     end.
 
 messages_page(Token, Kind) ->

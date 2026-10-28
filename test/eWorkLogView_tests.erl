@@ -238,10 +238,24 @@ navigation_test() ->
         desktop_get(Port, Path, [{"cookie", Cookie}]),
       Policy = proplists:get_value("content-security-policy", PageHeaders),
       ?assertNotEqual(nomatch, string:find(Policy, "img-src 'self'")),
+      ?assertNotEqual(nomatch, string:find(Policy, "script-src 'self'")),
       ?assertNotEqual(nomatch, string:find(Page, "class=\"msg received\"")),
       ?assertNotEqual(nomatch, string:find(Page, "Fixture hello")),
-      ?assertEqual(nomatch, string:find(Page, "<script")),
+      ?assertEqual(nomatch, string:find(Page, "alert(1)")),
+      ?assertNotEqual(nomatch, string:find(Page, "data-desktop=\"messages\"")),
+      ?assertNotEqual(nomatch, string:find(Page, "name=\"csrf\"")),
       ?assertMatch({401, _, _}, desktop_get(Port, Path, [])),
+      FragmentPath = "/messages/fragment?filter=peers&peers=Ann%0ABob",
+      {200, _, Fragment} =
+        desktop_get(Port, FragmentPath, [{"cookie", Cookie}]),
+      ?assertNotEqual(nomatch, string:find(Fragment, "Fixture hello")),
+      ?assertMatch({401, _, _}, desktop_get(Port, FragmentPath, [])),
+      ?assertMatch({400, _, "invalid_csrf"},
+                   desktop_post(Port, "/messages/viewing",
+                                "csrf=bad&value=chat", Cookie)),
+      ?assertMatch({401, _, _},
+                   desktop_post(Port, "/messages/viewing",
+                                "csrf=bad&value=chat", "")),
       {Status, _, _} = desktop_get(Port, "/avatar?user=..%2F..%2Fsecret",
                                    [{"cookie", Cookie}]),
       ?assertNotEqual(200, Status),
@@ -279,6 +293,12 @@ navigation_test() ->
                    "<script>alert(1)</script></p></font>">>,
           gen_server:reply(From, [{os:timestamp(), msgEntry, "Ann",
                                    ["test-user"], Html}]),
+          database_fixture();
+        {'$gen_call', From, {getMessageList, "test-user", _Types, all}} ->
+          gen_server:reply(From, []),
+          database_fixture();
+        {'$gen_call', From, {readUserCfg, _User}} ->
+          gen_server:reply(From, undefined),
           database_fixture()
       end.
 
@@ -286,8 +306,8 @@ navigation_test() ->
       {_Port, Ticket} = gen_server:call(eWorkLogView, {ticket, "test-user"}),
       sys:replace_state(
         Server,
-        fun({state, Listener, Port, Tickets, Sessions}) ->
-            {state, Listener, Port,
+        fun({state, Listener, Port, Key, Tickets, Sessions}) ->
+            {state, Listener, Port, Key,
              Tickets#{Ticket => {"test-user",
                                  erlang:monotonic_time(second) - 1}},
              Sessions}
@@ -301,3 +321,16 @@ navigation_test() ->
                  [{autoredirect, false}, {timeout, 5000}], [],
                  worklog_test),
       {Status, ResponseHeaders, Body}.
+
+    desktop_post(Port, Path, Body, Cookie) ->
+      Url = "http://127.0.0.1:" ++ integer_to_list(Port) ++ Path,
+      Headers = case Cookie of
+                  "" -> [];
+                  _  -> [{"cookie", Cookie}]
+                end,
+      {ok, {{_, Status, _}, ResponseHeaders, ResponseBody}} =
+        httpc:request(post, {Url, Headers,
+                             "application/x-www-form-urlencoded", Body},
+                      [{autoredirect, false}, {timeout, 5000}], [],
+                      worklog_test),
+      {Status, ResponseHeaders, ResponseBody}.
