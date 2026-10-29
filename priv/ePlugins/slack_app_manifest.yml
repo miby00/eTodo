@@ -1,0 +1,42 @@
+# Slack app manifest for the eTodo Slack plugin (plugin_slack.erl).
+# Create the app at https://api.slack.com/apps with "From an app manifest".
+display_information:
+  name: eTodo
+  description: Chat, status and tasks from eTodo
+settings:
+  socket_mode_enabled: true
+  org_deploy_enabled: false
+  token_rotation_enabled: false
+  event_subscriptions:
+    user_events:
+      - dnd_updated
+      - message.channels
+      - message.groups
+      - message.im
+      - message.mpim
+      - reaction_added
+      - user_change
+oauth_config:
+  scopes:
+    user:
+      - channels:history
+      - channels:read
+      - channels:write
+      - chat:write
+      - dnd:read
+      - dnd:write
+      - files:read
+      - groups:history
+      - groups:read
+      - groups:write
+      - im:history
+      - im:read
+      - im:write
+      - mpim:history
+      - mpim:read
+      - mpim:write
+      - reactions:read
+      - reminders:write
+      - users:read
+      - users:write
+      - users.profile:write

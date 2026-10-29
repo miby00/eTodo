@@ -59,8 +59,8 @@ settings() ->
 
      {"slack", "url", eTodo, slackUrl, string},
      {"slack", "token", eTodo, slackToken, string},
-     {"slack", "client_id", eTodo, slackClientId, string},
-     {"slack", "client_secret", eTodo, slackClientSecret, string},
+     {"slack", "app_token", eTodo, slackAppToken, string},
+     {"slack", "task_reaction", eTodo, slackTaskReaction, string},
 
      {"jira", "url", eTodo, jiraUrl, string},
      {"jira", "user", eTodo, jiraUser, string},

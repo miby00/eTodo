@@ -23,6 +23,7 @@
          getWeekDay/1,
          getWorkLog/2,
          incDate/2,
+         linkFile/3,
          loggedIn/0,
          makeRef/0,
          msgEntry/3,
@@ -73,7 +74,7 @@ getExternalUsers(User) ->
 saveExternalUser(User, ExternalUser, Address) ->
     UserCfg   = eTodoDB:readUserCfg(User),
     ExtUser   = <<ExternalUser/binary, "<", Address/binary, ">">>,
-    ExtUser2  = binary_to_list(ExtUser),
+    ExtUser2  = unicode:characters_to_list(ExtUser),
     ExtUsers  = UserCfg#userCfg.ownerCfg,
     ExtUsers2 = [ExtUser2|lists:delete(ExtUser2, ExtUsers)],
     case ExtUsers of
@@ -84,6 +85,18 @@ saveExternalUser(User, ExternalUser, Address) ->
             eTodoDB:saveUserCfg(UserCfg#userCfg{ownerCfg = ExtUsers2}),
             eTodo:updateExternalUsers()
     end.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Store a file and get a web link to it, for use in messages.
+%% Inline is true for files the browser shows, like images.
+%% @spec linkFile(User, FileName :: string(), Data :: binary()) ->
+%%       {ok, FileName, Url, Inline} | error
+%%
+%% @end
+%%--------------------------------------------------------------------
+linkFile(User, FileName, Data) ->
+    eGuiEvents:storeLinkedFile(User, FileName, Data).
 
 %%--------------------------------------------------------------------
 %% @doc

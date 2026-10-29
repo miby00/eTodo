@@ -1047,7 +1047,7 @@ fn google_start() -> Response(ResponseData) {
 
 fn continue_page() -> Response(ResponseData) {
   let body =
-    "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"0;url=/\"><title>eTodo</title></head><body><p><a href=\"/\">Continue to eTodo</a></p></body></html>"
+    "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light dark\"><meta http-equiv=\"refresh\" content=\"0;url=/\"><title>eTodo</title></head><body><p><a href=\"/\">Continue to eTodo</a></p></body></html>"
   response.new(200)
   |> response.set_header("content-type", "text/html; charset=utf-8")
   |> response.set_header("cache-control", "no-store")
@@ -1656,7 +1656,16 @@ fn login_page(error_message: String) -> Response(ResponseData) {
           attribute.rel("apple-touch-icon"),
           attribute.href("/assets/icon-192.png"),
         ]),
-        html.meta([attribute.name("theme-color"), attribute.content("#f5f7fb")]),
+        html.meta([
+          attribute.name("theme-color"),
+          attribute.content("#f5f7fb"),
+          attribute.attribute("media", "(prefers-color-scheme: light)"),
+        ]),
+        html.meta([
+          attribute.name("theme-color"),
+          attribute.content("#1b1e20"),
+          attribute.attribute("media", "(prefers-color-scheme: dark)"),
+        ]),
         html.link([
           attribute.rel("stylesheet"),
           attribute.href("/assets/bootstrap.min.css"),
@@ -1872,7 +1881,16 @@ fn authenticated_page(
           attribute.rel("apple-touch-icon"),
           attribute.href("/assets/icon-192.png"),
         ]),
-        html.meta([attribute.name("theme-color"), attribute.content("#f5f7fb")]),
+        html.meta([
+          attribute.name("theme-color"),
+          attribute.content("#f5f7fb"),
+          attribute.attribute("media", "(prefers-color-scheme: light)"),
+        ]),
+        html.meta([
+          attribute.name("theme-color"),
+          attribute.content("#1b1e20"),
+          attribute.attribute("media", "(prefers-color-scheme: dark)"),
+        ]),
         html.link([
           attribute.rel("stylesheet"),
           attribute.href("/assets/bootstrap.min.css"),
@@ -1893,7 +1911,7 @@ fn authenticated_page(
           attribute.attribute("data-swipe-next", "/messages#chat"),
         ],
         [
-          html.header([attribute.attribute("class", "bg-white border-bottom")], [
+          html.header([attribute.attribute("class", "bg-body border-bottom")], [
             html.div(
               [
                 attribute.attribute(
@@ -2451,7 +2469,7 @@ fn settings_page(
         ),
       ]),
       html.body([attribute.attribute("class", "etodo-page")], [
-        html.header([attribute.attribute("class", "bg-white border-bottom")], [
+        html.header([attribute.attribute("class", "bg-body border-bottom")], [
           html.div(
             [
               attribute.attribute(

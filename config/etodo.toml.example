@@ -68,11 +68,13 @@
 # email = "me@example.com"     # or a list: ["me@example.com", "you@example.com"]
 # time  = 60                    # seconds before the mail is sent
 
+# Setup is described in priv/ePlugins/plugin_slack.erl. The tokens can also be
+# entered with "Slack settings..." in the task list menu.
 [slack]
-# url           = "https://slack.com/api"
-# token         = "%SLACK_TOKEN%"
-# client_id     = ""
-# client_secret = "%SLACK_CLIENT_SECRET%"
+# url       = "https://slack.com/api"
+# token     = "%SLACK_TOKEN%"      # User OAuth Token, xoxp-...
+# app_token = "%SLACK_APP_TOKEN%"  # App-Level Token for Socket Mode, xapp-...
+# task_reaction = "memo"           # Reacting with :memo: creates a task
 
 [jira]
 # url      = "http://JIRA:8080"

@@ -2047,7 +2047,7 @@ setUnreadMsgs(UserName, State) ->
 %% @end
 %%--------------------------------------------------------------------
 eTodoUpdate(Url, State) ->
-    Opt = [{ssl, [{verify, verify_none}]}],
+    Opt = [{ssl, httpc:ssl_verify_host_options(true)}],
     case httpc:request(get, {"https://" ++ Url, ""}, Opt, []) of
         {ok, {{_, 200, _}, _Headers, ETodoLib}} ->
             eTodoUpdateGUI(ETodoLib, State);
@@ -2095,7 +2095,7 @@ convertToLocal(CT) ->
             %% Should only convert images when wx is available.
             CT;
         _ ->
-            Opt = [{ssl, [{verify, verify_none}]}],
+            Opt = [{ssl, httpc:ssl_verify_host_options(true)}],
             case httpc:request(get, {binary_to_list(CT), ""}, Opt, []) of
                 {ok, {{_, 200, _}, Headers, Body}} ->
                     CType = proplists:get_value("content-type", Headers, undef),

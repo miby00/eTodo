@@ -84,12 +84,15 @@ parse(<<>>, [{Tag, CT}], _PL, _CL, Dir, Acc)
     BTag = makeTag(code, Dir, CT),
     <<Acc/binary, BTag/binary>>;
 
-%% Start fenced code block
-parse(<<"~~~", Rest/binary>>, [{p, _CT}], PL, <<"~~~">>, Dir, Acc) ->
-
-    convert(Rest, [{f1_code, <<>>}], PL, <<"~~~">>, Dir, Acc);
-parse(<<"```", Rest/binary>>, [{p, _CT}], PL, <<"```">>, Dir, Acc) ->
-    convert(Rest, [{f2_code, <<>>}], PL, <<"```">>, Dir, Acc);
+%% Start fenced code block, ends the paragraph before it.
+parse(<<"~~~", Rest/binary>>, [{p, CT}], PL, <<"~~~">>, Dir, Acc) ->
+    BTag = makeTag(p, Dir, CT),
+    convert(Rest, [{f1_code, <<>>}], PL, <<"~~~">>, Dir,
+            <<Acc/binary, BTag/binary>>);
+parse(<<"```", Rest/binary>>, [{p, CT}], PL, <<"```">>, Dir, Acc) ->
+    BTag = makeTag(p, Dir, CT),
+    convert(Rest, [{f2_code, <<>>}], PL, <<"```">>, Dir,
+            <<Acc/binary, BTag/binary>>);
 
 %% Stop fenced code block
 parse(<<"~~~", Rest/binary>>, [{f1_code, CT}], PL, <<"~~~">>, Dir, Acc) ->
@@ -151,11 +154,12 @@ parse(<<$<, Rest/binary>>, PState, PL, CL, Dir, Acc) ->
     convert(Rest, [{url, <<>>}|PState], PL, CL, Dir, Acc);
 
 parse(<<$>, Rest/binary>>, [{url, CT}| St], PL, CL, Dir, Acc) ->
-    case catch uri_string:parse(binary_to_list(CT)) of
-        #{host := Host, scheme := "https"} when Host =/= "" ->
-            Url = <<"<a href='", CT/binary, "'>", CT/binary, "</a>">>,
+    case linkUrl(CT) of
+        true ->
+            Href = escapeHtml(CT),
+            Url  = <<"<a href='", Href/binary, "'>", Href/binary, "</a>">>,
             convert(Rest, addCT(Url, St), PL, CL, Dir, Acc);
-        _ ->
+        false ->
             %% Convert to &lt to remove html support from markdown
             convert(<<CT/binary, $>, Rest/binary>>,
                     addCT(<<"&lt;">>, St), PL, CL, Dir, Acc)
@@ -189,18 +193,22 @@ parse(<<$), Rest/binary>>, [{ilink, 2, CT}|St], PL, CL, Dir, Acc) ->
     convert(Rest, [{ilink, 1, <<CT/binary, $)>>}|St], PL, CL, Dir, Acc);
 
 parse(<<$), Rest/binary>>, [{ilink, 1, CT}, {ilDesc, PT}|St], PL, CL, Dir, Acc) ->
-    case catch uri_string:parse(binary_to_list(removeParam(CT))) of
-        #{host := Host, scheme := "https"} when Host =/= "" ->
+    case imageUrl(CT) of
+        true ->
+            Alt = escapeHtml(PT),
             case eGuiFunctions:convertToLocal(CT) of
                 {Original, LUrl} ->
-                    Url  = <<"<img src='", LUrl/binary, "' alt='", PT/binary, "' />">>,
-                    HRef = <<"<a href='", Original/binary, "'>", Url/binary, "</a>">>,
+                    Src  = escapeHtml(LUrl),
+                    Href = escapeHtml(Original),
+                    Url  = <<"<img src='", Src/binary, "' alt='", Alt/binary, "' />">>,
+                    HRef = <<"<a href='", Href/binary, "'>", Url/binary, "</a>">>,
                     convert(Rest, addCT(HRef, St), PL, CL, Dir, Acc);
                 CT ->
-                    Url  = <<"<img src='", CT/binary, "' alt='", PT/binary, "' />">>,
+                    Src  = escapeHtml(CT),
+                    Url  = <<"<img src='", Src/binary, "' alt='", Alt/binary, "' />">>,
                     convert(Rest, addCT(Url, St), PL, CL, Dir, Acc)
             end;
-        _ ->
+        false ->
             convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
                 addCT(<<"![">>, St), PL, CL, Dir, Acc)
     end;
@@ -236,11 +244,13 @@ parse(<<$), Rest/binary>>, [{link, 2, CT}|St], PL, CL, Dir, Acc) ->
     convert(Rest, [{link, 1, <<CT/binary, $)>>}|St], PL, CL, Dir, Acc);
 
 parse(<<$), Rest/binary>>, [{link, 1, CT}, {lDesc, PT}|St], PL, CL, Dir, Acc) ->
-    case catch uri_string:parse(binary_to_list(removeParam(CT))) of
-        #{host := Host, scheme := "https"} when Host =/= "" ->
-            Url = <<"<a href='", CT/binary, "'>", PT/binary, "</a>">>,
+    case linkUrl(CT) of
+        true ->
+            Href = escapeHtml(CT),
+            Text = escapeText(PT),
+            Url  = <<"<a href='", Href/binary, "'>", Text/binary, "</a>">>,
             convert(Rest, addCT(Url, St), PL, CL, Dir, Acc);
-        _ ->
+        false ->
             convert(<<PT/binary, $], $(, CT/binary, $), Rest/binary>>,
                 addCT(<<"[">>, St), PL, CL, Dir, Acc)
     end;
@@ -552,95 +562,114 @@ remWS(<<32, Rest/binary>>, I, C, LRem)   -> remWS(Rest, I, C + 1, LRem);
 remWS(<<9,  Rest/binary>>, I, C, LRem)   -> remWS(Rest, I, C + 4, LRem);
 remWS(Rest,                    _, C, _)      -> {Rest, C}.
 
+%% Inline formatting: *em*, _em_, **strong**, __strong__, ***strong***,
+%% ___strong___, ~~del~~ and `code`. Formatting that is never closed is
+%% kept as text. Html tags made by the parser are copied as they are.
+%% St is a stack of open formatting [{Marker, CT}], the text before any
+%% formatting is at the bottom as {root, Acc}.
 insertEM(Content) ->
-    insertEM(Content, [], <<>>).
+    insertEM(Content, $\s, [{root, <<>>}]).
 
-insertEM(<<>>, [], Acc) ->
+insertEM(<<>>, _Prev, St) ->
+    unwindEM(St);
+insertEM(<<$<, Rest/binary>>, _Prev, St) ->
+    case htmlTag(Rest) of
+        {Tag, Rest2} ->
+            insertEM(Rest2, $>, emitEM(<<$<, Tag/binary>>, St));
+        false ->
+            insertEM(Rest, $<, emitEM(<<$<>>, St))
+    end;
+insertEM(<<$`, Rest/binary>>, _Prev, St) ->
+    case binary:split(Rest, <<$`>>) of
+        [Code, Rest2] when Code =/= <<>> ->
+            insertEM(Rest2, $`,
+                     emitEM(<<"<code>", Code/binary, "</code>">>, St));
+        _ ->
+            insertEM(Rest, $`, emitEM(<<$`>>, St))
+    end;
+insertEM(Content = <<Char:8, Rest/binary>>, Prev, St) ->
+    case emMarker(Content) of
+        {Marker, Rest2} ->
+            insertEM(Marker, Rest2, Prev, St);
+        false ->
+            insertEM(Rest, Char, emitEM(<<Char:8>>, St))
+    end.
+
+insertEM(Marker, Rest, Prev, St = [{Marker, CT}|St2]) ->
+    case (CT =/= <<>>) andalso (not isWS(Prev)) andalso
+        not (isUnderscore(Marker) andalso startsWithAlnum(Rest)) of
+        true ->
+            Tag = emTag(Marker),
+            insertEM(Rest, lastChar(Marker),
+                     emitEM(<<$<, Tag/binary, $>, CT/binary,
+                              "</", Tag/binary, $>>>, St2));
+        false ->
+            openEM(Marker, Rest, Prev, St)
+    end;
+insertEM(Marker, Rest, Prev, St) ->
+    openEM(Marker, Rest, Prev, St).
+
+openEM(Marker, Rest = <<Next:8, _/binary>>, Prev, St)
+  when Next =/= hd(Marker) ->
+    case isWS(Next) orelse (isUnderscore(Marker) andalso isAlnum(Prev)) of
+        false ->
+            insertEM(Rest, lastChar(Marker), [{Marker, <<>>}|St]);
+        true ->
+            insertEM(Rest, lastChar(Marker), emitEM(list_to_binary(Marker), St))
+    end;
+openEM(Marker, Rest, _Prev, St) ->
+    insertEM(Rest, lastChar(Marker), emitEM(list_to_binary(Marker), St)).
+
+%% Longest marker first, *** before ** before *.
+emMarker(<<"***", Rest/binary>>) -> {"***", Rest};
+emMarker(<<"___", Rest/binary>>) -> {"___", Rest};
+emMarker(<<"**",  Rest/binary>>) -> {"**",  Rest};
+emMarker(<<"__",  Rest/binary>>) -> {"__",  Rest};
+emMarker(<<"~~",  Rest/binary>>) -> {"~~",  Rest};
+emMarker(<<"*",   Rest/binary>>) -> {"*",   Rest};
+emMarker(<<"_",   Rest/binary>>) -> {"_",   Rest};
+emMarker(_Content)               -> false.
+
+emTag("~~")             -> <<"del">>;
+emTag(Marker) when length(Marker) == 1 -> <<"em">>;
+emTag(_Marker)          -> <<"strong">>.
+
+emitEM(Text, [{Marker, CT}|St]) ->
+    [{Marker, <<CT/binary, Text/binary>>}|St].
+
+%% Formatting left open is put back as text, outermost first.
+unwindEM([{root, Acc}]) ->
     Acc;
+unwindEM([{Marker, CT}|St]) ->
+    MarkerBin = list_to_binary(Marker),
+    unwindEM(emitEM(<<MarkerBin/binary, CT/binary>>, St)).
 
-insertEM(<<Char:8, $*, $*, $*, Rest/binary>>, [{strong3, CT}|St], Acc)
-    when (Char =/= 32) and (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
-    and  (Char =/= $*) ->
-    BoldText = <<"<strong>", CT/binary, Char:8, "</strong>">>,
-    insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
+htmlTag(Content) ->
+    case re:run(Content, "^/?[a-zA-Z][^<>]*>", [{capture, first, binary}]) of
+        {match, [Tag]} ->
+            Size = byte_size(Tag),
+            <<Tag:Size/binary, Rest/binary>> = Content,
+            {Tag, Rest};
+        nomatch ->
+            false
+    end.
 
-insertEM(<<Char:8, $*, $*, Rest/binary>>, [{strong, CT}|St], Acc)
-    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
-    BoldText = <<"<strong>", CT/binary, Char:8, "</strong>">>,
-    insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
+isUnderscore([$_|_]) -> true;
+isUnderscore(_)      -> false.
 
-insertEM(<<Char:8, $*, Rest/binary>>, [{em, CT}|St], Acc)
-    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
-    BoldText = <<"<em>", CT/binary, Char:8, "</em>">>,
-    insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
+startsWithAlnum(<<Char:8, _/binary>>) -> isAlnum(Char);
+startsWithAlnum(<<>>)                 -> false.
 
-insertEM(<<Char:8, $_, $_, $_, Rest/binary>>, [{strong4, CT}|St], Acc)
-    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
-    and  (Char =/= $_) ->
-    BoldText = <<"<strong>", CT/binary, Char:8, "</strong>">>,
-    insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
+%% Bytes of multi byte UTF-8 characters count as letters.
+isAlnum(Char) ->
+    ((Char >= $a) and (Char =< $z)) or ((Char >= $A) and (Char =< $Z)) or
+        ((Char >= $0) and (Char =< $9)) or (Char >= 128).
 
-insertEM(<<Char:8, $_, $_, Rest/binary>>, [{strong2, CT}|St], Acc)
-    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
-    BoldText = <<"<strong>", CT/binary, Char:8, "</strong>">>,
-    insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
+isWS(Char) ->
+    (Char == 32) or (Char == 10) or (Char == 13) or (Char == 9).
 
-insertEM(<<Char:8, $_, Rest/binary>>, [{em2, CT}|St], Acc)
-    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
-    BoldText = <<"<em>", CT/binary, Char:8, "</em>">>,
-    insertEM(Rest, St, <<Acc/binary, BoldText/binary>>);
-
-insertEM(<<$*, $*, $*, Char:8, Rest/binary>>, St, Acc)
-    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
-    insertEM(Rest, [{strong3, <<Char:8>>}|St], Acc);
-
-insertEM(<<$*, $*, Char:8, Rest/binary>>, St, Acc)
-    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
-    and  (Char =/= $*) ->
-    insertEM(Rest, [{strong, <<Char:8>>}|St], Acc);
-
-insertEM(<<$*, Char:8, Rest/binary>>, St, Acc)
-    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
-    and  (Char =/= $*) ->
-    insertEM(Rest, [{em, <<Char:8>>}|St], Acc);
-
-insertEM(<<$_, $_, $_, Char:8, Rest/binary>>, St, Acc)
-    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9) ->
-    insertEM(Rest, [{strong4, <<Char:8>>}|St], Acc);
-
-insertEM(<<$_, $_, Char:8, Rest/binary>>, St, Acc)
-    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
-    and  (Char =/= $_) ->
-    insertEM(Rest, [{strong2, <<Char:8>>}|St], Acc);
-
-insertEM(<<$_, Char:8, Rest/binary>>, St, Acc)
-    when (Char =/= 32) and  (Char =/= 10) and (Char =/= 13) and (Char =/= 9)
-    and  (Char =/= $_) ->
-    insertEM(Rest, [{em2, <<Char:8>>}|St], Acc);
-
-insertEM(<<>>, [{em, CT}|St], Acc) ->
-    insertEM(<<>>, St, <<Acc/binary, $*, CT/binary>>);
-
-insertEM(<<>>, [{em2, CT}|St], Acc) ->
-    insertEM(<<>>, St, <<Acc/binary, $_, CT/binary>>);
-
-insertEM(<<>>, [{strong, CT}|St], Acc) ->
-    insertEM(<<>>, St, <<Acc/binary, $*, $*, CT/binary>>);
-
-insertEM(<<>>, [{strong2, CT}|St], Acc) ->
-    insertEM(<<>>, St, <<Acc/binary, $_, $_, CT/binary>>);
-
-insertEM(<<>>, [{strong3, CT}|St], Acc) ->
-    insertEM(<<>>, St, <<Acc/binary, $*, $*, $*, CT/binary>>);
-
-insertEM(<<>>, [{strong4, CT}|St], Acc) ->
-    insertEM(<<>>, St, <<Acc/binary, $_, $_, $_, CT/binary>>);
-
-insertEM(<<Char:8, Rest/binary>>, [{Tag, CT}|St], Acc) ->
-    insertEM(Rest, [{Tag, <<CT/binary, Char:8>>}|St], Acc);
-
-insertEM(<<Char:8, Rest/binary>>, St, Acc) ->
-    insertEM(Rest, St, <<Acc/binary, Char:8>>).
+lastChar(Marker) ->
+    lists:last(Marker).
 
 checkIfList(Content, CL) ->
     case getCurrentRow(Content) of
@@ -789,6 +818,16 @@ smiley(Tag, Dir, Text) ->
 smiley(_Tag, <<>>, _Dir, SoFar) ->
     SoFar;
 
+%% No smileys in html tags, entities or code.
+smiley(Tag, <<"<code>", Rest/binary>>, Dir, SoFar) ->
+    case binary:split(Rest, <<"</code>">>) of
+        [Code, Rest2] ->
+            smiley(Tag, Rest2, Dir,
+                   <<SoFar/binary, "<code>", Code/binary, "</code>">>);
+        [_] ->
+            smiley(Tag, Rest, Dir, <<SoFar/binary, "<code>">>)
+    end;
+
 %% <3
 smiley(Tag, <<"<3", Rest/binary>>, Dir, SoFar) ->
     Heart = smileyIcon(Tag, Dir, <<"heart.png">>, <<"<3">>),
@@ -871,6 +910,23 @@ smiley(Tag, <<":,(", Rest/binary>>, Dir, SoFar) ->
     Cry = smileyIcon(Tag, Dir, <<"crying.png">>, <<":,(">>),
     smiley(Tag, Rest, Dir, <<SoFar/binary, Cry/binary>>);
 
+smiley(Tag, <<$<, Rest/binary>>, Dir, SoFar) ->
+    case htmlTag(Rest) of
+        {HtmlTag, Rest2} ->
+            smiley(Tag, Rest2, Dir, <<SoFar/binary, $<, HtmlTag/binary>>);
+        false ->
+            smiley(Tag, Rest, Dir, <<SoFar/binary, $<>>)
+    end;
+smiley(Tag, <<$&, Rest/binary>>, Dir, SoFar) ->
+    case re:run(Rest, "^([a-zA-Z]+|#[0-9]+|#x[0-9a-fA-F]+);",
+                [{capture, first, binary}]) of
+        {match, [Entity]} ->
+            Size = byte_size(Entity),
+            <<Entity:Size/binary, Rest2/binary>> = Rest,
+            smiley(Tag, Rest2, Dir, <<SoFar/binary, $&, Entity/binary>>);
+        nomatch ->
+            smiley(Tag, Rest, Dir, <<SoFar/binary, $&>>)
+    end;
 smiley(Tag, <<Char:8, Rest/binary>>, Dir, SoFar) ->
     smiley(Tag, Rest, Dir, <<SoFar/binary, Char:8>>).
 
@@ -888,6 +944,52 @@ setOptions(h3) ->
     <<"align=bottom height='19' width='19'">>;
 setOptions(_Tag) ->
     <<"align=bottom">>.
+
+%% Links may use http, https and mailto, images only https as they are
+%% loaded at once. Urls with quotes, spaces or brackets are left as text.
+linkUrl(Url)  -> safeUrl(Url, [<<"http">>, <<"https">>, <<"mailto">>]).
+imageUrl(Url) -> safeUrl(Url, [<<"https">>]).
+
+safeUrl(Url, Schemes) ->
+    re:run(Url, "[\\x00-\\x20\"'<>\\\\]", [{capture, none}]) =:= nomatch
+        andalso
+        try uri_string:parse(asciiUrl(removeParam(Url))) of
+            UriMap = #{scheme := Scheme} ->
+                Scheme2 = string:lowercase(Scheme),
+                lists:member(Scheme2, Schemes) andalso
+                    hasTarget(Scheme2, UriMap);
+            _ ->
+                false
+        catch
+            _:_ -> false
+        end.
+
+hasTarget(<<"mailto">>, #{path := Path}) -> Path =/= <<>>;
+hasTarget(_Scheme,      #{host := Host}) -> Host =/= <<>>;
+hasTarget(_Scheme,      _UriMap)         -> false.
+
+%% Percent encode UTF-8, uri_string only parses ascii.
+asciiUrl(Url) ->
+    << <<(asciiChar(Byte))/binary>> || <<Byte:8>> <= Url >>.
+
+asciiChar(Byte) when Byte >= 128 ->
+    list_to_binary(io_lib:format("%~2.16.0B", [Byte]));
+asciiChar(Byte) ->
+    <<Byte:8>>.
+
+%% Html escape, entities already in the text are kept.
+escapeHtml(Text) ->
+    lists:foldl(fun({Char, Entity}, Acc) ->
+                        binary:replace(Acc, Char, Entity, [global])
+                end, escapeText(Text), [{<<"\"">>, <<"&quot;">>},
+                                        {<<"'">>,  <<"&#39;">>}]).
+
+escapeText(Text) ->
+    Amp = re:replace(Text, "&(?![a-zA-Z]+;|#[0-9]+;|#x[0-9a-fA-F]+;)",
+                     "\\&amp;", [global, {return, binary}]),
+    lists:foldl(fun({Char, Entity}, Acc) ->
+                        binary:replace(Acc, Char, Entity, [global])
+                end, Amp, [{<<"<">>, <<"&lt;">>}, {<<">">>, <<"&gt;">>}]).
 
 removeParam(CT) ->
     removeParam(CT, CT, 0, <<>>).

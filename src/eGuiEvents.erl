@@ -14,6 +14,8 @@
 -include_lib("wx/include/wx.hrl").
 
 %% API
+-export([storeLinkedFile/3]).
+
 -export([
          aboutMenuEvent/4,
          addBookmarkButtonEvent/4,
@@ -1414,33 +1416,41 @@ sortColumnsBoxEvent(_Type, _Id, _Frame,
 %%====================================================================
 %% Link file
 %%====================================================================
-%% Stores a gzipped copy of a file and returns the web link to it.
 makeFileLink(State = #guiState{user = User}) ->
     case webBaseUrl(User, "https://") of
         undefined ->
             eTodo:systemEntry(system, "Failed to link file, "
                               "web server not running"),
             error;
-        Base ->
+        _Base ->
             case getFileToLink(State) of
                 {?wxID_OK, Path, File} ->
-                    Reference = binary_to_list(
-                                  binary:encode_hex(
-                                    crypto:strong_rand_bytes(16), lowercase)),
                     {ok, Bin} = file:read_file(Path),
-                    Stored = filename:join([eTodoUtils:getUserCfgDir(),
-                                            "linkedFiles",
-                                            Reference ++ "_" ++ File]),
-                    filelib:ensure_dir(Stored),
-                    file:write_file(Stored, zlib:gzip(Bin)),
-                    Url = Base ++ "/file?filename=" ++ uri_string:quote(File) ++
-                        "&reference=" ++ Reference,
-                    Inline = eTodoUtils:getDisposition(
-                               eTodoUtils:mime_type(File), File) =:= "inline",
-                    {ok, File, Url, Inline};
+                    storeLinkedFile(User, File, Bin);
                 _ ->
                     error
             end
+    end.
+
+%% Stores a gzipped copy of a file and returns the web link to it.
+storeLinkedFile(User, File, Bin) ->
+    case webBaseUrl(User, "https://") of
+        undefined ->
+            error;
+        Base ->
+            Reference = binary_to_list(
+                          binary:encode_hex(
+                            crypto:strong_rand_bytes(16), lowercase)),
+            Stored = filename:join([eTodoUtils:getUserCfgDir(),
+                                    "linkedFiles",
+                                    Reference ++ "_" ++ File]),
+            filelib:ensure_dir(Stored),
+            file:write_file(Stored, zlib:gzip(Bin)),
+            Url = Base ++ "/file?filename=" ++ uri_string:quote(File) ++
+                "&reference=" ++ Reference,
+            Inline = eTodoUtils:getDisposition(
+                       eTodoUtils:mime_type(File), File) =:= "inline",
+            {ok, File, Url, Inline}
     end.
 
 getFileToLink(#guiState{frame = Frame, updateFile = undefined}) ->

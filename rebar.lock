@@ -1,8 +1,5 @@
 {"1.2.0",
-[{<<"cowlib">>,
-  {git,"https://github.com/ninenines/cowlib",
-       {ref,"0e0e21c0df66c0bb88172a47e024240f61aa6c61"}},
-  1},
+[{<<"cowlib">>,{pkg,<<"cowlib">>,<<"2.21.0">>},1},
  {<<"eLog">>,
   {git,"https://github.com/miby00/eLog.git",
        {ref,"34d60b499944860827d4845dae484763365a9627"}},
@@ -11,22 +8,19 @@
   {git,"https://github.com/miby00/ePort.git",
        {ref,"2a74486d9f699dd93724b51177b34520a2c91a09"}},
   0},
- {<<"gun">>,
-  {git,"https://github.com/ninenines/gun.git",
-       {ref,"0fe54af72b81fdb198a377198d7f3a91f9ad6d7c"}},
-  0},
+ {<<"gun">>,{pkg,<<"gun">>,<<"2.7.0">>},0},
  {<<"jsx">>,
   {git,"https://github.com/talentdeficit/jsx.git",
        {ref,"aaf915e173d0ea7e1201c0edd4930dc6c3cd179d"}},
   0},
- {<<"mochiweb">>,{pkg,<<"mochiweb">>,<<"3.3.0">>},0},
- {<<"ranch">>,
-  {git,"https://github.com/ninenines/ranch",
-       {ref,"7ec436dae11e91431f5f8d46f586aa8696975c71"}},
-  1}]}.
+ {<<"mochiweb">>,{pkg,<<"mochiweb">>,<<"3.3.0">>},0}]}.
 [
 {pkg_hash,[
+ {<<"cowlib">>, <<"3EA757C79784BDBDEBAC7857CE3ADF2290AF6B8680D4248C75E40CED2E98C89E">>},
+ {<<"gun">>, <<"8DFC20FF1B70F3C78F07122F7D82AC6950C40D33A8A9B35DA0134F49FB35B334">>},
  {<<"mochiweb">>, <<"2898AD0BFEEE234E4CBAE623C7052ABC3FF0D73D499BA6E6FFEF445B13FFD07A">>}]},
 {pkg_hash_ext,[
+ {<<"cowlib">>, <<"0960248773762A5319B3C17285028BC76F54F58EF0F9451367401BDF67B46274">>},
+ {<<"gun">>, <<"2A90D073069E72654B6C9A91FAE365B746FF5CE385A4A5BBF71EF53A8BF95D82">>},
  {<<"mochiweb">>, <<"AA85B777FB23E9972EBC424E40B5D35106F19BC998873E026DEDD876DF8EE50C">>}]}
 ].

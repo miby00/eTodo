@@ -333,3 +333,92 @@ strong_12_test() ->
     Result = eMd2Html:convert(<<"___Hej \r\nHallå___">>),
     Expect = <<"<p><strong>Hej \nHallå</strong></p>">>,
     ?assertEqual(Expect, Result).
+
+strong_and_em_test() ->
+    Result = eMd2Html:convert(<<"a **b** and *c* end">>),
+    Expect = <<"<p>a <strong>b</strong> and <em>c</em> end</p>">>,
+    ?assertEqual(Expect, Result).
+
+em_in_strong_test() ->
+    Result = eMd2Html:convert(<<"**bold *it* x**">>),
+    Expect = <<"<p><strong>bold <em>it</em> x</strong></p>">>,
+    ?assertEqual(Expect, Result).
+
+unclosed_keeps_order_test() ->
+    Result = eMd2Html:convert(<<"**a *b c">>),
+    Expect = <<"<p>**a *b c</p>">>,
+    ?assertEqual(Expect, Result).
+
+intraword_underscore_test() ->
+    Result = eMd2Html:convert(<<"snake_case_name and _em_">>),
+    Expect = <<"<p>snake_case_name and <em>em</em></p>">>,
+    ?assertEqual(Expect, Result).
+
+del_test() ->
+    Result = eMd2Html:convert(<<"x ~~gone~~ y">>),
+    Expect = <<"<p>x <del>gone</del> y</p>">>,
+    ?assertEqual(Expect, Result).
+
+inline_code_test() ->
+    Result = eMd2Html:convert(<<"a `co*de* :-)` b">>),
+    Expect = <<"<p>a <code>co*de* :-)</code> b</p>">>,
+    ?assertEqual(Expect, Result).
+
+em_around_link_test() ->
+    Result = eMd2Html:convert(<<"*see [x_y](https://x.se/a_b_c)*">>),
+    Expect = <<"<p><em>see <a href='https://x.se/a_b_c'>x_y</a></em></p>">>,
+    ?assertEqual(Expect, Result).
+
+fcode_after_paragraph_test() ->
+    Result = eMd2Html:convert(<<"Kod:\n```\nx = 1\n```">>),
+    Expect = <<"<p>Kod:</p><pre><code>x = 1\n</code></pre>">>,
+    ?assertEqual(Expect, Result).
+
+link_http_test() ->
+    Result = eMd2Html:convert(<<"[x](http://x.se/a?b=1&c=2)">>),
+    Expect = <<"<p><a href='http://x.se/a?b=1&amp;c=2'>x</a></p>">>,
+    ?assertEqual(Expect, Result).
+
+link_mailto_test() ->
+    Result = eMd2Html:convert(<<"<mailto:a@b.se>">>),
+    Expect = <<"<p><a href='mailto:a@b.se'>mailto:a@b.se</a></p>">>,
+    ?assertEqual(Expect, Result).
+
+link_utf8_test() ->
+    Result = eMd2Html:convert(<<"[Åland](https://sv.wikipedia.org/wiki/Åland)"/utf8>>),
+    Expect = <<"<p><a href='https://sv.wikipedia.org/wiki/Åland'>Åland</a></p>"/utf8>>,
+    ?assertEqual(Expect, Result).
+
+link_javascript_is_text_test() ->
+    Result = eMd2Html:convert(<<"[x](javascript:alert(1))">>),
+    Expect = <<"<p>[x](javascript:alert(1))</p>">>,
+    ?assertEqual(Expect, Result).
+
+link_quote_injection_test() ->
+    Result = eMd2Html:convert(<<"[x](https://x.se/'onmouseover='alert(1))">>),
+    Expect = <<"<p>[x](https://x.se/'onmouseover='alert(1))</p>">>,
+    ?assertEqual(Expect, Result).
+
+autolink_quote_injection_test() ->
+    Result = eMd2Html:convert(<<"<https://x.se/'onmouseover='alert(1)>">>),
+    ?assertEqual(nomatch, binary:match(Result, <<"<a ">>)).
+
+link_text_escaped_test() ->
+    Result = eMd2Html:convert(<<"[<b>x</b> & y](https://x.se)">>),
+    Expect = <<"<p><a href='https://x.se'>&lt;b&gt;x&lt;/b&gt; &amp; y</a></p>">>,
+    ?assertEqual(Expect, Result).
+
+image_http_is_text_test() ->
+    Result = eMd2Html:convert(<<"![bild](http://x.se/i.png)">>),
+    Expect = <<"<p>![bild](http://x.se/i.png)</p>">>,
+    ?assertEqual(Expect, Result).
+
+image_alt_escaped_test() ->
+    Result = eMd2Html:convert(<<"![a'b :-)](https://x.se/i.png)">>),
+    Expect = <<"<p><img src='https://x.se/i.png' alt='a&#39;b :-)' /></p>">>,
+    ?assertEqual(Expect, Result).
+
+no_smiley_in_entity_test() ->
+    Result = eMd2Html:convert(<<"\\<)">>),
+    Expect = <<"<p>&lt;)</p>">>,
+    ?assertEqual(Expect, Result).
