@@ -132,6 +132,8 @@
          todoUpToolEvent/4,
          toggleFilterMenuItemEvent/4,
          toggleDetailsMenuItemEvent/4,
+         openTaskDetailsMenuItemEvent/4,
+         taskDetailsDialogCloseEvent/4,
          undoMenuEvent/4,
          undoToolEvent/4,
          updateBookmarkButtonEvent/4,
@@ -929,6 +931,80 @@ toggleDetailsMenuItemEvent(_Type, _Id, Frame,
                   false -> hidden
               end,
     eTodoDB:saveUserCfg(UserCfg#userCfg{splitterMain = Details}),
+    State.
+
+openTaskDetailsMenuItemEvent(_Type, _Id, Frame,
+                             State) ->
+    case get(taskDetailsDialog) of
+        undefined ->
+            openTaskDetailsDialog(Frame, State);
+        _Dialog ->
+            taskDetailsDialogCloseEvent(undefined, undefined, Frame, State)
+    end.
+
+openTaskDetailsDialog(Frame, State) ->
+    Dialog = wxDialog:new(Frame, -1, "Task Details",
+                          [{style, ?wxDEFAULT_DIALOG_STYLE bor ?wxRESIZE_BORDER}]),
+    %% Cache descendants before moving their parent out of the main frame.
+    _ = obj("descAreaPreview", State),
+    _ = obj("commentAreaPreview", State),
+    Panel = obj("taskEditPanel", State),
+    Parent = obj("taskSplitPanel", State),
+    ParentSizer = wxWindow:getSizer(Parent),
+    wxSizer:detach(ParentSizer, Panel),
+    wxWindow:reparent(Panel, Dialog),
+    wxWindow:show(Panel, [{show, true}]),
+    DialogSizer = wxBoxSizer:new(?wxVERTICAL),
+    wxSizer:add(DialogSizer, Panel, [{proportion, 1}, {flag, ?wxEXPAND}]),
+    wxWindow:setSizer(Dialog, DialogSizer),
+    wxDialog:setSize(Dialog, {1000, 750}),
+    wxDialog:connect(Dialog, close_window),
+    connectTaskDetailsEvents(Dialog),
+    put(taskDetailsDialog, Dialog),
+    wxMenuBar:enable(wxFrame:getMenuBar(Frame),
+                     xrcId("toggleDetailsMenuItem"), false),
+    wxDialog:show(Dialog),
+    wxWindow:layout(Dialog),
+    wxWindow:layout(Parent),
+    refreshDescriptionPreview(State),
+    refreshCommentPreview(State),
+    State.
+
+connectTaskDetailsEvents(Dialog) ->
+    Events = [
+        {command_choice_selected, ["statusChoice", "priorityChoice", "ownerChoice"]},
+        {date_changed, ["dueDatePicker"]},
+        {command_checkbox_clicked, ["dueDateUsed"]},
+        {stc_change, ["descriptionAreaSTC", "commentAreaSTC"]},
+        {command_button_clicked, ["setReminderButton", "commentButton",
+                                  "sendTaskButton", "addOwnerButton",
+                                  "shareButton", "addListButton", "logWorkButton"]},
+        {command_notebook_page_changed, ["descNotebook", "commentNotebook"]},
+        {command_spinctrl_updated, ["progressInfo"]},
+        {context_menu, ["sendTaskButton"]}
+    ],
+    [wxDialog:connect(Dialog, Event, [{id, xrcId(Name)}])
+     || {Event, Names} <- Events, Name <- Names],
+    ok.
+
+taskDetailsDialogCloseEvent(_Type, _Id, Frame,
+                            State) ->
+    Dialog = get(taskDetailsDialog),
+    Panel = obj("taskEditPanel", State),
+    Parent = obj("taskSplitPanel", State),
+    ParentSizer = wxWindow:getSizer(Parent),
+    DialogSizer = wxWindow:getSizer(Dialog),
+    wxSizer:detach(DialogSizer, Panel),
+    wxWindow:reparent(Panel, Parent),
+    wxSizer:add(ParentSizer, Panel, [{proportion, 0}, {flag, ?wxEXPAND}]),
+    Show = wxMenuBar:isChecked(wxFrame:getMenuBar(Frame),
+                               xrcId("toggleDetailsMenuItem")),
+    wxMenuBar:enable(wxFrame:getMenuBar(Frame),
+                     xrcId("toggleDetailsMenuItem"), true),
+    eGuiFunctions:showTaskDetails(Show, Frame),
+    wxWindow:layout(Parent),
+    wxWindow:destroy(Dialog),
+    erase(taskDetailsDialog),
     State.
 
 %%====================================================================
@@ -2941,11 +3017,7 @@ descNotebookEvent(_Type, _Id, _Frame, State) ->
     PreviewPage  = wxNotebook:getPage(Notebook, 1),
     case CurrPage of
         PreviewPage ->
-            Obj      = obj("descAreaPreview", State),
-            DescObj  = obj("descriptionAreaSTC", State),
-            Descript = wxStyledTextCtrl:getText(DescObj),
-            Page     = eMd2Html:convert(Descript),
-            wxHtmlWindow:setPage(Obj, unicode:characters_to_list(Page, utf8));
+            refreshDescriptionPreview(State);
         _ ->
             ok
     end,
@@ -2957,15 +3029,51 @@ commentNotebookEvent(_Type, _Id, _Frame, State) ->
     PreviewPage  = wxNotebook:getPage(Notebook, 1),
     case CurrPage of
         PreviewPage ->
-            Obj        = obj("commentAreaPreview", State),
-            CommentObj = obj("commentAreaSTC",     State),
-            Comment    = wxStyledTextCtrl:getText(CommentObj),
-            Page       = eMd2Html:convert(Comment),
-            wxHtmlWindow:setPage(Obj, unicode:characters_to_list(Page, utf8));
+            refreshCommentPreview(State);
         _ ->
             ok
     end,
     State.
+
+refreshDescriptionPreview(State) ->
+    Obj      = obj("descAreaPreview", State),
+    DescObj  = obj("descriptionAreaSTC", State),
+    Descript = wxStyledTextCtrl:getText(DescObj),
+    Page     = previewPage(eMd2Html:convert(Descript), DescObj),
+    wxWebView:setPage(Obj, unicode:characters_to_list(Page, utf8), "").
+
+refreshCommentPreview(State) ->
+    Obj        = obj("commentAreaPreview", State),
+    CommentObj = obj("commentAreaSTC",     State),
+    Comment    = wxStyledTextCtrl:getText(CommentObj),
+    Page       = previewPage(eMd2Html:convert(Comment), CommentObj),
+    wxWebView:setPage(Obj, unicode:characters_to_list(Page, utf8), "").
+
+previewPage(Page, Editor) ->
+    BackgroundColour = wxStyledTextCtrl:getBackgroundColour(Editor),
+    Background = colourToHex(BackgroundColour),
+    Foreground = colourToHex(contrastingColour(BackgroundColour)),
+    iolist_to_binary([
+        "<!doctype html><html><head><meta charset=\"utf-8\">",
+        "<style>",
+        "html,body{margin:0;padding:0;background:", Background,
+        ";color:", Foreground, ";}",
+        "body{font-family:-apple-system,BlinkMacSystemFont,\"Helvetica Neue\",Helvetica,Arial,sans-serif;",
+        "font-size:13px;line-height:1.5;padding:10px 12px;}",
+        "p{margin:0 0 14px;} ul,ol{margin-top:0;margin-bottom:14px;}",
+        "a{color:", Foreground, ";} pre,code{font-family:ui-monospace,Menlo,monospace;}",
+        "</style></head><body>", Page, "</body></html>"
+    ]).
+
+colourToHex(Colour) ->
+    {Red, Green, Blue, _Alpha} = Colour,
+    list_to_binary(io_lib:format("#~2.16.0B~2.16.0B~2.16.0B",
+                                 [Red, Green, Blue])).
+
+contrastingColour({Red, Green, Blue, _Alpha}) when Red + Green + Blue < 384 ->
+    {255, 255, 255, 255};
+contrastingColour({_Red, _Green, _Blue, _Alpha}) ->
+    {0, 0, 0, 255}.
 
 mainNotebookEvent(_Type, _Id, _Frame, State) ->
     Notebook     = obj("mainNotebook",  State),

@@ -206,6 +206,11 @@
           <checkable>1</checkable>
           <checked>1</checked>
         </object>
+        <object class="wxMenuItem" name="openTaskDetailsMenuItem">
+          <label>Open task details in window</label>
+          <accel>Ctrl+Alt+T</accel>
+          <help>Open the task details in a separate resizable window.</help>
+        </object>
         <object class="separator"/>
       </object>
       <object class="wxMenu" name="helpMenu">
@@ -674,8 +679,7 @@
                                                       <flag>wxALL|wxEXPAND</flag>
                                                       <border>0</border>
                                                       <option>1</option>
-                                                      <object class="wxHtmlWindow" name="descAreaPreview">
-                                                        <style>wxHW_SCROLLBAR_AUTO</style>
+                                                      <object class="unknown" name="descAreaPreview">
                                                         <tooltip>Markdown preview</tooltip>
                                                       </object>
                                                     </object>
@@ -727,8 +731,7 @@
                                                       <flag>wxALL|wxEXPAND</flag>
                                                       <border>0</border>
                                                       <option>1</option>
-                                                      <object class="wxHtmlWindow" name="commentAreaPreview">
-                                                        <style>wxHW_SCROLLBAR_AUTO</style>
+                                                      <object class="unknown" name="commentAreaPreview">
                                                         <tooltip>Markdown preview</tooltip>
                                                       </object>
                                                     </object>

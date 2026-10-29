@@ -9,7 +9,7 @@
 -module(eGuiFunctions).
 -author("mikael.bylund@gmail.com").
 
--include_lib("eTodo/include/eTodo.hrl").
+-include("../include/eTodo.hrl").
 
 -include_lib("wx/include/wx.hrl").
 
@@ -335,7 +335,7 @@ obj(Name, Frame) ->
     %% Cache for faster access.
     case get({wxObj, Name}) of
         undefined ->
-            case wxXmlResource:xrcctrl(Frame, Name, type(Name)) of
+            case findObject(Frame, Name) of
                 {wx_ref, 0, Type, _Args} ->
                     eLog:log(error, ?MODULE, obj,
                              [Frame, Name, Type],
@@ -347,6 +347,17 @@ obj(Name, Frame) ->
                              "Object not found in cache, cache object", ?LINE),
                     put({wxObj, Name}, Obj),
                     Obj
+            end;
+        Obj ->
+            Obj
+    end.
+
+findObject(Frame, Name) ->
+    case wxXmlResource:xrcctrl(Frame, Name, type(Name)) of
+        {wx_ref, 0, _, _} = Missing ->
+            case get(taskDetailsDialog) of
+                undefined -> Missing;
+                Dialog -> wxXmlResource:xrcctrl(Dialog, Name, type(Name))
             end;
         Obj ->
             Obj

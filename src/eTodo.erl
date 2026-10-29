@@ -331,6 +331,15 @@ initGUI(Arg) ->
     wxXmlResource:attachUnknownControl(Xrc, "descriptionAreaSTC", DescArea),
     wxXmlResource:attachUnknownControl(Xrc, "commentAreaSTC",     ComArea),
 
+    DescPreviewParent = wxXmlResource:xrcctrl(Frame, "descMdPanel", wxPanel),
+    ComPreviewParent = wxXmlResource:xrcctrl(Frame, "commentMdPanel", wxPanel),
+    DescPreview = newTaskPreview(DescPreviewParent),
+    ComPreview = newTaskPreview(ComPreviewParent),
+    true = wxXmlResource:attachUnknownControl(Xrc, "descAreaPreview", DescPreview),
+    true = wxXmlResource:attachUnknownControl(Xrc, "commentAreaPreview", ComPreview),
+    setPreviewStyle(DescPreview),
+    setPreviewStyle(ComPreview),
+
     setEditStyle(DescArea),
     setEditStyle(ComArea),
 
@@ -658,6 +667,31 @@ getGuiSettings(State = #guiState{activeTodo = {ETodo, _}}) ->
                 progress     = Progress,
                 owner        = Owner}.
 
+newTaskPreview(Parent) ->
+    Preview = wxWebView:new(Parent, ?wxID_ANY, [{style, ?wxBORDER_NONE}]),
+    Owner = self(),
+    Navigate = fun(#wx{event = #wxWebView{url = "about:blank"}}, Event) ->
+                       wxWebViewEvent:allow(Event);
+                  (#wx{event = #wxWebView{url = Url}}, Event) ->
+                       wxWebViewEvent:veto(Event),
+                       wx_object:cast(Owner, {taskPreviewLink, Url})
+               end,
+    Failed = fun(#wx{event = #wxWebView{url = Url, string = Message,
+                                        int = Error}}, _Event) ->
+                     logger:error("Task preview WebView failed (~p): ~ts: ~ts",
+                                  [Error, Url, Message])
+             end,
+    wxWebView:connect(Preview, webview_navigating, [{callback, Navigate}]),
+    wxWebView:connect(Preview, webview_newwindow, [{callback, Navigate}]),
+    wxWebView:connect(Preview, webview_error, [{callback, Failed}]),
+    Preview.
+
+setPreviewStyle(Preview) ->
+    Background = wxSystemSettings:getColour(?wxSYS_COLOUR_WINDOW),
+    Foreground = wxSystemSettings:getColour(?wxSYS_COLOUR_WINDOWTEXT),
+    wxWindow:setBackgroundColour(Preview, Background),
+    wxWindow:setForegroundColour(Preview, Foreground).
+
 setEditStyle(Ed) ->
     wxStyledTextCtrl:setReadOnly(Ed, false),
     wxStyledTextCtrl:setCodePage(Ed, ?wxSTC_CP_UTF8),
@@ -668,6 +702,7 @@ setEditStyle(Ed) ->
     Selection  = wxSystemSettings:getColour(?wxSYS_COLOUR_HIGHLIGHT),
     Selected   = wxSystemSettings:getColour(?wxSYS_COLOUR_HIGHLIGHTTEXT),
     wxStyledTextCtrl:setBackgroundColour(Ed, Background),
+    wxStyledTextCtrl:setForegroundColour(Ed, Foreground),
     wxStyledTextCtrl:styleSetBackground(Ed, ?wxSTC_STYLE_DEFAULT, Background),
     wxStyledTextCtrl:styleSetForeground(Ed, ?wxSTC_STYLE_DEFAULT, Foreground),
     wxStyledTextCtrl:styleSetFont(Ed, ?wxSTC_STYLE_DEFAULT, FixedFont),
@@ -806,6 +841,9 @@ handle_cast({workLogAction, Action, Shift, Ctrl}, State) ->
            end,
     Event = #wx{event = #wxHtmlLink{linkInfo = #wxHtmlLinkInfo{href = Link}}},
     handle_event(Event, State#guiState{shiftMod = Shift, ctrlMod = Ctrl});
+handle_cast({taskPreviewLink, Url}, State) ->
+    Event = #wx{event = #wxHtmlLink{linkInfo = #wxHtmlLinkInfo{href = Url}}},
+    handle_event(Event, State);
 handle_cast({appendToPage, Html}, State) ->
     MsgObj = obj("msgTextWin", State),
     State2 = appendToPage(MsgObj, systemEntry, {Html, ""}, State),
@@ -1141,6 +1179,16 @@ handle_event(#wx{event = #wxClose{}, obj = Frame},
     State2 = saveGuiSettings(State),
     {stop, normal, State2};
 
+handle_event(#wx{event = #wxClose{}, obj = Dialog},
+             State = #guiState{frame = Frame}) ->
+    case get(taskDetailsDialog) of
+        Dialog ->
+            handle_cmd("taskDetailsDialogClose", command_close,
+                       Dialog, Frame, State);
+        _ ->
+            {noreply, State}
+    end;
+
 handle_event(#wx{event = #wxDate{}, obj = Obj},
              State = #guiState{timeDlg = Obj}) ->
     State2 = eGuiEvents:startDateChangedEvent(State),
@@ -1355,9 +1403,13 @@ smallIcon() ->
 handle_cmd(Name, Type, Id, Frame, State) ->
     Function = list_to_atom(Name ++ "Event"),
     case catch eGuiEvents:Function(Type, Id, Frame, State) of
-        {'EXIT', Reason} ->
+        {'EXIT', {undef, [{eGuiEvents, Function, _, _} | _]} = Reason} ->
             eLog:log(debug, ?MODULE, handle_cmd, [Reason],
                      "No callback implemented.", ?LINE),
+            {noreply, State};
+        {'EXIT', Reason} ->
+            eLog:log(error, ?MODULE, handle_cmd, [Function, Reason],
+                     "GUI callback failed.", ?LINE),
             {noreply, State};
         stop ->
             {stop, normal, State};
@@ -1409,8 +1461,7 @@ connectMsgFrame(Frame, Dict) ->
                   xrcId("timeLogReport")  => "timeLogReport",
                   xrcId("scheduleReport") => "scheduleReport",
                   xrcId("msgTextWin")     => "msgTextWin"},
-    connectItems(["descAreaPreview", "commentAreaPreview"],
-                 command_html_link_clicked, Frame, Dict2).
+    Dict2.
 
 connectMainFrame(Frame, Dict) ->
     ok = wxFrame:connect(Frame, close_window),
@@ -1431,6 +1482,7 @@ connectMainFrame(Frame, Dict) ->
                  "replyMenu", "replyAllMenu", "setAvatarMenuItem",
                  "backupMenuItem", "restoreMenuItem", "pluginMenuItem",
                  "toggleFilterMenuItem", "toggleDetailsMenuItem"],
+    MenuItems2 = ["openTaskDetailsMenuItem"],
 
     MenuChoice = ["userStatusChoice", "statusChoice", "priorityChoice",
                   "taskListChoice", "ownerChoice"],
@@ -1474,7 +1526,8 @@ connectMainFrame(Frame, Dict) ->
     Dict14 = connectItems(["bookmarkBtn",
                            "sendTaskButton"], context_menu,     Frame, Dict13),
     Dict15 = connectItems(["workLogStartDate"], date_changed,   Frame, Dict14),
-    connectItems(MenuItems, command_menu_selected,              Frame, Dict15).
+    Dict16 = connectItems(MenuItems, command_menu_selected,      Frame, Dict15),
+    connectItems(MenuItems2, command_menu_selected,              Frame, Dict16).
 
 connectItems(_Items, [], _Frame, Dict) ->
     Dict;
