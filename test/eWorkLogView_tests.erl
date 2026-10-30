@@ -152,10 +152,14 @@ navigation_test() ->
         Path = "/desktop/" ++ binary_to_list(Ticket),
         {303, Headers, _} = desktop_get(Port, Path, []),
         CookieHeader = desktop_cookie_header(Headers),
+        ?assert(lists:prefix(
+                  "etodo_desktop_" ++ integer_to_list(Port) ++ "=",
+                  CookieHeader)),
         ?assertNotEqual(nomatch, string:find(CookieHeader, "HttpOnly")),
         ?assertEqual(nomatch, string:find(CookieHeader, "Max-Age")),
         Legacy = [H || {"set-cookie", H} <- Headers,
-                       lists:prefix("etodo_worklog=", H)],
+                       lists:prefix(
+                         "etodo_worklog_" ++ integer_to_list(Port) ++ "=", H)],
         ?assertEqual(2, length(Legacy)),
         ?assert(lists:all(fun(H) -> string:find(H, "Max-Age=0") =/= nomatch end,
                           Legacy)),
@@ -184,8 +188,8 @@ navigation_test() ->
                          binary_to_list(SecondTicket), []),
         SecondCookie = hd(string:split(desktop_cookie_header(SecondHeaders),
                                        ";", all)),
-        StaleFirst = "etodo_desktop=" ++ lists:duplicate(64, $0) ++ "; "
-            ++ SecondCookie,
+        StaleFirst = "etodo_desktop_" ++ integer_to_list(Port) ++ "="
+            ++ lists:duplicate(64, $0) ++ "; " ++ SecondCookie,
         ?assertMatch({200, _, _}, desktop_get(
                  Port, ReportPath, [{"cookie", StaleFirst}])),
         ?assertMatch({200, _, _}, desktop_get(
@@ -219,7 +223,7 @@ navigation_test() ->
 
     desktop_cookie_header(Headers) ->
       [Header] = [H || {"set-cookie", H} <- Headers,
-                       lists:prefix("etodo_desktop=", H)],
+                       lists:prefix("etodo_desktop_", H)],
       Header.
 
     check_desktop_messages(Port) ->

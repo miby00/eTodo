@@ -34,6 +34,19 @@ const desktop_cookie = "etodo_desktop"
 // Earlier builds persisted this with Path=/work-log, which shadowed newer cookies.
 const legacy_desktop_cookie = "etodo_worklog"
 
+fn instance_cookie(request: Request(Connection), base_name: String) -> String {
+  // The TCP relay preserves the public Host port but forwards to the owner's web port.
+  let host = request.get_header(request, "host") |> result.unwrap("")
+  let port = case uri.parse("https://" <> host) {
+    Ok(uri.Uri(host: Some(_), port: Some(port), ..))
+      if port > 0 && port <= 65_535
+    -> port
+    Ok(uri.Uri(host: Some(_), port: None, ..)) -> 443
+    _ -> 443
+  }
+  base_name <> "_" <> int.to_string(port)
+}
+
 type Todo {
   Todo(
     uid: String,
@@ -378,7 +391,7 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
         Get, [] -> serve_home(request)
         Get, ["settings"] -> serve_settings(request)
         Post, ["settings"] -> save_settings_request(request)
-        Get, ["auth", "google"] -> google_start()
+        Get, ["auth", "google"] -> google_start(request)
         Get, ["auth", "google", "callback"] -> google_callback(request)
         Post, ["login"] -> login(request)
         Post, ["logout"] -> logout_request(request)
@@ -423,7 +436,7 @@ pub fn start_work_log(owner: process.Pid) {
             Get, ["events"] -> desktop_events(request)
             Get, ["avatar"] ->
               logo_response(read_desktop_avatar(
-                cookie_values(request, desktop_cookie),
+                cookie_values(request, instance_cookie(request, desktop_cookie)),
                 query_value(request, "user"),
               ))
             _, _ -> response(404, "Not found")
@@ -469,15 +482,30 @@ fn desktop_bootstrap(
       |> response.set_header("referrer-policy", "no-referrer")
       |> response.prepend_header(
         "set-cookie",
-        desktop_cookie_header(desktop_cookie, token, None, "/"),
+        desktop_cookie_header(
+          instance_cookie(request, desktop_cookie),
+          token,
+          None,
+          "/",
+        ),
       )
       |> response.prepend_header(
         "set-cookie",
-        desktop_cookie_header(legacy_desktop_cookie, "", Some(0), "/"),
+        desktop_cookie_header(
+          instance_cookie(request, legacy_desktop_cookie),
+          "",
+          Some(0),
+          "/",
+        ),
       )
       |> response.prepend_header(
         "set-cookie",
-        desktop_cookie_header(legacy_desktop_cookie, "", Some(0), "/work-log"),
+        desktop_cookie_header(
+          instance_cookie(request, legacy_desktop_cookie),
+          "",
+          Some(0),
+          "/work-log",
+        ),
       )
       |> response_data
     }
@@ -521,7 +549,10 @@ fn desktop_report(
     )
   }
   case
-    first_valid_desktop_page(cookie_values(request, desktop_cookie), render)
+    first_valid_desktop_page(
+      cookie_values(request, instance_cookie(request, desktop_cookie)),
+      render,
+    )
   {
     Ok(page) -> work_log_response(page)
     Error("invalid_session") -> response(401, "Desktop sign-in expired")
@@ -542,7 +573,10 @@ fn desktop_messages(request: Request(Connection)) -> Response(ResponseData) {
     )
   }
   case
-    first_valid_desktop_page(cookie_values(request, desktop_cookie), render)
+    first_valid_desktop_page(
+      cookie_values(request, instance_cookie(request, desktop_cookie)),
+      render,
+    )
   {
     Ok(page) -> messages_response(page)
     Error("invalid_session") -> response(401, "Desktop sign-in expired")
@@ -559,7 +593,10 @@ fn desktop_fragment(request: Request(Connection)) -> Response(ResponseData) {
     )
   }
   case
-    first_valid_desktop_page(cookie_values(request, desktop_cookie), render)
+    first_valid_desktop_page(
+      cookie_values(request, instance_cookie(request, desktop_cookie)),
+      render,
+    )
   {
     Ok(body) ->
       response(200, body)
@@ -583,7 +620,10 @@ fn desktop_action(
         desktop_message_action(token, field("csrf"), action, field("value"))
       }
       case
-        first_valid_desktop_page(cookie_values(request, desktop_cookie), run)
+        first_valid_desktop_page(
+          cookie_values(request, instance_cookie(request, desktop_cookie)),
+          run,
+        )
       {
         Ok(body) ->
           response(200, body)
@@ -598,7 +638,12 @@ fn desktop_action(
 }
 
 fn desktop_events(request: Request(Connection)) -> Response(ResponseData) {
-  case first_desktop_user(cookie_values(request, desktop_cookie)) {
+  case
+    first_desktop_user(cookie_values(
+      request,
+      instance_cookie(request, desktop_cookie),
+    ))
+  {
     Ok(username) -> event_stream(request, username)
     Error(_) -> response(401, "Desktop sign-in expired")
   }
@@ -666,10 +711,10 @@ fn serve_home(request: Request(Connection)) -> Response(ResponseData) {
           case load_page(token, username, list_name, show_all, search) {
             Error("invalid_list") if !explicit ->
               case load_page(token, username, "All tasks", show_all, search) {
-                Ok(page) -> remember_list(page, "All tasks")
+                Ok(page) -> remember_list(request, page, "All tasks")
                 Error(message) -> page_error(message)
               }
-            Ok(page) -> remember_list(page, list_name)
+            Ok(page) -> remember_list(request, page, list_name)
             Error(message) -> page_error(message)
           }
         }
@@ -992,6 +1037,7 @@ fn page_error(message: String) -> Response(ResponseData) {
 }
 
 fn remember_list(
+  request: Request(Connection),
   page: Response(ResponseData),
   list_name: String,
 ) -> Response(ResponseData) {
@@ -999,7 +1045,7 @@ fn remember_list(
     page,
     "set-cookie",
     cookie.set_header(
-      list_cookie,
+      instance_cookie(request, list_cookie),
       uri.percent_encode(list_name),
       cookie.Attributes(
         max_age: Some(31_536_000),
@@ -1013,10 +1059,14 @@ fn remember_list(
   )
 }
 
-fn oidc_cookie_header(value: String, max_age: Int) -> String {
+fn oidc_cookie_header(
+  request: Request(Connection),
+  value: String,
+  max_age: Int,
+) -> String {
   // Lax, not Strict: the cookie has to come back on the redirect from Google.
   cookie.set_header(
-    oidc_cookie,
+    instance_cookie(request, oidc_cookie),
     value,
     cookie.Attributes(
       max_age: Some(max_age),
@@ -1029,7 +1079,7 @@ fn oidc_cookie_header(value: String, max_age: Int) -> String {
   )
 }
 
-fn google_start() -> Response(ResponseData) {
+fn google_start(request: Request(Connection)) -> Response(ResponseData) {
   case oidc_enabled() {
     False -> response(404, "Not found")
     True -> {
@@ -1038,7 +1088,7 @@ fn google_start() -> Response(ResponseData) {
       |> response.set_header("location", url)
       |> response.prepend_header(
         "set-cookie",
-        oidc_cookie_header(cookie_value, 600),
+        oidc_cookie_header(request, cookie_value, 600),
       )
       |> response_data
     }
@@ -1066,7 +1116,7 @@ fn google_callback(request: Request(Connection)) -> Response(ResponseData) {
     oidc_enabled(),
     list.key_find(query, "code"),
     list.key_find(query, "state"),
-    list.key_find(cookies, oidc_cookie)
+    list.key_find(cookies, instance_cookie(request, oidc_cookie))
   {
     False, _, _, _ -> response(404, "Not found")
     True, Ok(code), Ok(state), Ok(cookie_value) ->
@@ -1076,11 +1126,14 @@ fn google_callback(request: Request(Connection)) -> Response(ResponseData) {
           // so the browser would withhold the Strict session cookie. A page
           // that navigates itself to "/" is same-site.
           continue_page()
-          |> response.prepend_header("set-cookie", oidc_cookie_header("", 0))
+          |> response.prepend_header(
+            "set-cookie",
+            oidc_cookie_header(request, "", 0),
+          )
           |> response.prepend_header(
             "set-cookie",
             cookie.set_header(
-              session_cookie,
+              instance_cookie(request, session_cookie),
               token,
               cookie.Attributes(
                 max_age: Some(session_max_age),
@@ -1094,11 +1147,17 @@ fn google_callback(request: Request(Connection)) -> Response(ResponseData) {
           )
         Error(message) ->
           login_page(message)
-          |> response.prepend_header("set-cookie", oidc_cookie_header("", 0))
+          |> response.prepend_header(
+            "set-cookie",
+            oidc_cookie_header(request, "", 0),
+          )
       }
     True, _, _, _ ->
       login_page("Google sign-in was cancelled or failed.")
-      |> response.prepend_header("set-cookie", oidc_cookie_header("", 0))
+      |> response.prepend_header(
+        "set-cookie",
+        oidc_cookie_header(request, "", 0),
+      )
   }
 }
 
@@ -1112,7 +1171,7 @@ fn login(request: Request(Connection)) -> Response(ResponseData) {
           |> response.prepend_header(
             "set-cookie",
             cookie.set_header(
-              session_cookie,
+              instance_cookie(request, session_cookie),
               token,
               cookie.Attributes(
                 max_age: Some(session_max_age),
@@ -1142,7 +1201,7 @@ fn logout_request(request: Request(Connection)) -> Response(ResponseData) {
   |> response.prepend_header(
     "set-cookie",
     cookie.set_header(
-      session_cookie,
+      instance_cookie(request, session_cookie),
       "",
       cookie.Attributes(
         max_age: Some(0),
@@ -1477,7 +1536,9 @@ fn wants_all(request: Request(Connection)) -> Bool {
 fn requested_list(
   request: Request(Connection),
 ) -> Result(#(String, Bool), Nil) {
-  let remembered = case cookie_value(request, list_cookie) {
+  let remembered = case
+    cookie_value(request, instance_cookie(request, list_cookie))
+  {
     Some(value) ->
       case uri.percent_decode(value) {
         Ok(name) if name != "" -> #(name, False)
@@ -1530,7 +1591,7 @@ fn session_cookie_value(request: Request(Connection)) -> Option(String) {
     |> result.unwrap("")
     |> cookie.parse
 
-  case list.key_find(cookies, session_cookie) {
+  case list.key_find(cookies, instance_cookie(request, session_cookie)) {
     Ok(token) -> Some(token)
     Error(_) -> None
   }
