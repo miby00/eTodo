@@ -53,26 +53,27 @@ status_json(User) ->
     #{status := Status, status_msg := StatusMsg, timer := Timer,
       timer_desc := Desc, team_pomodoro := TeamPomodoro} = get_info(User),
     %% A timer started in the desktop client is shown before the pomodoro.
-    {Seconds, TimerDesc} =
+    {Seconds, TimerDesc, Break} =
         case {seconds_left(Timer), TeamPomodoro} of
             {0, true} -> team_pomodoro(time());
-            {0, false} -> {0, <<>>};
-            {Left, _} -> {Left, to_bin(Desc)}
+            {0, false} -> {0, <<>>, false};
+            {Left, _} -> {Left, to_bin(Desc), false}
         end,
-    Json = json:encode(#{<<"user">>          => to_bin(User),
-                         <<"status">>        => to_bin(Status),
-                         <<"status_msg">>    => to_bin(StatusMsg),
-                         <<"timer">>         => Seconds,
-                         <<"timer_desc">>    => TimerDesc,
-                         <<"team_pomodoro">> => TeamPomodoro}),
+    Json = json:encode(#{<<"user">>           => to_bin(User),
+                         <<"status">>         => to_bin(Status),
+                         <<"status_msg">>     => to_bin(StatusMsg),
+                         <<"timer">>          => Seconds,
+                         <<"timer_desc">>     => TimerDesc,
+                         <<"team_pomodoro">>  => TeamPomodoro,
+                         <<"pomodoro_break">> => Break}),
     {ok, iolist_to_binary(Json)}.
 
 team_pomodoro({_Hour, Min, Sec}) ->
     case (Min rem 30) * 60 + Sec of
         Pos when Pos < 25 * 60 ->
-            {25 * 60 - Pos, <<"Team pomodoro \x{b7} work"/utf8>>};
+            {25 * 60 - Pos, <<"Team pomodoro \x{b7} work"/utf8>>, false};
         Pos ->
-            {30 * 60 - Pos, <<"Team pomodoro \x{b7} break"/utf8>>}
+            {30 * 60 - Pos, <<"Team pomodoro \x{b7} break"/utf8>>, true}
     end.
 
 get_info(User) ->

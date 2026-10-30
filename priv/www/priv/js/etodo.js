@@ -209,7 +209,8 @@
   var show = function (data) {
     document.body.className =
       "etodo-status etodo-status-" +
-      String(data.status).toLowerCase().replace(/[^a-z]+/g, "-");
+      String(data.status).toLowerCase().replace(/[^a-z]+/g, "-") +
+      (data.pomodoro_break ? " etodo-status-break" : "");
     set("status-user", data.user);
     var form = document.getElementById("status-form");
     if (form && !filled) {

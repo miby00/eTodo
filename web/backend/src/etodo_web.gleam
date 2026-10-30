@@ -1008,6 +1008,7 @@ fn status_page(
             cell("status-user", ""),
             cell("status-state", ""),
             cell("status-msg", ""),
+            cell("status-break", "\u{2615} Break"),
             cell("status-timer", ""),
             cell("status-timer-desc", ""),
           ],

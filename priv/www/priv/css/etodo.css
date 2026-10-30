@@ -402,13 +402,63 @@ html {
   font-size: 8vh;
 }
 
+.etodo-status-available #status-state::before {
+  content: "\2705\00a0";
+}
+
+.etodo-status-busy #status-state::before {
+  content: "\26d4\00a0";
+}
+
+.etodo-status-away #status-state::before {
+  content: "\1f6b6\00a0";
+}
+
 #status-msg {
   font-size: 6vh;
   overflow-wrap: anywhere;
 }
 
+/* Team pomodoro break: its own colour so it is not mistaken for a status. */
+.etodo-status.etodo-status-break {
+  background: #0e7490;
+}
+
+#status-break {
+  display: none;
+  font-size: min(14vh, 17vw);
+  line-height: 1.1;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.etodo-status-break #status-break {
+  display: block;
+  animation: etodo-break-pulse 3s ease-in-out infinite;
+}
+
+/* The break replaces the status so the screen shows one clear message. */
+.etodo-status-break #status-state,
+.etodo-status-break #status-msg {
+  display: none;
+}
+
+@keyframes etodo-break-pulse {
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .etodo-status-break #status-break {
+    animation: none;
+  }
+}
+
 #status-timer {
-  font-size: 18vh;
+  font-size: min(18vh, 30vw);
   font-variant-numeric: tabular-nums;
 }
 
