@@ -289,15 +289,10 @@ html {
   white-space: pre-wrap;
 }
 
+/* The logo is the eTodo lettering on a transparent background. */
 .etodo-logo-banner {
-  background: linear-gradient(135deg, #1b2263, #2e3a9e);
-  border-radius: 1rem;
-  box-shadow: 0 0.5rem 1.25rem rgba(27, 34, 99, 0.25);
-  padding: 1rem;
-}
-
-.etodo-login-page .etodo-logo-banner {
-  padding: 0;
+  display: block;
+  line-height: 0;
 }
 
 .etodo-login-logo {
@@ -305,15 +300,11 @@ html {
 }
 
 .etodo-logo-small {
-  border-radius: var(--bs-border-radius-lg);
-  box-shadow: none;
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
   /* Same height as the header buttons; width follows the logo's aspect. */
   height: calc(1.5 * 1.25rem + 1rem + 2px);
-  line-height: 0;
-  padding: 0.3rem 0.7rem;
 }
 
 .etodo-logo-small img {

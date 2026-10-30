@@ -97,7 +97,7 @@ read_etodo_icon() ->
 
 read_etodo_logo() ->
     Logo = filename:join(
-             [code:priv_dir(eTodo), "www", "priv", "Icons", "ETodo-300.png"]),
+             [code:priv_dir(eTodo), "www", "priv", "Icons", "etodo-logo.png"]),
     read_asset(Logo).
 
 %% The status page always shows the status of the owner of this installation.
