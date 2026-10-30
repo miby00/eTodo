@@ -26,6 +26,14 @@ empty_document_test() ->
     Page = eWorkLogView:document(Report, <<>>),
     ?assertNotEqual(nomatch, binary:match(Page, <<"No work logged">>)).
 
+schedule_has_no_sticky_footer_test() ->
+    Report = "<table><tr><td>Description</td></tr><tr><td>Today</td></tr>"
+             "<tr><td>Month(s) away</td></tr></table>",
+    Page = eWorkLogView:document(Report, <<>>, #{report => "schedule"}),
+    ?assertEqual(nomatch, binary:match(Page, <<"<tfoot>">>)),
+    [_, AfterBody] = binary:split(Page, <<"<tbody>">>),
+    ?assertNotEqual(nomatch, binary:match(AfterBody, <<"Month(s) away">>)).
+
 browser_time_log_header_test() ->
     Report = "<table><tr><td>Task</td></tr><tr><td>Total</td></tr></table>",
     Page = eWorkLogView:document(

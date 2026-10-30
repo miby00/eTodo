@@ -528,8 +528,13 @@ document(Report, Css, Theme) ->
                       {<<"tr">>, _, Cells} -> length(Cells);
                       _ -> 1
                   end,
-    Total = lists:last(Rest),
-    Entries = lists:droplast(Rest),
+    %% Only the work and time logs end with a total row; keep it as a footer.
+    {Entries, Footer} =
+        case maps:get(report, Theme, "work-log") of
+            "schedule" -> {Rest, []};
+            _ -> {lists:droplast(Rest),
+                  [{<<"tfoot">>, [], [clean(lists:last(Rest))]}]}
+        end,
     Body = case Entries of
                [] ->
                    [{<<"tr">>, [],
@@ -543,8 +548,7 @@ document(Report, Css, Theme) ->
                             {<<"class">>,
                              <<"table table-sm table-striped table-hover">>}],
              [{<<"thead">>, [], [header(Header)]},
-              {<<"tbody">>, [], Body},
-              {<<"tfoot">>, [], [clean(Total)]}]},
+              {<<"tbody">>, [], Body} | Footer]},
     Attributes = theme_attributes(Theme),
     Browser = Attributes =:= "",
     Display = case Browser of
