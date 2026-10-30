@@ -1374,8 +1374,8 @@ setIcon(Frame) ->
 setDockIcon() ->
     case os:type() of
         {unix, darwin} ->
-            File = filename:join([code:priv_dir(eTodo), "www", "priv",
-                                  "Icons", "etodoSuper.png"]),
+            File = filename:join([code:priv_dir(eTodo), "Icons",
+                                  "etodoDock.png"]),
             Icon = wxIcon:new(),
             wxIcon:copyFromBitmap(Icon, wxBitmap:new(wxImage:new(File))),
             Dock = wxTaskBarIcon:new([{iconType, ?wxTBI_DOCK}]),
