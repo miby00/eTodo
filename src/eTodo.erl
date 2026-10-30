@@ -39,6 +39,7 @@
          statusUpdate/2,
          stop/0,
          systemEntry/2,
+         taskListReordered/1,
          taskListDeleted/1,
          taskListsUpdated/0,
          todoCreated/3,
@@ -199,6 +200,9 @@ statusUpdate(UserStatus, Avatar) ->
 
 taskListsUpdated() ->
     wx_object:cast(?MODULE, taskListsUpdated), ok.
+
+taskListReordered(List) ->
+    wx_object:cast(?MODULE, {taskListReordered, List}), ok.
 
 taskListDeleted(List) ->
     wx_object:cast(?MODULE, {taskListDeleted, List}), ok.
@@ -938,6 +942,30 @@ handle_cast(taskListsUpdated, State = #guiState{user = User}) ->
     TodoLists = getTodoLists(User),
     setTaskLists(TodoLists, State),
     {noreply, State};
+handle_cast({taskListReordered, List},
+            State = #guiState{activeTodo = {ActiveTodo, _}}) ->
+    case getTaskList(State) =:= List of
+        true ->
+            ActiveUid = case ActiveTodo of
+                            #etodo{uidDB = Uid} -> Uid;
+                            _ -> undefined
+                        end,
+            State2 = updateTodoWindow(State),
+            case findIndex(ActiveUid, State2#guiState.rows) of
+                {Index, ETodo} ->
+                    TodoList = getTodoList(List, State2),
+                    wxListCtrl:setItemState(TodoList, Index,
+                                            ?wxLIST_STATE_SELECTED,
+                                            ?wxLIST_STATE_SELECTED),
+                    State3 = updateGui(ETodo, Index, State2),
+                    {noreply,
+                     State3#guiState{activeTodo = {ETodo, Index}}};
+                _ ->
+                    {noreply, State2}
+            end;
+        false ->
+            {noreply, State}
+    end;
 handle_cast({taskListDeleted, List}, State = #guiState{user = User}) ->
     TodoLists1 = getTodoLists(User),
     TodoLists2 = lists:delete(List, TodoLists1),

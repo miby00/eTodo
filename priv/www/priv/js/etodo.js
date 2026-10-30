@@ -973,3 +973,310 @@
     card.scrollIntoView({ block: "start" });
   }
 })();
+
+(function () {
+  "use strict";
+  var list = document.getElementById("todo-items");
+  if (!list) {
+    return;
+  }
+
+  var busy = false;
+  var drag = null;
+  var orderLoading = false;
+  var orderPending = false;
+  var orderVersion = 0;
+  var orderQuery = new URLSearchParams({
+    list: list.getAttribute("data-list"),
+    all: list.getAttribute("data-show-all") === "true" ? "1" : "0"
+  });
+
+  function cards() {
+    return Array.prototype.slice.call(
+      list.querySelectorAll(":scope > li[data-uid]")
+    );
+  }
+
+  function visibleCards() {
+    return cards().filter(function (card) {
+      return !card.hidden;
+    });
+  }
+
+  function refreshControls() {
+    var visible = visibleCards();
+    visible.forEach(function (card, index) {
+      card.querySelectorAll(".etodo-move-form").forEach(function (form) {
+        var button = form.querySelector("[data-move-action]");
+        var before = "";
+        var disabled = false;
+        switch (button.getAttribute("data-move-action")) {
+          case "top":
+            before = visible.length ? visible[0].getAttribute("data-uid") : "";
+            disabled = index === 0;
+            break;
+          case "up":
+            before = index > 0
+              ? visible[index - 1].getAttribute("data-uid")
+              : "";
+            disabled = index === 0;
+            break;
+          case "down":
+            before = index + 2 < visible.length
+              ? visible[index + 2].getAttribute("data-uid")
+              : "";
+            disabled = index === visible.length - 1;
+            break;
+          case "bottom":
+            disabled = index === visible.length - 1;
+            break;
+        }
+        form.elements["before_uid"].value = before;
+        button.disabled = disabled || busy;
+      });
+    });
+  }
+
+  function syncOrder() {
+    if (!orderPending || orderLoading || busy || drag || document.hidden) {
+      return;
+    }
+    orderPending = false;
+    orderLoading = true;
+    var version = orderVersion;
+    fetch("/todo/order?" + orderQuery.toString(), {
+      credentials: "same-origin",
+      cache: "no-store"
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+        return response.json();
+      })
+      .then(function (order) {
+        if (!Array.isArray(order) || !order.every(function (uid) {
+          return typeof uid === "string";
+        })) {
+          throw new Error("Invalid task order");
+        }
+        // An older snapshot must not overwrite an in-flight local move.
+        if (busy || drag || version !== orderVersion) {
+          orderPending = true;
+          return;
+        }
+        var existing = new Map();
+        cards().forEach(function (card) {
+          existing.set(card.getAttribute("data-uid"), card);
+        });
+        var active = document.activeElement;
+        var next = list.firstElementChild;
+        order.forEach(function (uid) {
+          var card = existing.get(uid);
+          if (card) {
+            if (card !== next) {
+              list.insertBefore(card, next);
+            }
+            next = card.nextElementSibling;
+          }
+        });
+        if (active && list.contains(active) && document.activeElement !== active) {
+          active.focus({ preventScroll: true });
+        }
+        refreshControls();
+      })
+      .catch(function (error) {
+        console.error("Could not refresh task order.", error);
+      })
+      .then(function () {
+        orderLoading = false;
+        syncOrder();
+      });
+  }
+
+  function requestOrder() {
+    orderPending = true;
+    syncOrder();
+  }
+
+  window.etodoEvents({
+    todo_order: requestOrder,
+    open: requestOrder,
+    fallback: function () {
+      window.setInterval(requestOrder, 15000);
+    }
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) {
+      requestOrder();
+    }
+  });
+  window.setInterval(requestOrder, 60000);
+
+  if (list.getAttribute("data-reorderable") !== "true") {
+    return;
+  }
+
+  function placeBefore(card, beforeUid) {
+    var target = beforeUid && cards().find(function (candidate) {
+      return candidate.getAttribute("data-uid") === beforeUid;
+    });
+    if (target && target !== card) {
+      list.insertBefore(card, target);
+    } else {
+      list.appendChild(card);
+    }
+  }
+
+  function saveMove(form, card, beforeUid, oldNext) {
+    if (busy) {
+      return;
+    }
+    busy = true;
+    orderVersion += 1;
+    card.classList.add("etodo-reorder-pending");
+    form.elements["before_uid"].value = beforeUid;
+    var body = new URLSearchParams(new FormData(form)).toString();
+    placeBefore(card, beforeUid);
+    refreshControls();
+    fetch(form.action, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Etodo-Fetch": "1"
+      },
+      body: body
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+      })
+      .catch(function () {
+        if (oldNext && oldNext.parentNode === list) {
+          list.insertBefore(card, oldNext);
+        } else {
+          list.appendChild(card);
+        }
+        window.alert("Could not reorder the task. Please try again.");
+      })
+      .then(function () {
+        busy = false;
+        card.classList.remove("etodo-reorder-pending");
+        refreshControls();
+        requestOrder();
+      });
+  }
+
+  document.addEventListener("submit", function (event) {
+    var form = event.target;
+    if (!form.classList || !form.classList.contains("etodo-move-form")) {
+      return;
+    }
+    event.preventDefault();
+    var card = form.closest("li[data-uid]");
+    if (card) {
+      saveMove(
+        form,
+        card,
+        form.elements["before_uid"].value,
+        card.nextElementSibling
+      );
+    }
+  });
+
+  list.addEventListener("pointerdown", function (event) {
+    var handle = event.target.closest(".etodo-drag-handle");
+    if (!handle || busy || (event.pointerType === "mouse" && event.button !== 0)) {
+      return;
+    }
+    var card = handle.closest("li[data-uid]");
+    if (!card) {
+      return;
+    }
+    orderVersion += 1;
+    drag = {
+      card: card,
+      handle: handle,
+      pointerId: event.pointerId,
+      oldNext: card.nextElementSibling,
+      originalOrder: visibleCards().map(function (item) {
+        return item.getAttribute("data-uid");
+      }).join(",")
+    };
+    card.classList.add("etodo-dragging");
+    handle.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+
+  document.addEventListener("pointermove", function (event) {
+    if (!drag || event.pointerId !== drag.pointerId) {
+      return;
+    }
+    var target = document.elementFromPoint(event.clientX, event.clientY);
+    target = target && target.closest("li[data-uid]");
+    if (!target || target === drag.card || target.parentNode !== list ||
+        target.hidden) {
+      return;
+    }
+    var after = event.clientY >
+      target.getBoundingClientRect().top + target.offsetHeight / 2;
+    var before = after ? target.nextElementSibling : target;
+    if (before !== drag.card) {
+      list.insertBefore(drag.card, before);
+      refreshControls();
+    }
+  });
+
+  function finishDrag(event, cancelled) {
+    if (!drag || event.pointerId !== drag.pointerId) {
+      return;
+    }
+    var current = drag;
+    drag = null;
+    current.card.classList.remove("etodo-dragging");
+    if (cancelled) {
+      if (current.oldNext && current.oldNext.parentNode === list) {
+        list.insertBefore(current.card, current.oldNext);
+      } else {
+        list.appendChild(current.card);
+      }
+      refreshControls();
+      syncOrder();
+      return;
+    }
+    var newOrder = visibleCards().map(function (item) {
+      return item.getAttribute("data-uid");
+    }).join(",");
+    if (newOrder === current.originalOrder) {
+      refreshControls();
+      syncOrder();
+      return;
+    }
+    var next = visibleCards()[visibleCards().indexOf(current.card) + 1];
+    var form = current.card.querySelector(".etodo-move-form");
+    if (form) {
+      saveMove(
+        form,
+        current.card,
+        next ? next.getAttribute("data-uid") : "",
+        current.oldNext
+      );
+    }
+  }
+
+  document.addEventListener("pointerup", function (event) {
+    finishDrag(event, false);
+  });
+  document.addEventListener("pointercancel", function (event) {
+    finishDrag(event, true);
+  });
+
+  var filter = document.getElementById("todo-filter");
+  if (filter) {
+    filter.addEventListener("input", refreshControls);
+  }
+  new MutationObserver(refreshControls).observe(list, { childList: true });
+  refreshControls();
+})();

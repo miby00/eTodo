@@ -23,7 +23,20 @@ todo_list_order_test() ->
                   ?assertEqual(List, maps:get(<<"selected_list">>, Page))
               end, [<<"All tasks">>, <<"Zulu">>]),
             ?assertEqual({error, <<"invalid_list">>},
-                         eTodoMistAuth:todo_data(Token, <<"Missing">>, true))
+                         eTodoMistAuth:todo_data(Token, <<"Missing">>, true)),
+            ?assertEqual({error, invalid_csrf},
+                         eTodoMistAuth:move_task(
+                           Token, <<"wrong-csrf">>, <<"alpha">>,
+                           <<"77">>, <<>>)),
+            application:set_env(eTodo, user, "test-user"),
+            try
+                ?assertEqual({ok, nil},
+                             eTodoMistAuth:move_task(
+                               Token, <<"test-csrf">>, <<"alpha">>,
+                               <<"77">>, <<>>))
+            after
+                application:unset_env(eTodo, user)
+            end
         after
             gen_server:stop(Server)
         end
@@ -43,6 +56,13 @@ database_fixture() ->
             gen_server:reply(From, #userCfg{lists = ["Zulu", "All tasks",
                                                     "alpha", "Beta",
                                                     "All tasks"]}),
+            database_fixture();
+        {'$gen_call', From, {getETodos, "test-user", "alpha", [],
+                             "", undefined}} ->
+            gen_server:reply(From, [#etodo{uidDB = 77}]),
+            database_fixture();
+        {'$gen_call', From, {moveTo, "test-user", _Parent, 77, undefined}} ->
+            gen_server:reply(From, {atomic, ok}),
             database_fixture();
         {'$gen_call', From, {getETodos, "test-user", _List, _Filter,
                              _Search, _Cfg}} ->

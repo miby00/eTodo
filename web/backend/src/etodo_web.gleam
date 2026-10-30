@@ -111,6 +111,7 @@ type TodoPageData {
     selected_list: String,
     csrf: String,
     can_edit: Bool,
+    can_reorder: Bool,
     filtered_out: Int,
     show_all: Bool,
     search: String,
@@ -325,6 +326,15 @@ fn create_task(
 @external(erlang, "eTodoMistAuth", "delete_task")
 fn delete_task(token: String, csrf: String, uid: String) -> Result(Nil, Dynamic)
 
+@external(erlang, "eTodoMistAuth", "move_task")
+fn move_task(
+  token: String,
+  csrf: String,
+  list_name: String,
+  uid: String,
+  before_uid: String,
+) -> Result(Nil, Dynamic)
+
 @external(erlang, "eTodoMist", "read_bootstrap_stylesheet")
 fn read_bootstrap_stylesheet() -> Result(BitArray, String)
 
@@ -411,6 +421,7 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
         Get, ["messages"] -> serve_messages(request)
         Get, ["messages.json"] -> serve_messages_json(request)
         Get, ["events"] -> serve_events(request)
+        Get, ["todo", "order"] -> serve_todo_order(request)
         Post, ["messages", "send"] -> send_message_request(request)
         Get, ["avatar"] -> serve_avatar(request)
         Post, ["status"] -> save_status_request(request)
@@ -423,6 +434,7 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
         Post, ["login"] -> login(request)
         Post, ["logout"] -> logout_request(request)
         Post, ["todo", "done"] -> todo_done(request)
+        Post, ["todo", "move"] -> todo_move(request)
         Post, ["todo", "update"] -> todo_update(request)
         Post, ["todo", "delete"] -> todo_delete(request)
         Post, ["todo", "create"] -> todo_create(request)
@@ -751,6 +763,30 @@ fn serve_home(request: Request(Connection)) -> Response(ResponseData) {
   }
 }
 
+fn serve_todo_order(request: Request(Connection)) -> Response(ResponseData) {
+  case current_session(request), requested_list(request) {
+    Ok(#(token, _)), Ok(#(list_name, _)) ->
+      case todo_data(token, list_name, wants_all(request)) {
+        Ok(encoded) ->
+          case json.parse(encoded, todo_page_data_decoder()) {
+            Ok(data) ->
+              response(
+                200,
+                json.array(data.todos, fn(task) { json.string(task.uid) })
+                  |> json.to_string,
+              )
+              |> response.set_header("content-type", "application/json")
+            Error(_) -> response(500, "Could not decode todo data")
+          }
+        Error("invalid_session") -> response(401, "Not signed in")
+        Error("invalid_list") -> response(400, "Unknown todo list")
+        Error(_) -> response(500, "Could not load todo order")
+      }
+    Error(_), _ -> response(401, "Not signed in")
+    _, Error(_) -> response(400, "Invalid list selection")
+  }
+}
+
 fn serve_report(
   request: Request(Connection),
   report: String,
@@ -810,6 +846,7 @@ fn event_stream(
           "status" -> "status"
           "counts" -> "counts"
           "recipients" -> "recipients"
+          "todo_order" -> "todo_order"
           _ -> "messages"
         })
       case mist.send_event(connection, message) {
@@ -1457,6 +1494,45 @@ fn todo_done(request: Request(Connection)) -> Response(ResponseData) {
               |> response_data
           }
         Error(_) -> response(403, "Could not update the task")
+      }
+    }
+    _, _ -> response(400, "Invalid request")
+  }
+}
+
+fn todo_move(request: Request(Connection)) -> Response(ResponseData) {
+  case session_cookie_value(request), form_fields(request) {
+    Some(token), Ok(fields) -> {
+      let field = fn(name) { list.key_find(fields, name) |> result.unwrap("") }
+      let list_name = case field("list") {
+        "" -> "All tasks"
+        name -> name
+      }
+      let uid = field("uid")
+      case
+        move_task(token, field("csrf"), list_name, uid, field("before_uid"))
+      {
+        Ok(Nil) ->
+          case request.get_header(request, "x-etodo-fetch") {
+            Ok(_) -> response(200, "")
+            Error(_) -> {
+              let all = case field("show_all") {
+                "true" -> "&all=1"
+                _ -> ""
+              }
+              response.new(303)
+              |> response.set_header(
+                "location",
+                "/?list="
+                  <> uri.percent_encode(list_name)
+                  <> all
+                  <> "#task-"
+                  <> uid,
+              )
+              |> response_data
+            }
+          }
+        Error(_) -> response(400, "Could not reorder the task")
       }
     }
     _, _ -> response(400, "Invalid request")
@@ -2124,7 +2200,7 @@ fn authenticated_page(
         ],
       ),
     ]
-    todos -> list.map(todos, todo_item(_, data))
+    todos -> todo_items(todos, data)
   }
 
   let document =
@@ -2600,6 +2676,7 @@ fn authenticated_page(
                   attribute.value(data.search),
                 ]),
               ]),
+              reorder_hint(data),
               html.div(
                 [
                   attribute.attribute(
@@ -2632,6 +2709,18 @@ fn authenticated_page(
               html.ul(
                 [
                   attribute.attribute("id", "todo-items"),
+                  attribute.attribute("data-list", data.selected_list),
+                  attribute.attribute("data-show-all", case data.show_all {
+                    True -> "true"
+                    False -> "false"
+                  }),
+                  attribute.attribute(
+                    "data-reorderable",
+                    case data.can_reorder {
+                      True -> "true"
+                      False -> "false"
+                    },
+                  ),
                   attribute.attribute(
                     "class",
                     "list-unstyled d-grid gap-3 mb-0",
@@ -2861,6 +2950,21 @@ fn truncate_description(description: String) -> String {
 }
 
 fn todo_item(task: Todo, data: TodoPageData) {
+  let first_uid = case data.todos {
+    [first, ..] -> first.uid
+    [] -> ""
+  }
+  todo_item_with_order(task, data, first_uid, "", "", False)
+}
+
+fn todo_item_with_order(
+  task: Todo,
+  data: TodoPageData,
+  first_uid: String,
+  previous_uid: String,
+  down_before_uid: String,
+  has_next: Bool,
+) {
   let title_class = case task.done {
     True -> "etodo-title text-break etodo-done"
     False -> "etodo-title text-break"
@@ -2883,7 +2987,12 @@ fn todo_item(task: Todo, data: TodoPageData) {
     )
 
   let row = case data.can_edit {
-    True -> [done_toggle(task, data), title, toggle_label]
+    True -> [
+      done_toggle(task, data),
+      drag_handle(data),
+      title,
+      toggle_label,
+    ]
     False -> [title, toggle_label]
   }
 
@@ -2913,9 +3022,68 @@ fn todo_item(task: Todo, data: TodoPageData) {
         ],
         row,
       ),
-      task_details(task, data),
+      task_details(
+        task,
+        data,
+        first_uid,
+        previous_uid,
+        down_before_uid,
+        has_next,
+      ),
     ],
   )
+}
+
+fn drag_handle(data: TodoPageData) {
+  case data.can_reorder {
+    True ->
+      html.button(
+        [
+          attribute.attribute("type", "button"),
+          attribute.attribute("class", "etodo-drag-handle"),
+          attribute.attribute("aria-label", "Drag to reorder task"),
+          attribute.title("Drag to reorder"),
+        ],
+        [html.text("⠿")],
+      )
+    False -> element.none()
+  }
+}
+
+fn todo_items(todos: List(Todo), data: TodoPageData) {
+  case todos {
+    [] -> []
+    [first, ..] -> todo_items_from(todos, data, first.uid, "")
+  }
+}
+
+fn todo_items_from(
+  todos: List(Todo),
+  data: TodoPageData,
+  first_uid: String,
+  previous_uid: String,
+) {
+  case todos {
+    [] -> []
+    [task, ..rest] -> {
+      let #(down_before_uid, has_next) = case rest {
+        [] -> #("", False)
+        [_, after_next, ..] -> #(after_next.uid, True)
+        [_] -> #("", True)
+      }
+      [
+        todo_item_with_order(
+          task,
+          data,
+          first_uid,
+          previous_uid,
+          down_before_uid,
+          has_next,
+        ),
+      ]
+      |> list.append(todo_items_from(rest, data, first_uid, task.uid))
+    }
+  }
 }
 
 fn done_toggle(task: Todo, data: TodoPageData) {
@@ -2963,7 +3131,14 @@ fn done_toggle(task: Todo, data: TodoPageData) {
   )
 }
 
-fn task_details(task: Todo, data: TodoPageData) {
+fn task_details(
+  task: Todo,
+  data: TodoPageData,
+  first_uid: String,
+  previous_uid: String,
+  down_before_uid: String,
+  has_next: Bool,
+) {
   let rows =
     [
       detail_row_field("Status", task.status, "status"),
@@ -2993,6 +3168,14 @@ fn task_details(task: Todo, data: TodoPageData) {
     True ->
       html.div([attribute.attribute("class", "etodo-details")], [
         details,
+        move_controls(
+          task,
+          data,
+          first_uid,
+          previous_uid,
+          down_before_uid,
+          has_next,
+        ),
         html.div([attribute.attribute("class", "mt-3 pt-3 border-top")], [
           html.details([], [
             html.summary(
@@ -3006,6 +3189,117 @@ fn task_details(task: Todo, data: TodoPageData) {
     False ->
       html.div([attribute.attribute("class", "etodo-details")], [details])
   }
+}
+
+fn reorder_hint(data: TodoPageData) {
+  case data.can_edit && !data.can_reorder {
+    False -> element.none()
+    True -> {
+      let message = case data.selected_list == "All tasks" {
+        True -> "Choose a specific task list to reorder tasks by hand."
+        False ->
+          "Set both sort orders to Default in Settings to reorder manually."
+      }
+      html.p(
+        [
+          attribute.attribute(
+            "class",
+            "small text-body-secondary mb-3 etodo-reorder-hint",
+          ),
+        ],
+        [html.text(message)],
+      )
+    }
+  }
+}
+
+fn move_controls(
+  task: Todo,
+  data: TodoPageData,
+  first_uid: String,
+  previous_uid: String,
+  down_before_uid: String,
+  has_next: Bool,
+) {
+  case data.can_reorder {
+    False -> element.none()
+    True ->
+      html.div(
+        [
+          attribute.attribute(
+            "class",
+            "etodo-move-controls d-flex flex-wrap gap-2 mt-3 pt-3 border-top",
+          ),
+          attribute.attribute("aria-label", "Reorder task"),
+        ],
+        [
+          move_control(
+            task,
+            data,
+            "top",
+            first_uid,
+            "Top",
+            task.uid == first_uid,
+          ),
+          move_control(
+            task,
+            data,
+            "up",
+            previous_uid,
+            "↑ Up",
+            previous_uid == "",
+          ),
+          move_control(task, data, "down", down_before_uid, "↓ Down", !has_next),
+          move_control(task, data, "bottom", "", "Bottom", !has_next),
+        ],
+      )
+  }
+}
+
+fn move_control(
+  task: Todo,
+  data: TodoPageData,
+  action: String,
+  before_uid: String,
+  label: String,
+  disabled: Bool,
+) {
+  let hidden = fn(name, value) {
+    html.input([
+      attribute.attribute("type", "hidden"),
+      attribute.name(name),
+      attribute.attribute("value", value),
+    ])
+  }
+  let show_all = case data.show_all {
+    True -> "true"
+    False -> "false"
+  }
+  let button_attrs = [
+    attribute.attribute("type", "submit"),
+    attribute.attribute("class", "btn btn-outline-secondary btn-sm"),
+    attribute.attribute("data-move-action", action),
+  ]
+  let button_attrs = case disabled {
+    True -> [attribute.attribute("disabled", "disabled"), ..button_attrs]
+    False -> button_attrs
+  }
+
+  html.form(
+    [
+      attribute.attribute("action", "/todo/move"),
+      attribute.attribute("method", "post"),
+      attribute.attribute("class", "etodo-move-form"),
+    ],
+    [
+      hidden("uid", task.uid),
+      hidden("csrf", data.csrf),
+      hidden("list", data.selected_list),
+      hidden("before_uid", before_uid),
+      hidden("show_all", show_all),
+      html.button(button_attrs, [html.text(label)]),
+    ],
+  )
 }
 
 fn new_todo_form(data: TodoPageData) {
@@ -3558,6 +3852,7 @@ fn todo_page_data_decoder() -> decode.Decoder(TodoPageData) {
   use selected_list <- decode.field("selected_list", decode.string)
   use csrf <- decode.field("csrf", decode.string)
   use can_edit <- decode.field("can_edit", decode.bool)
+  use can_reorder <- decode.field("can_reorder", decode.bool)
   use todos <- decode.field("todos", decode.list(of: todo_decoder()))
   use filtered_out <- decode.field("filtered_out", decode.int)
   use show_all <- decode.field("show_all", decode.bool)
@@ -3566,6 +3861,7 @@ fn todo_page_data_decoder() -> decode.Decoder(TodoPageData) {
     selected_list:,
     csrf:,
     can_edit:,
+    can_reorder:,
     filtered_out:,
     show_all:,
     search: "",

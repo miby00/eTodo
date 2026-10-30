@@ -170,8 +170,11 @@ questions. The local account can also change its status (Available, Busy,
 Away) and status message there; the desktop client, if running, follows and
 peers are told. The ⚙ Settings page offers a filter (status,
 priority) and primary/secondary sort settings,
-stored per user in `webSettings`. The task list does not update live; the status
-page does. Its responsive interface uses locally served Bootstrap components,
+stored per user in `webSettings`. Task ordering updates live between the desktop
+and web clients, including undo/redo, without discarding open task edits or the
+text filter. Other task changes still require a refresh. Manual reordering uses
+drag handles or Top/Up/Down/Bottom buttons in a specific list with both sort
+settings set to Default. The status page also updates live. Its responsive interface uses locally served Bootstrap components,
 eTodo styling and a tiny same-origin script that updates the checkbox in place
 (without it, the form falls back to a normal page reload); it does not depend on
 a CDN.

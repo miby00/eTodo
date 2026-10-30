@@ -57,6 +57,7 @@
          insertTodo/2,
          logWork/5,
          moveDown/4,
+         moveTo/4,
          moveUp/4,
          moveTodosToTaskList/3,
          newTodo/1,
@@ -293,6 +294,10 @@ moveUp(User, Parent, Uid1, Uid2) ->
 
 moveDown(User, Parent, Uid1, Uid2) ->
     gen_server:call(?MODULE, {moveDown, User, toList(Parent), Uid1, Uid2}).
+
+moveTo(User, Parent, Uid, BeforeUid) ->
+    gen_server:call(?MODULE,
+                    {moveTo, User, toList(Parent), Uid, BeforeUid}).
 
 newTodo(#todo{uid = Uid}) ->
     (getTodo(Uid) == undefined);
@@ -920,6 +925,19 @@ handle_call(Event = {moveUp, User, Parent, Uid1, Uid2}, _From, State) ->
     Result = swapRows(User, Parent, Uid1, Uid2),
     State2  = addToUndo({Event, {moveDown, User, Parent, Uid2, Uid1}}, State),
     {reply, Result, State2};
+handle_call(Event = {moveTo, User, Parent, Uid, BeforeUid}, _From, State) ->
+    Result = reorderTodo(User, Parent, {move, Uid, BeforeUid}),
+    case Result of
+        {atomic, {ok, _OldOrder, false}} ->
+            {reply, {atomic, ok}, State};
+        {atomic, {ok, OldOrder, true}} ->
+            State2 = addToUndo(
+                       {Event, {restoreTodoOrder, User, Parent, OldOrder}},
+                       State),
+            {reply, {atomic, ok}, State2};
+        Error ->
+            {reply, Error, State}
+    end;
 handle_call({readListCfg, UserName, ColumnName, Field}, _From, State) ->
     Config = readConfig(listCfg, UserName, ColumnName),
     Result = getField(listCfg, Field, Config),
@@ -1014,6 +1032,19 @@ handle_call(undoStatus, _From, State = #state{undo = L1, redo = L2}) ->
 handle_call({undoDelTodo, UndoInfo}, _From, State) ->
     Reply = undoDelTodo(UndoInfo),
     {reply, Reply, State};
+handle_call({restoreTodoOrder, User, Parent, Order}, _From, State) ->
+    Result = reorderTodo(User, Parent, {restore, Order}),
+    State2 = case State of
+                 #state{opType = undo} -> State#state{opType = normal};
+                 #state{opType = redo} -> State#state{opType = normal};
+                 _ -> State
+             end,
+    case Result of
+        {atomic, {ok, _OldOrder, _Changed}} ->
+            {reply, {atomic, ok}, State2};
+        Error ->
+            {reply, Error, State2}
+    end;
 handle_call({undoAssignLists, User, Uid, UndoInfo}, _From, State) ->
     Reply = undoAssignLists(User, Uid, UndoInfo),
     {reply, Reply, State};
@@ -1405,12 +1436,94 @@ swapRows(User, Parent, Uid1, Uid2) ->
     NewUserInfo1 = UserInfo1#userInfo{row = UserInfoRow2},
     NewUserInfo2 = UserInfo2#userInfo{row = UserInfoRow1},
 
-    mnesia:transaction(fun() ->
+    Result = mnesia:transaction(fun() ->
                                delete_object(UserInfo1),
                                delete_object(UserInfo2),
                                mnesia:write(NewUserInfo1),
                                mnesia:write(NewUserInfo2)
-                       end).
+                       end),
+    case Result of
+        {atomic, ok} -> eTodoPush:notify(User, <<"todo_order">>);
+        _ -> ok
+    end,
+    Result.
+
+reorderTodo(User, Parent, Action) ->
+    Result = mnesia:transaction(
+      fun() ->
+              Pattern = #userInfo{userName = User, parent = Parent, _ = '_'},
+              Infos = lists:keysort(
+                        #userInfo.row,
+                        mnesia:match_object(userInfo, Pattern, write)),
+              case reorderTodoInfos(Action, Infos) of
+                  {ok, NewInfos} ->
+                      OldOrder = [Info#userInfo.uid || Info <- Infos],
+                      NewOrder = [Info#userInfo.uid || Info <- NewInfos],
+                      case OldOrder =:= NewOrder of
+                          true ->
+                              {ok, OldOrder, false};
+                          false ->
+                              writeTodoOrder(NewInfos, 0),
+                              {ok, OldOrder, true}
+                      end;
+                  Error ->
+                      Error
+              end
+      end),
+    case Result of
+        {atomic, {ok, _, true}} ->
+            eTodoPush:notify(User, <<"todo_order">>);
+        _ ->
+            ok
+    end,
+    Result.
+
+reorderTodoInfos({move, Uid, BeforeUid}, Infos) ->
+    case lists:keyfind(Uid, #userInfo.uid, Infos) of
+        false ->
+            {error, not_found};
+        Source ->
+            Remaining = [Info || Info <- Infos,
+                         Info#userInfo.uid =/= Uid],
+            case BeforeUid of
+                undefined ->
+                    {ok, Remaining ++ [Source]};
+                Uid ->
+                    {ok, Infos};
+                _ ->
+                    insertTodoBefore(Source, BeforeUid, Remaining, [])
+            end
+    end;
+reorderTodoInfos({restore, Order}, Infos) ->
+    Requested = [Info || Uid <- Order,
+                         Info <- [lists:keyfind(Uid, #userInfo.uid, Infos)],
+                         Info =/= false],
+    Rest = [Info || Info <- Infos,
+                    not lists:member(Info#userInfo.uid, Order)],
+    {ok, Requested ++ Rest}.
+
+insertTodoBefore(_Source, _BeforeUid, [], _Prefix) ->
+    {error, not_found};
+insertTodoBefore(Source, BeforeUid, [Info | Rest], Prefix) ->
+    case Info#userInfo.uid =:= BeforeUid of
+        true ->
+            {ok, lists:reverse(Prefix) ++ [Source, Info | Rest]};
+        false ->
+            insertTodoBefore(Source, BeforeUid, Rest, [Info | Prefix])
+    end.
+
+writeTodoOrder([], _Row) ->
+    ok;
+writeTodoOrder([Info | Rest], Row) ->
+    Updated = Info#userInfo{row = Row},
+    case Updated =:= Info of
+        true ->
+            ok;
+        false ->
+            delete_object(Info),
+            mnesia:write(Updated)
+    end,
+    writeTodoOrder(Rest, Row + 1).
 
 %%--------------------------------------------------------------------
 %% @doc

@@ -4,7 +4,7 @@
 
 -export([start_link/0, login/2, external_login/1, session_user/1, logout/1, todo_data/3,
          set_done/4, create_list/3, delete_list/3, update_task/12, set_reminder/8, delete_task/3, create_task/11, settings_data/1,
-         save_settings/6, status_form/1, set_status/4, set_team_pomodoro/3,
+         move_task/5, save_settings/6, status_form/1, set_status/4, set_team_pomodoro/3,
          send_message/4]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -245,6 +245,15 @@ delete_task(Token, Csrf, Uid) ->
             Error
     end.
 
+move_task(Token, Csrf, List0, UidBin, BeforeBin) ->
+    case gen_server:call(?MODULE, {authorize_write, Token, Csrf}) of
+        {ok, UserName} ->
+            move_task(unicode:characters_to_list(UserName), to_list(List0),
+                      UidBin, BeforeBin);
+        {error, _} = Error ->
+            Error
+    end.
+
 init([]) ->
     eTodoOidc:init(),
     {ok, #{}}.
@@ -434,11 +443,67 @@ make_todo_data(UserName, ListName, Csrf, ShowAll) ->
                 <<"selected_list">> => to_binary(ListName),
                 <<"csrf">> => Csrf,
                 <<"can_edit">> => is_owner(UserName),
+                <<"can_reorder">> => can_reorder(UserName, ListName, Settings),
                 <<"show_all">> => ShowAll,
                 <<"filtered_out">> => max(0, AllCount - length(Todos)),
                 <<"todos">> => [todo_json(Todo, Reminders) || Todo <- Todos]
             },
             {ok, iolist_to_binary(json:encode(JsonData))}
+    end.
+
+can_reorder(UserName, ListName, Settings) ->
+    is_owner(UserName) andalso ListName =/= ?defTaskList andalso
+        setting("sortOrder", Settings) =:= ?descDef andalso
+        setting("sortOrderSec", Settings) =:= ?descDef.
+
+move_task(UserName, ListName, UidBin, BeforeBin) ->
+    #userCfg{lists = ConfiguredLists} = eTodoDB:readUserCfg(UserName),
+    Lists = case ConfiguredLists of
+                undefined -> [];
+                Configured -> Configured
+            end,
+    Settings = web_settings(UserName),
+    case {can_reorder(UserName, ListName, Settings),
+          lists:member(ListName, Lists),
+          parse_uid(UidBin),
+          parse_before_uid(BeforeBin)} of
+        {true, true, {ok, Uid}, {ok, BeforeUid}} ->
+            Uids = [Todo#etodo.uidDB ||
+                       Todo <- eTodoDB:getETodos(UserName, ListName, [],
+                                                 "", undefined)],
+            case lists:member(Uid, Uids) andalso
+                 (BeforeUid =:= undefined orelse
+                  lists:member(BeforeUid, Uids)) of
+                true ->
+                    case eTodoDB:moveTo(UserName,
+                                        eTodoUtils:tryInt(ListName),
+                                        Uid, BeforeUid) of
+                        {atomic, ok} ->
+                            notify_task_list_reordered(ListName),
+                            {ok, nil};
+                        _ -> {error, reorder_failed}
+                    end;
+                false ->
+                    {error, invalid_task}
+            end;
+        {false, _, _, _} ->
+            {error, forbidden};
+        {_, false, _, _} ->
+            {error, invalid_list};
+        _ ->
+            {error, invalid_task}
+    end.
+
+parse_before_uid(<<>>) ->
+    {ok, undefined};
+parse_before_uid(BeforeBin) ->
+    parse_uid(BeforeBin).
+
+notify_task_list_reordered(ListName) ->
+    case {application:get_env(eTodo, mode), whereis(eTodo)} of
+        {{ok, "noGui"}, _} -> ok;
+        {_, undefined} -> ok;
+        _ -> eTodo:taskListReordered(ListName)
     end.
 
 guest_users(User) ->
