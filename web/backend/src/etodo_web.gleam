@@ -3176,15 +3176,34 @@ fn task_details(
           down_before_uid,
           has_next,
         ),
-        html.div([attribute.attribute("class", "mt-3 pt-3 border-top")], [
-          html.details([], [
-            html.summary(
-              [attribute.attribute("class", "btn btn-outline-primary btn-sm")],
-              [html.text("Edit task")],
+        html.div(
+          [
+            attribute.attribute(
+              "class",
+              "etodo-edit-row position-relative mt-3 pt-3 border-top",
             ),
-            task_editor(task, data),
-          ]),
-        ]),
+          ],
+          [
+            html.details([], [
+              html.summary(
+                [attribute.attribute("class", "btn btn-outline-primary btn-sm")],
+                [html.text("Edit task")],
+              ),
+              task_editor(task, data),
+            ]),
+            html.button(
+              [
+                attribute.attribute(
+                  "class",
+                  "btn btn-outline-danger btn-sm etodo-delete-task",
+                ),
+                attribute.attribute("type", "submit"),
+                attribute.attribute("form", "delete-" <> task.uid),
+              ],
+              [html.text("Delete task")],
+            ),
+          ],
+        ),
       ])
     False ->
       html.div([attribute.attribute("class", "etodo-details")], [details])
@@ -3465,31 +3484,15 @@ fn task_editor(task: Todo, data: TodoPageData) {
         edit_textarea(scope, "Comment", "comment", task.comment),
         list_picker(scope, data.lists, task.lists_db),
         reminder_editor(scope, task.reminder),
-        html.div(
-          [
-            attribute.attribute(
-              "class",
-              "col-12 d-flex justify-content-between gap-2",
-            ),
-          ],
-          [
-            html.button(
-              [
-                attribute.attribute("class", "btn btn-primary"),
-                attribute.attribute("type", "submit"),
-              ],
-              [html.text("Save changes")],
-            ),
-            html.button(
-              [
-                attribute.attribute("class", "btn btn-outline-danger"),
-                attribute.attribute("type", "submit"),
-                attribute.attribute("form", "delete-" <> task.uid),
-              ],
-              [html.text("Delete task")],
-            ),
-          ],
-        ),
+        html.div([attribute.attribute("class", "col-12")], [
+          html.button(
+            [
+              attribute.attribute("class", "btn btn-primary"),
+              attribute.attribute("type", "submit"),
+            ],
+            [html.text("Save changes")],
+          ),
+        ]),
       ],
     ),
     html.form(

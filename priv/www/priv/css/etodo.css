@@ -867,3 +867,9 @@ html {
 .min-vh-100 {
   min-height: var(--app-height, 100dvh) !important;
 }
+
+.etodo-edit-row .etodo-delete-task {
+  position: absolute;
+  top: 1rem;
+  right: 0;
+}
