@@ -616,7 +616,8 @@ header_form("work-log", Theme) ->
      "<input class=\"form-control form-control-sm\" type=\"date\" ",
      "name=\"date\" aria-label=\"Work log date\" value=\"", Date, "\">",
      load_button("Load date"), "</form>"];
-header_form("time-log", #{lists := Lists, list := Selected}) ->
+header_form("time-log", #{lists := Lists0, list := Selected}) ->
+    Lists = eTodoUtils:sortTaskLists(Lists0),
     Options = [{<<"option">>,
                 [{<<"value">>, unicode:characters_to_binary(Name)}
                  | case Name of

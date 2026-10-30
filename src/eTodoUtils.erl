@@ -36,6 +36,7 @@
          makeStr/1,
          makeUserStr/1,
          mime_type/1,
+         sortTaskLists/1,
          taskExternal/1,
          taskInternal/1,
          toColumn/1,
@@ -51,6 +52,11 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+
+sortTaskLists(Lists) ->
+    Sorted = lists:sort([{string:casefold(Name), Name} ||
+                            Name <- Lists, Name =/= ?defTaskList]),
+    [?defTaskList | [Name || {_Key, Name} <- Sorted]].
 
 %%--------------------------------------------------------------------
 %% @doc

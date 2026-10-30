@@ -160,7 +160,9 @@ time, repeat (every 15 minutes up to every year) and an optional end date.
 Without a GUI, a reminder that nobody reads is mailed with the unread
 messages (see below). The desktop dialog's "run a command" and "send email"
 options are not offered on the web; values set in the desktop client are
-kept. The "+" button next to the list selector adds a new list, and the "−" button deletes the selected list after ticking a confirmation box (its tasks stay in "All tasks"). The last viewed todo list is remembered
+kept. Task-list selectors and the edit form list choices are ordered
+alphabetically without regard to case, with "All tasks" always first. The "+"
+button next to the list selector adds a new list, and the "−" button deletes the selected list after ticking a confirmation box (its tasks stay in "All tasks"). The last viewed todo list is remembered
 in a cookie. The Status page (`/status`) is a full screen display of your
 status, status message and countdown timer, green when Available, red when
 Busy, which can be left open on a screen so others can see when you can answer

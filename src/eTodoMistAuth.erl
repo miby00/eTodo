@@ -411,8 +411,7 @@ make_todo_data(UserName, ListName, Csrf, ShowAll) ->
                     undefined -> [];
                     Lists -> Lists
                 end,
-    AvailableLists = [?defTaskList |
-                      [Name || Name <- UserLists, Name =/= ?defTaskList]],
+    AvailableLists = eTodoUtils:sortTaskLists(UserLists),
     case lists:member(ListName, AvailableLists) of
         false ->
             error;

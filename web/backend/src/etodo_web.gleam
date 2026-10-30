@@ -3371,12 +3371,10 @@ fn list_picker(scope: String, available: List(String), selected: List(String)) {
       ),
     ])
   }
-  // Selected lists come first so they are visible without scrolling.
-  let #(chosen, others) =
-    list.partition(available, fn(name) {
+  let chosen =
+    list.filter(available, fn(name) {
       name == "All tasks" || list.contains(selected, name)
     })
-  let ordered = list.append(chosen, others)
   html.div([attribute.attribute("class", "col-12 etodo-list-picker")], [
     html.div([attribute.attribute("class", "form-label")], [
       html.text("Lists"),
@@ -3396,7 +3394,7 @@ fn list_picker(scope: String, available: List(String), selected: List(String)) {
     ]),
     html.div(
       [attribute.attribute("class", "etodo-list-options border rounded p-2")],
-      list.index_map(ordered, fn(name, index) { checkbox(name, index) }),
+      list.index_map(available, fn(name, index) { checkbox(name, index) }),
     ),
   ])
 }

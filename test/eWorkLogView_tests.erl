@@ -31,12 +31,19 @@ browser_time_log_header_test() ->
     Page = eWorkLogView:document(
              Report, <<>>,
              #{report => "time-log", list => "Arbete pågår",
-               lists => ["All tasks", "Arbete pågår", "<b>x</b>"]}),
+               lists => ["Zulu", "Arbete pågår", "All tasks", "<b>x</b>",
+                         "alpha"]}),
     ?assertEqual(nomatch, binary:match(Page, <<"type=\"date\"">>)),
     ?assertNotEqual(nomatch, binary:match(Page, <<"name=\"list\"">>)),
     ?assertNotEqual(nomatch, binary:match(
         Page, <<"value=\"Arbete pågår\" selected"/utf8>>)),
     ?assertNotEqual(nomatch, binary:match(Page, <<"&lt;b&gt;x&lt;/b&gt;">>)),
+    {AllPos, _} = binary:match(Page, <<"value=\"All tasks\"">>),
+    {AlphaPos, _} = binary:match(Page, <<"value=\"alpha\"">>),
+    {ArbetePos, _} = binary:match(Page, <<"value=\"Arbete pågår\""/utf8>>),
+    {ZuluPos, _} = binary:match(Page, <<"value=\"Zulu\"">>),
+    ?assert(AllPos < AlphaPos andalso AlphaPos < ArbetePos
+            andalso ArbetePos < ZuluPos),
     Schedule = eWorkLogView:document(Report, <<>>, #{report => "schedule"}),
     ?assertEqual(nomatch, binary:match(Schedule, <<"<form">>)),
     ?assertNotEqual(nomatch, binary:match(Schedule, <<"data-live=\"reports\"">>)),
