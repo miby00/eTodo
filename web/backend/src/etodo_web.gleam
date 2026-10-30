@@ -338,7 +338,7 @@ fn read_etodo_script() -> Result(BitArray, String)
 fn read_etodo_logo() -> Result(BitArray, String)
 
 @external(erlang, "eTodoMist", "read_etodo_icon")
-fn read_etodo_icon() -> Result(BitArray, String)
+fn read_etodo_icon(file: String) -> Result(BitArray, String)
 
 @external(erlang, "eTodoMistAuth", "status_form")
 fn status_form(token: String) -> Result(#(String, Bool), String)
@@ -370,7 +370,14 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
           stylesheet_response(read_etodo_stylesheet())
         Get, ["assets", "etodo.js"] -> script_response(read_etodo_script())
         Get, ["assets", "etodo-logo.png"] -> logo_response(read_etodo_logo())
-        Get, ["assets", "icon-192.png"] -> logo_response(read_etodo_icon())
+        Get, ["assets", "icon-192.png"] ->
+          logo_response(read_etodo_icon("etodoIcon192.png"))
+        Get, ["assets", "icon-512.png"] ->
+          logo_response(read_etodo_icon("etodoIcon512.png"))
+        Get, ["assets", "icon-maskable-512.png"] ->
+          logo_response(read_etodo_icon("etodoMaskable512.png"))
+        Get, ["assets", "apple-touch-icon.png"] ->
+          logo_response(read_etodo_icon("etodoApple180.png"))
         Get, ["manifest.json"] -> manifest_response()
         Get, ["file"] -> serve_linked_file(request)
         Get, ["status"] -> serve_status(request)
@@ -891,7 +898,7 @@ fn status_page(csrf: String, can_edit: Bool) -> Response(ResponseData) {
         ]),
         html.link([
           attribute.rel("apple-touch-icon"),
-          attribute.href("/assets/icon-192.png"),
+          attribute.href("/assets/apple-touch-icon.png"),
         ]),
         html.link([
           attribute.rel("stylesheet"),
@@ -1715,7 +1722,7 @@ fn login_page(error_message: String) -> Response(ResponseData) {
         ]),
         html.link([
           attribute.rel("apple-touch-icon"),
-          attribute.href("/assets/icon-192.png"),
+          attribute.href("/assets/apple-touch-icon.png"),
         ]),
         html.meta([
           attribute.name("theme-color"),
@@ -1850,7 +1857,7 @@ fn serve_linked_file(request: Request(Connection)) -> Response(ResponseData) {
 
 fn manifest_response() -> Response(ResponseData) {
   let body =
-    "{\"name\":\"eTodo\",\"short_name\":\"eTodo\",\"start_url\":\"/\",\"display\":\"standalone\",\"background_color\":\"#ffffff\",\"theme_color\":\"#ffffff\",\"icons\":[{\"src\":\"/assets/icon-192.png\",\"sizes\":\"192x192\",\"type\":\"image/png\"}]}"
+    "{\"name\":\"eTodo\",\"short_name\":\"eTodo\",\"start_url\":\"/\",\"display\":\"standalone\",\"background_color\":\"#ffffff\",\"theme_color\":\"#ffffff\",\"icons\":[{\"src\":\"/assets/icon-192.png\",\"sizes\":\"192x192\",\"type\":\"image/png\"},{\"src\":\"/assets/icon-512.png\",\"sizes\":\"512x512\",\"type\":\"image/png\"},{\"src\":\"/assets/icon-maskable-512.png\",\"sizes\":\"512x512\",\"type\":\"image/png\",\"purpose\":\"maskable\"}]}"
   response.new(200)
   |> response.set_header("content-type", "application/manifest+json")
   |> response.set_body(mist.Bytes(bytes_tree.from_string(body)))
@@ -1940,7 +1947,7 @@ fn authenticated_page(
         ]),
         html.link([
           attribute.rel("apple-touch-icon"),
-          attribute.href("/assets/icon-192.png"),
+          attribute.href("/assets/apple-touch-icon.png"),
         ]),
         html.meta([
           attribute.name("theme-color"),
@@ -2513,7 +2520,7 @@ fn settings_page(
         ]),
         html.link([
           attribute.rel("apple-touch-icon"),
-          attribute.href("/assets/icon-192.png"),
+          attribute.href("/assets/apple-touch-icon.png"),
         ]),
         html.link([
           attribute.rel("stylesheet"),

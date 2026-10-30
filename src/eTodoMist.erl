@@ -6,7 +6,7 @@
 -export([read_bootstrap_stylesheet/0]).
 -export([read_etodo_stylesheet/0]).
 -export([read_etodo_script/0]).
--export([read_etodo_logo/0, read_etodo_icon/0]).
+-export([read_etodo_logo/0, read_etodo_icon/1]).
 -export([read_linked_file/2]).
 -export([status_json/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -90,10 +90,9 @@ read_etodo_script() ->
     read_asset(filename:join(
                  [code:priv_dir(eTodo), "www", "priv", "js", "etodo.js"])).
 
-read_etodo_icon() ->
+read_etodo_icon(File) ->
     read_asset(filename:join(
-                 [code:priv_dir(eTodo), "www", "priv", "Icons",
-                  "etodoSuper.png"])).
+                 [code:priv_dir(eTodo), "www", "priv", "Icons", File])).
 
 read_etodo_logo() ->
     Logo = filename:join(
