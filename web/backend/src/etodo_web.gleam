@@ -391,6 +391,10 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
           logo_response(read_etodo_icon("etodoMaskable512.png"))
         Get, ["assets", "apple-touch-icon.png"] ->
           logo_response(read_etodo_icon("etodoApple180.png"))
+        Get, ["assets", "status-available.png"] ->
+          logo_response(read_etodo_icon("status-available.png"))
+        Get, ["assets", "status-busy.png"] ->
+          logo_response(read_etodo_icon("status-busy.png"))
         Get, ["manifest.json"] -> manifest_response()
         Get, ["file"] -> serve_linked_file(request)
         Get, ["status"] -> serve_status(request)

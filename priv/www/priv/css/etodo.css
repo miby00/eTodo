@@ -406,7 +406,6 @@ html {
   font-size: min(8vh, 15vw);
 }
 
-/* A light disc separates matching status colours; the palm stays unframed. */
 #status-state::before {
   display: inline-flex;
   flex: none;
@@ -415,25 +414,22 @@ html {
   box-sizing: border-box;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 0.06em 0.16em rgba(0, 0, 0, 0.16);
   font-size: 0.6em;
   line-height: 1;
 }
 
 .etodo-status-available #status-state::before {
-  content: "\1f7e2";
+  content: "";
+  background: url("/assets/status-available.png") center / contain no-repeat;
 }
 
 .etodo-status-busy #status-state::before {
-  content: "\1f534";
+  content: "";
+  background: url("/assets/status-busy.png") center / contain no-repeat;
 }
 
 .etodo-status-away #status-state::before {
   content: "\1f334";
-  background: transparent;
-  box-shadow: none;
   filter: drop-shadow(0 0.04em 0.08em rgba(0, 0, 0, 0.18));
   font-size: 0.68em;
 }
