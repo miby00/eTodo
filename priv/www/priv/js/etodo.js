@@ -802,6 +802,96 @@
   });
 })();
 
+// The quick-add bar posts the todo in the background and puts it at the top
+// of the list, so the keyboard stays open on a phone and the next todo can be
+// typed right away. A page reload shows the list in its normal sort order.
+(function () {
+  var quick = document.getElementById("quick-add");
+  if (!quick || !window.fetch) {
+    return;
+  }
+  var input = document.getElementById("quick-description");
+  var button = quick.querySelector("button[type=submit]");
+  var status = document.getElementById("quick-add-status");
+  var busy = false;
+
+  // Tapping + must not move the focus away from the input, or the phone
+  // closes the keyboard.
+  button.addEventListener("pointerdown", function (event) {
+    event.preventDefault();
+  });
+
+  quick.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var text = input.value.trim();
+    if (text === "" || busy) {
+      input.focus();
+      return;
+    }
+    busy = true;
+    button.disabled = true;
+    status.textContent = "";
+    fetch(quick.action, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Etodo-Fetch": "1"
+      },
+      body: new URLSearchParams(new FormData(quick)).toString()
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+        return response.text();
+      })
+      .then(function (html) {
+        if (input.value.trim() === text) {
+          input.value = "";
+        }
+        var items = document.getElementById("todo-items");
+        var template = document.createElement("template");
+        template.innerHTML = html.trim();
+        var item = template.content.firstElementChild;
+        if (items && item) {
+          var empty = items.querySelector(".etodo-empty-state");
+          if (empty) {
+            empty.remove();
+          }
+          items.prepend(item);
+          // Applies the filter box to the new item and updates the count.
+          var filter = document.getElementById("todo-filter");
+          if (filter) {
+            filter.dispatchEvent(new Event("input"));
+          }
+        }
+      })
+      .catch(function () {
+        status.textContent = "Could not add the todo. Please try again.";
+      })
+      .then(function () {
+        busy = false;
+        button.disabled = false;
+        input.focus();
+      });
+  });
+})();
+
+// Opening "More options" puts the cursor in the description.
+(function () {
+  var form = document.getElementById("new-todo");
+  var description = document.getElementById("new-description");
+  if (!form || !description) {
+    return;
+  }
+  form.addEventListener("toggle", function () {
+    if (form.open) {
+      description.focus();
+    }
+  });
+})();
+
 // A link to #task-<uid> (for example "Open task" in a reminder) opens the
 // details of that task.
 (function () {

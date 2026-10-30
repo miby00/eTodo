@@ -1420,7 +1420,11 @@ fn todo_create(request: Request(Connection)) -> Response(ResponseData) {
           field("remaining"),
         )
       {
-        Ok(uid) -> redirect_to_task(list_name, uid)
+        Ok(uid) ->
+          case request.get_header(request, "x-etodo-fetch") {
+            Ok(_) -> response(200, created_item_html(token, list_name, uid))
+            Error(_) -> redirect_to_task(list_name, uid)
+          }
         Error(_) -> response(400, "Could not create the task")
       }
     }
@@ -1476,6 +1480,24 @@ fn redirect_to_task(list_name: String, uid: String) -> Response(ResponseData) {
     "/?list=" <> uri.percent_encode(list_name) <> "#task-" <> uid,
   )
   |> response_data
+}
+
+/// The list item of a task created from the quick-add bar, so the page can
+/// show it without reloading. Empty if the task cannot be found.
+fn created_item_html(token: String, list_name: String, uid: String) -> String {
+  let item = {
+    use encoded <- result.try(todo_data(token, list_name, True))
+    use data <- result.try(
+      json.parse(encoded, todo_page_data_decoder())
+      |> result.replace_error("decode"),
+    )
+    use task <- result.map(
+      list.find(data.todos, fn(task) { task.uid == uid })
+      |> result.replace_error("missing"),
+    )
+    todo_item(task, data) |> element.to_string
+  }
+  result.unwrap(item, "")
 }
 
 /// After a restart of eTodo all sessions are gone. A form posted from a page
@@ -2823,55 +2845,107 @@ fn new_todo_form(data: TodoPageData) {
     ])
   }
 
-  html.details([attribute.attribute("class", "card border-0 shadow-sm mb-4")], [
-    html.summary(
+  html.div([attribute.attribute("class", "card border-0 shadow-sm mb-4")], [
+    // The quick-add bar: type a description and press Enter (or +). The page
+    // script posts it in the background, so the keyboard stays open on a
+    // phone and several todos can be added one after another.
+    html.form(
       [
-        attribute.attribute(
-          "class",
-          "card-body py-2 px-3 fw-semibold etodo-new-summary",
+        attribute.attribute("id", "quick-add"),
+        attribute.attribute("action", "/todo/create"),
+        attribute.attribute("method", "post"),
+        attribute.attribute("class", "card-body p-3 pb-2"),
+      ],
+      [
+        hidden("csrf", data.csrf),
+        hidden("list", data.selected_list),
+        hidden("status", "Planning"),
+        hidden("priority", "N/A"),
+        hidden("progress", "0"),
+        hidden("estimate", "0"),
+        hidden("remaining", "0"),
+        html.div([attribute.attribute("class", "input-group input-group-lg")], [
+          html.input([
+            attribute.attribute("type", "text"),
+            attribute.attribute("id", "quick-description"),
+            attribute.name("description"),
+            attribute.attribute("class", "form-control"),
+            attribute.attribute("placeholder", "Add a todo"),
+            attribute.attribute("aria-label", "New todo"),
+            attribute.attribute("autocomplete", "off"),
+            attribute.attribute("enterkeyhint", "go"),
+            attribute.attribute("required", ""),
+          ]),
+          html.button(
+            [
+              attribute.attribute("class", "btn btn-primary etodo-quick-add"),
+              attribute.attribute("type", "submit"),
+              attribute.attribute("aria-label", "Add todo"),
+              attribute.title("Add todo"),
+            ],
+            [html.text("+")],
+          ),
+        ]),
+        html.div(
+          [
+            attribute.attribute("id", "quick-add-status"),
+            attribute.attribute("class", "small text-danger mt-1"),
+            attribute.attribute("role", "status"),
+          ],
+          [],
         ),
       ],
-      [html.text("+ Add todo")],
     ),
-    html.div([attribute.attribute("class", "card-body pt-0 px-3 pb-3")], [
-      html.form(
+    html.details([attribute.attribute("id", "new-todo")], [
+      html.summary(
         [
-          attribute.attribute("action", "/todo/create"),
-          attribute.attribute("method", "post"),
-          attribute.attribute("class", "row g-3"),
+          attribute.attribute(
+            "class",
+            "px-3 pb-2 small text-body-secondary etodo-new-summary",
+          ),
         ],
-        [
-          hidden("csrf", data.csrf),
-          hidden("list", data.selected_list),
-          edit_select(scope, "Status", "status", "Planning", [
-            "Planning",
-            "In progress",
-            "Done",
-            "N/A",
-          ]),
-          edit_select(scope, "Priority", "priority", "N/A", [
-            "Low",
-            "Medium",
-            "High",
-            "N/A",
-          ]),
-          edit_input(scope, "Due date", "due_time", "", "date"),
-          edit_input(scope, "Progress (%)", "progress", "0", "number"),
-          edit_input(scope, "Estimate (h)", "estimate", "0", "number"),
-          edit_input(scope, "Remaining (h)", "remaining", "0", "number"),
-          edit_textarea(scope, "Description", "description", ""),
-          edit_textarea(scope, "Comment", "comment", ""),
-          html.div([attribute.attribute("class", "col-12")], [
-            html.button(
-              [
-                attribute.attribute("class", "btn btn-primary"),
-                attribute.attribute("type", "submit"),
-              ],
-              [html.text("Create todo")],
-            ),
-          ]),
-        ],
+        [html.text("More options")],
       ),
+      html.div([attribute.attribute("class", "card-body pt-0 px-3 pb-3")], [
+        html.form(
+          [
+            attribute.attribute("action", "/todo/create"),
+            attribute.attribute("method", "post"),
+            attribute.attribute("class", "row g-3"),
+          ],
+          [
+            hidden("csrf", data.csrf),
+            hidden("list", data.selected_list),
+            edit_textarea(scope, "Description", "description", ""),
+            edit_select(scope, "Status", "status", "Planning", [
+              "Planning",
+              "In progress",
+              "Done",
+              "N/A",
+            ]),
+            edit_select(scope, "Priority", "priority", "N/A", [
+              "Low",
+              "Medium",
+              "High",
+              "N/A",
+            ]),
+            edit_input(scope, "Due date", "due_time", "", "date"),
+            edit_input(scope, "Progress (%)", "progress", "0", "number"),
+            edit_input(scope, "Estimate (h)", "estimate", "0", "number"),
+            edit_input(scope, "Remaining (h)", "remaining", "0", "number"),
+            edit_textarea(scope, "Comment", "comment", ""),
+            html.div([attribute.attribute("class", "col-12")], [
+              html.button(
+                [
+                  attribute.attribute("class", "btn btn-primary"),
+                  attribute.attribute("type", "submit"),
+                ],
+                [html.text("Create todo")],
+              ),
+            ]),
+          ],
+        ),
+      ]),
     ]),
   ])
 }
