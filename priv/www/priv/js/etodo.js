@@ -211,11 +211,20 @@
       "etodo-status etodo-status-" +
       String(data.status).toLowerCase().replace(/[^a-z]+/g, "-");
     set("status-user", data.user);
-    var select = document.getElementById("status-select");
-    if (select && !filled) {
+    var form = document.getElementById("status-form");
+    if (form && !filled) {
       filled = true;
-      select.value = data.status;
+      var choice = form.querySelector(
+        'input[name="status"][value="' + data.status + '"]',
+      );
+      if (choice) {
+        choice.checked = true;
+      }
       document.getElementById("status-message").value = data.status_msg;
+    }
+    var toggle = document.getElementById("pomodoro-toggle");
+    if (toggle && !toggle.disabled) {
+      toggle.checked = !!data.team_pomodoro;
     }
     set("status-state", data.status);
     set("status-msg", data.status_msg);
@@ -224,12 +233,69 @@
     set(
       "status-timer",
       s > 0
-        ? pad(Math.floor(s / 3600)) + ":" + pad(Math.floor(s / 60) % 60) + ":" + pad(s % 60)
+        ? (s >= 3600 ? pad(Math.floor(s / 3600)) + ":" : "") +
+            pad(Math.floor(s / 60) % 60) + ":" + pad(s % 60)
         : "",
     );
   };
+  var copy = document.getElementById("status-share-copy");
+  if (copy) {
+    copy.addEventListener("click", function () {
+      var url = document.getElementById("status-share-link").href;
+      var done = function (text) {
+        copy.textContent = text;
+        setTimeout(function () {
+          copy.textContent = "Copy link";
+        }, 2000);
+      };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(
+          function () {
+            done("Copied");
+          },
+          function () {
+            window.prompt("Copy this link:", url);
+          },
+        );
+      } else {
+        window.prompt("Copy this link:", url);
+      }
+    });
+  }
+  var toggle = document.getElementById("pomodoro-toggle");
+  if (toggle) {
+    // The switch saves right away; the next poll shows the new timer.
+    toggle.addEventListener("change", function () {
+      var form = toggle.form;
+      var body = new URLSearchParams();
+      body.set("csrf", form.elements.csrf.value);
+      body.set("enabled", toggle.checked ? "true" : "false");
+      toggle.disabled = true;
+      fetch(form.action, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-Etodo-Fetch": "1" },
+        body: body,
+      })
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+        })
+        .catch(function () {
+          toggle.checked = !toggle.checked;
+        })
+        .then(function () {
+          toggle.disabled = false;
+          poll();
+        });
+    });
+  }
   var poll = function () {
-    fetch("/status.json", { credentials: "same-origin", cache: "no-store" })
+    fetch(page.getAttribute("data-url") || "/status.json", {
+      credentials: "same-origin",
+      cache: "no-store",
+    })
       .then(function (response) {
         if (response.status === 401) {
           window.location.href = "/";

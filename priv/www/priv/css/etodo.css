@@ -429,13 +429,12 @@ html {
   right: 0;
   bottom: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.9rem;
-  opacity: 0.55;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  font-size: 0.95rem;
+  opacity: 0.6;
   transition: opacity 0.2s;
 }
 
@@ -447,33 +446,213 @@ html {
 
 #status-back,
 #status-edit summary {
-  color: rgba(255, 255, 255, 0.85);
+  display: inline-block;
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  text-decoration: none;
   cursor: pointer;
+  list-style: none;
+  user-select: none;
 }
 
-#status-edit {
-  text-align: right;
+#status-edit summary::-webkit-details-marker {
+  display: none;
+}
+
+#status-back:hover,
+#status-edit summary:hover,
+#status-edit[open] summary {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* The open panel is a sheet just above the buttons. */
+#status-panel {
+  position: fixed;
+  left: 50%;
+  bottom: calc(4rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(32rem, calc(100vw - 1.5rem));
+  max-height: calc(100% - 6rem);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(20, 20, 20, 0.82);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.35);
+  text-align: left;
 }
 
 #status-form {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.etodo-status-choices {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.etodo-status-choices input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.etodo-status-choices label {
+  flex: 1 1 0;
+  padding: 0.5rem 0.25rem;
+  border-radius: 0.5rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.etodo-status-choices input:focus-visible + label {
+  outline: 2px solid #fff;
+}
+
+.etodo-status-choices input:checked + .etodo-status-choice-available {
+  background: #198754;
+  color: #fff;
+}
+
+.etodo-status-choices input:checked + .etodo-status-choice-busy {
+  background: #dc3545;
+  color: #fff;
+}
+
+.etodo-status-choices input:checked + .etodo-status-choice-away {
+  background: #fd7e14;
+  color: #fff;
+}
+
+#status-form input[type="text"],
+#status-form button {
+  flex: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.75rem;
+  border: 0;
+  border-radius: 0.6rem;
+  font-size: 1rem;
+}
+
+#status-form input[type="text"] {
+  background: rgba(255, 255, 255, 0.92);
+  color: #212529;
+}
+
+#status-form button {
+  background: #0d6efd;
+  color: #fff;
+  font-weight: 600;
+}
+
+#pomodoro-form {
+  margin: 0.9rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.etodo-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+.etodo-switch span {
+  display: flex;
+  flex-direction: column;
+}
+
+.etodo-switch small {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.etodo-switch input {
+  flex: none;
+  position: relative;
+  width: 2.75rem;
+  height: 1.5rem;
+  margin: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.etodo-switch input::after {
+  content: "";
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+}
+
+.etodo-switch input:checked {
+  background: #198754;
+}
+
+.etodo-switch input:checked::after {
+  transform: translateX(1.25rem);
+}
+
+.etodo-switch input:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+#status-share {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+#status-share small {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.etodo-share-row {
+  display: flex;
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
 
-#status-form input[type="text"] {
-  flex: 1 1 14rem;
+#status-share-link,
+#status-share-copy {
+  flex: 1 1 0;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+  font-size: 0.95rem;
 }
 
-#status-form select,
-#status-form input[type="text"],
-#status-form button {
-  padding: 0.4rem 0.6rem;
-  border: 0;
-  border-radius: 0.4rem;
-  font-size: 0.9rem;
+#status-share-link:hover,
+#status-share-copy:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .etodo-list-options {

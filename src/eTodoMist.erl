@@ -8,7 +8,7 @@
 -export([read_etodo_script/0]).
 -export([read_etodo_logo/0, read_etodo_icon/1]).
 -export([read_linked_file/2]).
--export([status_json/1]).
+-export([status_json/1, status_share_key/0, public_status_json/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
@@ -103,6 +103,44 @@ read_etodo_logo() ->
 status_json(_SessionUser) ->
     {ok, Owner} = application:get_env(eTodo, user),
     eTodoStatus:status_json(Owner).
+
+%% The read-only status link, /status/view/<key>, needs no login; the
+%% random key is the only credential. It is created on first use and kept in
+%% the user config dir. Delete the file to get a new link.
+status_share_key() ->
+    case read_status_share_key() of
+        {ok, Key} ->
+            Key;
+        error ->
+            Key = binary:encode_hex(crypto:strong_rand_bytes(16), lowercase),
+            File = status_share_key_file(),
+            ok = file:write_file(File, Key),
+            _ = file:change_mode(File, 8#600),
+            Key
+    end.
+
+read_status_share_key() ->
+    case file:read_file(status_share_key_file()) of
+        {ok, <<Key:32/binary, _/binary>>} -> {ok, Key};
+        _ -> error
+    end.
+
+status_share_key_file() ->
+    filename:join(eTodoUtils:getUserCfgDir(), "statusShareKey").
+
+public_status_json(Key) when is_binary(Key), byte_size(Key) =:= 32 ->
+    case read_status_share_key() of
+        {ok, Expected} ->
+            case crypto:hash_equals(crypto:hash(sha256, Key),
+                                    crypto:hash(sha256, Expected)) of
+                true -> status_json(public);
+                false -> {error, <<"not_found">>}
+            end;
+        error ->
+            {error, <<"not_found">>}
+    end;
+public_status_json(_Key) ->
+    {error, <<"not_found">>}.
 
 %% Serves a file linked from the desktop client. The unguessable reference
 %% is the only credential, as for the links of the old web client.

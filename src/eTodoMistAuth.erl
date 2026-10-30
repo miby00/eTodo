@@ -4,7 +4,8 @@
 
 -export([start_link/0, login/2, external_login/1, session_user/1, logout/1, todo_data/3,
          set_done/4, create_list/3, delete_list/3, update_task/12, set_reminder/8, delete_task/3, create_task/11, settings_data/1,
-         save_settings/6, status_form/1, set_status/4, send_message/4]).
+         save_settings/6, status_form/1, set_status/4, set_team_pomodoro/3,
+         send_message/4]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
@@ -53,6 +54,22 @@ set_status(Token, Csrf, Status0, Message0) ->
                     {ok, nil};
                 false ->
                     {error, invalid_status}
+            end;
+        {error, _} = Error ->
+            Error
+    end.
+
+%% Only the local account may turn its team pomodoro clock on or off.
+set_team_pomodoro(Token, Csrf, Enabled) ->
+    case gen_server:call(?MODULE, {authorize_write, Token, Csrf}) of
+        {ok, UserName} ->
+            User = unicode:characters_to_list(UserName),
+            case is_owner(User) of
+                true ->
+                    eTodoStatus:set_team_pomodoro(User, Enabled =:= true),
+                    {ok, nil};
+                false ->
+                    {error, forbidden}
             end;
         {error, _} = Error ->
             Error

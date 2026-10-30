@@ -351,8 +351,21 @@ fn set_status(
   message: String,
 ) -> Result(Nil, Dynamic)
 
+@external(erlang, "eTodoMistAuth", "set_team_pomodoro")
+fn set_team_pomodoro(
+  token: String,
+  csrf: String,
+  enabled: Bool,
+) -> Result(Nil, Dynamic)
+
 @external(erlang, "eTodoMist", "status_json")
 fn status_json(user: String) -> Result(String, String)
+
+@external(erlang, "eTodoMist", "status_share_key")
+fn status_share_key() -> String
+
+@external(erlang, "eTodoMist", "public_status_json")
+fn public_status_json(key: String) -> Result(String, String)
 
 @external(erlang, "eTodoMist", "read_linked_file")
 fn read_linked_file(
@@ -382,6 +395,8 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
         Get, ["file"] -> serve_linked_file(request)
         Get, ["status"] -> serve_status(request)
         Get, ["status.json"] -> serve_status_json(request)
+        Get, ["status", "view", key] -> serve_public_status(key)
+        Get, ["status", "view", key, "json"] -> serve_public_status_json(key)
         // Task links in messages and reports, written for the desktop client.
         Get, ["work-log", "action", "task", uid]
         | Get, ["work-log", "action", "time", uid, _, _, _]
@@ -395,6 +410,7 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
         Post, ["messages", "send"] -> send_message_request(request)
         Get, ["avatar"] -> serve_avatar(request)
         Post, ["status"] -> save_status_request(request)
+        Post, ["status", "pomodoro"] -> team_pomodoro_request(request)
         Get, [] -> serve_home(request)
         Get, ["settings"] -> serve_settings(request)
         Post, ["settings"] -> save_settings_request(request)
@@ -832,10 +848,47 @@ fn serve_status(request: Request(Connection)) -> Response(ResponseData) {
   case current_session(request) {
     Ok(#(token, _)) ->
       case status_form(token) {
-        Ok(#(csrf, can_edit)) -> status_page(csrf, can_edit)
+        Ok(#(csrf, can_edit)) ->
+          status_page(
+            "/status.json",
+            html.footer([attribute.id("status-controls")], [
+              html.a([attribute.href("/"), attribute.id("status-back")], [
+                html.text("Back to todos"),
+              ]),
+              case can_edit {
+                True ->
+                  html.details([attribute.id("status-edit")], [
+                    html.summary([], [html.text("Change status")]),
+                    status_form_element(csrf, status_share_key()),
+                  ])
+                False -> element.none()
+              },
+            ]),
+          )
         Error(_) -> login_page("Session expired. Sign in again.")
       }
     Error(_) -> login_page("")
+  }
+}
+
+// The read-only status page for family and colleagues: no login and no
+// controls. The key in the link is the only credential.
+fn serve_public_status(key: String) -> Response(ResponseData) {
+  case public_status_json(key) {
+    Ok(_) ->
+      status_page("/status/view/" <> key <> "/json", element.none())
+      |> response.set_header("referrer-policy", "no-referrer")
+    Error(_) -> response(404, "Not found")
+  }
+}
+
+fn serve_public_status_json(key: String) -> Response(ResponseData) {
+  case public_status_json(key) {
+    Ok(body) ->
+      response(200, body)
+      |> response.set_header("content-type", "application/json")
+      |> response.set_header("cache-control", "no-store")
+    Error(_) -> response(404, "Not found")
   }
 }
 
@@ -873,7 +926,32 @@ fn save_status_request(request: Request(Connection)) -> Response(ResponseData) {
   }
 }
 
-fn status_page(csrf: String, can_edit: Bool) -> Response(ResponseData) {
+fn team_pomodoro_request(
+  request: Request(Connection),
+) -> Response(ResponseData) {
+  case session_cookie_value(request), form_fields(request) {
+    Some(token), Ok(fields) -> {
+      let field = fn(name) { list.key_find(fields, name) |> result.unwrap("") }
+      case set_team_pomodoro(token, field("csrf"), field("enabled") == "true") {
+        Ok(Nil) ->
+          case request.get_header(request, "x-etodo-fetch") {
+            Ok(_) -> response(200, "ok")
+            Error(_) ->
+              response.new(303)
+              |> response.set_header("location", "/status")
+              |> response_data
+          }
+        Error(_) -> response(400, "Could not change the team pomodoro")
+      }
+    }
+    _, _ -> response(400, "Invalid request")
+  }
+}
+
+fn status_page(
+  json_url: String,
+  footer: element.Element(Nil),
+) -> Response(ResponseData) {
   let cell = fn(id: String, extra: String) {
     html.div(
       [
@@ -891,7 +969,16 @@ fn status_page(csrf: String, can_edit: Bool) -> Response(ResponseData) {
           attribute.name("viewport"),
           attribute.content("width=device-width, initial-scale=1"),
         ]),
-        html.link([attribute.rel("manifest"), attribute.href("/manifest.json")]),
+        // Without the app manifest, "Add to Home Screen" keeps this page's
+        // address instead of opening the todo app.
+        case footer == element.none() {
+          True -> element.none()
+          False ->
+            html.link([
+              attribute.rel("manifest"),
+              attribute.href("/manifest.json"),
+            ])
+        },
         html.link([
           attribute.rel("icon"),
           attribute.href("/assets/icon-192.png"),
@@ -915,26 +1002,17 @@ fn status_page(csrf: String, can_edit: Bool) -> Response(ResponseData) {
         ),
       ]),
       html.body([attribute.attribute("class", "etodo-status")], [
-        html.main([attribute.id("status-page")], [
-          cell("status-user", ""),
-          cell("status-state", ""),
-          cell("status-msg", ""),
-          cell("status-timer", ""),
-          cell("status-timer-desc", ""),
-        ]),
-        html.footer([attribute.id("status-controls")], [
-          html.a([attribute.href("/"), attribute.id("status-back")], [
-            html.text("Back to todos"),
-          ]),
-          case can_edit {
-            True ->
-              html.details([attribute.id("status-edit")], [
-                html.summary([], [html.text("Change status")]),
-                status_form_element(csrf),
-              ])
-            False -> element.none()
-          },
-        ]),
+        html.main(
+          [attribute.id("status-page"), attribute.data("url", json_url)],
+          [
+            cell("status-user", ""),
+            cell("status-state", ""),
+            cell("status-msg", ""),
+            cell("status-timer", ""),
+            cell("status-timer-desc", ""),
+          ],
+        ),
+        footer,
       ]),
     ])
     |> element.to_document_string_tree
@@ -946,36 +1024,110 @@ fn status_page(csrf: String, can_edit: Bool) -> Response(ResponseData) {
   |> secure_headers
 }
 
-fn status_form_element(csrf: String) -> element.Element(a) {
-  html.form(
-    [
-      attribute.id("status-form"),
-      attribute.attribute("action", "/status"),
-      attribute.attribute("method", "post"),
-    ],
-    [
-      html.input([
-        attribute.type_("hidden"),
-        attribute.name("csrf"),
-        attribute.value(csrf),
+fn status_form_element(csrf: String, share_key: String) -> element.Element(a) {
+  let csrf_input =
+    html.input([
+      attribute.type_("hidden"),
+      attribute.name("csrf"),
+      attribute.value(csrf),
+    ])
+  html.div([attribute.id("status-panel")], [
+    html.form(
+      [
+        attribute.id("status-form"),
+        attribute.attribute("action", "/status"),
+        attribute.attribute("method", "post"),
+      ],
+      [
+        csrf_input,
+        html.div(
+          [
+            attribute.attribute("class", "etodo-status-choices"),
+            attribute.attribute("role", "radiogroup"),
+            attribute.attribute("aria-label", "Status"),
+          ],
+          list.flat_map(["Available", "Busy", "Away"], fn(name) {
+            let id = "status-choice-" <> string.lowercase(name)
+            [
+              html.input([
+                attribute.type_("radio"),
+                attribute.name("status"),
+                attribute.id(id),
+                attribute.value(name),
+              ]),
+              html.label(
+                [
+                  attribute.for(id),
+                  attribute.attribute(
+                    "class",
+                    "etodo-status-choice-" <> string.lowercase(name),
+                  ),
+                ],
+                [html.text(name)],
+              ),
+            ]
+          }),
+        ),
+        html.input([
+          attribute.type_("text"),
+          attribute.name("message"),
+          attribute.id("status-message"),
+          attribute.attribute("maxlength", "200"),
+          attribute.attribute("placeholder", "Status message"),
+          attribute.attribute("aria-label", "Status message"),
+          attribute.attribute("autocomplete", "off"),
+        ]),
+        html.button([attribute.type_("submit")], [html.text("Set status")]),
+      ],
+    ),
+    // Turning the switch on or off takes effect right away.
+    html.form(
+      [
+        attribute.id("pomodoro-form"),
+        attribute.attribute("action", "/status/pomodoro"),
+        attribute.attribute("method", "post"),
+      ],
+      [
+        csrf_input,
+        html.label([attribute.attribute("class", "etodo-switch")], [
+          html.input([
+            attribute.type_("checkbox"),
+            attribute.name("enabled"),
+            attribute.id("pomodoro-toggle"),
+            attribute.value("true"),
+            attribute.attribute("role", "switch"),
+          ]),
+          html.span([], [
+            html.strong([], [html.text("Team pomodoro")]),
+            html.small([], [
+              html.text("25 min work, 5 min break, on the hour and half hour"),
+            ]),
+          ]),
+        ]),
+      ],
+    ),
+    html.div([attribute.id("status-share")], [
+      html.strong([], [html.text("Read-only link")]),
+      html.small([], [
+        html.text("Shows your status without login or buttons."),
       ]),
-      html.select(
-        [attribute.name("status"), attribute.id("status-select")],
-        list.map(["Available", "Busy", "Away"], fn(name) {
-          html.option([attribute.attribute("value", name)], name)
-        }),
-      ),
-      html.input([
-        attribute.type_("text"),
-        attribute.name("message"),
-        attribute.id("status-message"),
-        attribute.attribute("maxlength", "200"),
-        attribute.attribute("placeholder", "Status message"),
-        attribute.attribute("autocomplete", "off"),
+      html.div([attribute.attribute("class", "etodo-share-row")], [
+        html.a(
+          [
+            attribute.id("status-share-link"),
+            attribute.href("/status/view/" <> share_key),
+            attribute.target("_blank"),
+            attribute.rel("noopener"),
+          ],
+          [html.text("Open")],
+        ),
+        html.button(
+          [attribute.type_("button"), attribute.id("status-share-copy")],
+          [html.text("Copy link")],
+        ),
       ]),
-      html.button([attribute.type_("submit")], [html.text("Set status")]),
-    ],
-  )
+    ]),
+  ])
 }
 
 fn serve_settings(request: Request(Connection)) -> Response(ResponseData) {

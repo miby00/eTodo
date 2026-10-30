@@ -5,7 +5,7 @@
 -include_lib("eTodo/include/eTodo.hrl").
 
 -export([set_status/3, set_timer/3, clear_timer/1, status_json/1,
-         change_status/3]).
+         change_status/3, set_team_pomodoro/2]).
 
 set_status(User, Status, StatusMsg) ->
     Info = get_info(User),
@@ -19,6 +19,14 @@ set_timer(User, TimerRef, Description) ->
 clear_timer(User) ->
     Info = get_info(User),
     put_info(User, Info#{timer => undefined, timer_desc => ""}).
+
+%% The team pomodoro follows the clock, as in the desktop client: work until
+%% :25 and :55, then a break until :30 and :00. It needs no running timer,
+%% so the web UI can show it without a desktop client.
+set_team_pomodoro(User, Enabled) when is_boolean(Enabled) ->
+    Info = get_info(User),
+    put_info(User, Info#{team_pomodoro => Enabled}),
+    eTodoPush:broadcast(<<"status">>).
 
 %% Change status from the web UI: updates the desktop client when there is
 %% one, otherwise the headless node, and tells the peers.
@@ -42,24 +50,37 @@ change_status(User, Status, StatusMsg) ->
     ok.
 
 status_json(User) ->
-    #{status := Status, status_msg := StatusMsg,
-      timer := Timer, timer_desc := Desc} = get_info(User),
-    Seconds = seconds_left(Timer),
-    Json = json:encode(#{<<"user">>       => to_bin(User),
-                         <<"status">>     => to_bin(Status),
-                         <<"status_msg">> => to_bin(StatusMsg),
-                         <<"timer">>      => Seconds,
-                         <<"timer_desc">> => case Seconds of
-                                                 0 -> <<>>;
-                                                 _ -> to_bin(Desc)
-                                             end}),
+    #{status := Status, status_msg := StatusMsg, timer := Timer,
+      timer_desc := Desc, team_pomodoro := TeamPomodoro} = get_info(User),
+    %% A timer started in the desktop client is shown before the pomodoro.
+    {Seconds, TimerDesc} =
+        case {seconds_left(Timer), TeamPomodoro} of
+            {0, true} -> team_pomodoro(time());
+            {0, false} -> {0, <<>>};
+            {Left, _} -> {Left, to_bin(Desc)}
+        end,
+    Json = json:encode(#{<<"user">>          => to_bin(User),
+                         <<"status">>        => to_bin(Status),
+                         <<"status_msg">>    => to_bin(StatusMsg),
+                         <<"timer">>         => Seconds,
+                         <<"timer_desc">>    => TimerDesc,
+                         <<"team_pomodoro">> => TeamPomodoro}),
     {ok, iolist_to_binary(Json)}.
+
+team_pomodoro({_Hour, Min, Sec}) ->
+    case (Min rem 30) * 60 + Sec of
+        Pos when Pos < 25 * 60 ->
+            {25 * 60 - Pos, <<"Team pomodoro \x{b7} work"/utf8>>};
+        Pos ->
+            {30 * 60 - Pos, <<"Team pomodoro \x{b7} break"/utf8>>}
+    end.
 
 get_info(User) ->
     Default = #{status     => env(status, "Available"),
                 status_msg => env(statusMsg, ""),
                 timer      => undefined,
-                timer_desc => ""},
+                timer_desc => "",
+                team_pomodoro => false},
     maps:merge(Default, persistent_term:get({?MODULE, User}, #{})).
 
 put_info(User, Info) ->
