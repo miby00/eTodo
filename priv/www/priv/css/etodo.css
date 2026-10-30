@@ -399,19 +399,43 @@ html {
 }
 
 #status-state {
-  font-size: 8vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12em;
+  font-size: min(8vh, 15vw);
+}
+
+/* A light disc separates matching status colours; the palm stays unframed. */
+#status-state::before {
+  display: inline-flex;
+  flex: none;
+  width: 1.12em;
+  height: 1.12em;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0.06em 0.16em rgba(0, 0, 0, 0.16);
+  font-size: 0.6em;
+  line-height: 1;
 }
 
 .etodo-status-available #status-state::before {
-  content: "\2705\00a0";
+  content: "\1f7e2";
 }
 
 .etodo-status-busy #status-state::before {
-  content: "\26d4\00a0";
+  content: "\1f534";
 }
 
 .etodo-status-away #status-state::before {
-  content: "\1f6b6\00a0";
+  content: "\1f334";
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 0.04em 0.08em rgba(0, 0, 0, 0.18));
+  font-size: 0.68em;
 }
 
 #status-msg {
@@ -544,6 +568,7 @@ html {
 
 .etodo-status-choices {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.35rem;
   padding: 0.25rem;
   border-radius: 0.7rem;
@@ -557,13 +582,31 @@ html {
 }
 
 .etodo-status-choices label {
+  display: flex;
   flex: 1 1 0;
+  min-width: max-content;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
   padding: 0.5rem 0.25rem;
   border-radius: 0.5rem;
   text-align: center;
   color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
   transition: background-color 0.15s;
+  white-space: nowrap;
+}
+
+.etodo-status-choice-icon {
+  display: inline-flex;
+  flex: none;
+  width: 1.2em;
+  height: 1.2em;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+  font-size: 0.95em;
+  line-height: 1;
 }
 
 .etodo-status-choices input:focus-visible + label {
@@ -571,18 +614,42 @@ html {
 }
 
 .etodo-status-choices input:checked + .etodo-status-choice-available {
-  background: #198754;
-  color: #fff;
+  background: #e2f5e9;
+  color: #174e34;
 }
 
 .etodo-status-choices input:checked + .etodo-status-choice-busy {
-  background: #dc3545;
-  color: #fff;
+  background: #fce4e5;
+  color: #7d242b;
 }
 
 .etodo-status-choices input:checked + .etodo-status-choice-away {
-  background: #fd7e14;
-  color: #fff;
+  background: #fff0dd;
+  color: #743509;
+}
+
+@media (max-width: 360px) {
+  .etodo-status-choices {
+    gap: 0.15rem;
+  }
+
+  .etodo-status-choices label {
+    gap: 0.125rem;
+    padding-inline: 0.1rem;
+    font-size: 0.875rem;
+  }
+
+  #status-controls {
+    gap: 0.25rem;
+    padding-inline: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  #status-back,
+  #status-edit summary {
+    padding-inline: 0.4rem;
+    white-space: nowrap;
+  }
 }
 
 #status-form input[type="text"],

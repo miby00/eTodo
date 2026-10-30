@@ -839,7 +839,7 @@
     return;
   }
 
-  var dots = { available: "🟢", busy: "🔴", away: "🟠" };
+  var dots = { available: "🟢", busy: "🔴", away: "🌴" };
 
   function update() {
     fetch("/status.json", { credentials: "same-origin", cache: "no-store" })

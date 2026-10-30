@@ -1008,7 +1008,9 @@ fn status_page(
             cell("status-user", ""),
             cell("status-state", ""),
             cell("status-msg", ""),
-            cell("status-break", "\u{2615} Break"),
+            html.div([attribute.id("status-break")], [
+              html.text("\u{2615} Break"),
+            ]),
             cell("status-timer", ""),
             cell("status-timer-desc", ""),
           ],
@@ -1049,6 +1051,11 @@ fn status_form_element(csrf: String, share_key: String) -> element.Element(a) {
           ],
           list.flat_map(["Available", "Busy", "Away"], fn(name) {
             let id = "status-choice-" <> string.lowercase(name)
+            let icon = case name {
+              "Available" -> "🟢"
+              "Busy" -> "🔴"
+              _ -> "🌴"
+            }
             [
               html.input([
                 attribute.type_("radio"),
@@ -1064,7 +1071,16 @@ fn status_form_element(csrf: String, share_key: String) -> element.Element(a) {
                     "etodo-status-choice-" <> string.lowercase(name),
                   ),
                 ],
-                [html.text(name)],
+                [
+                  html.span(
+                    [
+                      attribute.attribute("class", "etodo-status-choice-icon"),
+                      attribute.attribute("aria-hidden", "true"),
+                    ],
+                    [html.text(icon)],
+                  ),
+                  html.text(" " <> name),
+                ],
               ),
             ]
           }),
