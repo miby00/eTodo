@@ -1098,17 +1098,52 @@
   });
 })();
 
-// Opening "More options" puts the cursor in the description.
+// "More options" is a separate form, so the quick-add bar is hidden while it
+// is open. Otherwise Enter or + would create the todo without the options.
+// The typed text moves between the quick-add bar and the description.
 (function () {
-  var form = document.getElementById("new-todo");
+  var details = document.getElementById("new-todo");
+  var form = document.getElementById("new-todo-form");
   var description = document.getElementById("new-description");
-  if (!form || !description) {
+  var quick = document.getElementById("quick-add");
+  var quickInput = document.getElementById("quick-description");
+  if (!details || !form || !description) {
     return;
   }
-  form.addEventListener("toggle", function () {
-    if (form.open) {
+  details.addEventListener("toggle", function () {
+    if (details.open) {
+      if (quickInput && description.value.trim() === "") {
+        description.value = quickInput.value;
+      }
+      if (quick) {
+        quick.hidden = true;
+      }
       description.focus();
+    } else {
+      if (quickInput && description.value.indexOf("\n") === -1) {
+        quickInput.value = description.value;
+      }
+      if (quick) {
+        quick.hidden = false;
+      }
     }
+  });
+  description.addEventListener("input", function () {
+    description.setCustomValidity("");
+  });
+  form.addEventListener("submit", function (event) {
+    if (description.value.trim() !== "") {
+      return;
+    }
+    event.preventDefault();
+    var editor = description.closest("[data-markdown-editor]");
+    var textMode = editor && editor.querySelector('[data-markdown-mode="text"]');
+    if (description.hidden && textMode) {
+      textMode.click();
+    }
+    description.setCustomValidity("Write a description for the todo.");
+    description.reportValidity();
+    description.focus();
   });
 })();
 

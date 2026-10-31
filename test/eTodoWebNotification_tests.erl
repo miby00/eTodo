@@ -67,6 +67,8 @@ task_edit_details() ->
                                              <<"etodo-progress-track">>)),
         assert_progress(SharedCard, 50),
         assert_progress(CompleteCard, 100),
+        assert_selected(OwnCard, <<"priority">>, <<"Low">>),
+        assert_selected(SharedCard, <<"priority">>, <<"N/A">>),
 
         Description = "**Task**\n\nSecond paragraph",
         Comment = "First comment\n\nSecond comment",
@@ -182,6 +184,13 @@ assert_progress(Card, Value) ->
     ?assertEqual(undefined, proplists:get_value(<<"style">>, Attributes)),
     Label = iolist_to_binary(["Progress ", integer_to_list(Value), "%"]),
     ?assertNotEqual(nomatch, binary:match(node_html(Card), Label)).
+
+assert_selected(Card, Name, Expected) ->
+    {<<"select">>, _, Options} = find_element(Card, <<"name">>, Name),
+    Selected = [Value || {<<"option">>, Attrs, _} <- Options,
+                         lists:keymember(<<"selected">>, 1, Attrs),
+                         {<<"value">>, Value} <- Attrs],
+    ?assertEqual([Expected], Selected).
 
 assert_task_time(Card, Estimate, Remaining) ->
     {<<"input">>, EstimateAttrs, _} =
@@ -376,6 +385,7 @@ database() ->
                 owner = "test-user", sharedWith = [],
                 createTime = {{2026, 1, 1}, {12, 30, 0}}},
     Shared = Own#todo{uid = 78, description = "Shared task", progress = 50,
+                      priority = undefined,
                       sharedWith = ["test-user", "teammate"]},
     Complete = Own#todo{uid = 79, description = "Complete progress",
                         progress = 100},

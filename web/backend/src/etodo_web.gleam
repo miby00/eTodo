@@ -3585,6 +3585,7 @@ fn new_todo_form(data: TodoPageData) {
       html.div([attribute.attribute("class", "card-body pt-0 px-3 pb-3")], [
         html.form(
           [
+            attribute.attribute("id", "new-todo-form"),
             attribute.attribute("action", "/todo/create"),
             attribute.attribute("method", "post"),
             attribute.attribute("class", "row g-3"),
@@ -4016,6 +4017,12 @@ fn edit_select(
   value: String,
   options: List(String),
 ) {
+  // Tasks without a status or priority come as "", which must select N/A
+  // rather than let the browser fall back to the first option.
+  let value = case string.trim(value) {
+    "" -> "N/A"
+    value -> value
+  }
   let choices =
     options
     |> list.map(fn(option) {
