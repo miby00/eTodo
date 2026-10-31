@@ -28,7 +28,6 @@
          getIp/0,
          getPeerInfo/1,
          getRootDir/0,
-         getStyleSheet/1,
          getUserCfgDir/0,
          getWeekDay/1,
          makeETodo/3,
@@ -543,22 +542,6 @@ getDisposition("image/bmp", _File) ->
 getDisposition(_MimeType, File) ->
     "attachment; filename=" ++ File.
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Get style sheet
-%% @spec getStyleSheet(UserName) -> FileName
-%% @end
-%%--------------------------------------------------------------------
-getStyleSheet(UserName) ->
-    FileName = lists:concat(["styles_", UserName, ".css"]),
-    FullFile = filename:join([getRootDir(), "www", "priv", "css", FileName]),
-    case filelib:is_file(FullFile) of
-        true ->
-            FullFile;
-        false ->
-            filename:join([getRootDir(), "www", "priv", "css", "styles.css"])
-    end.
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================

@@ -120,7 +120,6 @@
         "progressInfo2"           => wxSpinCtrl,
         "proxyLinkMenu"           => wxMenuItem,
         "recurrence"              => wxRadioBox,
-        "themeRadioBox"           => wxRadioBox,
         "redoMenu"                => wxMenuItem,
         "replyAllMenu"            => wxMenuItem,
         "replyMenu"               => wxMenuItem,

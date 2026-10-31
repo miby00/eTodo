@@ -15,7 +15,7 @@
 -import(eHtml, [aTag/2,    headTag/1,  titleTag/1,
                 metaTag/1, styleTag/2, bodyTag/1]).
 
--import(eTodoUtils, [getStyleSheet/1, getRootDir/0]).
+-import(eTodoUtils, [getRootDir/0]).
 
 -define(LF, "\r\n").
 -define(BDDef, "----=_Part_710804_24963257.1485877260241").

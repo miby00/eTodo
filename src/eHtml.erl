@@ -61,8 +61,7 @@
 
 -import(eTodoUtils, [toStr/1, toStr/2, tryInt/1, getWeekDay/1,
                      makeStr/1, getRootDir/0, dateTime/0,
-                     convertUid/1, convertUid/2, default/2,
-                     getStyleSheet/1]).
+                     convertUid/1, convertUid/2, default/2]).
 
 %%%=====================================================================
 %%% API
@@ -1214,5 +1213,4 @@ getTimeMarkers() ->
 repairTime({H, M}) -> {H, M, 0};
 repairTime(undefined) -> {0, 0, 0};
 repairTime(Time) -> Time.
-
 

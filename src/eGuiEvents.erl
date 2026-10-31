@@ -352,7 +352,6 @@ loginToCircle(Default, OldUser, User, Circle, Password, Md5Pwd,
     eSMTP:setUser(User),
     eSMTP:updateConfig(),
 
-    setStyleSheet(User, UserCfg),
     focusAndSelect(State6#guiState{loggedIn = true}).
 
 loginCancelEvent(_Type, _Id, _Frame,  State = #guiState{loginDlg = Login}) ->
@@ -2502,13 +2501,10 @@ setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
     SMTPSrvObj  = wxXmlResource:xrcctrl(Settings, "smtpServer",       wxTextCtrl),
     SMTPPortObj = wxXmlResource:xrcctrl(Settings, "smtpPort",         wxTextCtrl),
     EHostObj    = wxXmlResource:xrcctrl(Settings, "eTodoHostName",    wxTextCtrl),
-    ThemeObj    = wxXmlResource:xrcctrl(Settings, "themeRadioBox",    wxRadioBox),
     SMTPUserObj = wxXmlResource:xrcctrl(Settings, "smtpUser",         wxTextCtrl),
     SMTPPwdObj  = wxXmlResource:xrcctrl(Settings, "smtpPwd",          wxTextCtrl),
     SMTPAuthObj = wxXmlResource:xrcctrl(Settings, "smtpAuth",         wxChoice),
     NotTimeObj  = wxXmlResource:xrcctrl(Settings, "notificationTime", wxSpinCtrl),
-    OrderObj    = wxXmlResource:xrcctrl(Settings, "messageOrder",     wxRadioBox),
-    NumMailsObj = wxXmlResource:xrcctrl(Settings, "numOfEmails",      wxSpinCtrl),
 
     IPAddr   = eTodoUtils:getIp(),
     UConCfg  = default(eTodoDB:getConnection(User), #conCfg{}),
@@ -2523,10 +2519,7 @@ setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
              smtpAuth         = SMTPAuth,
              smtpPwd          = SMTPPwd,
              conPort          = EPort,
-             theme            = Selected,
-             notificationTime = NTime,
-             notifOrder       = Order,
-             numOfNotifEmail  = NumOfEmails} = eTodoDB:readUserCfg(User),
+             notificationTime = NTime} = eTodoDB:readUserCfg(User),
 
     wxTextCtrl:setValue(SMTPPortObj,  toStr(default(SMTPPort, 25))),
     wxCheckBox:setValue(SMTPOnObj,    default(SMTPOn, false)),
@@ -2535,10 +2528,7 @@ setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
     wxTextCtrl:setValue(SMTPUserObj,  default(SMTPUser, "")),
     wxTextCtrl:setValue(EPortObj,     toStr(default(EPort,  19000))),
     wxTextCtrl:setValue(WPwdObj,      default(WPasswd, "")),
-    wxRadioBox:setSelection(ThemeObj, default(Selected, 0)),
-    wxRadioBox:setSelection(OrderObj, default(Order, 0)),
     wxSpinCtrl:setValue(NotTimeObj,   default(NTime, ?NotificationTime)),
-    wxSpinCtrl:setValue(NumMailsObj,  default(NumOfEmails, 5)),
     wxChoice:setStringSelection(SMTPAuthObj, default(SMTPAuth, "None")),
 
     smtpEnabledEvent(undefined, undefined, undefined, State).
@@ -2575,11 +2565,6 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     SMTPPwdObj  = wxXmlResource:xrcctrl(Settings, "smtpPwd",          wxTextCtrl),
     SMTPAuthObj = wxXmlResource:xrcctrl(Settings, "smtpAuth",         wxChoice),
     NotTimeObj  = wxXmlResource:xrcctrl(Settings, "notificationTime", wxSpinCtrl),
-    ThemeObj    = wxXmlResource:xrcctrl(Settings, "themeRadioBox",    wxRadioBox),
-    OrderObj    = wxXmlResource:xrcctrl(Settings, "messageOrder",     wxRadioBox),
-    NumMailsObj = wxXmlResource:xrcctrl(Settings, "numOfEmails",      wxSpinCtrl),
-
-    Selection   = wxRadioBox:getSelection(ThemeObj),
 
     PeerUser    = wxTextCtrl:getValue(PeerObj),
     PeerHost    = wxTextCtrl:getValue(HostObj),
@@ -2599,8 +2584,6 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
     EmailAddr   = wxTextCtrl:getValue(EmailObj),
 
     NotTime     = wxSpinCtrl:getValue(NotTimeObj),
-    NumOfEmails = wxSpinCtrl:getValue(NumMailsObj),
-    EmailOrder  = wxRadioBox:getSelection(OrderObj),
 
     eTodoDB:updateConnection(#conCfg{userName   = PeerUser,
                                      host       = PeerHost,
@@ -2623,30 +2606,12 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
                                smtpPwd          = SMTPPwd,
                                smtpAuth         = SMTPAuth,
                                conPort          = toInt(EPort),
-                               theme            = Selection,
-                               notificationTime = NotTime,
-                               numOfNotifEmail  = NumOfEmails,
-                               notifOrder       = EmailOrder},
-    setStyleSheet(User, UserCfg2),
+                               notificationTime = NotTime},
     eTodoDB:saveUserCfg(UserCfg2),
     wxDialog:hide(Settings),
     eSMTP:updateConfig(),
 
     State.
-
-setStyleSheet(User, #userCfg{theme = Selection}) ->
-    FileName   = lists:concat(["styles_", User, ".css"]),
-    DestFile   = filename:join([getRootDir(), "www", "priv", "css", FileName]),
-    BlueTheme  = filename:join([getRootDir(),
-                                "www", "priv", "css", "styles.css"]),
-    BlackTheme = filename:join([getRootDir(),
-                                "www", "priv", "css", "styles-black.css"]),
-    case Selection of
-        0 ->
-            file:copy(BlueTheme, DestFile);
-        1 ->
-            file:copy(BlackTheme, DestFile)
-    end.
 
 toInt(Value) when is_list(Value) ->
     case catch list_to_integer(Value) of
