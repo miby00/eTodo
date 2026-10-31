@@ -76,13 +76,13 @@ task_edit_details() ->
                                      PreviewBody, Headers),
         ?assertEqual(
            <<"<p><strong>Task</strong></p><p>Second paragraph</p>">>, Preview),
-        Body = uri_string:compose_query(
-                 [{"uid", "77"}, {"csrf", binary_to_list(Csrf)},
+        Fields = [{"uid", "77"}, {"csrf", binary_to_list(Csrf)},
                   {"list", "All tasks"}, {"status", "Planning"},
                   {"priority", "Low"}, {"description", Description},
                   {"comment", Comment}, {"progress", "3"}, {"due_time", ""},
-                  {"estimate", "0"}, {"remaining", "0"},
-                  {"lists", "All tasks"}]),
+                  {"estimate", "8"}, {"remaining", "5"},
+                  {"lists", "All tasks"}],
+        Body = uri_string:compose_query(Fields),
         {303, ResponseHeaders, _} = web_post(Port, "/todo/update", Body, Headers),
         ?assertEqual("/?list=All%20tasks#task-77",
                      proplists:get_value("location", ResponseHeaders)),
@@ -90,10 +90,12 @@ task_edit_details() ->
         ?assertEqual(Description, Stored#todo.description),
         ?assertEqual(Comment, Stored#todo.comment),
         ?assertEqual(3, Stored#todo.progress),
+        ?assertEqual({8, 5}, eTodoDB:getTime("77")),
         {200, _, UpdatedPage} = web_get(Port, "/?list=All%20tasks", Headers),
         UpdatedCard = find_element(mochiweb_html:parse(UpdatedPage),
              <<"id">>, <<"task-77">>),
         assert_progress(UpdatedCard, 3),
+        assert_task_time(UpdatedCard, 8, 5),
         DescriptionSection = find_element(UpdatedCard, <<"aria-label">>,
                     <<"Description">>),
         CommentSection = find_element(UpdatedCard, <<"aria-label">>,
@@ -107,7 +109,43 @@ task_edit_details() ->
         ?assertNotEqual(
            nomatch,
            binary:match(node_html(CommentSection),
-                        <<"<p>First comment</p><p>Second comment</p>">>))
+                        <<"<p>First comment</p><p>Second comment</p>">>)),
+        {200, _, ReloadedPage} = web_get(Port, "/?list=All%20tasks", Headers),
+        ReloadedCard = find_element(mochiweb_html:parse(ReloadedPage),
+                                    <<"id">>, <<"task-77">>),
+        assert_task_time(ReloadedCard, 8, 5),
+
+        CreateFields = lists:keystore(
+                         "remaining", 1,
+                         lists:keystore(
+                           "estimate", 1, lists:keydelete("uid", 1, Fields),
+                           {"estimate", "12"}),
+                         {"remaining", "7"}),
+        {303, CreateHeaders, _} = web_post(
+                                   Port, "/todo/create",
+                                   uri_string:compose_query(CreateFields),
+                                   Headers),
+        [_, CreatedUid] = string:split(
+                            proplists:get_value("location", CreateHeaders),
+                            "#task-"),
+        ?assertEqual({12, 7}, eTodoDB:getTime(CreatedUid)),
+        {200, _, CreatedPage} = web_get(Port, "/?list=All%20tasks", Headers),
+        CreatedCard = find_element(
+                        mochiweb_html:parse(CreatedPage), <<"id">>,
+                        list_to_binary("task-" ++ CreatedUid)),
+        assert_task_time(CreatedCard, 12, 7),
+
+        ZeroFields = lists:keystore(
+                       "remaining", 1,
+                       lists:keystore("estimate", 1, Fields, {"estimate", "0"}),
+                       {"remaining", "0"}),
+        {303, _, _} = web_post(Port, "/todo/update",
+                               uri_string:compose_query(ZeroFields), Headers),
+        ?assertEqual({0, 0}, eTodoDB:getTime("77")),
+        {200, _, ZeroPage} = web_get(Port, "/?list=All%20tasks", Headers),
+        ZeroCard = find_element(mochiweb_html:parse(ZeroPage),
+                                <<"id">>, <<"task-77">>),
+        assert_task_time(ZeroCard, 0, 0)
     after
         LockRef = monitor(process, Lock),
         Lock ! stop,
@@ -144,6 +182,27 @@ assert_progress(Card, Value) ->
     ?assertEqual(undefined, proplists:get_value(<<"style">>, Attributes)),
     Label = iolist_to_binary(["Progress ", integer_to_list(Value), "%"]),
     ?assertNotEqual(nomatch, binary:match(node_html(Card), Label)).
+
+assert_task_time(Card, Estimate, Remaining) ->
+    {<<"input">>, EstimateAttrs, _} =
+        find_element(Card, <<"name">>, <<"estimate">>),
+    {<<"input">>, RemainingAttrs, _} =
+        find_element(Card, <<"name">>, <<"remaining">>),
+    ?assertEqual(integer_to_binary(Estimate),
+                 proplists:get_value(<<"value">>, EstimateAttrs)),
+    ?assertEqual(integer_to_binary(Remaining),
+                 proplists:get_value(<<"value">>, RemainingAttrs)),
+    Metadata = find_element(Card, <<"class">>, <<"etodo-meta-grid">>),
+    case {Estimate, Remaining} of
+        {0, 0} ->
+            ?assertEqual(nomatch,
+                         binary:match(node_html(Metadata), <<">Time<">>));
+        _ ->
+            Text = iolist_to_binary(
+                     [integer_to_list(Estimate), " h estimated ",
+                      <<194, 183>>, " ", integer_to_list(Remaining), " h left"]),
+            ?assertNotEqual(nomatch, binary:match(node_html(Metadata), Text))
+    end.
 
 check_destination(Port, Kind) ->
     Path = "/messages?kind=" ++ Kind,
@@ -320,50 +379,56 @@ database() ->
                       sharedWith = ["test-user", "teammate"]},
     Complete = Own#todo{uid = 79, description = "Complete progress",
                         progress = 100},
-    database(#{77 => Own, 78 => Shared, 79 => Complete}).
+    database(#{77 => Own, 78 => Shared, 79 => Complete}, #{}).
 
-database(Todos) ->
+database(Todos, Times) ->
     receive
         {'$gen_call', From, {readUserCfg, "test-user"}} ->
             gen_server:reply(From, #userCfg{userName = "test-user",
                                            lists = ["All tasks"],
                                            webPassword = "test-password"}),
-            database(Todos);
+            database(Todos, Times);
         {'$gen_call', From, {getMessageList, "test-user", _, _}} ->
             gen_server:reply(From, []),
-            database(Todos);
+            database(Todos, Times);
         {'$gen_call', From, getUsers} ->
             gen_server:reply(From, []),
-            database(Todos);
+            database(Todos, Times);
         {'$gen_call', From, {getETodos, "test-user", _, _, _, _}} ->
             gen_server:reply(
               From, [fixture_etodo(Todo) ||
                         {_Uid, Todo} <- lists:sort(maps:to_list(Todos))]),
-            database(Todos);
-        {'$gen_call', From, {getTime, _Uid}} ->
-            gen_server:reply(From, {0, 0}),
-            database(Todos);
+            database(Todos, Times);
+        {'$gen_call', From, {getTime, Uid}} ->
+            gen_server:reply(From, maps:get(Uid, Times, {0, 0})),
+            database(Todos, Times);
         {'$gen_call', From, {getLists, "test-user", _Uid}} ->
             gen_server:reply(From, ["All tasks"]),
-            database(Todos);
+            database(Todos, Times);
         {'$gen_call', From, {getTodo, Uid}} ->
             gen_server:reply(From, maps:get(Uid, Todos, undefined)),
-            database(Todos);
+            database(Todos, Times);
         {'$gen_call', From, {updateTodo, Todo = #todo{uid = Uid}}} ->
             gen_server:reply(From, #diff{uid = Uid, diff = []}),
-            database(Todos#{Uid => Todo});
-        {'$gen_call', From, {saveTime, _Uid, _Estimate, _Remaining}} ->
+            database(Todos#{Uid => Todo}, Times);
+        {'$gen_call', From, {saveTime, Uid, Estimate, Remaining}} ->
             gen_server:reply(From, {atomic, ok}),
-            database(Todos);
+            database(Todos, Times#{Uid => {Estimate, Remaining}});
+        {'$gen_call', From, {getRow, "test-user", _List}} ->
+            gen_server:reply(From, maps:size(Todos)),
+            database(Todos, Times);
+        {'$gen_call', From, {addTodo, _UserInfo, Todo = #todo{uid = Uid}}} ->
+            gen_server:reply(From, {atomic, ok}),
+            database(Todos#{Uid => Todo}, Times);
         {'$gen_call', From, {getReminder, "test-user", _Uid}} ->
             gen_server:reply(From, undefined),
-            database(Todos);
+            database(Todos, Times);
         {'$gen_call', From, {getReminders, "test-user"}} ->
             gen_server:reply(From, []),
-            database(Todos);
+            database(Todos, Times);
         {'$gen_call', From, Request} ->
             gen_server:reply(From, {error, {unexpected_fixture_request, Request}}),
-            database(Todos);
+            database(Todos, Times);
         stop ->
             ok
     end.

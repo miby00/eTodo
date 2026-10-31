@@ -154,9 +154,12 @@ that account) can tick a task as done, or untick it to set it to Planning; peer
 logins are read-only, and writes require a CSRF token. The local account can
 also edit a task's status, priority, due date, progress, time estimates,
 description and comment, choose which lists it belongs to (a task can be in
-several lists, and is always in "All tasks"), or delete it. The edit form also sets a
-task's reminder like the desktop client's reminder dialog: date, optional
-time, repeat (every 15 minutes up to every year) and an optional end date.
+several lists, and is always in "All tasks"), or delete it. Estimate and Remaining
+are non-negative whole hours, saved in the same time log used by the desktop
+client, both when creating a task and when saving edits.
+The edit form also sets a task's reminder like the desktop client's reminder
+dialog: date, optional time, repeat (every 15 minutes up to every year) and an
+optional end date.
 Without a GUI, a reminder that nobody reads is mailed with the unread
 messages (see below). The desktop dialog's "run a command" and "send email"
 options are not offered on the web; values set in the desktop client are

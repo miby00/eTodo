@@ -769,7 +769,7 @@ update_task(UserName, UidBin, Status0, Priority0, Description0, Comment0,
                                       comment = Comment, progress = Progress,
                                       dueTime = DueTime, doneTime = DoneTime},
                     eTodoDB:updateTodo(UserName, Todo2),
-                    eTodoDB:saveTime(Uid, Estimate, Remaining),
+                    eTodoDB:saveTime(integer_to_list(Uid), Estimate, Remaining),
                     assign_lists(UserName, Uid, Lists0),
                     try eTodo:todoUpdated(UserName, Todo2)
                     catch _:_ -> ok
@@ -949,7 +949,7 @@ create_task(UserName, List, Status0, Priority0, Description0, Comment0,
             Row = eTodoDB:getRow(UserName, List),
             eTodoDB:addTodo(#userInfo{userName = UserName, uid = Uid, row = Row,
                                       parent = eTodoUtils:tryInt(List)}, Todo),
-            eTodoDB:saveTime(Uid, Estimate, Remaining),
+            eTodoDB:saveTime(integer_to_list(Uid), Estimate, Remaining),
             try eTodo:todoCreated(List, Row, Todo)
             catch _:_ -> ok
             end,
