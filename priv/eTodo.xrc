@@ -2430,9 +2430,9 @@
     <object class="wxBoxSizer" name="bSizer82">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
-        <flag>wxEXPAND</flag>
+        <flag>wxEXPAND|wxALL</flag>
         <border>5</border>
-        <option>0</option>
+        <option>1</option>
         <object class="wxBoxSizer" name="bSizer83">
           <orient>wxHORIZONTAL</orient>
           <object class="sizeritem">
@@ -2447,213 +2447,157 @@
             <flag>wxEXPAND</flag>
             <border>5</border>
             <option>1</option>
-            <object class="wxBoxSizer" name="bSizer187">
-              <orient>wxHORIZONTAL</orient>
+            <object class="wxBoxSizer" name="bSizer89">
+              <orient>wxVERTICAL</orient>
               <object class="sizeritem">
-                <flag>wxALL|wxEXPAND</flag>
+                <flag>wxEXPAND</flag>
                 <border>5</border>
-                <option>1</option>
-                <object class="wxStaticBoxSizer" name="sbSizer4">
-                  <orient>wxVERTICAL</orient>
-                  <label>Local Peer Info</label>
+                <option>0</option>
+                <object class="wxGridSizer" name="bSizer187">
+                  <rows>1</rows>
+                  <cols>2</cols>
+                  <vgap>0</vgap>
+                  <hgap>0</hgap>
                   <object class="sizeritem">
-                    <flag>wxEXPAND</flag>
+                    <flag>wxALL|wxEXPAND</flag>
                     <border>5</border>
                     <option>1</option>
-                    <object class="wxBoxSizer" name="bSizer89">
+                    <object class="wxStaticBoxSizer" name="sbSizer4">
                       <orient>wxVERTICAL</orient>
-                      <object class="spacer">
-                        <flag>wxEXPAND</flag>
-                        <border>5</border>
-                        <option>0</option>
-                        <size>0,10</size>
-                      </object>
+                      <label>Peer connection</label>
                       <object class="sizeritem">
-                        <flag>wxEXPAND</flag>
+                        <flag>wxEXPAND|wxALL</flag>
                         <border>5</border>
                         <option>0</option>
-                        <object class="wxBoxSizer" name="bSizer90">
-                          <orient>wxVERTICAL</orient>
+                        <object class="wxFlexGridSizer" name="fgSettingsLocal">
+                          <vgap>0</vgap>
+                          <hgap>0</hgap>
+                          <growablerows></growablerows>
+                          <growablecols>1</growablecols>
+                          <rows>0</rows>
+                          <cols>2</cols>
                           <object class="sizeritem">
-                            <flag>wxEXPAND</flag>
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
                             <border>5</border>
-                            <option>1</option>
-                            <object class="wxBoxSizer" name="bSizer91">
-                              <orient>wxHORIZONTAL</orient>
-                              <object class="sizeritem">
-                                <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-                                <border>5</border>
-                                <option>2</option>
-                                <object class="wxStaticText" name="m_staticText111">
-                                  <label>Local host name:</label>
-                                  <wrap>-1</wrap>
-                                </object>
-                              </object>
-                              <object class="sizeritem">
-                                <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-                                <border>5</border>
-                                <option>3</option>
-                                <object class="wxTextCtrl" name="eTodoHostName">
-                                  <tooltip>The hostname that will be reported to other peers so they can use it to connect to this client.</tooltip>
-                                  <value></value>
-                                  <maxlength>0</maxlength>
-                                </object>
-                              </object>
+                            <option>0</option>
+                            <object class="wxStaticText" name="m_staticText111">
+                              <size>130,-1</size>
+                              <label>Local host name:</label>
+                              <wrap>-1</wrap>
                             </object>
                           </object>
                           <object class="sizeritem">
-                            <flag>wxEXPAND</flag>
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
                             <border>5</border>
-                            <option>1</option>
-                            <object class="wxBoxSizer" name="bSizer92">
-                              <orient>wxHORIZONTAL</orient>
-                              <object class="sizeritem">
-                                <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-                                <border>5</border>
-                                <option>2</option>
-                                <object class="wxStaticText" name="m_staticText2511">
-                                  <label>Local port:</label>
-                                  <wrap>-1</wrap>
-                                </object>
-                              </object>
-                              <object class="sizeritem">
-                                <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-                                <border>5</border>
-                                <option>3</option>
-                                <object class="wxTextCtrl" name="eTodoPort">
-                                  <tooltip>Starting port to try with, will be incremented if port is busy.</tooltip>
-                                  <value>19000</value>
-                                  <maxlength>0</maxlength>
-                                </object>
-                              </object>
+                            <option>0</option>
+                            <object class="wxTextCtrl" name="eTodoHostName">
+                              <size>170,-1</size>
+                              <tooltip>The hostname that will be reported to other peers so they can use it to connect to this client.</tooltip>
+                              <value></value>
+                              <maxlength>0</maxlength>
                             </object>
                           </object>
                           <object class="sizeritem">
-                            <flag>wxEXPAND</flag>
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
                             <border>5</border>
-                            <option>1</option>
-                            <object class="wxBoxSizer" name="bSizer921">
-                              <orient>wxHORIZONTAL</orient>
-                              <object class="sizeritem">
-                                <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-                                <border>5</border>
-                                <option>2</option>
-                                <object class="wxStaticText" name="m_staticText25111">
-                                  <label>Email address:</label>
-                                  <wrap>-1</wrap>
-                                </object>
-                              </object>
-                              <object class="sizeritem">
-                                <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-                                <border>5</border>
-                                <option>3</option>
-                                <object class="wxTextCtrl" name="emailAddress">
-                                  <tooltip>Email address used for email notification</tooltip>
-                                  <value></value>
-                                  <maxlength>0</maxlength>
-                                </object>
-                              </object>
+                            <option>0</option>
+                            <object class="wxStaticText" name="m_staticText2511">
+                              <size>130,-1</size>
+                              <label>Local port:</label>
+                              <wrap>-1</wrap>
+                            </object>
+                          </object>
+                          <object class="sizeritem">
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
+                            <border>5</border>
+                            <option>0</option>
+                            <object class="wxTextCtrl" name="eTodoPort">
+                              <size>170,-1</size>
+                              <tooltip>Starting port to try with, will be incremented if port is busy.</tooltip>
+                              <value>19000</value>
+                              <maxlength>0</maxlength>
                             </object>
                           </object>
                         </object>
                       </object>
                     </object>
                   </object>
-                </object>
-              </object>
-              <object class="sizeritem">
-                <flag>wxALL|wxEXPAND</flag>
-                <border>5</border>
-                <option>1</option>
-                <object class="wxStaticBoxSizer" name="sbSizer3">
-                  <orient>wxVERTICAL</orient>
-                  <label>Remote Peer info</label>
                   <object class="sizeritem">
-                    <flag>wxEXPAND</flag>
+                    <flag>wxALL|wxEXPAND</flag>
                     <border>5</border>
-                    <option>0</option>
-                    <object class="wxBoxSizer" name="bSizer84">
+                    <option>1</option>
+                    <object class="wxStaticBoxSizer" name="sbSizer3">
                       <orient>wxVERTICAL</orient>
-                      <object class="spacer">
-                        <flag>wxEXPAND</flag>
+                      <label>Remote peer</label>
+                      <object class="sizeritem">
+                        <flag>wxEXPAND|wxALL</flag>
                         <border>5</border>
                         <option>0</option>
-                        <size>0,10</size>
-                      </object>
-                      <object class="sizeritem">
-                        <flag>wxEXPAND</flag>
-                        <border>5</border>
-                        <option>1</option>
-                        <object class="wxBoxSizer" name="bSizer85">
-                          <orient>wxHORIZONTAL</orient>
+                        <object class="wxFlexGridSizer" name="fgSettingsRemote">
+                          <vgap>0</vgap>
+                          <hgap>0</hgap>
+                          <growablerows></growablerows>
+                          <growablecols>1</growablecols>
+                          <rows>0</rows>
+                          <cols>2</cols>
                           <object class="sizeritem">
                             <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
                             <border>5</border>
-                            <option>2</option>
+                            <option>0</option>
                             <object class="wxStaticText" name="m_staticText9">
+                              <size>115,-1</size>
                               <label>Peer user name:</label>
                               <wrap>-1</wrap>
                             </object>
                           </object>
                           <object class="sizeritem">
-                            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
                             <border>5</border>
-                            <option>3</option>
+                            <option>0</option>
                             <object class="wxTextCtrl" name="peerUserName">
+                              <size>170,-1</size>
                               <tooltip>User name of the peer you want to connect to</tooltip>
                               <value></value>
                               <maxlength>0</maxlength>
                             </object>
                           </object>
-                        </object>
-                      </object>
-                      <object class="sizeritem">
-                        <flag>wxEXPAND</flag>
-                        <border>5</border>
-                        <option>1</option>
-                        <object class="wxBoxSizer" name="bSizer86">
-                          <orient>wxHORIZONTAL</orient>
                           <object class="sizeritem">
                             <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
                             <border>5</border>
-                            <option>2</option>
+                            <option>0</option>
                             <object class="wxStaticText" name="m_staticText11">
+                              <size>115,-1</size>
                               <label>Host name:</label>
                               <wrap>-1</wrap>
                             </object>
                           </object>
                           <object class="sizeritem">
-                            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
                             <border>5</border>
-                            <option>3</option>
+                            <option>0</option>
                             <object class="wxTextCtrl" name="hostName">
+                              <size>170,-1</size>
                               <tooltip>Host name of the peer you want to connect to</tooltip>
                               <value></value>
                               <maxlength>0</maxlength>
                             </object>
                           </object>
-                        </object>
-                      </object>
-                      <object class="sizeritem">
-                        <flag>wxEXPAND</flag>
-                        <border>5</border>
-                        <option>1</option>
-                        <object class="wxBoxSizer" name="bSizer87">
-                          <orient>wxHORIZONTAL</orient>
                           <object class="sizeritem">
                             <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
                             <border>5</border>
-                            <option>2</option>
+                            <option>0</option>
                             <object class="wxStaticText" name="m_staticText10">
+                              <size>115,-1</size>
                               <label>Port:</label>
                               <wrap>-1</wrap>
                             </object>
                           </object>
                           <object class="sizeritem">
-                            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
                             <border>5</border>
-                            <option>3</option>
+                            <option>0</option>
                             <object class="wxTextCtrl" name="peerPort">
+                              <size>170,-1</size>
                               <tooltip>Port of the peer you want to connect to</tooltip>
                               <value></value>
                               <maxlength>0</maxlength>
@@ -2665,169 +2609,156 @@
                   </object>
                 </object>
               </object>
-            </object>
-          </object>
-        </object>
-      </object>
-      <object class="sizeritem">
-        <flag>wxEXPAND</flag>
-        <border>5</border>
-        <option>0</option>
-        <object class="wxBoxSizer" name="bSizer93">
-          <orient>wxHORIZONTAL</orient>
-          <object class="spacer">
-            <flag>wxALL|wxEXPAND</flag>
-            <border>10</border>
-            <option>0</option>
-            <size>32,10</size>
-          </object>
-          <object class="sizeritem">
-            <flag>wxEXPAND</flag>
-            <border>5</border>
-            <option>1</option>
-            <object class="wxBoxSizer" name="bSizer188">
-              <orient>wxHORIZONTAL</orient>
               <object class="sizeritem">
-                <flag>wxEXPAND</flag>
+                <flag>wxALL|wxEXPAND</flag>
                 <border>5</border>
-                <option>1</option>
-                <object class="wxBoxSizer" name="bSizer208">
+                <option>0</option>
+                <object class="wxStaticBoxSizer" name="sbSizer12">
                   <orient>wxVERTICAL</orient>
+                  <label>Email notifications</label>
                   <object class="sizeritem">
-                    <flag>wxALL|wxEXPAND</flag>
+                    <flag>wxALL</flag>
+                    <border>10</border>
+                    <option>0</option>
+                    <object class="wxCheckBox" name="smtpEnabled">
+                      <label>Send email notifications (SMTP)</label>
+                      <checked>0</checked>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxALL</flag>
                     <border>5</border>
-                    <option>1</option>
-                    <object class="wxStaticBoxSizer" name="sbSizer12">
-                      <orient>wxVERTICAL</orient>
-                      <label>Outgoing email settings</label>
+                    <option>0</option>
+                    <object class="wxGridSizer" name="gSizerEmailColumns">
+                      <rows>1</rows>
+                      <cols>2</cols>
+                      <vgap>0</vgap>
+                      <hgap>0</hgap>
                       <object class="sizeritem">
-                        <flag>wxALL</flag>
-                        <border>5</border>
+                        <flag>wxEXPAND|wxRIGHT</flag>
+                        <border>21</border>
                         <option>0</option>
-                        <object class="wxCheckBox" name="smtpEnabled">
-                          <label>Activate outgoing eTodo emails (SMTP)</label>
-                          <checked>0</checked>
-                        </object>
-                      </object>
-                      <object class="sizeritem">
-                        <flag>wxEXPAND</flag>
-                        <border>5</border>
-                        <option>1</option>
-                        <object class="wxBoxSizer" name="bSizer96121">
-                          <orient>wxHORIZONTAL</orient>
+                        <object class="wxFlexGridSizer" name="fgSettingsEmailLeft">
+                          <vgap>0</vgap>
+                          <hgap>0</hgap>
+                          <growablerows></growablerows>
+                          <growablecols>1</growablecols>
+                          <rows>0</rows>
+                          <cols>2</cols>
                           <object class="sizeritem">
                             <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
                             <border>5</border>
-                            <option>2</option>
-                            <object class="wxStaticText" name="m_staticText251221">
-                              <label>After(sec):</label>
+                            <option>0</option>
+                            <object class="wxStaticText" name="m_staticText25111">
+                              <size>130,-1</size>
+                              <label>Email address:</label>
                               <wrap>-1</wrap>
+                            </object>
+                          </object>
+                          <object class="sizeritem">
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
+                            <border>5</border>
+                            <option>0</option>
+                            <object class="wxTextCtrl" name="emailAddress">
+                              <size>170,-1</size>
+                              <tooltip>Email address used for email notification</tooltip>
+                              <value></value>
+                              <maxlength>0</maxlength>
                             </object>
                           </object>
                           <object class="sizeritem">
                             <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
                             <border>5</border>
-                            <option>3</option>
+                            <option>0</option>
+                            <object class="wxStaticText" name="m_staticText251221">
+                              <size>130,-1</size>
+                              <label>Notify after (sec):</label>
+                              <wrap>-1</wrap>
+                            </object>
+                          </object>
+                          <object class="sizeritem">
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
+                            <border>5</border>
+                            <option>0</option>
                             <object class="wxSpinCtrl" name="notificationTime">
+                              <size>170,-1</size>
                               <style>wxSP_ARROW_KEYS</style>
                               <tooltip>If the email is unread after the configured time, a notification email is sent.</tooltip>
-                              <value>31</value>
+                              <value>30</value>
                               <min>0</min>
                               <max>3600</max>
                             </object>
                           </object>
                         </object>
                       </object>
-                    </object>
-                  </object>
-                </object>
-              </object>
-              <object class="sizeritem">
-                <flag>wxALL|wxEXPAND</flag>
-                <border>5</border>
-                <option>1</option>
-                <object class="wxStaticBoxSizer" name="sbSizer51">
-                  <orient>wxHORIZONTAL</orient>
-                  <label>SMTP settings</label>
-                  <object class="sizeritem">
-                    <flag>wxEXPAND</flag>
-                    <border>5</border>
-                    <option>1</option>
-                    <object class="wxBoxSizer" name="bSizer941">
-                      <orient>wxVERTICAL</orient>
                       <object class="sizeritem">
-                        <flag>wxEXPAND</flag>
-                        <border>5</border>
+                        <flag>wxEXPAND|wxLEFT</flag>
+                        <border>21</border>
                         <option>0</option>
-                        <object class="wxBoxSizer" name="bSizer951">
-                          <orient>wxHORIZONTAL</orient>
+                        <object class="wxFlexGridSizer" name="fgSettingsEmailRight">
+                          <vgap>0</vgap>
+                          <hgap>0</hgap>
+                          <growablerows></growablerows>
+                          <growablecols>1</growablecols>
+                          <rows>0</rows>
+                          <cols>2</cols>
                           <object class="sizeritem">
                             <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
                             <border>5</border>
-                            <option>2</option>
+                            <option>0</option>
                             <object class="wxStaticText" name="m_staticText252">
-                              <label>SMTP Server:</label>
+                              <size>115,-1</size>
+                              <label>SMTP server:</label>
                               <wrap>-1</wrap>
                             </object>
                           </object>
                           <object class="sizeritem">
-                            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
                             <border>5</border>
-                            <option>3</option>
+                            <option>0</option>
                             <object class="wxTextCtrl" name="smtpServer">
+                              <size>170,-1</size>
                               <value></value>
                               <maxlength>0</maxlength>
                             </object>
                           </object>
-                        </object>
-                      </object>
-                      <object class="sizeritem">
-                        <flag>wxEXPAND</flag>
-                        <border>5</border>
-                        <option>1</option>
-                        <object class="wxBoxSizer" name="bSizer961">
-                          <orient>wxHORIZONTAL</orient>
                           <object class="sizeritem">
                             <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
                             <border>5</border>
-                            <option>2</option>
+                            <option>0</option>
                             <object class="wxStaticText" name="m_staticText2512">
+                              <size>115,-1</size>
                               <label>Port:</label>
                               <wrap>-1</wrap>
                             </object>
                           </object>
                           <object class="sizeritem">
-                            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
                             <border>5</border>
-                            <option>3</option>
+                            <option>0</option>
                             <object class="wxTextCtrl" name="smtpPort">
+                              <size>170,-1</size>
                               <tooltip>Port 25 plain text authentication\nPort 465 for SSL/TLS encryption\nPort 587 for STARTTLS encryption</tooltip>
                               <value>25</value>
                               <maxlength>0</maxlength>
                             </object>
                           </object>
-                        </object>
-                      </object>
-                      <object class="sizeritem">
-                        <flag>wxEXPAND</flag>
-                        <border>5</border>
-                        <option>1</option>
-                        <object class="wxBoxSizer" name="bSizer9613">
-                          <orient>wxHORIZONTAL</orient>
                           <object class="sizeritem">
                             <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
                             <border>5</border>
-                            <option>2</option>
+                            <option>0</option>
                             <object class="wxStaticText" name="m_staticText25123">
+                              <size>115,-1</size>
                               <label>Authentication:</label>
                               <wrap>-1</wrap>
                             </object>
                           </object>
                           <object class="sizeritem">
-                            <flag>wxALL|wxEXPAND</flag>
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
                             <border>5</border>
-                            <option>3</option>
+                            <option>0</option>
                             <object class="wxChoice" name="smtpAuth">
+                              <size>170,-1</size>
                               <selection>0</selection>
                               <content>
                                 <item>None</item>
@@ -2837,57 +2768,45 @@
                               </content>
                             </object>
                           </object>
-                        </object>
-                      </object>
-                      <object class="sizeritem">
-                        <flag>wxEXPAND</flag>
-                        <border>5</border>
-                        <option>1</option>
-                        <object class="wxBoxSizer" name="bSizer9611">
-                          <orient>wxHORIZONTAL</orient>
                           <object class="sizeritem">
                             <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
                             <border>5</border>
-                            <option>2</option>
+                            <option>0</option>
                             <object class="wxStaticText" name="m_staticText25121">
+                              <size>115,-1</size>
                               <label>Username:</label>
                               <wrap>-1</wrap>
                             </object>
                           </object>
                           <object class="sizeritem">
-                            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
                             <border>5</border>
-                            <option>3</option>
+                            <option>0</option>
                             <object class="wxTextCtrl" name="smtpUser">
-                              <tooltip>Starting port to try with, will be incremented if port is busy.</tooltip>
+                              <size>170,-1</size>
+                              <tooltip>User name for the SMTP server</tooltip>
                               <value></value>
                               <maxlength>0</maxlength>
                             </object>
                           </object>
-                        </object>
-                      </object>
-                      <object class="sizeritem">
-                        <flag>wxEXPAND</flag>
-                        <border>5</border>
-                        <option>1</option>
-                        <object class="wxBoxSizer" name="bSizer9612">
-                          <orient>wxHORIZONTAL</orient>
                           <object class="sizeritem">
                             <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
                             <border>5</border>
-                            <option>2</option>
+                            <option>0</option>
                             <object class="wxStaticText" name="m_staticText25122">
+                              <size>115,-1</size>
                               <label>Password:</label>
                               <wrap>-1</wrap>
                             </object>
                           </object>
                           <object class="sizeritem">
-                            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                            <flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
                             <border>5</border>
-                            <option>3</option>
+                            <option>0</option>
                             <object class="wxTextCtrl" name="smtpPwd">
+                              <size>170,-1</size>
                               <style>wxTE_PASSWORD</style>
-                              <tooltip>Starting port to try with, will be incremented if port is busy.</tooltip>
+                              <tooltip>Password for the SMTP server</tooltip>
                               <value></value>
                               <maxlength>0</maxlength>
                             </object>
@@ -2898,66 +2817,43 @@
                   </object>
                 </object>
               </object>
-            </object>
-          </object>
-        </object>
-      </object>
-      <object class="sizeritem">
-        <flag>wxEXPAND</flag>
-        <border>5</border>
-        <option>1</option>
-        <object class="wxBoxSizer" name="bSizer931">
-          <orient>wxHORIZONTAL</orient>
-          <object class="spacer">
-            <flag>wxALL|wxEXPAND</flag>
-            <border>10</border>
-            <option>0</option>
-            <size>32,10</size>
-          </object>
-          <object class="sizeritem">
-            <flag>wxEXPAND</flag>
-            <border>5</border>
-            <option>1</option>
-            <object class="wxBoxSizer" name="bSizer2131">
-              <orient>wxVERTICAL</orient>
               <object class="sizeritem">
                 <flag>wxALL|wxEXPAND</flag>
                 <border>5</border>
-                <option>1</option>
+                <option>0</option>
                 <object class="wxStaticBoxSizer" name="sbSizer5">
-                  <orient>wxHORIZONTAL</orient>
+                  <orient>wxVERTICAL</orient>
                   <label>Web UI</label>
                   <object class="sizeritem">
-                    <flag>wxEXPAND</flag>
+                    <flag>wxEXPAND|wxALL</flag>
                     <border>5</border>
-                    <option>1</option>
-                    <object class="wxBoxSizer" name="bSizer94">
-                      <orient>wxVERTICAL</orient>
+                    <option>0</option>
+                    <object class="wxFlexGridSizer" name="fgSettingsWeb">
+                      <vgap>0</vgap>
+                      <hgap>0</hgap>
+                      <growablerows></growablerows>
+                      <growablecols>1</growablecols>
+                      <rows>0</rows>
+                      <cols>2</cols>
                       <object class="sizeritem">
-                        <flag>wxEXPAND</flag>
+                        <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
                         <border>5</border>
                         <option>0</option>
-                        <object class="wxBoxSizer" name="bSizer95">
-                          <orient>wxHORIZONTAL</orient>
-                          <object class="sizeritem">
-                            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-                            <border>5</border>
-                            <option>2</option>
-                            <object class="wxStaticText" name="m_staticText25">
-                              <label>Password:</label>
-                              <wrap>-1</wrap>
-                            </object>
-                          </object>
-                          <object class="sizeritem">
-                            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-                            <border>5</border>
-                            <option>3</option>
-                            <object class="wxTextCtrl" name="webPassword">
-                              <style>wxTE_PASSWORD</style>
-                              <value></value>
-                              <maxlength>0</maxlength>
-                            </object>
-                          </object>
+                        <object class="wxStaticText" name="m_staticText25">
+                          <size>130,-1</size>
+                          <label>Password:</label>
+                          <wrap>-1</wrap>
+                        </object>
+                      </object>
+                      <object class="sizeritem">
+                        <flag>wxALIGN_CENTER_VERTICAL|wxALL|wxEXPAND</flag>
+                        <border>5</border>
+                        <option>0</option>
+                        <object class="wxTextCtrl" name="webPassword">
+                          <size>170,-1</size>
+                          <style>wxTE_PASSWORD</style>
+                          <value></value>
+                          <maxlength>0</maxlength>
                         </object>
                       </object>
                     </object>

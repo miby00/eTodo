@@ -2447,6 +2447,12 @@ settingsMenuEvent(_Type, _Id, _Frame,
     ConCfg     = default(PeerUser, #conCfg{}),
     setDefaultValues(ConCfg, State),
     setDefaultValues(State),
+    EmailObj     = wxXmlResource:xrcctrl(Settings, "emailAddress",   wxTextCtrl),
+    ServerLabel  = wxXmlResource:xrcctrl(Settings, "m_staticText252", wxStaticText),
+    ServerObj    = wxXmlResource:xrcctrl(Settings, "smtpServer",      wxTextCtrl),
+    %% Preserve the original row-wise tab order and label association.
+    wxWindow:moveAfterInTabOrder(ServerLabel, EmailObj),
+    wxWindow:moveAfterInTabOrder(ServerObj, ServerLabel),
     wxDialog:show(Settings),
     State.
 
@@ -2457,19 +2463,14 @@ smtpEnabledEvent(_Type, _Id, _Frame,
     SMTPPortObj = wxXmlResource:xrcctrl(Settings, "smtpPort",      wxTextCtrl),
     SMTPUserObj = wxXmlResource:xrcctrl(Settings, "smtpUser",      wxTextCtrl),
     SMTPPwdObj  = wxXmlResource:xrcctrl(Settings, "smtpPwd",       wxTextCtrl),
+    SMTPAuthObj = wxXmlResource:xrcctrl(Settings, "smtpAuth",      wxChoice),
+    NotTimeObj  = wxXmlResource:xrcctrl(Settings, "notificationTime", wxSpinCtrl),
+    EmailObj    = wxXmlResource:xrcctrl(Settings, "emailAddress",  wxTextCtrl),
 
-    case wxCheckBox:isChecked(SMTPOnObj) of
-        true ->
-            wxTextCtrl:enable(SMTPSrvObj),
-            wxTextCtrl:enable(SMTPUserObj),
-            wxTextCtrl:enable(SMTPPwdObj),
-            wxTextCtrl:enable(SMTPPortObj);
-        false ->
-            wxTextCtrl:disable(SMTPSrvObj),
-            wxTextCtrl:disable(SMTPUserObj),
-            wxTextCtrl:disable(SMTPPwdObj),
-            wxTextCtrl:disable(SMTPPortObj)
-    end,
+    Enabled = wxCheckBox:isChecked(SMTPOnObj),
+    [wxWindow:enable(Obj, [{enable, Enabled}]) ||
+        Obj <- [SMTPSrvObj, SMTPPortObj, SMTPUserObj, SMTPPwdObj,
+                SMTPAuthObj, NotTimeObj, EmailObj]],
     State.
 
 msgFilterEvent(_Type, _Id, _Frame,
