@@ -167,6 +167,15 @@ td a { display: block; padding: 3px 0; }
 a:hover { text-decoration: underline; }
 a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .zero { color: var(--muted); }
+a.task-open { display: inline-block; margin-right: 4px; padding: 0 2px; }
+.etodo-md a { display: inline; padding: 0; text-decoration: underline; }
+.etodo-md code {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--foreground) 9%, transparent);
+  color: inherit;
+  font: 12px ui-monospace, Menlo, monospace;
+}
 td.empty { width: auto; padding: 40px 12px; text-align: center; color: var(--muted); }
 
 @media (max-width: 600px) {

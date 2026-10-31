@@ -77,6 +77,7 @@
          toClipboard/1,
          toClipboard/2,
          type/1,
+         colFormat/1,
          updateGui/3,
          updateGui/4,
          fillEmailCheckBox/1,
@@ -643,7 +644,32 @@ shade(Back, Text) ->
     Back + round((Text - Back) * 0.06).
 
 colFormat(ColumnText) ->
-    colFormat(ColumnText, 160, []).
+    colFormat(markdownToPlain(ColumnText), 160, []).
+
+%% List cells cannot show formatting, so Markdown syntax is removed.
+markdownToPlain(Text) when is_list(Text) ->
+    Rules = [{"^[ \\t]{0,3}(?:```|~~~).*$", ""},
+             {"^[ \\t]{0,3}#{1,6}[ \\t]+", ""},
+             {"^[ \\t]{0,3}>[ \\t]?", ""},
+             {"!?\\[([^\\]]*)\\]\\([^)]*\\)", "\\1"},
+             {"<((?:https?|mailto):[^>\\s]+)>", "\\1"},
+             {"(?<!\\\\)(\\*\\*|__)(?=\\S)(.+?)(?<=\\S)(?<!\\\\)\\1", "\\2"},
+             {"(?<!\\\\)~~(?=\\S)(.+?)(?<=\\S)~~", "\\1"},
+             {"(?<![\\w*\\\\])\\*(?=\\S)(.+?)(?<=[^\\s\\\\])\\*(?![\\w*])",
+              "\\1"},
+             {"(?<![\\w\\\\])_(?=\\S)(.+?)(?<=[^\\s\\\\])_(?!\\w)", "\\1"},
+             {"`([^`]+)`", "\\1"},
+             {"\\\\([!-/:-@\\[-`{-~])", "\\1"}],
+    Options = [unicode, ucp, multiline, global, {return, list}],
+    try
+        lists:foldl(fun({Pattern, Replacement}, Acc) ->
+                            re:replace(Acc, Pattern, Replacement, Options)
+                    end, Text, Rules)
+    catch
+        error:_ -> Text
+    end;
+markdownToPlain(Text) ->
+    Text.
 
 colFormat([], _Num, Text) ->
     lists:reverse(Text);

@@ -11,7 +11,8 @@
          messages_summary/2, desktop_messages_fragment/3,
          desktop_message_action/4, desktop_user/1,
          avatar/2, desktop_avatar/2, theme_attributes/1, legacy_link/1]).
--export([markdown_html/1, markdown_inline_html/1, markdown_token/0]).
+-export([markdown_html/1, markdown_inline_html/1, markdown_summary_html/2,
+         markdown_token/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
@@ -345,23 +346,33 @@ markdown_html(Text) when is_binary(Text) ->
 
 render_markdown(Text, Inline) ->
     try
-        Html = eMd2Html:convert(Text),
-        {<<"div">>, _, Nodes} =
-            mochiweb_html:parse(<<"<div>", Html/binary, "</div>">>),
-        unicode:characters_to_binary(
-          [case Node of
-               NodeText when is_binary(NodeText) ->
-                   mochiweb_html:escape(NodeText);
-               _ ->
-                   mochiweb_html:to_html(Node)
-           end
-           || Node <- clean_markdown_nodes(Nodes, Inline)])
+        nodes_html(markdown_nodes(Text, Inline))
     catch
         Class:Reason:Stack ->
             logger:error("Could not render task Markdown (~p:~p): ~p",
                          [Class, Reason, Stack]),
             <<"<p>Markdown preview unavailable.</p>">>
     end.
+
+markdown_nodes(Text, Inline) ->
+    Html = eMd2Html:convert(Text),
+    {<<"div">>, _, Nodes} =
+        mochiweb_html:parse(keep_spaces(<<"<div>", Html/binary, "</div>">>)),
+    clean_markdown_nodes(Nodes, Inline).
+
+%% mochiweb_html drops whitespace-only text, e.g. between inline elements.
+keep_spaces(Html) ->
+    re:replace(Html, ">[ \\t]+<", ">\\&#32;<", [global, {return, binary}]).
+
+nodes_html(Nodes) ->
+    unicode:characters_to_binary(
+      [case Node of
+           NodeText when is_binary(NodeText) ->
+               mochiweb_html:escape(NodeText);
+           _ ->
+               mochiweb_html:to_html(Node)
+       end
+       || Node <- Nodes]).
 
 markdown_token() ->
     binary:encode_hex(crypto:strong_rand_bytes(16)).
@@ -372,6 +383,53 @@ markdown_inline_html(Text) when is_binary(Text) ->
     WithoutHeading = re:replace(Line, <<"^#{1,6}[ \\t]+">>, <<>>,
                                 [{return, binary}]),
     render_markdown(WithoutHeading, true).
+
+%% First line as inline Markdown, shortened by visible text so that
+%% formatting is never cut in the middle of its syntax.
+markdown_summary_html(Text, Max) when is_binary(Text), Max > 3 ->
+    [FirstLine | _] = binary:split(string:trim(Text, leading), <<"\n">>),
+    Line = binary:replace(FirstLine, <<"\r">>, <<>>, [global]),
+    WithoutHeading = re:replace(Line, <<"^#{1,6}[ \\t]+">>, <<>>,
+                                [{return, binary}]),
+    try
+        Nodes = markdown_nodes(WithoutHeading, true),
+        case text_length(Nodes) =< Max of
+            true ->
+                nodes_html(Nodes);
+            false ->
+                {Kept, _} = take_text(Nodes, Max - 3),
+                nodes_html(Kept ++ [<<"...">>])
+        end
+    catch
+        Class:Reason:Stack ->
+            logger:error("Could not render task Markdown (~p:~p): ~p",
+                         [Class, Reason, Stack]),
+            mochiweb_html:escape(string:slice(WithoutHeading, 0, Max))
+    end.
+
+text_length(Nodes) ->
+    lists:sum([case Node of
+                   Text when is_binary(Text) -> string:length(Text);
+                   {_Tag, _Attributes, Children} -> text_length(Children);
+                   _ -> 0
+               end || Node <- Nodes]).
+
+take_text([], Left) -> {[], Left};
+take_text(_Nodes, 0) -> {[], 0};
+take_text([Text | Rest], Left) when is_binary(Text) ->
+    case string:length(Text) of
+        Length when Length =< Left ->
+            {More, Left2} = take_text(Rest, Left - Length),
+            {[Text | More], Left2};
+        _ ->
+            {[string:trim(string:slice(Text, 0, Left), trailing)], 0}
+    end;
+take_text([{Tag, Attributes, Children} | Rest], Left) ->
+    {Kept, Left2} = take_text(Children, Left),
+    {More, Left3} = take_text(Rest, Left2),
+    {[{Tag, Attributes, Kept} | More], Left3};
+take_text([_ | Rest], Left) ->
+    take_text(Rest, Left).
 
 clean_markdown_nodes(Nodes, Inline) ->
     lists:flatmap(fun(Node) -> clean_markdown_node(Node, Inline) end, Nodes).
@@ -633,7 +691,7 @@ document(Report, Css) ->
     document(Report, Css, #{}).
 
 document(Report, Css, Theme) ->
-    Content = unicode:characters_to_binary(Report),
+    Content = keep_spaces(unicode:characters_to_binary(Report)),
     {_, _, Rows} = mochiweb_html:parse(Content),
     [Header | Rest] = Rows,
     ColumnCount = case Header of
@@ -699,9 +757,17 @@ browser_content({Tag, Attributes, Children}) ->
     {Tag, Attributes, lists:flatmap(fun browser_children/1, Children)};
 browser_content(Node) -> Node.
 
-%% Desktop-only action links are unwrapped into their content.
-browser_children({<<"a">>, _Attributes, Children}) ->
-    lists:flatmap(fun browser_children/1, Children);
+%% Desktop-only action links are unwrapped into their content. The task link
+%% and Markdown links work in the browser too.
+browser_children({<<"a">>, Attributes, Children} = Node) ->
+    Href = proplists:get_value(<<"href">>, Attributes, <<>>),
+    TaskLink = proplists:get_value(<<"class">>, Attributes) =:= <<"task-open">>,
+    case {TaskLink, Href} of
+        {false, <<"/work-log/action/", _/binary>>} ->
+            lists:flatmap(fun browser_children/1, Children);
+        _ ->
+            [browser_content(Node)]
+    end;
 browser_children(Node) -> [browser_content(Node)].
 
 browser_header(Theme) ->
@@ -810,9 +876,22 @@ clean({<<"a">>, Attributes, Content}) ->
     Href = proplists:get_value(<<"href">>, Attributes, <<>>),
     case legacy_link(Href) of
         {ok, Url} ->
-            {<<"a">>, [{<<"href">>, Url}], children(Content)};
+            case proplists:get_value(<<"class">>, Attributes) of
+                <<"task-open">> ->
+                    {<<"a">>, [{<<"href">>, Url},
+                               {<<"class">>, <<"task-open">>},
+                               {<<"title">>, <<"Open task">>},
+                               {<<"aria-label">>, <<"Open task">>}],
+                     children(Content)};
+                _ ->
+                    {<<"a">>, [{<<"href">>, Url}], children(Content)}
+            end;
         blocked -> children(Content)
     end;
+%% Task descriptions are rendered Markdown; sanitize it again as such.
+clean({<<"span">>, [{<<"class">>, <<"etodo-md">>}], Content}) ->
+    {<<"span">>, [{<<"class">>, <<"etodo-md">>}],
+     clean_markdown_nodes(Content, true)};
 clean({<<"span">>, _Attributes, Content}) ->
     {<<"span">>, [{<<"class">>, <<"zero">>}], children(Content)};
 clean({Tag, _Attributes, Content})

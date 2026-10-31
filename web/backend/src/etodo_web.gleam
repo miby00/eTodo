@@ -3262,9 +3262,11 @@ fn task_details(
   has_next: Bool,
   prefix: String,
 ) {
+  // The one-line title drops images, so such descriptions are kept in details.
   let description = case
     string.trim(task.description)
     == string.trim(truncate_description(task.description))
+    && !string.contains(task.description, "![")
   {
     True -> element.none()
     False ->

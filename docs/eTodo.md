@@ -75,6 +75,12 @@ Due date is just to set a date when the task is due, it has nothing to do with r
 The description field is for writing about the task that should be done.
 The comment field is for writing about the ongoing work on the task.
 
+Both fields use Markdown. The Preview tabs show the formatted text, and the
+Work log, Time log and Schedule reports show the first line of the description
+(or the work description, when set) formatted. In those reports, ↗ opens the
+task, so links in the description can be followed. The task list columns show
+the text with the Markdown syntax removed.
+
 ![comment](graphics/comment.png) “Add comment” adds the date and user name to the end of the comment field.
 
 ![send message](graphics/sendMsg.png) “Send message about task update”

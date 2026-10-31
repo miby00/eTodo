@@ -126,6 +126,65 @@ browser_link_with_markup_test() ->
     ?assertNotEqual(nomatch, binary:match(Page, <<"class=\"zero\"">>)),
     ?assertEqual(nomatch, binary:match(Page, <<"/work-log/action/">>)).
 
+markdown_summary_test() ->
+    Short = eWorkLogView:markdown_summary_html(
+              <<"\n  ## **Fix** `code` [docs](https://example.org)\nMore">>,
+              45),
+    ?assertNotEqual(nomatch, binary:match(Short, <<"<strong>Fix</strong>">>)),
+    ?assertNotEqual(nomatch, binary:match(Short, <<"<code>code</code>">>)),
+    ?assertNotEqual(nomatch,
+                    binary:match(Short, <<"href=\"https://example.org\"">>)),
+    ?assertEqual(nomatch, binary:match(Short, <<"More">>)),
+    ?assertEqual(nomatch, binary:match(Short, <<"##">>)),
+    Long = eWorkLogView:markdown_summary_html(
+             <<"**Räksmörgås** "/utf8, (binary:copy(<<"x">>, 80))/binary>>,
+             20),
+    ?assertNotEqual(nomatch,
+                    binary:match(Long, <<"<strong>Räksmörgås</strong>"/utf8>>)),
+    ?assertNotEqual(nomatch, binary:match(Long, <<"xxxxxx...">>)),
+    ?assertEqual(nomatch, binary:match(Long, <<"xxxxxxx">>)),
+    ?assertEqual(nomatch, binary:match(Long, <<"**">>)).
+
+report_markdown_cell(Markdown) ->
+    Uid = eTodoUtils:convertUid(42),
+    Cell = [eHtml:aTag([{href, Uid}, {class, "task-open"}], "&#8599;"), " ",
+            eHtml:spanTag([{class, "etodo-md"}],
+                          eWorkLogView:markdown_summary_html(Markdown, 45))],
+    eHtml:tableTag(
+      [eHtml:trTag([eHtml:tdTag("Description"), eHtml:tdTag("Today")]),
+       eHtml:trTag([eHtml:tdTag(Cell), eHtml:tdTag("x")])]).
+
+report_keeps_markdown_test() ->
+    Report = report_markdown_cell(
+               <<"**Bold** [site](https://example.org) <b>raw</b>">>),
+    Desktop = eWorkLogView:document(Report, <<>>,
+                                    #{background => <<"#000000">>,
+                                      foreground => <<"#ffffff">>,
+                                      accent => <<"#0088ff">>}),
+    Browser = eWorkLogView:document(Report, <<>>, #{report => "schedule"}),
+    lists:foreach(
+      fun(Page) ->
+              ?assertNotEqual(nomatch,
+                              binary:match(Page, <<"<strong>Bold</strong>">>)),
+              ?assertNotEqual(nomatch,
+                              binary:match(Page,
+                                           <<"href=\"https://example.org\"">>)),
+              ?assertNotEqual(nomatch, binary:match(Page, <<"task-open">>)),
+              ?assertNotEqual(nomatch,
+                              binary:match(Page, <<"</strong> <a">>)),
+              ?assertNotEqual(nomatch, binary:match(Page, <<"</a> <span">>)),
+              ?assertEqual(nomatch, binary:match(Page, <<"<b>raw">>))
+      end, [Desktop, Browser]),
+    ?assertNotEqual(nomatch,
+                    binary:match(Browser, <<"/work-log/action/task/">>)).
+
+report_markdown_safety_test() ->
+    Report = report_markdown_cell(
+               <<"[bad](javascript:alert(1)) <script>x()</script>">>),
+    Page = eWorkLogView:document(Report, <<>>, #{report => "schedule"}),
+    ?assertEqual(nomatch, binary:match(Page, <<"href=\"javascript">>)),
+    ?assertEqual(nomatch, binary:match(Page, <<"<script>x">>)).
+
 navigation_test() ->
     ?assertEqual({ok, {uid, 42}},
                  eWorkLogView:navigation("/work-log/action/task/42")),

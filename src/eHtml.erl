@@ -368,7 +368,7 @@ makeWorkLogReport(Date, [{Act, Desc} | Rest],
     Link5 = makeLink(Uid, incDate(Date, 4), Act, D5),
 
     Row = trTag(bgColor(Odd),
-                [tdTag(aTag([{href, UidStr}], empty(Desc, Act))),
+                [tdTag(taskCell(UidStr, reportDesc(Desc, toStr(Act)))),
                  tdTag(Opts, Link1),
                  tdTag(Opts, Link2),
                  tdTag(Opts, Link3),
@@ -386,9 +386,23 @@ makeLink(Uid, Date, Act, Day) ->
             aTag([{href, convertUid(Uid, Date)}], Time1)
     end.
 
-empty("", Value) -> Value;
-empty(undefined, Value) -> Value;
-empty(Value, _) -> makeHtml(Value).
+%% Task descriptions in reports: the work description when one is set,
+%% otherwise a shortened first line of the task description, as Markdown.
+reportDesc(WorkDesc, Description) ->
+    Html = case default(WorkDesc, "") of
+               "" ->
+                   eWorkLogView:markdown_summary_html(
+                     unicode:characters_to_binary(default(Description, "")),
+                     45);
+               Desc ->
+                   eWorkLogView:markdown_inline_html(
+                     unicode:characters_to_binary(Desc))
+           end,
+    spanTag([{class, "etodo-md"}], Html).
+
+%% The description may contain links, so the task link is a separate control.
+taskCell(UidStr, DescHtml) ->
+    [aTag([{href, UidStr}, {class, "task-open"}], "&#8599;"), " ", DescHtml].
 
 bgColor(false) ->
     [{bgcolor, "white"}];
@@ -994,7 +1008,7 @@ makeTimeLogReport2([Uid | Rest], Acc) ->
     AllLogged = eTodoDB:getAllLoggedWork(Uid),
     Todo = eTodoDB:getTodo(tryInt(Uid)),
     Desc1 = eTodoDB:getWorkDesc(Uid),
-    Desc2 = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
+    Desc2 = reportDesc(Desc1, Todo#todo.description),
     Odd = ((length(Acc) rem 2) =/= 0),
     Opts2 = [{width, "20%"}, {align, center}],
     Opts3 = [{width, "20%"}],
@@ -1008,7 +1022,7 @@ makeTimeLogReport2([Uid | Rest], Acc) ->
 
     makeTimeLogReport2(Rest,
                        [trTag(bgColor(Odd),
-                              [tdTag(Opts3, [aTag([{href, UidStr}], Desc2)]),
+                              [tdTag(Opts3, taskCell(UidStr, Desc2)),
                                tdTag(Opts2, Link1),
                                tdTag(Opts2, Link2),
                                tdTag(Opts2, Link3)]) | Acc]);
@@ -1162,7 +1176,7 @@ doSaveAlarmInfo(Uid) ->
     case eTodoDB:getTodo(tryInt(Uid)) of
         Todo when is_record(Todo, todo) ->
             Desc1 = eTodoDB:getWorkDesc(toStr(Uid)),
-            Desc2 = eGuiFunctions:getWorkDesc(Desc1, Todo#todo.description),
+            Desc2 = reportDesc(Desc1, Todo#todo.description),
             DueDate = Todo#todo.dueTime,
             UidStr = eTodoUtils:convertUid(tryInt(Uid)),
             {_, RemTime} = eTodoDB:getTime(toStr(Uid)),
@@ -1185,7 +1199,7 @@ makeScheduleReport2([{_Key, DateTime, DueDate,
     Odd = ((length(Rest) rem 2) =/= 0),
     makeScheduleReport2(Rest, [trTag(bgColor(Odd),
                                      [tdTag([{width, "35%"}],
-                                            [aTag([{href, UidStr}], Desc)]),
+                                            taskCell(UidStr, Desc)),
                                       tdTag([{width, "25%"},
                                              {align, "center"}],
                                             toStr(DateTime)),
