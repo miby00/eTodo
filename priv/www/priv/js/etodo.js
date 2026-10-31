@@ -51,6 +51,73 @@
 (function () {
   "use strict";
 
+  function localDateKey(date) {
+    return date.getFullYear() + "-" +
+      String(date.getMonth() + 1).padStart(2, "0") + "-" +
+      String(date.getDate()).padStart(2, "0");
+  }
+
+  function datePart(value) {
+    var match = /^(\d{4}-\d{2}-\d{2})(?:$|[ T])/.exec(value || "");
+    return match ? match[1] : "";
+  }
+
+  function decorateDates(root) {
+    var now = new Date();
+    var today = localDateKey(now);
+    var todayTimestamp = Date.UTC(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+
+    root.querySelectorAll("[data-due-date]").forEach(function (chip) {
+      var due = datePart(chip.getAttribute("data-due-date"));
+      if (due) {
+        chip.classList.toggle("etodo-chip-overdue", due < today);
+        chip.classList.toggle("etodo-chip-due-today", due === today);
+      }
+    });
+
+    root.querySelectorAll("[data-created-date]").forEach(function (created) {
+      var date = datePart(created.getAttribute("data-created-date"));
+      var timestamp = Date.parse(date + "T00:00:00Z");
+      var age = created.querySelector("[data-created-age]");
+      if (!date || !Number.isFinite(timestamp) || !age) {
+        return;
+      }
+      var days = Math.floor((todayTimestamp - timestamp) / 86400000);
+      if (days < 0) {
+        return;
+      }
+      var label;
+      if (days === 0) {
+        label = "today";
+      } else if (days === 1) {
+        label = "yesterday";
+      } else if (days < 30) {
+        label = days + " days ago";
+      } else if (days < 365) {
+        var months = Math.floor(days / 30);
+        label = months + (months === 1 ? " month ago" : " months ago");
+      } else {
+        var years = Math.floor(days / 365);
+        label = years + (years === 1 ? " year ago" : " years ago");
+      }
+      age.textContent = label;
+      created.classList.toggle("etodo-created-old", days >= 30);
+    });
+  }
+
+  decorateDates(document);
+  document.addEventListener("etodo-task-added", function (event) {
+    decorateDates(event.detail);
+  });
+})();
+
+(function () {
+  "use strict";
+
   function updateCount() {
     var count = document.getElementById("todo-count");
     if (count) {
@@ -85,6 +152,71 @@
     filterBox.addEventListener("input", applyFilter);
     applyFilter();
   }
+
+  function renderMarkdownPreview(editor) {
+    var textarea = editor.querySelector("[data-markdown-text]");
+    var preview = editor.querySelector("[data-markdown-preview]");
+    var form = editor.closest("form");
+    var csrf = form && form.querySelector('input[name="csrf"]');
+    if (!textarea || !preview || !form) {
+      return;
+    }
+    var request = (preview.markdownRequest || 0) + 1;
+    preview.markdownRequest = request;
+    preview.textContent = "Loading preview…";
+    var body = new URLSearchParams();
+    body.set("text", textarea.value);
+    if (csrf) {
+      body.set("csrf", csrf.value);
+    }
+    fetch("/todo/markdown-preview", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString()
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+        return response.text();
+      })
+      .then(function (html) {
+        if (preview.markdownRequest === request) {
+          preview.innerHTML = html;
+        }
+      })
+      .catch(function () {
+        if (preview.markdownRequest === request) {
+          preview.textContent = "Could not load Markdown preview.";
+        }
+      });
+  }
+
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest("[data-markdown-mode]");
+    if (!button) {
+      return;
+    }
+    var editor = button.closest("[data-markdown-editor]");
+    if (!editor) {
+      return;
+    }
+    var textarea = editor.querySelector("[data-markdown-text]");
+    var preview = editor.querySelector("[data-markdown-preview]");
+    var showPreview = button.getAttribute("data-markdown-mode") === "preview";
+    textarea.hidden = showPreview;
+    preview.hidden = !showPreview;
+    editor.querySelectorAll("[data-markdown-mode]").forEach(function (mode) {
+      var selected = mode === button;
+      mode.setAttribute("aria-pressed", selected ? "true" : "false");
+      mode.classList.toggle("btn-secondary", selected);
+      mode.classList.toggle("btn-outline-secondary", !selected);
+    });
+    if (showPreview) {
+      renderMarkdownPreview(editor);
+    }
+  });
 
   document.addEventListener("submit", function (event) {
     var form = event.target;
@@ -172,7 +304,25 @@
         var setField = function (name, text) {
           var cell = card.querySelector('[data-field="' + name + '"]');
           if (cell) {
-            cell.textContent = text || "-";
+            cell.textContent = text || "";
+            var detail = cell.closest("[data-detail]");
+            if (detail) {
+              detail.hidden = !text;
+            }
+            if (name === "status") {
+              cell.classList.remove(
+                "etodo-chip-status-planning",
+                "etodo-chip-status-progress",
+                "etodo-chip-status-done",
+                "etodo-chip-status-other"
+              );
+              var statusClass = {
+                "Planning": "etodo-chip-status-planning",
+                "In progress": "etodo-chip-status-progress",
+                "Done": "etodo-chip-status-done"
+              }[text] || "etodo-chip-status-other";
+              cell.classList.add(statusClass);
+            }
           }
         };
         setField("status", wantDone ? "Done" : "Planning");
@@ -927,6 +1077,9 @@
             empty.remove();
           }
           items.prepend(item);
+          document.dispatchEvent(new CustomEvent("etodo-task-added", {
+            detail: item
+          }));
           // Applies the filter box to the new item and updates the count.
           var filter = document.getElementById("todo-filter");
           if (filter) {

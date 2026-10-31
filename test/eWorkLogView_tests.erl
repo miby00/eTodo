@@ -26,6 +26,55 @@ empty_document_test() ->
     Page = eWorkLogView:document(Report, <<>>),
     ?assertNotEqual(nomatch, binary:match(Page, <<"No work logged">>)).
 
+task_markdown_test() ->
+    Html = eWorkLogView:markdown_html(
+             <<"**Bold** and [link](https://example.org) "
+               "[unsafe](javascript:alert(1))">>),
+    ?assertNotEqual(nomatch, binary:match(Html, <<"<strong>Bold</strong>">>)),
+    ?assertNotEqual(nomatch, binary:match(Html, <<"target=\"_blank\"">>)),
+    ?assertNotEqual(nomatch, binary:match(Html, <<"noopener noreferrer">>)),
+    ?assertEqual(nomatch, binary:match(Html, <<"href=\"javascript:">>)).
+
+task_markdown_multiple_blocks_test() ->
+    Html = eWorkLogView:markdown_html(
+             <<"**Task**\r\n\r\nSecond paragraph\r\n\r\n"
+               "- first\r\n- second\r\n\r\n"
+               "[link](https://example.org) <script>bad</script>">>),
+    ?assertNotEqual(
+       nomatch, binary:match(Html, <<"<p><strong>Task</strong></p>">>)),
+    ?assertNotEqual(
+       nomatch, binary:match(Html, <<"<p>Second paragraph</p>">>)),
+    ?assertNotEqual(nomatch, binary:match(Html, <<"<ul><li>first</li>">>)),
+    ?assertNotEqual(nomatch, binary:match(Html, <<"<li>second</li></ul>">>)),
+    ?assertNotEqual(
+       nomatch, binary:match(Html, <<"href=\"https://example.org\"">>)),
+    ?assertNotEqual(nomatch, binary:match(Html, <<"&lt;script&gt;">>)),
+    ?assertEqual(nomatch, binary:match(Html, <<"<script>">>)).
+
+task_markdown_heading_and_following_paragraph_test() ->
+    Html = eWorkLogView:markdown_html(<<"# Heading\n\nMore details">>),
+    ?assertNotEqual(nomatch, binary:match(Html, <<"<h1>Heading</h1>">>)),
+    ?assertNotEqual(nomatch, binary:match(Html, <<"<p>More details</p>">>)).
+
+task_markdown_inline_test() ->
+    Html = eWorkLogView:markdown_inline_html(
+             <<"## **Heading** ![image](https://example.org/a.png)\n"
+               "Second line">>),
+    ?assertNotEqual(nomatch, binary:match(Html, <<"<strong>Heading</strong>">>)),
+    ?assertEqual(nomatch, binary:match(Html, <<"Second line">>)),
+    ?assertEqual(nomatch, binary:match(Html, <<"<h2>">>)),
+    ?assertEqual(nomatch, binary:match(Html, <<"<img">>)).
+
+task_markdown_safety_test() ->
+    Html = eWorkLogView:markdown_html(
+             <<"<script>alert(1)</script> ![local](/tmp/x.png) "
+               "![remote](https://example.org/a.png)">>),
+    ?assertNotEqual(nomatch, binary:match(Html, <<"&lt;script&gt;">>)),
+    ?assertEqual(nomatch, binary:match(Html, <<"<script>">>)),
+    ?assertEqual(nomatch, binary:match(Html, <<"<img src=\"/tmp/x.png\"">>)),
+    ?assertNotEqual(
+       nomatch, binary:match(Html, <<"<img src=\"https://example.org/a.png\"">>)).
+
 schedule_has_no_sticky_footer_test() ->
     Report = "<table><tr><td>Description</td></tr><tr><td>Today</td></tr>"
              "<tr><td>Month(s) away</td></tr></table>",

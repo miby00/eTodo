@@ -11,6 +11,7 @@
          messages_summary/2, desktop_messages_fragment/3,
          desktop_message_action/4, desktop_user/1,
          avatar/2, desktop_avatar/2, theme_attributes/1, legacy_link/1]).
+-export([markdown_html/1, markdown_inline_html/1, markdown_token/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
@@ -338,6 +339,117 @@ render_report(_User, _Report, _Date, _List, _Theme) ->
 report_error(Report, Reason) ->
     logger:error("Could not render ~s report: ~p", [Report, Reason]),
     {error, <<"Could not load report">>}.
+
+markdown_html(Text) when is_binary(Text) ->
+    render_markdown(Text, false).
+
+render_markdown(Text, Inline) ->
+    try
+        Html = eMd2Html:convert(Text),
+        {<<"div">>, _, Nodes} =
+            mochiweb_html:parse(<<"<div>", Html/binary, "</div>">>),
+        unicode:characters_to_binary(
+          [case Node of
+               NodeText when is_binary(NodeText) ->
+                   mochiweb_html:escape(NodeText);
+               _ ->
+                   mochiweb_html:to_html(Node)
+           end
+           || Node <- clean_markdown_nodes(Nodes, Inline)])
+    catch
+        Class:Reason:Stack ->
+            logger:error("Could not render task Markdown (~p:~p): ~p",
+                         [Class, Reason, Stack]),
+            <<"<p>Markdown preview unavailable.</p>">>
+    end.
+
+markdown_token() ->
+    binary:encode_hex(crypto:strong_rand_bytes(16)).
+
+markdown_inline_html(Text) when is_binary(Text) ->
+    [FirstLine | _] = binary:split(Text, <<"\n">>),
+    Line = binary:replace(FirstLine, <<"\r">>, <<>>, [global]),
+    WithoutHeading = re:replace(Line, <<"^#{1,6}[ \\t]+">>, <<>>,
+                                [{return, binary}]),
+    render_markdown(WithoutHeading, true).
+
+clean_markdown_nodes(Nodes, Inline) ->
+    lists:flatmap(fun(Node) -> clean_markdown_node(Node, Inline) end, Nodes).
+
+clean_markdown_node({<<"a">>, Attributes, Children}, Inline) ->
+    case lists:keyfind(<<"href">>, 1, Attributes) of
+        {_, Href} when is_binary(Href) ->
+            case safe_markdown_link(Href) of
+                true ->
+                    [{<<"a">>,
+                      [{<<"href">>, Href},
+                       {<<"target">>, <<"_blank">>},
+                       {<<"rel">>, <<"noopener noreferrer">>}],
+                      clean_markdown_nodes(Children, Inline)}];
+                false ->
+                    clean_markdown_nodes(Children, Inline)
+            end;
+        _ ->
+            clean_markdown_nodes(Children, Inline)
+    end;
+clean_markdown_node({<<"img">>, Attributes, _Children}, false) ->
+    case {lists:keyfind(<<"src">>, 1, Attributes),
+          lists:keyfind(<<"alt">>, 1, Attributes)} of
+        {{_, Src}, {_, Alt}} when is_binary(Src), is_binary(Alt) ->
+            case safe_markdown_image(Src) of
+                true -> [{<<"img">>, [{<<"src">>, Src}, {<<"alt">>, Alt}], []}];
+                false -> []
+            end;
+        {{_, Src}, _} when is_binary(Src) ->
+            case safe_markdown_image(Src) of
+                true -> [{<<"img">>, [{<<"src">>, Src}], []}];
+                false -> []
+            end;
+        _ ->
+            []
+    end;
+clean_markdown_node({Tag, _Attributes, Children}, Inline) ->
+    case markdown_tag_allowed(Tag, Inline) of
+        true -> [{Tag, [], clean_markdown_nodes(Children, Inline)}];
+        false -> clean_markdown_nodes(Children, Inline)
+    end;
+clean_markdown_node(Text, _Inline) when is_binary(Text) ->
+    [Text];
+clean_markdown_node(_, _) ->
+    [].
+
+markdown_tag_allowed(Tag, true) ->
+    lists:member(Tag, [<<"strong">>, <<"b">>, <<"em">>, <<"i">>,
+                       <<"del">>, <<"s">>, <<"code">>, <<"sup">>, <<"sub">>]);
+markdown_tag_allowed(Tag, false) ->
+    lists:member(
+      Tag, [<<"p">>, <<"br">>, <<"strong">>, <<"b">>, <<"em">>, <<"i">>,
+            <<"del">>, <<"s">>, <<"code">>, <<"pre">>, <<"blockquote">>,
+            <<"ul">>, <<"ol">>, <<"li">>, <<"h1">>, <<"h2">>, <<"h3">>,
+            <<"h4">>, <<"h5">>, <<"h6">>, <<"hr">>, <<"table">>, <<"thead">>,
+            <<"tbody">>, <<"tr">>, <<"th">>, <<"td">>, <<"sup">>, <<"sub">>]).
+
+safe_markdown_link(Url) ->
+    try uri_string:parse(Url) of
+        #{scheme := Scheme, host := Host} when Host =/= <<>> ->
+            lists:member(string:lowercase(Scheme), [<<"http">>, <<"https">>]);
+        #{scheme := <<"mailto">>, path := Path} ->
+            Path =/= <<>>;
+        _ ->
+            false
+    catch
+        _:_ -> false
+    end.
+
+safe_markdown_image(Url) ->
+    try uri_string:parse(Url) of
+        #{scheme := Scheme, host := Host} when Host =/= <<>> ->
+            lists:member(string:lowercase(Scheme), [<<"http">>, <<"https">>]);
+        _ ->
+            false
+    catch
+        _:_ -> false
+    end.
 
 parse_list(List) when is_binary(List), byte_size(List) =< 256 ->
     unicode:characters_to_list(List);

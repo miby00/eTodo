@@ -180,6 +180,15 @@ fn desktop_messages_page(
   accent: String,
 ) -> Result(String, String)
 
+@external(erlang, "eWorkLogView", "markdown_html")
+fn markdown_html(text: String) -> String
+
+@external(erlang, "eWorkLogView", "markdown_inline_html")
+fn markdown_inline_html(text: String) -> String
+
+@external(erlang, "eWorkLogView", "markdown_token")
+fn new_markdown_token() -> String
+
 @external(erlang, "eWorkLogView", "messages_page")
 fn messages_page(token: String, kind: String) -> Result(String, String)
 
@@ -425,6 +434,7 @@ pub fn start(port: Int, host: String, certfile: String, keyfile: String) {
         Get, ["events"] -> serve_events(request)
         Get, ["todo", "order"] -> serve_todo_order(request)
         Post, ["messages", "send"] -> send_message_request(request)
+        Post, ["todo", "markdown-preview"] -> todo_markdown_preview(request)
         Get, ["avatar"] -> serve_avatar(request)
         Post, ["status"] -> save_status_request(request)
         Post, ["status", "pomodoro"] -> team_pomodoro_request(request)
@@ -990,6 +1000,25 @@ fn send_message_request(
       }
     }
     _, _ -> response(400, "Invalid request")
+  }
+}
+
+fn todo_markdown_preview(
+  request: Request(Connection),
+) -> Response(ResponseData) {
+  case current_session(request), form_fields(request) {
+    Ok(_), Ok(fields) -> {
+      let text = list.key_find(fields, "text") |> result.unwrap("")
+      case string.length(text) > 30_000 {
+        True -> response(413, "Markdown preview is too large")
+        False ->
+          response(200, markdown_html(text))
+          |> response.set_header("content-type", "text/html; charset=utf-8")
+          |> response.set_header("cache-control", "no-store")
+      }
+    }
+    Error(_), _ -> response(401, "Not signed in")
+    _, Error(_) -> response(400, "Invalid request")
   }
 }
 
@@ -1788,6 +1817,7 @@ fn redirect_to_task(list_name: String, uid: String) -> Response(ResponseData) {
 /// The list item of a task created from the quick-add bar, so the page can
 /// show it without reloading. Empty if the task cannot be found.
 fn created_item_html(token: String, list_name: String, uid: String) -> String {
+  let marker_prefix = new_markdown_token()
   let item = {
     use encoded <- result.try(todo_data(token, list_name, True))
     use data <- result.try(
@@ -1798,7 +1828,9 @@ fn created_item_html(token: String, list_name: String, uid: String) -> String {
       list.find(data.todos, fn(task) { task.uid == uid })
       |> result.replace_error("missing"),
     )
-    todo_item(task, data) |> element.to_string
+    todo_item(task, data, marker_prefix)
+    |> element.to_string
+    |> expand_task_markdown([task], marker_prefix)
   }
   result.unwrap(item, "")
 }
@@ -2230,6 +2262,7 @@ fn authenticated_page(
       html.option(attributes, list_name)
     })
 
+  let marker_prefix = new_markdown_token()
   let todo_items = case data.todos {
     [] -> [
       html.li(
@@ -2254,7 +2287,7 @@ fn authenticated_page(
         ],
       ),
     ]
-    todos -> todo_items(todos, data)
+    todos -> todo_items(todos, data, marker_prefix)
   }
 
   let document =
@@ -2788,6 +2821,9 @@ fn authenticated_page(
       ),
     ])
     |> element.to_document_string_tree
+    |> string_tree.to_string
+    |> expand_task_markdown(data.todos, marker_prefix)
+    |> string_tree.from_string
     |> bytes_tree.from_string_tree
 
   response.new(200)
@@ -2988,12 +3024,40 @@ fn settings_page(
 
 const max_title_length = 90
 
-// Line breaks count as spaces; the details section shows the full text.
+fn markdown_marker(prefix: String, uid: String, field: String) -> String {
+  "ETODO-MARKDOWN-" <> prefix <> "-" <> uid <> "-" <> field
+}
+
+fn expand_task_markdown(
+  document: String,
+  todos: List(Todo),
+  prefix: String,
+) -> String {
+  list.fold(todos, document, fn(output, task) {
+    output
+    |> string.replace(
+      markdown_marker(prefix, task.uid, "TITLE"),
+      markdown_inline_html(truncate_description(task.description)),
+    )
+    |> string.replace(
+      markdown_marker(prefix, task.uid, "DESCRIPTION"),
+      markdown_html(task.description),
+    )
+    |> string.replace(
+      markdown_marker(prefix, task.uid, "COMMENT"),
+      markdown_html(task.comment),
+    )
+  })
+}
+
+// Keep task rows to one line, but format the first description line as Markdown.
 fn truncate_description(description: String) -> String {
   let text =
     description
+    |> string.split("\n")
+    |> list.first
+    |> result.unwrap("")
     |> string.replace("\r", " ")
-    |> string.replace("\n", " ")
     |> string.split(" ")
     |> list.filter(fn(word) { word != "" })
     |> string.join(" ")
@@ -3003,17 +3067,18 @@ fn truncate_description(description: String) -> String {
   }
 }
 
-fn todo_item(task: Todo, data: TodoPageData) {
+fn todo_item(task: Todo, data: TodoPageData, prefix: String) {
   let first_uid = case data.todos {
     [first, ..] -> first.uid
     [] -> ""
   }
-  todo_item_with_order(task, data, first_uid, "", "", False)
+  todo_item_with_order(task, data, prefix, first_uid, "", "", False)
 }
 
 fn todo_item_with_order(
   task: Todo,
   data: TodoPageData,
+  prefix: String,
   first_uid: String,
   previous_uid: String,
   down_before_uid: String,
@@ -3026,8 +3091,8 @@ fn todo_item_with_order(
   let toggle_id = "details-" <> task.uid
 
   let title =
-    html.span([attribute.attribute("class", title_class)], [
-      html.text(truncate_description(task.description)),
+    html.div([attribute.attribute("class", title_class)], [
+      html.text(markdown_marker(prefix, task.uid, "TITLE")),
     ])
 
   let toggle_label =
@@ -3083,6 +3148,7 @@ fn todo_item_with_order(
         previous_uid,
         down_before_uid,
         has_next,
+        prefix,
       ),
     ],
   )
@@ -3104,16 +3170,17 @@ fn drag_handle(data: TodoPageData) {
   }
 }
 
-fn todo_items(todos: List(Todo), data: TodoPageData) {
+fn todo_items(todos: List(Todo), data: TodoPageData, prefix: String) {
   case todos {
     [] -> []
-    [first, ..] -> todo_items_from(todos, data, first.uid, "")
+    [first, ..] -> todo_items_from(todos, data, prefix, first.uid, "")
   }
 }
 
 fn todo_items_from(
   todos: List(Todo),
   data: TodoPageData,
+  prefix: String,
   first_uid: String,
   previous_uid: String,
 ) {
@@ -3129,13 +3196,14 @@ fn todo_items_from(
         todo_item_with_order(
           task,
           data,
+          prefix,
           first_uid,
           previous_uid,
           down_before_uid,
           has_next,
         ),
       ]
-      |> list.append(todo_items_from(rest, data, first_uid, task.uid))
+      |> list.append(todo_items_from(rest, data, prefix, first_uid, task.uid))
     }
   }
 }
@@ -3192,75 +3260,143 @@ fn task_details(
   previous_uid: String,
   down_before_uid: String,
   has_next: Bool,
+  prefix: String,
 ) {
-  let rows =
+  let description = case
+    string.trim(task.description)
+    == string.trim(truncate_description(task.description))
+  {
+    True -> element.none()
+    False ->
+      markdown_field(
+        prefix,
+        task.uid,
+        "DESCRIPTION",
+        "Description",
+        task.description,
+      )
+  }
+  let comment =
+    markdown_field(prefix, task.uid, "COMMENT", "Comment", task.comment)
+  let summary =
+    html.div([attribute.attribute("class", "etodo-summary")], [
+      status_chip(task.status),
+      priority_chip(task.priority),
+      due_date_chip(task.due_time),
+      reminder_chip(task.reminder),
+    ])
+  let progress = progress_indicator(task.progress)
+  let metadata =
     [
-      detail_row_field("Status", task.status, "status"),
-      detail_row("Priority", task.priority),
-      detail_row("Shared with", task.shared_with),
-      detail_row("Owner", task.owner),
-      detail_row("Created", task.created),
-      detail_row("Due date", task.due_time),
-      detail_row_field("Done time", task.done_time, "done-time"),
-      detail_row("Progress", progress_text(task.progress)),
-      detail_row("Estimate (h)", task.estimate),
-      detail_row("Remaining (h)", task.remaining),
-      detail_row("Description", task.description),
-      detail_row("Comment", task.comment),
-      detail_row("Lists", task.lists),
-      detail_row("Reminder", reminder_text(task.reminder)),
-      detail_row("Subtasks", case task.has_sub_todos {
-        True -> "Yes"
-        False -> ""
-      }),
+      lists_metadata(task.lists_db),
+      time_metadata(task.estimate, task.remaining),
+      owner_metadata(task.owner, task.shared_with),
+      subtasks_metadata(task.has_sub_todos),
+      done_time_metadata(task),
     ]
     |> list.flatten
 
-  let details = html.dl([attribute.attribute("class", "row small mb-0")], rows)
+  let metadata = case metadata {
+    [] -> element.none()
+    _ -> html.div([attribute.attribute("class", "etodo-meta-grid")], metadata)
+  }
+  let created = created_metadata(task.created)
 
   case data.can_edit {
     True ->
       html.div([attribute.attribute("class", "etodo-details")], [
-        details,
-        move_controls(
-          task,
-          data,
-          first_uid,
-          previous_uid,
-          down_before_uid,
-          has_next,
-        ),
+        summary,
+        progress,
+        description,
+        comment,
+        metadata,
+        created,
         html.div(
+          [attribute.attribute("class", "etodo-actions mt-3 pt-3 border-top")],
           [
-            attribute.attribute(
-              "class",
-              "etodo-edit-row position-relative mt-3 pt-3 border-top",
+            move_controls(
+              task,
+              data,
+              first_uid,
+              previous_uid,
+              down_before_uid,
+              has_next,
             ),
-          ],
-          [
-            html.details([], [
-              html.summary(
-                [attribute.attribute("class", "btn btn-outline-primary btn-sm")],
-                [html.text("Edit task")],
-              ),
-              task_editor(task, data),
-            ]),
-            html.button(
+            html.div(
               [
                 attribute.attribute(
                   "class",
-                  "btn btn-outline-danger btn-sm etodo-delete-task",
+                  "etodo-edit-row position-relative mt-2 border-top",
                 ),
-                attribute.attribute("type", "submit"),
-                attribute.attribute("form", "delete-" <> task.uid),
               ],
-              [html.text("Delete task")],
+              [
+                html.details([], [
+                  html.summary(
+                    [
+                      attribute.attribute(
+                        "class",
+                        "btn btn-outline-primary btn-sm",
+                      ),
+                    ],
+                    [html.text("Edit task")],
+                  ),
+                  task_editor(task, data),
+                ]),
+                html.button(
+                  [
+                    attribute.attribute(
+                      "class",
+                      "btn btn-outline-danger btn-sm etodo-delete-task",
+                    ),
+                    attribute.attribute("type", "submit"),
+                    attribute.attribute("form", "delete-" <> task.uid),
+                  ],
+                  [html.text("Delete task")],
+                ),
+              ],
             ),
           ],
         ),
       ])
     False ->
-      html.div([attribute.attribute("class", "etodo-details")], [details])
+      html.div([attribute.attribute("class", "etodo-details")], [
+        summary,
+        progress,
+        description,
+        comment,
+        metadata,
+        created,
+      ])
+  }
+}
+
+fn markdown_field(
+  prefix: String,
+  uid: String,
+  field: String,
+  label: String,
+  value: String,
+) {
+  case string.trim(value) == "" {
+    True -> element.none()
+    False ->
+      html.section(
+        [
+          attribute.attribute("class", case field {
+            "COMMENT" -> "etodo-markdown-field etodo-markdown-note"
+            _ -> "etodo-markdown-field etodo-markdown-description"
+          }),
+          attribute.attribute("aria-label", label),
+        ],
+        [
+          html.h3([attribute.attribute("class", "h6 fw-semibold")], [
+            html.text(label),
+          ]),
+          html.div([attribute.attribute("class", "etodo-markdown-body")], [
+            html.text(markdown_marker(prefix, uid, field)),
+          ]),
+        ],
+      )
   }
 }
 
@@ -3301,7 +3437,7 @@ fn move_controls(
         [
           attribute.attribute(
             "class",
-            "etodo-move-controls d-flex flex-wrap gap-2 mt-3 pt-3 border-top",
+            "etodo-move-controls d-flex flex-wrap gap-2",
           ),
           attribute.attribute("aria-label", "Reorder task"),
         ],
@@ -3457,6 +3593,7 @@ fn new_todo_form(data: TodoPageData) {
             hidden("csrf", data.csrf),
             hidden("list", data.selected_list),
             edit_textarea(scope, "Description", "description", ""),
+            edit_textarea(scope, "Comment", "comment", ""),
             edit_select(scope, "Status", "status", "Planning", [
               "Planning",
               "In progress",
@@ -3473,7 +3610,6 @@ fn new_todo_form(data: TodoPageData) {
             edit_input(scope, "Progress (%)", "progress", "0", "number"),
             edit_input(scope, "Estimate (h)", "estimate", "0", "number"),
             edit_input(scope, "Remaining (h)", "remaining", "0", "number"),
-            edit_textarea(scope, "Comment", "comment", ""),
             html.div([attribute.attribute("class", "col-12")], [
               html.button(
                 [
@@ -3512,6 +3648,8 @@ fn task_editor(task: Todo, data: TodoPageData) {
         hidden("uid", task.uid),
         hidden("csrf", data.csrf),
         hidden("list", data.selected_list),
+        edit_textarea(scope, "Description", "description", task.description),
+        edit_textarea(scope, "Comment", "comment", task.comment),
         edit_select(scope, "Status", "status", task.status, [
           "Planning",
           "In progress",
@@ -3534,8 +3672,6 @@ fn task_editor(task: Todo, data: TodoPageData) {
           task.remaining,
           "number",
         ),
-        edit_textarea(scope, "Description", "description", task.description),
-        edit_textarea(scope, "Comment", "comment", task.comment),
         list_picker(scope, data.lists, task.lists_db),
         reminder_editor(scope, task.reminder),
         html.div([attribute.attribute("class", "col-12")], [
@@ -3786,30 +3922,91 @@ fn edit_input(
 }
 
 fn edit_textarea(scope: String, label: String, name: String, value: String) {
-  html.div([attribute.attribute("class", "col-12")], [
-    html.label(
+  let id = scope <> "-" <> name
+  html.div(
+    [
+      attribute.attribute("class", "col-12 etodo-markdown-editor"),
+      attribute.attribute("data-markdown-editor", ""),
+    ],
+    [
+      html.div(
+        [
+          attribute.attribute(
+            "class",
+            "d-flex align-items-center justify-content-between gap-2 mb-2",
+          ),
+        ],
+        [
+          html.label(
+            [
+              attribute.attribute("class", "form-label mb-0"),
+              attribute.attribute("for", id),
+            ],
+            [html.text(label)],
+          ),
+          html.div(
+            [
+              attribute.attribute("class", "btn-group btn-group-sm"),
+              attribute.attribute("role", "group"),
+              attribute.attribute("aria-label", label <> " view"),
+            ],
+            [
+              markdown_mode_button("text", True),
+              markdown_mode_button("preview", False),
+            ],
+          ),
+        ],
+      ),
+      html.textarea(
+        [
+          attribute.attribute("class", "form-control"),
+          attribute.attribute("id", id),
+          attribute.name(name),
+          attribute.attribute("rows", "3"),
+          attribute.attribute("data-required", case scope {
+            "new" -> "1"
+            _ -> ""
+          }),
+          attribute.attribute("data-markdown-text", ""),
+        ],
+        value,
+      ),
+      html.div(
+        [
+          attribute.attribute("class", "form-control etodo-markdown-preview"),
+          attribute.attribute("data-markdown-preview", ""),
+          attribute.attribute("hidden", ""),
+          attribute.attribute("aria-live", "polite"),
+        ],
+        [],
+      ),
+    ],
+  )
+}
+
+fn markdown_mode_button(mode: String, selected: Bool) {
+  html.button(
+    list.flatten([
       [
-        attribute.attribute("class", "form-label"),
-        attribute.attribute("for", scope <> "-" <> name),
-      ],
-      [
-        html.text(label),
-      ],
-    ),
-    html.textarea(
-      [
-        attribute.attribute("class", "form-control"),
-        attribute.attribute("id", scope <> "-" <> name),
-        attribute.name(name),
-        attribute.attribute("rows", "3"),
-        attribute.attribute("data-required", case scope {
-          "new" -> "1"
-          _ -> ""
+        attribute.attribute("class", case selected {
+          True -> "btn btn-secondary"
+          False -> "btn btn-outline-secondary"
+        }),
+        attribute.attribute("type", "button"),
+        attribute.attribute("data-markdown-mode", mode),
+        attribute.attribute("aria-pressed", case selected {
+          True -> "true"
+          False -> "false"
         }),
       ],
-      value,
-    ),
-  ])
+    ]),
+    [
+      html.text(case mode {
+        "preview" -> "Preview"
+        _ -> "Text"
+      }),
+    ],
+  )
 }
 
 fn edit_select(
@@ -3852,35 +4049,215 @@ fn edit_select(
   ])
 }
 
-fn progress_text(progress: String) -> String {
-  case progress {
-    "" -> ""
-    value -> value <> "%"
-  }
-}
-
-fn detail_row(label: String, value: String) {
-  detail_row_field(label, value, "")
-}
-
-fn detail_row_field(label: String, value: String, field: String) {
-  let shown = case string.trim(value) {
-    "" -> "-"
+fn status_chip(status: String) {
+  let shown = case string.trim(status) {
+    "" -> "N/A"
     value -> value
   }
+  let class = case shown {
+    "Planning" -> "etodo-chip etodo-chip-status-planning"
+    "In progress" -> "etodo-chip etodo-chip-status-progress"
+    "Done" -> "etodo-chip etodo-chip-status-done"
+    _ -> "etodo-chip etodo-chip-status-other"
+  }
+  html.span(
+    [
+      attribute.attribute("class", class),
+      attribute.attribute("data-field", "status"),
+    ],
+    [html.text(shown)],
+  )
+}
+
+fn priority_chip(priority: String) {
+  let class = case priority {
+    "High" -> "etodo-chip etodo-chip-priority-high"
+    "Medium" -> "etodo-chip etodo-chip-priority-medium"
+    "Low" -> "etodo-chip etodo-chip-priority-low"
+    _ -> ""
+  }
+  case class {
+    "" -> element.none()
+    _ -> html.span([attribute.attribute("class", class)], [html.text(priority)])
+  }
+}
+
+fn due_date_chip(due_date: String) {
+  case string.trim(due_date) {
+    "" -> element.none()
+    date ->
+      html.span(
+        [
+          attribute.attribute("class", "etodo-chip etodo-chip-due"),
+          attribute.attribute("data-due-date", date),
+        ],
+        [html.text("Due " <> date)],
+      )
+  }
+}
+
+fn reminder_chip(reminder: Reminder) {
+  case reminder_text(reminder) {
+    "" -> element.none()
+    text ->
+      html.span(
+        [attribute.attribute("class", "etodo-chip etodo-chip-reminder")],
+        [html.text("Reminder · " <> text)],
+      )
+  }
+}
+
+fn progress_indicator(progress: String) {
+  case int.parse(string.trim(progress)) {
+    Ok(value) if value > 0 && value <= 100 ->
+      html.div([attribute.attribute("class", "etodo-progress")], [
+        html.progress(
+          [
+            attribute.attribute("class", "etodo-progress-track"),
+            attribute.attribute("aria-label", "Progress"),
+            attribute.attribute("value", int.to_string(value)),
+            attribute.attribute("max", "100"),
+          ],
+          [html.text(int.to_string(value) <> "%")],
+        ),
+        html.span([attribute.attribute("class", "etodo-progress-label")], [
+          html.text("Progress " <> int.to_string(value) <> "%"),
+        ]),
+      ])
+    _ -> element.none()
+  }
+}
+
+fn lists_metadata(lists: List(String)) {
+  let visible_lists =
+    lists
+    |> list.filter(fn(name) { string.trim(name) != "" && name != "All tasks" })
+    |> list.map(fn(name) {
+      html.span([attribute.attribute("class", "etodo-list-tag")], [
+        html.text(name),
+      ])
+    })
+  case visible_lists {
+    [] -> []
+    _ -> [metadata_item_content("Lists", visible_lists)]
+  }
+}
+
+fn time_metadata(estimate: String, remaining: String) {
+  let has_estimate = has_nonzero_value(estimate)
+  let has_remaining = has_nonzero_value(remaining)
+  case has_estimate || has_remaining {
+    False -> []
+    True -> {
+      let parts = case has_estimate, has_remaining {
+        True, True -> estimate <> " h estimated · " <> remaining <> " h left"
+        True, False -> estimate <> " h estimated"
+        False, True -> remaining <> " h remaining"
+        False, False -> ""
+      }
+      [metadata_item("Time", parts)]
+    }
+  }
+}
+
+fn owner_metadata(owner: String, shared_with: String) {
+  case string.trim(shared_with) {
+    "" -> []
+    shared -> {
+      let owner_item = case string.trim(owner) {
+        "" -> []
+        value -> [metadata_item("Owner", value)]
+      }
+      case shared == string.trim(owner) {
+        True -> owner_item
+        False -> list.append(owner_item, [metadata_item("Shared with", shared)])
+      }
+    }
+  }
+}
+
+fn subtasks_metadata(has_subtasks: Bool) {
+  case has_subtasks {
+    True -> [metadata_item("Subtasks", "Has subtasks")]
+    False -> []
+  }
+}
+
+fn done_time_metadata(task: Todo) {
+  let hidden = !task.done || string.trim(task.done_time) == ""
+  let attrs = case hidden {
+    True -> [
+      attribute.attribute("class", "etodo-meta-item"),
+      attribute.attribute("data-detail", "done-time"),
+      attribute.attribute("hidden", ""),
+    ]
+    False -> [
+      attribute.attribute("class", "etodo-meta-item"),
+      attribute.attribute("data-detail", "done-time"),
+    ]
+  }
   [
-    html.dt(
-      [attribute.attribute("class", "col-5 col-sm-3 text-body-secondary")],
-      [html.text(label)],
-    ),
-    html.dd(
-      [
-        attribute.attribute("class", "col-7 col-sm-9 text-break"),
-        attribute.attribute("data-field", field),
-      ],
-      [html.text(shown)],
-    ),
+    html.div(attrs, [
+      html.span([attribute.attribute("class", "etodo-meta-label")], [
+        html.text("Done"),
+      ]),
+      html.span(
+        [
+          attribute.attribute("class", "etodo-meta-value"),
+          attribute.attribute("data-field", "done-time"),
+        ],
+        [html.text(task.done_time)],
+      ),
+    ]),
   ]
+}
+
+fn created_metadata(created: String) {
+  let shown = case string.trim(created) {
+    "" -> "date unavailable"
+    value -> value
+  }
+  let children = case string.trim(created) {
+    "" -> [html.text("Created " <> shown)]
+    value -> [
+      html.text("Created " <> value),
+      html.span(
+        [
+          attribute.attribute("class", "etodo-created-age"),
+          attribute.attribute("data-created-age", ""),
+        ],
+        [],
+      ),
+    ]
+  }
+  let attrs = case string.trim(created) {
+    "" -> [attribute.attribute("class", "etodo-created")]
+    value -> [
+      attribute.attribute("class", "etodo-created"),
+      attribute.attribute("data-created-date", value),
+    ]
+  }
+  html.div(attrs, children)
+}
+
+fn has_nonzero_value(value: String) {
+  case string.trim(value) {
+    "" | "0" | "0.0" | "0.00" | "0.000" -> False
+    _ -> True
+  }
+}
+
+fn metadata_item(label: String, value: String) {
+  metadata_item_content(label, [html.text(value)])
+}
+
+fn metadata_item_content(label: String, content: List(element.Element(a))) {
+  html.div([attribute.attribute("class", "etodo-meta-item")], [
+    html.span([attribute.attribute("class", "etodo-meta-label")], [
+      html.text(label),
+    ]),
+    html.div([attribute.attribute("class", "etodo-meta-value")], content),
+  ])
 }
 
 fn setting_field_decoder() -> decode.Decoder(SettingField) {
