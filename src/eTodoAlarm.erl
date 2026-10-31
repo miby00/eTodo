@@ -193,7 +193,8 @@ sendReminderEmail(#alarmCfg{userName = User, uid = Uid}, Text) ->
             ok;
         [From | _] = To ->
             Msg      = eHtml:generateAlarmMsgEmail(User, Uid, Text),
-            Msg2     = iolist_to_binary(Msg),
+            Msg2     = iolist_to_binary(
+                         [Msg, eMime:notificationLinks(User, [reminder])]),
             EmailMsg = eMime:constructMail(User, "eTodo reminder",
                                            From, From, To, Msg2),
             eSMTP:sendMail(From, To, EmailMsg)
@@ -235,4 +236,3 @@ recurence2DateTime(timeWeek) ->  {{0, 0, 7}, {0,  0, 0}};
 recurence2DateTime(timeMonth) -> {{0, 1, 0}, {0,  0, 0}};
 recurence2DateTime(timeYear) ->  {{1, 0, 0}, {0,  0, 0}};
 recurence2DateTime({Date, Time}) -> {Date, Time}.
-

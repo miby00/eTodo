@@ -274,7 +274,7 @@ handle_info(sendNotification, State = #guiState{user = User, reply = Reply}) ->
             ReplyTo = default(ConCfg2#conCfg.email, From),
             Msg = eMime:constructMail(User, notificationSubject(Messages),
                                       From, ReplyTo, To,
-                                      notificationBody(Messages)),
+                                      notificationBody(User, Messages)),
             eSMTP:sendMail(From, To, Msg)
     end,
     {noreply, State#guiState{notificationTimer = undefined}};
@@ -383,10 +383,12 @@ notificationSubject(Items) ->
         _  -> "eTodo: " ++ integer_to_list(length(Items)) ++ " unread items"
     end.
 
-notificationBody(Items) ->
+notificationBody(User, Items) ->
     Rows = [["<p><b>", escape(label(Type, From)), "</b><br>", escape(Text),
              "</p>"] || {Type, From, Text} <- Items],
-    iolist_to_binary(["<h3>Unread in eTodo</h3>", Rows]).
+    Types = [Type || {Type, _, _} <- Items],
+    iolist_to_binary(["<h3>Unread in eTodo</h3>", Rows,
+                      eMime:notificationLinks(User, Types)]).
 
 label(message, From) -> From;
 label(reminder, _)   -> "Reminder".

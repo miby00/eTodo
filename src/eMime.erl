@@ -10,7 +10,7 @@
 -author("mikael.bylund@gmail.com").
 
 %% API
--export([constructMail/4, constructMail/6]).
+-export([constructMail/4, constructMail/6, notificationLinks/2]).
 
 -import(eHtml, [aTag/2,    headTag/1,  titleTag/1,
                 metaTag/1, styleTag/2, bodyTag/1]).
@@ -29,8 +29,30 @@
 %% @end
 %%--------------------------------------------------------------------
 constructMail(UserName, Subject, ReplyTo, To) ->
-    Messages = <<"Email notification for eTodo">>,
+    Messages = iolist_to_binary(
+                 ["Email notification for eTodo",
+                  notificationLinks(UserName, [message])]),
     constructMail(UserName, Subject, To ,ReplyTo, To, Messages).
+
+notificationLinks(User, Types) ->
+    case eTodoMist:web_base_url(User) of
+        undefined ->
+            <<>>;
+        Base ->
+            iolist_to_binary(
+              [mochiweb_html:to_html(
+                 {<<"p">>, [],
+                  [{<<"a">>, [{<<"href">>,
+                                unicode:characters_to_binary(Base ++ Path)}],
+                    [Label]}]}) ||
+                  Type <- lists:usort(Types),
+                  {Path, Label} <- [notificationTarget(Type)]])
+    end.
+
+notificationTarget(message) ->
+    {"/messages?kind=chat", <<"Open messages in eTodo">>};
+notificationTarget(reminder) ->
+    {"/messages?kind=reminders", <<"Open reminders in eTodo">>}.
 
 constructMail(UserName, Subject, From, From, To, Messages) ->
     HeaderStart = [

@@ -27,6 +27,8 @@ const oidc_cookie = "etodo_oidc"
 
 const list_cookie = "etodo_list"
 
+const messages_cookie = "etodo_messages"
+
 const session_max_age = 28_800
 
 const desktop_cookie = "etodo_desktop"
@@ -706,7 +708,47 @@ fn serve_messages(request: Request(Connection)) -> Response(ResponseData) {
         Ok(page) -> messages_response(page)
         Error(_) -> response(400, "Could not load messages")
       }
-    Error(_) -> login_page("")
+    Error(_) -> {
+      let kind = case query_value(request, "kind") {
+        "reminders" -> "reminders"
+        "system" -> "system"
+        _ -> "chat"
+      }
+      login_page("")
+      |> response.prepend_header(
+        "set-cookie",
+        messages_cookie_header(request, kind, 600),
+      )
+    }
+  }
+}
+
+fn messages_cookie_header(
+  request: Request(Connection),
+  kind: String,
+  max_age: Int,
+) -> String {
+  cookie.set_header(
+    instance_cookie(request, messages_cookie),
+    kind,
+    cookie.Attributes(
+      max_age: Some(max_age),
+      domain: None,
+      path: Some("/"),
+      secure: True,
+      http_only: True,
+      same_site: Some(cookie.Lax),
+    ),
+  )
+}
+
+fn messages_destination(request: Request(Connection)) -> String {
+  // Only known local views are accepted, never a URL supplied by a cookie.
+  case cookie_value(request, instance_cookie(request, messages_cookie)) {
+    Some("chat") -> "/messages?kind=chat"
+    Some("reminders") -> "/messages?kind=reminders"
+    Some("system") -> "/messages?kind=system"
+    _ -> "/"
   }
 }
 
@@ -1312,9 +1354,13 @@ fn google_start(request: Request(Connection)) -> Response(ResponseData) {
   }
 }
 
-fn continue_page() -> Response(ResponseData) {
+fn continue_page(destination: String) -> Response(ResponseData) {
   let body =
-    "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light dark\"><meta http-equiv=\"refresh\" content=\"0;url=/\"><title>eTodo</title></head><body><p><a href=\"/\">Continue to eTodo</a></p></body></html>"
+    "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light dark\"><meta http-equiv=\"refresh\" content=\"0;url="
+    <> destination
+    <> "\"><title>eTodo</title></head><body><p><a href=\""
+    <> destination
+    <> "\">Continue to eTodo</a></p></body></html>"
   response.new(200)
   |> response.set_header("content-type", "text/html; charset=utf-8")
   |> response.set_header("cache-control", "no-store")
@@ -1341,8 +1387,12 @@ fn google_callback(request: Request(Connection)) -> Response(ResponseData) {
         Ok(token) ->
           // A redirect here would count as cross-site (it started at Google),
           // so the browser would withhold the Strict session cookie. A page
-          // that navigates itself to "/" is same-site.
-          continue_page()
+          // that navigates itself to the destination is same-site.
+          continue_page(messages_destination(request))
+          |> response.prepend_header(
+            "set-cookie",
+            messages_cookie_header(request, "", 0),
+          )
           |> response.prepend_header(
             "set-cookie",
             oidc_cookie_header(request, "", 0),
@@ -1384,7 +1434,11 @@ fn login(request: Request(Connection)) -> Response(ResponseData) {
       case authenticate(username, password) {
         Ok(token) ->
           response.new(303)
-          |> response.set_header("location", "/")
+          |> response.set_header("location", messages_destination(request))
+          |> response.prepend_header(
+            "set-cookie",
+            messages_cookie_header(request, "", 0),
+          )
           |> response.prepend_header(
             "set-cookie",
             cookie.set_header(

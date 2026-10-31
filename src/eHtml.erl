@@ -646,7 +646,7 @@ generateSystemMsg(Uid, Text) ->
              tdTag(eMd2Html:convert(Text, "/priv"))])])}.
 
 generateSystemMsgEmail(User, Uid, Text) ->
-    ExtUrl    = constructExternalUrl(User, Uid),
+    TaskLink  = externalTaskLink(User, Uid),
     WPortrait = "/priv/Icons/eTodoBiggest.png",
 
     tableTag(
@@ -654,22 +654,23 @@ generateSystemMsgEmail(User, Uid, Text) ->
          [tdTag([{class, "msgImg"}],
                 imgTag([{src, "/priv/Icons/etodoChat.png"}])),
           tdTag([{class, "msgTime textCenter"}], toStr(time(), time)),
-          tdTag([{class, "msgText"}], aTag([{href, ExtUrl}], "eTodo"))]),
+          tdTag([{class, "msgText"}], TaskLink)]),
        trTag(
            [tdTag(),
             tdTag([{class, "portraitCol"}],
                   imgTag([{src, WPortrait}, {class, "portrait"}])),
             tdTag(eMd2Html:convert(Text, "/priv"))])]).
 
-constructExternalUrl(User, Uid) ->
-    UidStr   = eTodoUtils:convertUid(Uid),
-    Port     = application:get_env(eTodo, mistWebPort, 9003),
-    ConCfg   = default(eTodoDB:getConnection(User),
-                       #conCfg{host = "localhost"}),
-    Host     = default(ConCfg#conCfg.host, "localhost"),
-
-    "https://" ++ Host ++ ":" ++ integer_to_list(Port) ++
-        "/#task-" ++ uri_string:quote(UidStr).
+externalTaskLink(User, Uid) ->
+    case eTodoMist:web_base_url(User) of
+        undefined ->
+            "eTodo";
+        Base ->
+            UidStr = toStr(Uid),
+            Url = Base ++ "/?list=All%20tasks&all=1#task-" ++
+                uri_string:quote(UidStr),
+            aTag([{href, Url}], "eTodo")
+    end.
 
 %%======================================================================
 %% Function :
@@ -745,7 +746,7 @@ generateAlarmMsg(Uid, Text) ->
                     tdTag(eMd2Html:convert(Text, "/priv"))])])}.
 
 generateAlarmMsgEmail(User, Uid, Text) ->
-    ExtUrl    = constructExternalUrl(User, Uid),
+    TaskLink  = externalTaskLink(User, Uid),
     WPortrait = "/priv/Icons/eTodoBiggest.png",
     tableTag([{class, "msgAlarm"}],
              [trTag(
@@ -753,7 +754,7 @@ generateAlarmMsgEmail(User, Uid, Text) ->
                        imgTag([{src, "/priv/Icons/clockChat.png"}])),
                  tdTag([{class, "msgTime textCenter"}], toStr(time(), time)),
                  tdTag([{class, "msgText"}],
-                       aTag([{href, ExtUrl}], "eTodo"))]),
+                       TaskLink)]),
               trTag(
                   [tdTag(),
                    tdTag([{class, "portraitCol"}],

@@ -2,7 +2,9 @@
 
 -behaviour(gen_server).
 
--export([start_link/0]).
+-include_lib("eTodo/include/eTodo.hrl").
+
+-export([start_link/0, web_base_url/1]).
 -export([read_bootstrap_stylesheet/0]).
 -export([read_etodo_stylesheet/0]).
 -export([read_etodo_script/0]).
@@ -16,6 +18,26 @@
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+web_base_url(User) ->
+    case application:get_env(eTodo, mistWebEnabled, false) of
+        true ->
+            case application:get_env(eTodo, mistWebLinkHost) of
+                {ok, HostPort} when is_list(HostPort), HostPort =/= "" ->
+                    "https://" ++ string:trim(HostPort, trailing, "/");
+                _ ->
+                    Port = application:get_env(eTodo, mistWebPort, 9003),
+                    ConCfg = eTodoUtils:default(
+                               eTodoDB:getConnection(User), #conCfg{}),
+                    Host = case ConCfg#conCfg.host of
+                               H when is_list(H), H =/= "" -> H;
+                               _ -> "localhost"
+                           end,
+                    "https://" ++ Host ++ ":" ++ integer_to_list(Port)
+            end;
+        _ ->
+            undefined
+    end.
 
 init([]) ->
     case application:get_env(eTodo, mistWebEnabled, false) of

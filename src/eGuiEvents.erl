@@ -1417,7 +1417,7 @@ sortColumnsBoxEvent(_Type, _Id, _Frame,
 %% Link file
 %%====================================================================
 makeFileLink(State = #guiState{user = User}) ->
-    case webBaseUrl(User, "https://") of
+    case eTodoMist:web_base_url(User) of
         undefined ->
             eTodo:systemEntry(system, "Failed to link file, "
                               "web server not running"),
@@ -1434,7 +1434,7 @@ makeFileLink(State = #guiState{user = User}) ->
 
 %% Stores a gzipped copy of a file and returns the web link to it.
 storeLinkedFile(User, File, Bin) ->
-    case webBaseUrl(User, "https://") of
+    case eTodoMist:web_base_url(User) of
         undefined ->
             error;
         Base ->
@@ -1461,24 +1461,6 @@ getFileToLink(#guiState{frame = Frame, updateFile = undefined}) ->
      wxFileDialog:getFilename(FileDlg)};
 getFileToLink(#guiState{updateFile = FileName}) ->
     {?wxID_OK, FileName, filename:basename(FileName)}.
-
-%% Base URL of the web UI of this installation, undefined if it is disabled.
-webBaseUrl(User, Scheme) ->
-    case application:get_env(eTodo, mistWebEnabled, false) of
-        true ->
-            case application:get_env(eTodo, mistWebLinkHost) of
-                {ok, HostPort} when is_list(HostPort) ->
-                    Scheme ++ HostPort;
-                _ ->
-                    Port   = application:get_env(eTodo, mistWebPort, 9003),
-                    ConCfg = default(eTodoDB:getConnection(User),
-                                     #conCfg{host = "localhost"}),
-                    Host   = default(ConCfg#conCfg.host, "localhost"),
-                    Scheme ++ Host ++ ":" ++ toStr(Port)
-            end;
-        _ ->
-            undefined
-    end.
 
 %%====================================================================
 %% Manage task owners.
@@ -2012,7 +1994,7 @@ proxyLinkMenuEvent(_Type, _Id, _Frame, State) ->
 %% Link view
 %%====================================================================
 linkViewMenuEvent(_Type, _Id, _Frame, State = #guiState{user = User}) ->
-    case webBaseUrl(User, "https://") of
+    case eTodoMist:web_base_url(User) of
         undefined ->
             eTodo:systemEntry(system, "Failed to link view, "
                               "web server not running"),

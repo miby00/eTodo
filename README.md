@@ -305,6 +305,14 @@ and the `[notification]` `email` override the ones saved by the desktop GUI.
 send one mail to several people sharing the account.
 See `config/etodo.toml.example`.
 
+Notification emails include links to the web Messages or Reminders view as
+appropriate; a combined email includes both links. Desktop unread-message
+notifications and task-reminder emails include the corresponding links too.
+Task-reminder emails also retain a direct link to the task.
+These links are included when the web UI is enabled, use `[web]` `link_host`
+when configured (otherwise your connection host and web port), and still
+require sign-in. Signing in returns you to the linked view.
+
 ### Status
 
 eTodo isn't finished, when I feel inspired I code on it during my spare time.
