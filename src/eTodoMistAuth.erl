@@ -3,6 +3,7 @@
 -behaviour(gen_server).
 
 -export([start_link/0, login/2, external_login/1, session_user/1, logout/1, todo_data/3,
+         todo_data/4, task_list/3,
          set_done/4, create_list/3, delete_list/3, update_task/12, set_reminder/8, delete_task/3, create_task/11, settings_data/1,
          move_task/5, save_settings/6, status_form/1, set_status/4, set_team_pomodoro/3,
          send_message/4]).
@@ -41,7 +42,53 @@ logout(Token) ->
     gen_server:call(?MODULE, {logout, Token}).
 
 todo_data(Token, ListName, ShowAll) ->
-    gen_server:call(?MODULE, {todo_data, Token, ListName, ShowAll}).
+    todo_data(Token, ListName, ShowAll, <<>>).
+
+%% KeepUid is a task shown even if the filter hides it (<<>> for none).
+%% The data is built in the caller so that the session server is not
+%% blocked while a long list is read.
+todo_data(Token, ListName, ShowAll, KeepUid) ->
+    case gen_server:call(?MODULE, {session, Token}) of
+        {ok, UserName, Csrf} ->
+            Keep = case parse_uid(to_binary(KeepUid)) of
+                       {ok, Uid} -> Uid;
+                       error -> undefined
+                   end,
+            case make_todo_data(unicode:characters_to_list(UserName),
+                                to_list(ListName), Csrf, ShowAll, Keep) of
+                {ok, Data} -> {ok, Data};
+                error -> {error, <<"invalid_list">>}
+            end;
+        {error, _} ->
+            {error, <<"invalid_session">>}
+    end.
+
+%% The list to show a task in: Preferred if the task is in it, otherwise
+%% the first of the user's lists that has the task, and "All tasks" last.
+task_list(Token, UidBin, Preferred) ->
+    case gen_server:call(?MODULE, {session, Token}) of
+        {ok, UserName0, _Csrf} ->
+            UserName = unicode:characters_to_list(UserName0),
+            Lists = case parse_uid(to_binary(UidBin)) of
+                        {ok, Uid} -> eTodoDB:getLists(UserName, Uid);
+                        error -> []
+                    end,
+            Candidates = [Name || Name <- available_lists(UserName),
+                                  Name =/= ?defTaskList,
+                                  Name =/= ?defInbox,
+                                  lists:member(Name, Lists)],
+            Chosen = case lists:member(to_list(Preferred), Candidates) of
+                         true -> to_list(Preferred);
+                         false ->
+                             case Candidates of
+                                 [First | _] -> First;
+                                 [] -> ?defTaskList
+                             end
+                     end,
+            {ok, to_binary(Chosen)};
+        {error, _} ->
+            {error, <<"invalid_session">>}
+    end.
 
 settings_data(Token) ->
     gen_server:call(?MODULE, {settings_data, Token}).
@@ -302,19 +349,13 @@ handle_call({session_user, Token}, _From, Sessions) ->
     end;
 handle_call({logout, Token}, _From, Sessions) ->
     {reply, ok, maps:remove(Token, Sessions)};
-handle_call({todo_data, Token, ListName, ShowAll}, _From, Sessions) ->
+handle_call({session, Token}, _From, Sessions) ->
     Now = erlang:system_time(second),
     case maps:find(Token, Sessions) of
         {ok, {UserName, Expires, Csrf}} when Expires > Now ->
-            case make_todo_data(unicode:characters_to_list(UserName),
-                                to_list(ListName), Csrf, ShowAll) of
-                {ok, Data} ->
-                    {reply, {ok, Data}, Sessions};
-                error ->
-                    {reply, {error, <<"invalid_list">>}, Sessions}
-            end;
+            {reply, {ok, UserName, Csrf}, Sessions};
         _ ->
-            {reply, {error, <<"invalid_session">>}, Sessions}
+            {reply, {error, invalid_session}, Sessions}
     end;
 handle_call({settings_data, Token}, _From, Sessions) ->
     Now = erlang:system_time(second),
@@ -416,13 +457,16 @@ secure_equal_hashes(<<Left, LeftRest/binary>>,
     secure_equal_hashes(LeftRest, RightRest,
                         Difference bor (Left bxor Right)).
 
-make_todo_data(UserName, ListName, Csrf, ShowAll) ->
+available_lists(UserName) ->
     #userCfg{lists = ConfiguredLists} = eTodoDB:readUserCfg(UserName),
     UserLists = case ConfiguredLists of
                     undefined -> [];
                     Lists -> Lists
                 end,
-    AvailableLists = eTodoUtils:sortTaskLists(UserLists),
+    eTodoUtils:sortTaskLists(UserLists).
+
+make_todo_data(UserName, ListName, Csrf, ShowAll, Keep) ->
+    AvailableLists = available_lists(UserName),
     case lists:member(ListName, AvailableLists) of
         false ->
             error;
@@ -434,9 +478,11 @@ make_todo_data(UserName, ListName, Csrf, ShowAll) ->
                   end,
             Todos = sort_todos(Settings,
                                eTodoDB:getETodos(UserName, ListName, Flt,
-                                                 "", undefined)),
-            AllCount = length(eTodoDB:getETodos(UserName, ListName, [], "",
-                                                undefined)),
+                                                 "", undefined, Keep)),
+            AllCount = case Flt of
+                           [] -> length(Todos);
+                           _ -> eTodoDB:countTodos(UserName, ListName)
+                       end,
             Reminders = maps:from_list(
                           [{R#alarmCfg.uid, R} ||
                               R <- eTodoDB:getReminders(UserName)]),

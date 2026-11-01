@@ -38,6 +38,8 @@
          removeStaleConnections/2,
          getColumns/1,
          getETodos/5,
+         getETodos/6,
+         countTodos/2,
          getLists/2,
          getLoggedWork/2,
          getLoggedWork/3,
@@ -230,11 +232,24 @@ removeStaleConnections(Cutoff, ProtectedUsers) ->
 getColumns(User) ->
     gen_server:call(?MODULE, {getColumns, User}).
 
-getETodos(User, ?defInbox, Filter, SearchText, Cfg) ->
-    gen_server:call(?MODULE, {getETodos, User, ?defTaskList,
-                              [?assigned | Filter], SearchText, Cfg});
 getETodos(User, List, Filter, SearchText, Cfg) ->
-    gen_server:call(?MODULE, {getETodos, User, List, Filter, SearchText, Cfg}).
+    getETodos(User, List, Filter, SearchText, Cfg, undefined).
+
+%% Keep is the uid of a task that is returned even if the filter or search
+%% would hide it, or undefined.
+getETodos(User, ?defInbox, Filter, SearchText, Cfg, Keep) ->
+    getETodos(User, ?defTaskList, [?assigned | Filter], SearchText, Cfg, Keep);
+getETodos(User, List, Filter, SearchText, Cfg, undefined) ->
+    gen_server:call(?MODULE, {getETodos, User, List, Filter, SearchText, Cfg});
+getETodos(User, List, Filter, SearchText, Cfg, Keep) ->
+    gen_server:call(?MODULE, {getETodos, User, List, Filter, SearchText, Cfg,
+                              Keep}).
+
+%% Number of tasks in a list, without filter.
+countTodos(User, ?defInbox) ->
+    length(getETodos(User, ?defInbox, [], "", undefined));
+countTodos(User, List) ->
+    gen_server:call(?MODULE, {countTodos, User, List}).
 
 getLists(User, Uid) ->
     gen_server:call(?MODULE, {getLists, User, Uid}).
@@ -826,7 +841,14 @@ handle_call({getConnection, User}, _From, State) ->
 handle_call({getColumns, User}, _From, State) ->
     Result  = getColumns(User, ?Columns),
     {reply, Result, State};
-handle_call({getETodos, User, Parent, Filter, SearchText, Cfg}, _From, State) ->
+handle_call({countTodos, User, Parent}, _From, State) ->
+    Result = match(#userInfo{userName = User, parent = Parent, _ = '_'}),
+    {reply, length(Result), State};
+handle_call({getETodos, User, Parent, Filter, SearchText, Cfg}, From, State) ->
+    handle_call({getETodos, User, Parent, Filter, SearchText, Cfg, undefined},
+                From, State);
+handle_call({getETodos, User, Parent, Filter, SearchText, Cfg, Keep},
+            _From, State) ->
     Cols    = getColumns(User, ?Columns),
     Result  = match(#userInfo{userName = User,
                               parent   = Parent,
@@ -849,11 +871,12 @@ handle_call({getETodos, User, Parent, Filter, SearchText, Cfg}, _From, State) ->
                 Result2
         end,
     Result4 = [makeETodo(Uid, User, Cols) || #userInfo{uid = Uid} <- Result3],
+    Kept    = [ETodo || ETodo = #etodo{uidDB = KUid} <- Result4, KUid =:= Keep],
     Result5 = lists:filter(fun(ETodo) ->
                                    filter(ETodo, Filter)
                                        andalso search(ETodo, SearchText, Cfg)
                            end, Result4),
-    Result6 = advSearch(User, SearchText, Result5),
+    Result6 = keep(Kept, Result4, advSearch(User, SearchText, Result5)),
     Result7 = sort(User, Result6),
     {reply, Result7, State};
 handle_call({getLists, User, Uid}, _From, State) ->
@@ -1797,6 +1820,19 @@ searchRegex(ETodo, RegExText, ColText, Rest) ->
             true;
         _ ->
             search(ETodo, "re~" ++ RegExText, Rest)
+    end.
+
+%% Adds the kept task to the shown ones, at its place in the list.
+keep([], _All, Shown) ->
+    Shown;
+keep([#etodo{uidDB = Uid} | _], All, Shown) ->
+    case lists:keymember(Uid, #etodo.uidDB, Shown) of
+        true ->
+            Shown;
+        false ->
+            ShownUids = [U || #etodo{uidDB = U} <- Shown],
+            [ETodo || ETodo = #etodo{uidDB = U} <- All,
+                      U =:= Uid orelse lists:member(U, ShownUids)]
     end.
 
 advSearch(User, "as~" ++ SearchText, ETodos) ->

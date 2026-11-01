@@ -24,6 +24,16 @@ todo_list_order_test() ->
               end, [<<"All tasks">>, <<"Zulu">>]),
             ?assertEqual({error, <<"invalid_list">>},
                          eTodoMistAuth:todo_data(Token, <<"Missing">>, true)),
+            %% "Open task" picks a list that has the task.
+            ?assertEqual({ok, <<"Zulu">>},
+                         eTodoMistAuth:task_list(Token, <<"77">>, <<"Zulu">>)),
+            ?assertEqual({ok, <<"Beta">>},
+                         eTodoMistAuth:task_list(Token, <<"77">>,
+                                                 <<"All tasks">>)),
+            ?assertEqual({ok, <<"All tasks">>},
+                         eTodoMistAuth:task_list(Token, <<"78">>, <<"Zulu">>)),
+            ?assertEqual({error, <<"invalid_session">>},
+                         eTodoMistAuth:task_list(<<"bad">>, <<"77">>, <<>>)),
             ?assertEqual({error, invalid_csrf},
                          eTodoMistAuth:move_task(
                            Token, <<"wrong-csrf">>, <<"alpha">>,
@@ -70,6 +80,12 @@ database_fixture() ->
             database_fixture();
         {'$gen_call', From, {getReminders, "test-user"}} ->
             gen_server:reply(From, []),
+            database_fixture();
+        {'$gen_call', From, {getLists, "test-user", 77}} ->
+            gen_server:reply(From, ["All tasks", "Beta", "Zulu"]),
+            database_fixture();
+        {'$gen_call', From, {getLists, "test-user", _Uid}} ->
+            gen_server:reply(From, ["All tasks"]),
             database_fixture();
         stop ->
             ok

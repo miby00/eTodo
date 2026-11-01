@@ -254,6 +254,14 @@ fn todo_data(
   token: String,
   list_name: String,
   show_all: Bool,
+  keep_uid: String,
+) -> Result(String, String)
+
+@external(erlang, "eTodoMistAuth", "task_list")
+fn task_list(
+  token: String,
+  uid: String,
+  preferred: String,
 ) -> Result(String, String)
 
 @external(erlang, "eTodoMistAuth", "set_done")
@@ -799,9 +807,18 @@ fn serve_home(request: Request(Connection)) -> Response(ResponseData) {
         Ok(#(list_name, explicit)) -> {
           let show_all = wants_all(request)
           let search = query_value(request, "q")
-          case load_page(token, username, list_name, show_all, search) {
+          // "Open task" links name only the task, show it in one of its lists.
+          let keep = query_value(request, "task")
+          let list_name = case keep, explicit {
+            "", _ | _, True -> list_name
+            _, False ->
+              result.unwrap(task_list(token, keep, list_name), list_name)
+          }
+          case load_page(token, username, list_name, show_all, search, keep) {
             Error("invalid_list") if !explicit ->
-              case load_page(token, username, "All tasks", show_all, search) {
+              case
+                load_page(token, username, "All tasks", show_all, search, keep)
+              {
                 Ok(page) -> remember_list(request, page, "All tasks")
                 Error(message) -> page_error(message)
               }
@@ -818,7 +835,14 @@ fn serve_home(request: Request(Connection)) -> Response(ResponseData) {
 fn serve_todo_order(request: Request(Connection)) -> Response(ResponseData) {
   case current_session(request), requested_list(request) {
     Ok(#(token, _)), Ok(#(list_name, _)) ->
-      case todo_data(token, list_name, wants_all(request)) {
+      case
+        todo_data(
+          token,
+          list_name,
+          wants_all(request),
+          query_value(request, "task"),
+        )
+      {
         Ok(encoded) ->
           case json.parse(encoded, todo_page_data_decoder()) {
             Ok(data) ->
@@ -1307,8 +1331,9 @@ fn load_page(
   list_name: String,
   show_all: Bool,
   search: String,
+  keep: String,
 ) -> Result(Response(ResponseData), String) {
-  use encoded_data <- result.try(todo_data(token, list_name, show_all))
+  use encoded_data <- result.try(todo_data(token, list_name, show_all, keep))
   case json.parse(encoded_data, todo_page_data_decoder()) {
     Ok(data) -> Ok(authenticated_page(username, TodoPageData(..data, search:)))
     Error(_) -> Error("decode")
@@ -1791,15 +1816,12 @@ fn todo_delete(request: Request(Connection)) -> Response(ResponseData) {
   }
 }
 
-/// Shows the task in "All tasks", including tasks the filter would hide.
+/// Shows the task in one of its lists, see serve_home.
 fn open_task(uid: String) -> Response(ResponseData) {
   case int.parse(uid) {
     Ok(_) ->
       response.new(303)
-      |> response.set_header(
-        "location",
-        "/?list=All%20tasks&all=1#task-" <> uid,
-      )
+      |> response.set_header("location", "/?task=" <> uid <> "#task-" <> uid)
       |> response_data
     Error(_) -> response(404, "Not found")
   }
@@ -1819,7 +1841,7 @@ fn redirect_to_task(list_name: String, uid: String) -> Response(ResponseData) {
 fn created_item_html(token: String, list_name: String, uid: String) -> String {
   let marker_prefix = new_markdown_token()
   let item = {
-    use encoded <- result.try(todo_data(token, list_name, True))
+    use encoded <- result.try(todo_data(token, list_name, True, ""))
     use data <- result.try(
       json.parse(encoded, todo_page_data_decoder())
       |> result.replace_error("decode"),

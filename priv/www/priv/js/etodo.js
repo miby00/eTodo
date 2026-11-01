@@ -1178,6 +1178,11 @@
     list: list.getAttribute("data-list"),
     all: list.getAttribute("data-show-all") === "true" ? "1" : "0"
   });
+  // A task opened from a link stays visible when the order is refreshed.
+  var keptTask = new URLSearchParams(window.location.search).get("task");
+  if (keptTask) {
+    orderQuery.set("task", keptTask);
+  }
 
   function cards() {
     return Array.prototype.slice.call(
