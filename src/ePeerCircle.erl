@@ -45,10 +45,14 @@
 -define(ConnectMaxTime, 10000).
 -define(PeerCleanupInterval, 5 * 60 * 1000).
 -define(PeerRetentionSeconds, 60 * 24 * 60 * 60).
+-define(FirstRetryDelay, 5000).
+-define(MaxRetryDelay, 5 * 60 * 1000).
 
 -record(peer, {user,
                circle,
-               status}).
+               status,
+               retryDelay = ?FirstRetryDelay,
+               retryRef}).
 
 -record(state, {user,
                 circle,
@@ -62,7 +66,8 @@
                 conQueue    = [],
                 remoteQueue = [],
                 loopActive  = false,
-                connectData = []
+                connectData = [],
+                proxyCandidates = []
                }).
 
 %%%===================================================================
@@ -196,7 +201,7 @@ nextPeer() ->
 %%--------------------------------------------------------------------
 init([]) ->
     process_flag(trap_exit, true),
-    erlang:start_timer(?PeerCleanupInterval, self(), tryReconnect),
+    erlang:start_timer(?PeerCleanupInterval, self(), cleanupPeers),
     ePeerEM:add_handler(ePeerCircleEH, []),
     {ok, #state{tsHandle  = rand:uniform(100000000),
                 stateName = idle}}.
@@ -274,7 +279,10 @@ handle_cast({loggedOutFromCircle, User}, State = #state{listenerPid = Pid}) ->
                           remoteQueue = [], % Discard any data left.
                           loopActive  = false,
                           stateName   = idle,
+                          proxyCandidates = [],
+                          connectData = [],
                           listenerPid = undefined},
+    [erlang:cancel_timer(Ref) || {_PeerUser, Ref} <- State#state.connectData],
     eLog:log(debug, ?MODULE, loggedOutFromCircle, [User, State3],
              "circle cleared", ?LINE),
     ePortListener:stop(Pid),
@@ -298,8 +306,7 @@ handle_cast({peerStatus, PeerUser, Status, OldCircle}, State) ->
     %% was active - ignore.
     eLog:log(debug, ?MODULE, peerStatus, [PeerUser, Status, OldCircle, State],
              "Status from 'old' ePeer ignored.", ?LINE),
-    State2 = handleConnectData(PeerUser, State),
-    {noreply, State2};
+    {noreply, State};
 handle_cast({remotePeers, PeerUser, PeerList},
             State = #state{conQueue    = ConQueue,
                            remoteQueue = RemoteQueue}) when is_list(PeerList) ->
@@ -346,24 +353,25 @@ handle_info({timeout, Ref, connectTimeout},
         end,
     State2 = conLoop(State),
     {noreply, State2#state{connectData = ConData3}};
-handle_info({timeout, _, tryReconnect}, State = #state{circle = undefined}) ->
+handle_info({timeout, Ref, {retryPeer, PeerUser}}, State) ->
+    case expireRetry(PeerUser, Ref, State) of
+        {retry, State2} ->
+            case eTodoDB:getConnection(PeerUser) of
+                undefined ->
+                    Peers = lists:keydelete(PeerUser, #peer.user,
+                                            State2#state.peers),
+                    {noreply, State2#state{peers = Peers}};
+                Connection ->
+                    {noreply, queueRetryConnection(Connection, State2)}
+            end;
+        {ignore, State2} ->
+            {noreply, State2}
+    end;
+handle_info({timeout, _, cleanupPeers}, State) ->
     State2 = cleanupOldConnections(State),
-    erlang:start_timer(?PeerCleanupInterval, self(), tryReconnect),
-    {noreply, State2};
-handle_info({timeout, _, tryReconnect}, State = #state{user      = User,
-                                                       stateName = idle}) ->
-    %% Try to reconnect with peers that we have lost connection too.
-    State2      = cleanupOldConnections(State),
-    Connections = eTodoDB:getConnections(),
-    ConQueue    = queueAdd(User, Connections, []),
-    State3      = conLoop(State2),
-    erlang:start_timer(?PeerCleanupInterval, self(), tryReconnect),
-    {noreply, State3#state{conQueue  = ConQueue,
-                           stateName = directSetup}};
-handle_info({timeout, _, tryReconnect}, State) ->
-    State2 = cleanupOldConnections(State),
-    erlang:start_timer(?PeerCleanupInterval, self(), tryReconnect),
-    {noreply, State2};
+    State3 = queueUnscheduledConnections(State2),
+    erlang:start_timer(?PeerCleanupInterval, self(), cleanupPeers),
+    {noreply, State3};
 handle_info(Info, State) ->
     eLog:log(error, ?MODULE, handle_info, [Info, State#state.connectData],
              "Unknown message received", ?LINE),
@@ -381,7 +389,9 @@ handle_info(Info, State) ->
 %% @spec terminate(Reason, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
-terminate(_Reason, _State) ->
+terminate(_Reason, State) ->
+    [cancelPeerRetry(Peer) || Peer <- State#state.peers],
+    [erlang:cancel_timer(Ref) || {_PeerUser, Ref} <- State#state.connectData],
     ePeerEM:del_handler(ePeerCircleEH, shutdown),
     ok.
 
@@ -468,15 +478,21 @@ launchListener(_Port, _MaxPort) ->
 %%--------------------------------------------------------------------
 nextPeer(State = #state{stateName   = directSetup,
                         conQueue    = [],
-                        remoteQueue = []}) ->
+                        remoteQueue = [],
+                        proxyCandidates = Candidates}) ->
     %% No more connections to try to connect to, either direct or expected.
     %% Try launching proxy peers.
-    Connections = eTodoDB:getConnections(),
+    %% Only fall back for this round's direct attempts, not peers in backoff.
+    Connections = [Connection ||
+                      Connection = #conCfg{userName = User} <-
+                          eTodoDB:getConnections(),
+                      lists:member(User, Candidates)],
     ConQueue    = queueAdd(proxy, Connections, []),
     eLog:log(debug, ?MODULE, nextPeer, [ConQueue],
              "All queues cleared, try to proxy", ?LINE),
     State2 = conLoop(State),
     State2#state{stateName = proxySetup,
+                 proxyCandidates = [],
                  conQueue  = ConQueue};
 nextPeer(State = #state{conQueue    = [],
                         remoteQueue = []}) ->
@@ -662,20 +678,83 @@ getPeerStatus(PeerUser, #state{peers = Peers}) ->
 savePeerStatus(PeerUser, Status,
                State = #state{peers       = Peers,
                               remoteQueue = RemoteQueue}) ->
-    Peer2 = case lists:keysearch(PeerUser, #peer.user, Peers) of
-                {value, Peer} ->
-                    Peer#peer{status = Status};
-                _ ->
-                    #peer{user   = PeerUser,
-                          status = Status}
-            end,
+    Peer = case lists:keysearch(PeerUser, #peer.user, Peers) of
+               {value, ExistingPeer} -> ExistingPeer;
+               _ -> #peer{user = PeerUser}
+           end,
+    Peer2 = updatePeerRetry(Status, Peer, State),
     Peers2 = lists:keystore(PeerUser, #peer.user, Peers, Peer2),
     RemoteQueue2 = case Status of
-                       active -> [PeerUser | RemoteQueue];
-                       _      -> RemoteQueue
+                       active -> [PeerUser | lists:delete(PeerUser, RemoteQueue)];
+                       inactive -> [User || User <- RemoteQueue,
+                                           User =/= PeerUser];
+                       _ -> RemoteQueue
                    end,
     State#state{peers       = Peers2,
                 remoteQueue = RemoteQueue2}.
+
+updatePeerRetry(active, Peer, _State) ->
+    Peer2 = cancelPeerRetry(Peer),
+    Peer2#peer{status = active, retryDelay = ?FirstRetryDelay};
+updatePeerRetry(connecting, Peer, _State) ->
+    (cancelPeerRetry(Peer))#peer{status = connecting};
+updatePeerRetry(inactive, Peer, #state{circle = Circle, user = User})
+  when Circle =/= undefined, Peer#peer.user =/= undefined,
+       Peer#peer.user =/= User ->
+    Peer2 = case Peer#peer.status of
+                active -> Peer#peer{retryDelay = ?FirstRetryDelay};
+                _ -> Peer
+            end,
+    case Peer2#peer.retryRef of
+        undefined ->
+            Ref = erlang:start_timer(Peer2#peer.retryDelay, self(),
+                                     {retryPeer, Peer2#peer.user}),
+            Peer2#peer{status = inactive, retryRef = Ref};
+        _ ->
+            Peer2#peer{status = inactive}
+    end;
+updatePeerRetry(Status, Peer, _State) ->
+    (cancelPeerRetry(Peer))#peer{status = Status}.
+
+cancelPeerRetry(Peer = #peer{retryRef = undefined}) ->
+    Peer;
+cancelPeerRetry(Peer = #peer{retryRef = Ref}) ->
+    erlang:cancel_timer(Ref),
+    Peer#peer{retryRef = undefined}.
+
+expireRetry(PeerUser, Ref, State = #state{circle = Circle, peers = Peers})
+  when Circle =/= undefined ->
+    case getPeerStatus(PeerUser, State) of
+        Peer = #peer{status = inactive, retryRef = Ref, retryDelay = Delay} ->
+            Peer2 = Peer#peer{retryRef = undefined,
+                              retryDelay = min(Delay * 2, ?MaxRetryDelay)},
+            {retry, State#state{peers = lists:keystore(
+                                         PeerUser, #peer.user, Peers, Peer2)}};
+        _ ->
+            {ignore, State}
+    end;
+expireRetry(_PeerUser, _Ref, State) ->
+    {ignore, State}.
+
+queueRetryConnection(Connection, State = #state{user = User,
+                                                conQueue = ConQueue}) ->
+    conLoop(State#state{stateName = directSetup,
+                         conQueue = [{User, Connection} | ConQueue]}).
+
+queueUnscheduledConnections(State = #state{circle = undefined}) ->
+    State;
+queueUnscheduledConnections(State = #state{user = User, conQueue = ConQueue}) ->
+    Connections = [Connection ||
+                      Connection = #conCfg{userName = PeerUser} <-
+                          eTodoDB:getConnections(),
+                      PeerUser =/= User,
+                      readyForDirectConnection(PeerUser, State)],
+    case Connections of
+        [] -> State;
+        _ ->
+            conLoop(State#state{stateName = directSetup,
+                                 conQueue = queueAdd(User, Connections, ConQueue)})
+    end.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -695,8 +774,10 @@ logoutAllPeers([Peer = #peer{user = User} | Rest], Acc, State) ->
     ConCfg = getConnection(User),
     saveConnection(ConCfg#conCfg{owner    = undefined,
                                  distance = undefined}),
-    logoutAllPeers(Rest, [Peer#peer{circle = undefined,
-                                    status = inactive} | Acc], State).
+    Peer2 = cancelPeerRetry(Peer),
+    logoutAllPeers(Rest, [Peer2#peer{circle = undefined,
+                                     status = inactive,
+                                     retryDelay = ?FirstRetryDelay} | Acc], State).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -786,20 +867,27 @@ connectToPeer(#conCfg{userName = PeerUser,
                       port     = PeerPort},
               State = #state{user = User,
                              port = Port}) ->
-    case getPeerStatus(PeerUser, State) of
-        undefined ->
-            connectToPeer(PeerUser, PeerHost, PeerPort, User, Port),
-            State2 = setConnectData(PeerUser, State),
-            State3 = savePeerStatus(PeerUser, connecting, State2),
-            {connecting, State3};
-        #peer{status = inactive} ->
-            connectToPeer(PeerUser, PeerHost, PeerPort, User, Port),
-            State2 = setConnectData(PeerUser, State),
-            State3 = savePeerStatus(PeerUser, connecting, State2),
-            {connecting, State3};
-        _ ->
+    case readyForDirectConnection(PeerUser, State) of
+        true ->
+            launchDirectConnection(PeerUser, PeerHost, PeerPort, User, Port, State);
+        false ->
             {next, State}
     end.
+
+readyForDirectConnection(PeerUser, State) ->
+    case getPeerStatus(PeerUser, State) of
+        undefined -> true;
+        #peer{status = inactive, retryRef = undefined} -> true;
+        _ -> false
+    end.
+
+launchDirectConnection(PeerUser, PeerHost, PeerPort, User, Port,
+                       State = #state{proxyCandidates = Candidates}) ->
+    connectToPeer(PeerUser, PeerHost, PeerPort, User, Port),
+    State2 = setConnectData(PeerUser, State),
+    State3 = savePeerStatus(PeerUser, connecting, State2),
+    {connecting, State3#state{proxyCandidates = lists:usort(
+                                                [PeerUser | Candidates])}}.
 
 connectToPeer(PeerUser, PeerHost, PeerPort, User, Port) ->
     ePeerServer:connectToPeer(PeerUser, PeerHost, PeerPort, User, Port).
@@ -830,6 +918,8 @@ cleanupOldConnections(State = #state{peers = Peers}) ->
     case eTodoDB:removeStaleConnections(Cutoff, ProtectedUsers) of
         {atomic, RemovedUsers} ->
             Removed = sets:from_list(RemovedUsers),
+            [cancelPeerRetry(Peer) || Peer = #peer{user = User} <- Peers,
+                                      sets:is_element(User, Removed)],
             State#state{peers = [Peer || Peer = #peer{user = User} <- Peers,
                                          not sets:is_element(User, Removed)]};
         {aborted, Reason} ->
@@ -941,3 +1031,148 @@ checkIfActive(User, State) ->
         _ ->
             false
     end.
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+first_retry_timer_test_() ->
+    {timeout, 10,
+     fun() ->
+             State = #state{user = "local", circle = "circle"},
+             Started = erlang:monotonic_time(millisecond),
+             Waiting = savePeerStatus("remote", inactive, State),
+             Peer = getPeerStatus("remote", Waiting),
+             Ref = Peer#peer.retryRef,
+             try
+                 receive
+                     {timeout, Ref, {retryPeer, "remote"}} ->
+                         Elapsed = erlang:monotonic_time(millisecond) - Started,
+                         ?assert(Elapsed >= 5000),
+                         {retry, Ready} = expireRetry("remote", Ref, Waiting),
+                         Connection = #conCfg{userName = "remote"},
+                         Queued = queueRetryConnection(
+                                    Connection, Ready#state{loopActive = true}),
+                         ?assertEqual([{"local", Connection}],
+                                      Queued#state.conQueue),
+                         ?assertEqual(10000,
+                                      (getPeerStatus("remote", Queued))#peer.retryDelay)
+                 after 6500 ->
+                     ?assert(false)
+                 end
+             after
+                 cancelPeerRetry(Peer)
+             end
+     end}.
+
+retry_backoff_test() ->
+    State = #state{user = "local", circle = "circle"},
+    lists:foldl(
+      fun(Delay, PreviousState) ->
+              Connecting = savePeerStatus("remote", connecting, PreviousState),
+              Waiting = savePeerStatus("remote", inactive, Connecting),
+              #peer{retryDelay = Delay, retryRef = Ref} =
+                  getPeerStatus("remote", Waiting),
+              Remaining = erlang:read_timer(Ref),
+              ?assert(is_integer(Remaining)),
+              ?assert(Remaining =< Delay),
+              ?assert(Remaining > Delay - 1000),
+              erlang:cancel_timer(Ref),
+              {retry, Ready} = expireRetry("remote", Ref, Waiting),
+              ?assertEqual(min(Delay * 2, 300000),
+                           (getPeerStatus("remote", Ready))#peer.retryDelay),
+              Ready
+      end,
+      State,
+      [5000, 10000, 20000, 40000, 80000, 160000, 300000, 300000]).
+
+retry_success_resets_test() ->
+    State = #state{user = "local", circle = "circle",
+                   peers = [#peer{user = "remote", status = connecting,
+                                   retryDelay = 300000}]},
+    Waiting = savePeerStatus("remote", inactive, State),
+    #peer{retryRef = Ref} = getPeerStatus("remote", Waiting),
+    Connected = savePeerStatus("remote", active, Waiting),
+    ?assertEqual(false, erlang:read_timer(Ref)),
+    ?assertMatch(#peer{status = active, retryRef = undefined, retryDelay = 5000},
+                 getPeerStatus("remote", Connected)),
+    Disconnected = savePeerStatus("remote", inactive, Connected),
+    Peer = getPeerStatus("remote", Disconnected),
+    ?assertEqual(5000, Peer#peer.retryDelay),
+    cancelPeerRetry(Peer).
+
+retry_duplicate_failure_test() ->
+    State = #state{user = "local", circle = "circle"},
+    Waiting = savePeerStatus("remote", inactive, State),
+    ?assertEqual(Waiting, savePeerStatus("remote", inactive, Waiting)),
+    ?assertEqual({next, Waiting},
+                 connectToPeer(#conCfg{userName = "remote",
+                                        host = "localhost", port = 19000},
+                                Waiting)),
+    cancelPeerRetry(getPeerStatus("remote", Waiting)).
+
+retry_reference_guard_test() ->
+    State = #state{user = "local", circle = "circle"},
+    Waiting = savePeerStatus("remote", inactive, State),
+    Peer = getPeerStatus("remote", Waiting),
+    ?assertEqual({ignore, Waiting}, expireRetry("remote", make_ref(), Waiting)),
+    Offline = Waiting#state{circle = undefined},
+    ?assertEqual({ignore, Offline},
+                 expireRetry("remote", Peer#peer.retryRef, Offline)),
+    Connected = savePeerStatus("remote", active, Waiting),
+    ?assertEqual({ignore, Connected},
+                 expireRetry("remote", Peer#peer.retryRef, Connected)).
+
+retry_peers_are_independent_test() ->
+    State = #state{user = "local", circle = "circle",
+                   peers = [#peer{user = "one", status = connecting,
+                                   retryDelay = 160000},
+                            #peer{user = "two", status = connecting,
+                                   retryDelay = 300000}]},
+    Waiting = savePeerStatus("two", inactive,
+                             savePeerStatus("one", inactive, State)),
+    First = getPeerStatus("one", Waiting),
+    Connected = savePeerStatus("two", active, Waiting),
+    ?assertEqual(First, getPeerStatus("one", Connected)),
+    ?assertEqual(5000, (getPeerStatus("two", Connected))#peer.retryDelay),
+    cancelPeerRetry(First).
+
+retry_prioritizes_disconnected_peer_test() ->
+    Existing = #conCfg{userName = "other"},
+    Remote = #conCfg{userName = "remote"},
+    State = #state{user = "local", stateName = proxySetup,
+                   loopActive = true, conQueue = [{"local", Existing}]},
+    Queued = queueRetryConnection(Remote, State),
+    ?assertEqual(directSetup, Queued#state.stateName),
+    ?assertEqual([{"local", Remote}, {"local", Existing}], Queued#state.conQueue).
+
+retry_proxy_fallback_preserves_delay_test() ->
+    State = #state{user = "local", circle = "circle"},
+    Waiting = savePeerStatus("remote", inactive, State),
+    #peer{retryRef = Ref} = getPeerStatus("remote", Waiting),
+    ProxyConnecting = savePeerStatus("remote", connecting, Waiting),
+    ?assertEqual(false, erlang:read_timer(Ref)),
+    ProxyFailed = savePeerStatus("remote", inactive, ProxyConnecting),
+    Peer = getPeerStatus("remote", ProxyFailed),
+    ?assertEqual(5000, Peer#peer.retryDelay),
+    cancelPeerRetry(Peer).
+
+retry_ignores_old_circle_status_test() ->
+    Ref = make_ref(),
+    State = #state{circle = "new", connectData = [{"remote", Ref}]},
+    ?assertEqual({noreply, State},
+                 handle_cast({peerStatus, "remote", inactive, "old"}, State)).
+
+disconnect_clears_pending_peer_list_test() ->
+    State = #state{user = "local", circle = "circle",
+                   remoteQueue = ["remote", "other", "remote"]},
+    Disconnected = savePeerStatus("remote", inactive, State),
+    ?assertEqual(["other"], Disconnected#state.remoteQueue),
+    Peer = getPeerStatus("remote", Disconnected),
+    Cancelled = cancelPeerRetry(Peer),
+    ?assertEqual(false, erlang:read_timer(Peer#peer.retryRef)),
+    ?assertEqual(Cancelled, cancelPeerRetry(Cancelled)),
+    ?assertMatch(#peer{retryRef = undefined},
+                 updatePeerRetry(inactive, Cancelled,
+                                  State#state{circle = undefined})).
+
+-endif.

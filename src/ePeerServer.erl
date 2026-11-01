@@ -53,7 +53,8 @@
 -record(state, {user,
                 circle,
                 peers = [],
-                parent}).
+                parent,
+                connectWorkers = []}).
 
 %%%===================================================================
 %%% API
@@ -354,13 +355,14 @@ handle_cast({clientDisconnected, EPortPid, _EListenerPid}, State) ->
              [self(), State2], "done", ?LINE),
     {noreply, State2};
 handle_cast({connectToPeer, PeerUser, PeerHost, PeerPort, User, Port},
-            State = #state{circle = Circle}) ->
+            State = #state{circle = Circle, connectWorkers = Workers}) ->
     eLog:log(debug, ?MODULE, connectToPeer,
              [PeerUser, PeerHost, PeerPort, User, Port],
              "launching worker", ?LINE),
-    spawn(?MODULE, doConnectToPeer,
-          [self(), PeerUser, PeerHost, PeerPort, User, Port, Circle]),
-    {noreply, State};
+    {_Pid, Ref} = spawn_monitor(
+                    ?MODULE, doConnectToPeer,
+                    [self(), PeerUser, PeerHost, PeerPort, User, Port, Circle]),
+    {noreply, State#state{connectWorkers = [{Ref, PeerUser, Circle} | Workers]}};
 handle_cast({doConnectReply, Pid, PeerUser, EPortPid}, State) ->
     Peer      = #peer{pid      = Pid,
                       peerUser = PeerUser,
@@ -456,6 +458,22 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_info({'DOWN', Ref, process, _Pid, Reason},
+            State = #state{connectWorkers = Workers}) ->
+    case lists:keytake(Ref, 1, Workers) of
+        {value, {Ref, PeerUser, Circle}, Remaining} ->
+            case Reason of
+                normal ->
+                    ok;
+                _ ->
+                    eLog:log(error, ?MODULE, handle_info, [PeerUser, Reason],
+                             "Connection worker failed", ?LINE),
+                    ePeerCircle:peerStatus(PeerUser, inactive, Circle)
+            end,
+            {noreply, State#state{connectWorkers = Remaining}};
+        false ->
+            {noreply, State}
+    end;
 handle_info({'EXIT', Parent, Reason}, State = #state{parent = Parent}) ->
     {stop, Reason, State};
 handle_info({'EXIT', Pid, _Reason}, State) ->
@@ -621,3 +639,46 @@ getPeers([PeerUser | PeerUsers], Peers, Acc) ->
         false ->
             getPeers(PeerUsers, Peers, Acc)
     end.
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+connection_worker_crash_reports_inactive_test() ->
+    Ref = make_ref(),
+    Other = {make_ref(), "other", "circle"},
+    State = #state{circle = "circle",
+                   connectWorkers = [{Ref, "remote", "circle"}, Other]},
+    true = register(ePeerCircle, self()),
+    try
+        {noreply, Updated} =
+            handle_info({'DOWN', Ref, process, self(), test_failure}, State),
+        ?assertEqual([Other], Updated#state.connectWorkers),
+        receive
+            {'$gen_cast', {peerStatus, "remote", inactive, "circle"}} -> ok
+        after 1000 ->
+            ?assert(false)
+        end
+    after
+        unregister(ePeerCircle)
+    end.
+
+connection_worker_normal_exit_test() ->
+    Ref = make_ref(),
+    State = #state{connectWorkers = [{Ref, "remote", "circle"}]},
+    true = register(ePeerCircle, self()),
+    try
+        {noreply, Updated} =
+            handle_info({'DOWN', Ref, process, self(), normal}, State),
+        ?assertEqual([], Updated#state.connectWorkers),
+        ?assertEqual({noreply, Updated},
+                     handle_info({'DOWN', Ref, process, self(), normal}, Updated)),
+        receive
+            {'$gen_cast', {peerStatus, _, _, _}} -> ?assert(false)
+        after 0 ->
+            ok
+        end
+    after
+        unregister(ePeerCircle)
+    end.
+
+-endif.

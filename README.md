@@ -57,6 +57,19 @@ it in the background and `./eTodo stop` to stop it.
 
 Have patience: The first startup needs to create an empty TODO database.
 
+### Peer reconnection
+
+On circle login, saved peers are contacted immediately. After a connection
+is lost, that peer is retried after 5 seconds. Failed retries use exponential
+backoff: 10, 20, 40, 80, 160 seconds, then 5 minutes between further retries.
+These delays start after an attempt fails; connection setup takes additional
+time. Each peer has its own backoff, reset after a successful connection.
+Available proxy routes are still tried as a fallback to direct connections.
+Logout cancels pending retries.
+
+Stale-peer cleanup remains on a separate five-minute schedule and does not
+reset retry backoff.
+
 ### Peer Certificate Trust
 
 Outgoing peer connections verify certificates using the system CA store.
