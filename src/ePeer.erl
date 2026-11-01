@@ -46,6 +46,8 @@
 
 -define(SendPingDelay, 10 * 1000).
 -define(RecvPingDelay, 20 * 1000).
+-define(PeerSeenRefreshDelay, 60 * 60 * 1000).
+-define(PeerCapabilities, {eTodoPeerCapabilities, [directPing]}).
 
 -record(state, {stateName, %% See below.
                 stateData,
@@ -61,8 +63,10 @@
                 eListenerPid,
                 proxyPid,
                 proxyRef,
+                directPing = false,
                 sendPingTimer,
-                recvPingTimer
+                recvPingTimer,
+                lastSeenUpdate
                }).
 
 -import(eTodoUtils, [default/2]).
@@ -389,16 +393,18 @@ handle_cast(doRegister, State = #state{stateName = registerWithPeer,
              "entering", ?LINE),
     Hash   = getCircleHash(Timestamp),
     Peers  = eTodoDB:getConnections(),
-    Peers2 = getPeersWithActiveConnection(Peers),
+    Peers2 = getPeersWithActiveConnection(Peers) ++ [?PeerCapabilities],
 
     case sendCall(eTodoRegister, [User, Hash, eTodoUtils:dateTime(), Peers2],
                   State) of
         {ok, DateTime, RemotePeers, SharedTodos, OldConTime} ->
-            loggedIn(State),
+            PeerSupportsPing = lists:member(?PeerCapabilities, RemotePeers),
+            State1 = loggedIn(State#state{directPing = PeerSupportsPing}),
             checkConflict(SharedTodos, PeerUser, User, OldConTime),
             updateConnection(DateTime, OldConTime, State),
-            ePeerCircle:remotePeers(PeerUser, RemotePeers),
-            State2 = launchProxyTimers(State),
+            ePeerCircle:remotePeers(PeerUser,
+                                    withoutPeerCapabilities(RemotePeers)),
+            State2 = launchPeerTimers(State1),
             {noreply, State2#state{stateName = authorized,
                                    stateData = undefined}};
         _Else ->
@@ -457,16 +463,23 @@ handle_info({'DOWN', Reference, process, _Object, _Info},
     eLog:log(debug, ?MODULE, handle_info, [self(), State],
              "Received 'DOWN' - shutting down", ?LINE),
     {stop, normal, State#state{proxyRef = undefined}};
-handle_info({timeout, _OldRef, sendPing},
-            State = #state{stateName = authorized,
+handle_info({timeout, Ref, sendPing},
+            State = #state{sendPingTimer = Ref,
+                           stateName = authorized,
                            user      = User,
                            peerUser  = PeerUser}) ->
     sendCast(ping, [User, PeerUser], State),
     {noreply, startTimer(sendTimer, State)};
-handle_info({timeout, _OldRef, pingMissing}, State) ->
+handle_info({timeout, Ref, pingMissing},
+            State = #state{recvPingTimer = Ref,
+                           stateName = authorized}) ->
     eLog:log(debug, ?MODULE, handle_info, [self(), State],
              "Haven't received ping - shutting down", ?LINE),
     {stop, normal, State};
+handle_info({timeout, _Ref, sendPing}, State) ->
+    {noreply, State};
+handle_info({timeout, _Ref, pingMissing}, State) ->
+    {noreply, State};
 handle_info(Info, State) ->
     eLog:log(debug, ?MODULE, handle_info, [self(), Info],
              "Unknown message received", ?LINE),
@@ -498,7 +511,11 @@ terminate(_Reason, State) ->
     end,
     cancelTimer(sendTimer, State),
     cancelTimer(recvTimer, State),
-    loggedOut(State),
+    State2 = case State#state.stateName of
+                 authorized -> recordPeerSeen(State);
+                 _ -> State
+             end,
+    loggedOut(State2),
     ok.
 
 %%--------------------------------------------------------------------
@@ -641,11 +658,9 @@ handlePeerCast(releaseLock, [Uid, Owner], State) ->
     State;
 handlePeerCast(ping, [PeerUser, User], State = #state{user     = User,
                                                       peerUser = PeerUser}) ->
-    %% Note that pings are only sent between proxy peers.
-    %% Ping received - start new recv timer.
     eLog:log(debug, ?MODULE, ping, [self(), PeerUser, User],
              "Received ping.", ?LINE),
-    startTimer(recvTimer, State);
+    startTimer(recvTimer, refreshPeerSeen(State));
 handlePeerCast(Message, Args, _State) ->
     eLog:log(error, ?MODULE, handlePeerCast, [self(), Message, Args],
              "Unknown message received.", ?LINE),
@@ -693,7 +708,7 @@ eTodoConnect(User, PeerUser, PeerPort, Timestamp, _State) ->
 %% @spec eTodoRegister(Args, State) -> {Reply, NewState} | error
 %% @end
 %%--------------------------------------------------------------------
-eTodoRegister(PeerUser, Hash, DateTime, RemotePeers,
+eTodoRegister(PeerUser, Hash, DateTime, PeerList,
               State = #state{stateName = connected,
                              peerUser  = PeerUser,
                              stateData = MyTimestamp,
@@ -701,14 +716,20 @@ eTodoRegister(PeerUser, Hash, DateTime, RemotePeers,
     case getCircleHash(MyTimestamp) of
         Hash ->
             %% Received hash and calculated hash match -> OK.
-            loggedIn(State),
+            PeerSupportsPing = lists:member(?PeerCapabilities, PeerList),
+            State1 = loggedIn(State#state{directPing = PeerSupportsPing}),
             OldConCfg  = default(eTodoDB:getConnection(PeerUser), #conCfg{}),
             OldConTime = OldConCfg#conCfg.updateTime,
             updateConnection(DateTime, OldConTime, State),
-            State2 = launchProxyTimers(State),
+            State2 = launchPeerTimers(State1),
             ePeerServer:updatePeerInfo(self(), PeerUser),
-            ePeerCircle:remotePeers(PeerUser, RemotePeers),
-            LocalPeers  = eTodoDB:getConnections(),
+            ePeerCircle:remotePeers(PeerUser,
+                                    withoutPeerCapabilities(PeerList)),
+            LocalPeers0 = eTodoDB:getConnections(),
+            LocalPeers = case PeerSupportsPing of
+                             true -> LocalPeers0 ++ [?PeerCapabilities];
+                             false -> LocalPeers0
+                         end,
             SharedTodos = eTodoDB:getTodosSharedWith(PeerUser, User),
             Reply = {ok, eTodoUtils:dateTime(),
                      LocalPeers, SharedTodos, OldConTime},
@@ -721,7 +742,7 @@ eTodoRegister(PeerUser, Hash, DateTime, RemotePeers,
                      "Invalid hash from peer.", ?LINE),
             error
     end;
-eTodoRegister(PeerUser, _Hash, _DateTime, _Peers, #state{user = User}) ->
+eTodoRegister(PeerUser, _Hash, _DateTime, _PeerList, #state{user = User}) ->
     %% Message received in wrong state and is invalid - shut down.
     eLog:log(error, ?MODULE, eTodoRegister,
              [self(), User, PeerUser],
@@ -756,13 +777,16 @@ getPeersWithActiveConnection(Peers) ->
                       end,
     lists:filter(RemoveNonActive, Peers).
 
-loggedIn(#state{user     = User,
-                peerUser = PeerUser,
-                circle   = Circle}) ->
+withoutPeerCapabilities(Peers) ->
+    [Peer || Peer <- Peers, Peer =/= ?PeerCapabilities].
+
+loggedIn(State = #state{user     = User,
+                        peerUser = PeerUser,
+                        circle   = Circle}) ->
     ePeerEM:add_handler({ePeerEH, PeerUser}, {self(), User, PeerUser}),
     ePeerEM:loggedIn(PeerUser),
     ePeerCircle:peerStatus(PeerUser, active, Circle),
-    ok.
+    recordPeerSeen(State).
 
 loggedOut(#state{peerUser = PeerUser,
                  circle   = Circle}) ->
@@ -776,16 +800,17 @@ loggedOut(#state{peerUser = PeerUser,
 
 updateConnection(_DateTime, configured, _State) ->
     ok;
-updateConnection(DateTime, _OldDateTime, #state{peerUser   = PeerUser,
-                                                peerHost   = PeerHost,
-                                                peerPort   = PeerPort,
-                                                user       = User}) ->
+updateConnection(_DateTime, _OldDateTime,
+                 #state{peerUser = PeerUser,
+                        peerHost = PeerHost,
+                        peerPort = PeerPort,
+                        user     = User}) ->
     ConCfg = #conCfg{userName   = PeerUser,
                      host       = PeerHost,
                      port       = PeerPort,
                      owner      = User,
                      distance   = 1,
-                     updateTime = DateTime},
+                     updateTime = eTodoUtils:dateTime()},
     eTodoDB:updateConnection(ConCfg).
 
 createTimestamp() ->
@@ -835,12 +860,36 @@ checkConflict(SharedTodos, PeerUser, User, OldRemoteConTime) ->
 %% @spec cancelTimer(Name, State) -> NewState
 %% @end
 %%--------------------------------------------------------------------
-launchProxyTimers(State = #state{proxyPid = undefined}) ->
-    %% No timers when not a proxy peer.
+launchPeerTimers(State = #state{proxyPid = undefined,
+                                directPing = false}) ->
     State;
-launchProxyTimers(State) ->
+launchPeerTimers(State) ->
     State2 = startTimer(sendTimer, State),
     startTimer(recvTimer, State2).
+
+recordPeerSeen(State = #state{peerUser = undefined}) ->
+    State;
+recordPeerSeen(State = #state{peerUser = PeerUser}) ->
+    Now = eTodoUtils:dateTime(),
+    case eTodoDB:updatePeerLastSeen(PeerUser, Now) of
+        {atomic, ok} ->
+            State#state{lastSeenUpdate = Now};
+        {aborted, Reason} ->
+            eLog:log(error, ?MODULE, recordPeerSeen, [PeerUser, Reason],
+                     "Failed to update peer last-seen time", ?LINE),
+            State#state{lastSeenUpdate = undefined}
+    end.
+
+refreshPeerSeen(State = #state{lastSeenUpdate = undefined}) ->
+    recordPeerSeen(State);
+refreshPeerSeen(State = #state{lastSeenUpdate = LastSeen}) ->
+    Now = eTodoUtils:dateTime(),
+    Diff = calendar:datetime_to_gregorian_seconds(Now) -
+        calendar:datetime_to_gregorian_seconds(LastSeen),
+    case Diff >= (?PeerSeenRefreshDelay div 1000) of
+        true -> recordPeerSeen(State);
+        false -> State
+    end.
 
 startTimer(sendTimer, State) ->
     State2    = cancelTimer(sendTimer, State),

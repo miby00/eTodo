@@ -43,6 +43,8 @@
 
 -define(SERVER,         ?MODULE).
 -define(ConnectMaxTime, 10000).
+-define(PeerCleanupInterval, 5 * 60 * 1000).
+-define(PeerRetentionSeconds, 60 * 24 * 60 * 60).
 
 -record(peer, {user,
                circle,
@@ -194,7 +196,7 @@ nextPeer() ->
 %%--------------------------------------------------------------------
 init([]) ->
     process_flag(trap_exit, true),
-    erlang:start_timer(1000 * 60 * 5, self(), tryReconnect),
+    erlang:start_timer(?PeerCleanupInterval, self(), tryReconnect),
     ePeerEM:add_handler(ePeerCircleEH, []),
     {ok, #state{tsHandle  = rand:uniform(100000000),
                 stateName = idle}}.
@@ -227,7 +229,7 @@ handle_call({isActivePeer, User}, _From, State) ->
 handle_call(Request, From, State) ->
     eLog:log(error, ?MODULE, handle_call, [Request, From],
              "Unknown message received", ?LINE),
-    {noreply, State}.
+    {reply, {error, unknownRequest}, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -246,9 +248,10 @@ handle_cast({connectToCircle, User, CircleName, Password}, State) ->
             updateOwnConfig(User, Port),
             announceWebGui(User),
             ePeerServer:connectedToCircle(User, CircleName),
+            State0      = cleanupOldConnections(State#state{user = User}),
             Connections = getClearedConnections(),
             ConQueue    = queueAdd(User, Connections, []),
-            State2      = conLoop(State),
+            State2      = conLoop(State0),
             eLog:log(debug, ?MODULE, connectToCircle,
                      [User, CircleName, Password, ConQueue],
                      "circle active", ?LINE),
@@ -282,7 +285,7 @@ handle_cast(nextPeer, State = #state{loopActive = true}) ->
 handle_cast(nextPeer, State) ->
     eLog:log(debug, ?MODULE, nextPeer, [],
              "Dropped - loop not active.", ?LINE),
-    State;
+    {noreply, State};
 handle_cast({peerStatus, PeerUser, Status, Circle},
             State = #state{circle = Circle}) ->
     %% Status from peer creation received.
@@ -344,20 +347,23 @@ handle_info({timeout, Ref, connectTimeout},
     State2 = conLoop(State),
     {noreply, State2#state{connectData = ConData3}};
 handle_info({timeout, _, tryReconnect}, State = #state{circle = undefined}) ->
-    erlang:start_timer(1000 * 60 * 5, self(), tryReconnect),
-    {noreply, State};
+    State2 = cleanupOldConnections(State),
+    erlang:start_timer(?PeerCleanupInterval, self(), tryReconnect),
+    {noreply, State2};
 handle_info({timeout, _, tryReconnect}, State = #state{user      = User,
                                                        stateName = idle}) ->
     %% Try to reconnect with peers that we have lost connection too.
+    State2      = cleanupOldConnections(State),
     Connections = eTodoDB:getConnections(),
     ConQueue    = queueAdd(User, Connections, []),
-    State2      = conLoop(State),
-    erlang:start_timer(1000 * 60 * 5, self(), tryReconnect),
-    {noreply, State2#state{conQueue  = ConQueue,
+    State3      = conLoop(State2),
+    erlang:start_timer(?PeerCleanupInterval, self(), tryReconnect),
+    {noreply, State3#state{conQueue  = ConQueue,
                            stateName = directSetup}};
 handle_info({timeout, _, tryReconnect}, State) ->
-    erlang:start_timer(1000 * 60 * 5, self(), tryReconnect),
-    {noreply, State};
+    State2 = cleanupOldConnections(State),
+    erlang:start_timer(?PeerCleanupInterval, self(), tryReconnect),
+    {noreply, State2};
 handle_info(Info, State) ->
     eLog:log(error, ?MODULE, handle_info, [Info, State#state.connectData],
              "Unknown message received", ?LINE),
@@ -555,7 +561,13 @@ nextPeer(PeerUser, #conCfg{userName = PeerUser,
     %% This is data a peer we (got) connected to has about itself.
     %% No need to connect again - but use some of it's data.
     PeerConCfg   = getConnection(PeerUser),
-    eTodoDB:updateConnection(PeerConCfg#conCfg{port = Port, email = Email}),
+    case PeerConCfg#conCfg.updateTime of
+        configured ->
+            ok;
+        _ ->
+            eTodoDB:updateConnection(PeerConCfg#conCfg{port = Port,
+                                                       email = Email})
+    end,
     {next, State};
 nextPeer(PeerUser, ConCfg = #conCfg{userName = RemoteUser},
          State = #state{user = User}) ->
@@ -745,8 +757,19 @@ evalRemoteConnect(#conCfg{distance = undefined}, _PeerUser, State) ->
     {next, State};
 evalRemoteConnect(ConCfg, PeerUser, State) ->
     Distance     = ConCfg#conCfg.distance,
-    RemoteConCfg = ConCfg#conCfg{owner    = PeerUser,
-                                 distance = Distance + 1},
+    RemoteUser   = ConCfg#conCfg.userName,
+    LocalConCfg  = getConnection(RemoteUser),
+    RemoteConCfg =
+        case LocalConCfg#conCfg.updateTime of
+            configured ->
+                LocalConCfg#conCfg{owner = PeerUser,
+                                   distance = Distance + 1};
+            UpdateTime ->
+                ConCfg#conCfg{owner      = PeerUser,
+                              distance   = Distance + 1,
+                              updateTime = UpdateTime}
+        end,
+    markPeerSeen(RemoteUser),
     saveConnection(RemoteConCfg),
     connectToPeer(ConCfg, State). %% Yes, use ConCfg.
 
@@ -796,6 +819,36 @@ notToOld(UpdateTime) ->
     Diff = calendar:datetime_to_gregorian_seconds(eTodoUtils:dateTime()) -
         calendar:datetime_to_gregorian_seconds(UpdateTime),
     Diff < (3600 * 24 * 60).  %% Not older than 60 days.
+
+cleanupOldConnections(State = #state{peers = Peers}) ->
+    Now = calendar:datetime_to_gregorian_seconds(eTodoUtils:dateTime()),
+    Cutoff = calendar:gregorian_seconds_to_datetime(
+               Now - ?PeerRetentionSeconds),
+    ProtectedUsers = [State#state.user |
+                      [User || #peer{user = User, status = Status} <- Peers,
+                               Status =:= active orelse Status =:= connecting]],
+    case eTodoDB:removeStaleConnections(Cutoff, ProtectedUsers) of
+        {atomic, RemovedUsers} ->
+            Removed = sets:from_list(RemovedUsers),
+            State#state{peers = [Peer || Peer = #peer{user = User} <- Peers,
+                                         not sets:is_element(User, Removed)]};
+        {aborted, Reason} ->
+            eLog:log(error, ?MODULE, cleanupOldConnections,
+                     [Cutoff, Reason],
+                     "Failed to clean up stale peer connections", ?LINE),
+            State
+    end.
+
+markPeerSeen(undefined) ->
+    ok;
+markPeerSeen(User) ->
+    case eTodoDB:updatePeerLastSeen(User, eTodoUtils:dateTime()) of
+        {atomic, ok} ->
+            ok;
+        {aborted, Reason} ->
+            eLog:log(error, ?MODULE, markPeerSeen, [User, Reason],
+                     "Failed to update peer last-seen time", ?LINE)
+    end.
 
 saveConnection(ConCfg) ->
     case notToOld(ConCfg#conCfg.updateTime) of
@@ -888,4 +941,3 @@ checkIfActive(User, State) ->
         _ ->
             false
     end.
-

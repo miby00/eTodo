@@ -319,13 +319,17 @@ handle_cast({clientConnected, EPortPid, EListenerPid, PeerHost},
                            user   = User}) ->
     eLog:log(debug, ?MODULE, clientConnected,
              [self(), EPortPid], "entering", ?LINE),
-    Args      = {EPortPid, EListenerPid, PeerHost, Circle, User},
-    {ok, Pid} = ePeer:start(self(), clientConnected, Args),
-    Peer      = #peer{pid          = Pid,
-                      ePortPid     = EPortPid,
-                      eListenerPid = EListenerPid},
-    State2 = savePeer(Peer, State),
-    link(Pid),
+    Args = {EPortPid, EListenerPid, PeerHost, Circle, User},
+    Peer = #peer{ePortPid     = EPortPid,
+                 eListenerPid = EListenerPid},
+    State2 =
+        case startPeer(clientConnected, Args, Peer, State) of
+            {ok, State3} ->
+                State3;
+            error ->
+                ePort:stop(EPortPid),
+                State
+        end,
     eLog:log(debug, ?MODULE, clientConnected, [self(), State2], "done", ?LINE),
     {noreply, State2};
 handle_cast(_Message, State = #state{circle = undefined}) ->
@@ -374,16 +378,19 @@ handle_cast({proxyToPeer, PeerUser, ProxyUser, User},
             ePeerCircle:peerStatus(PeerUser, inactive, Circle),
             {noreply, State};
         ProxyPeer ->
-            ProxyPid  = ProxyPeer#peer.pid,
-            Args      = {PeerUser, ProxyPid, User, Circle},
-            {ok, Pid} = ePeer:start(self(), proxyToPeer, Args),
-            Peer      = #peer{pid      = Pid,
-                              peerUser = PeerUser},
-            State2    = savePeer(Peer, State),
-            link(Pid),
-            eLog:log(debug, ?MODULE, proxyToPeer, [PeerUser, ProxyUser, User],
-                     "Proxy ePeer started", ?LINE),
-            {noreply, State2}
+            ProxyPid = ProxyPeer#peer.pid,
+            Args     = {PeerUser, ProxyPid, User, Circle},
+            Peer     = #peer{peerUser = PeerUser},
+            case startPeer(proxyToPeer, Args, Peer, State) of
+                {ok, State2} ->
+                    eLog:log(debug, ?MODULE, proxyToPeer,
+                             [PeerUser, ProxyUser, User],
+                             "Proxy ePeer started", ?LINE),
+                    {noreply, State2};
+                error ->
+                    ePeerCircle:peerStatus(PeerUser, inactive, Circle),
+                    {noreply, State}
+            end
     end;
 handle_cast({proxyLogin, PeerUser, ProxyUser, User},
             State = #state{circle = Circle}) ->
@@ -393,16 +400,18 @@ handle_cast({proxyLogin, PeerUser, ProxyUser, User},
                      "Proxy user not found", ?LINE),
             {noreply, State};
         ProxyPeer ->
-            ProxyPid  = ProxyPeer#peer.pid,
-            Args      = {PeerUser, ProxyPid, User, Circle},
-            {ok, Pid} = ePeer:start(self(), proxyLogin, Args),
-            Peer      = #peer{pid      = Pid,
-                              peerUser = PeerUser},
-            State2    = savePeer(Peer, State),
-            link(Pid),
-            eLog:log(debug, ?MODULE, proxyLogin, [PeerUser, ProxyUser, User],
-                     "Proxy ePeer started", ?LINE),
-            {noreply, State2}
+            ProxyPid = ProxyPeer#peer.pid,
+            Args     = {PeerUser, ProxyPid, User, Circle},
+            Peer     = #peer{peerUser = PeerUser},
+            case startPeer(proxyLogin, Args, Peer, State) of
+                {ok, State2} ->
+                    eLog:log(debug, ?MODULE, proxyLogin,
+                             [PeerUser, ProxyUser, User],
+                             "Proxy ePeer started", ?LINE),
+                    {noreply, State2};
+                error ->
+                    {noreply, State}
+            end
     end;
 handle_cast({peerCast, EPortPid, Message, Args}, State) ->
     case getPeer(ePortPid, EPortPid, State) of
@@ -423,9 +432,15 @@ handle_cast({proxyCast, PeerUser, Message, Args}, State) ->
     end,
     {noreply, State};
 handle_cast({updatePeerInfo, Pid, PeerUser}, State) ->
-    Peer   = getPeer(pid, Pid, State),
-    State2 = savePeer(Peer#peer{peerUser = PeerUser}, State),
-    {noreply, State2};
+    case getPeer(pid, Pid, State) of
+        none ->
+            %% ePeer already exited and was removed.
+            eLog:log(debug, ?MODULE, updatePeerInfo, [Pid, PeerUser],
+                     "Unknown ePeer, ignore.", ?LINE),
+            {noreply, State};
+        Peer ->
+            {noreply, savePeer(Peer#peer{peerUser = PeerUser}, State)}
+    end;
 handle_cast(_Msg, State) ->
     eLog:log(error, ?MODULE, handle_call, [_Msg, State],
              "unknown command", ?LINE),
@@ -495,16 +510,43 @@ doConnectToPeer(EPeerServerPid, PeerUser, PeerHost, PeerPort,
                 User, Port, Circle) ->
     case ePeerTls:start(ePeerProtocol, PeerUser, PeerHost, PeerPort) of
         {ok, EPortPid} ->
-            Args      = {EPortPid, PeerUser, PeerHost, PeerPort,
-                         User, Port, Circle},
-            {ok, Pid} = ePeer:start(EPeerServerPid, connectToPeer, Args),
-            doConnectReply(Pid, PeerUser, EPortPid),
+            Args = {EPortPid, PeerUser, PeerHost, PeerPort,
+                    User, Port, Circle},
+            case ePeer:start(EPeerServerPid, connectToPeer, Args) of
+                {ok, Pid} ->
+                    doConnectReply(Pid, PeerUser, EPortPid);
+                Error ->
+                    eLog:log(error, ?MODULE, doConnectToPeer,
+                             [Error, self(), PeerUser],
+                             "failed to start ePeer", ?LINE),
+                    ePort:stop(EPortPid),
+                    ePeerCircle:peerStatus(PeerUser, inactive, Circle)
+            end,
             ok;
         _Else ->
             eLog:log(debug, ?MODULE, doConnectToPeer,
                      [_Else, self(), PeerUser], "failed to start ePort", ?LINE),
             ePeerCircle:peerStatus(PeerUser, inactive, Circle),
             ok
+    end.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Start an ePeer, link to it and save it in state.
+%%
+%% @spec startPeer(Event, Args, Peer, State) -> {ok, NewState} | error
+%% @end
+%%--------------------------------------------------------------------
+startPeer(Event, Args, Peer, State) ->
+    case ePeer:start(self(), Event, Args) of
+        {ok, Pid} ->
+            link(Pid),
+            {ok, savePeer(Peer#peer{pid = Pid}, State)};
+        Error ->
+            eLog:log(error, ?MODULE, startPeer, [Event, Error],
+                     "Failed to start ePeer", ?LINE),
+            error
     end.
 
 %%--------------------------------------------------------------------

@@ -34,6 +34,8 @@
          getAllUserInfos/0,
          getConnections/0,
          getConnection/1,
+         updatePeerLastSeen/2,
+         removeStaleConnections/2,
          getColumns/1,
          getETodos/5,
          getLists/2,
@@ -109,6 +111,7 @@
 -include_lib("inets/include/mod_auth.hrl").
 
 -record(state, {undo = [], redo = [], opType = normal}).
+-record(peerSeen, {userName, lastSeen}).
 
 -import(eTodoUtils, [makeStr/1, toStr/1, toStr/2, col/2, default/2]).
 
@@ -217,6 +220,12 @@ getConnections() ->
 
 getConnection(User) ->
     gen_server:call(?MODULE, {getConnection, User}).
+
+updatePeerLastSeen(User, LastSeen) ->
+    gen_server:call(?MODULE, {updatePeerLastSeen, User, LastSeen}).
+
+removeStaleConnections(Cutoff, ProtectedUsers) ->
+    gen_server:call(?MODULE, {removeStaleConnections, Cutoff, ProtectedUsers}).
 
 getColumns(User) ->
     gen_server:call(?MODULE, {getColumns, User}).
@@ -417,6 +426,7 @@ recordInfo(userInfo)    -> record_info(fields, userInfo);
 recordInfo(userCfg)     -> record_info(fields, userCfg);
 recordInfo(listCfg)     -> record_info(fields, listCfg);
 recordInfo(conCfg)      -> record_info(fields, conCfg);
+recordInfo(peerSeen)    -> record_info(fields, peerSeen);
 recordInfo(logWork)     -> record_info(fields, logWork);
 recordInfo(logTime)     -> record_info(fields, logTime);
 recordInfo(workDesc)    -> record_info(fields, workDesc);
@@ -441,7 +451,7 @@ recordInfo(httpd_group) -> record_info(fields, httpd_group).
 %%--------------------------------------------------------------------
 init([]) ->
     ExistingTables = mnesia:system_info(tables),
-    TablesToCreate = [todo, userInfo, conCfg, userCfg, logWork, logTime,
+    TablesToCreate = [todo, userInfo, conCfg, peerSeen, userCfg, logWork, logTime,
                       workDesc, listCfg, alarmCfg, httpd_user, httpd_group,
                       messages],
 
@@ -450,10 +460,15 @@ init([]) ->
     waitForTables(TablesToCreate, PDlg, 0),
     createTables(ExistingTables, TablesToCreate),
     mnesia:wait_for_tables(TablesToCreate, 30000),
-    checkAndRepair(),
-    protectWebPasswords(),
-    updateProgressDialog(PDlg, 30),
-    {ok, #state{}}.
+    case migratePeerLastSeen() of
+        {atomic, ok} ->
+            checkAndRepair(),
+            protectWebPasswords(),
+            updateProgressDialog(PDlg, 30),
+            {ok, #state{}};
+        {aborted, Reason} ->
+            {stop, {peerSeenMigrationFailed, Reason}}
+    end.
 
 createProgressDialog() ->
     case application:get_env(eTodo, mode) of
@@ -479,6 +494,61 @@ waitForTables(TablesToCreate, PDlg, Prog) ->
         _ ->
             waitForTables(TablesToCreate, PDlg, Prog + 1)
     end.
+
+migratePeerLastSeen() ->
+    mnesia:transaction(
+      fun() ->
+              mnesia:foldl(
+                fun(#conCfg{userName = User, updateTime = UpdateTime}, ok)
+                      when UpdateTime =/= undefined,
+                           UpdateTime =/= configured ->
+                        case mnesia:read(peerSeen, User, write) of
+                            [] ->
+                                mnesia:write(#peerSeen{userName = User,
+                                                       lastSeen = UpdateTime});
+                            _ ->
+                                ok
+                        end,
+                        ok;
+                   (_, ok) ->
+                        ok
+                end,
+                ok,
+                conCfg)
+      end).
+
+removeStaleConnectionRecords(Cutoff, ProtectedUsers) ->
+    Protected = sets:from_list(ProtectedUsers),
+    Connections = mnesia:match_object(conCfg, #conCfg{_ = '_'}, write),
+    lists:foldl(
+      fun(#conCfg{userName = User, updateTime = UpdateTime}, Removed) ->
+              case UpdateTime =:= configured orelse sets:is_element(User, Protected) of
+                  true ->
+                      Removed;
+                  false ->
+                      SeenTime = case mnesia:read(peerSeen, User, read) of
+                                     [#peerSeen{lastSeen = LastSeen}] -> LastSeen;
+                                     [] -> UpdateTime
+                                 end,
+                      case datetime_before(SeenTime, Cutoff) of
+                          true ->
+                              mnesia:delete({conCfg, User}),
+                              mnesia:delete({peerSeen, User}),
+                              [User | Removed];
+                          false ->
+                              Removed
+                      end
+              end
+      end,
+      [],
+      Connections).
+
+datetime_before({{_, _, _}, {_, _, _}} = DateTime,
+                {{_, _, _}, {_, _, _}} = Cutoff) ->
+    calendar:datetime_to_gregorian_seconds(DateTime) <
+        calendar:datetime_to_gregorian_seconds(Cutoff);
+datetime_before(_, _) ->
+    false.
 
 
 createTables(_Existing, []) ->
@@ -663,7 +733,24 @@ handle_call({updateConnection, ConCfg}, _From, State) ->
     Result = mnesia:transaction(fun() -> mnesia:write(ConCfg2) end),
     {reply, Result, State};
 handle_call({removeConnection, #conCfg{userName = UserName}}, _From, State) ->
-    Result = mnesia:transaction(fun() -> mnesia:delete({conCfg, UserName}) end),
+    Result = mnesia:transaction(
+               fun() ->
+                       mnesia:delete({conCfg, UserName}),
+                       mnesia:delete({peerSeen, UserName})
+               end),
+    {reply, Result, State};
+handle_call({updatePeerLastSeen, User, LastSeen}, _From, State) ->
+    Result = mnesia:transaction(
+               fun() ->
+                       mnesia:write(#peerSeen{userName = User,
+                                              lastSeen = LastSeen})
+               end),
+    {reply, Result, State};
+handle_call({removeStaleConnections, Cutoff, ProtectedUsers}, _From, State) ->
+    Result = mnesia:transaction(
+               fun() ->
+                       removeStaleConnectionRecords(Cutoff, ProtectedUsers)
+               end),
     {reply, Result, State};
 handle_call(Event = {addReminder, Reminder}, _From, State) ->
     {Result, Object} = doAddReminder(Reminder),

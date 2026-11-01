@@ -2,7 +2,7 @@
 [{<<"cowlib">>,{pkg,<<"cowlib">>,<<"2.21.0">>},1},
  {<<"eLog">>,
   {git,"https://github.com/miby00/eLog.git",
-       {ref,"34d60b499944860827d4845dae484763365a9627"}},
+       {ref,"a78657fd18fec5d24baef6c9486168609d27350e"}},
   0},
  {<<"ePort">>,
   {git,"https://github.com/miby00/ePort.git",

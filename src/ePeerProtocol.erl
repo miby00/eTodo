@@ -16,6 +16,7 @@
          todoUpdated/4,
          getLock/3,
          releaseLock/3,
+         ping/3,
 
          proxyMsg/6
         ]).
@@ -102,6 +103,9 @@ getLock(EPortPid, Uid, Owner) ->
 %%--------------------------------------------------------------------
 releaseLock(EPortPid, Uid, Owner) ->
     ePeerServer:peerCast(EPortPid, releaseLock, [Uid, Owner]).
+
+ping(EPortPid, PeerUser, User) ->
+    ePeerServer:peerCast(EPortPid, ping, [PeerUser, User]).
 
 %%--------------------------------------------------------------------
 %% @doc
