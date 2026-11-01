@@ -108,9 +108,10 @@ value(proxy, _, _, {Host, Port}, _) ->
     quote(Host ++ ":" ++ integer_to_list(Port)).
 
 secret(Key) ->
-    lists:member(Key, ["password", "client_secret", "token"]).
+    lists:member(Key, ["password", "circle_password", "client_secret", "token"]).
 
 envName("node", "password") -> "ETODO_PASSWORD";
+envName("node", "circle_password") -> "ETODO_CIRCLE_PASSWORD";
 envName(Table, Key) -> string:uppercase(Table ++ "_" ++ Key).
 
 quote(Text) ->

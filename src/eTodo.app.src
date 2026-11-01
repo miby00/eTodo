@@ -33,6 +33,7 @@
 	     eTodoTunnel,
 	     eTodoApp,
 	     eTodoConfig,
+	     eTodoPassword,
 	     startETodo
 	    ]},
   {maxT, infinity},

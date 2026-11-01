@@ -2512,8 +2512,7 @@ setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
 
     wxTextCtrl:setValue(EHostObj, default(UConCfg#conCfg.host, IPAddr)),
 
-    #userCfg{webPassword      = WPasswd,
-             smtpEnabled      = SMTPOn,
+    #userCfg{smtpEnabled      = SMTPOn,
              smtpServer       = SMTPServer,
              smtpPort         = SMTPPort,
              smtpUser         = SMTPUser,
@@ -2528,7 +2527,9 @@ setDefaultValues(State = #guiState{user = User, settingsDlg = Settings}) ->
     wxTextCtrl:setValue(SMTPPwdObj,   default(SMTPPwd, "")),
     wxTextCtrl:setValue(SMTPUserObj,  default(SMTPUser, "")),
     wxTextCtrl:setValue(EPortObj,     toStr(default(EPort,  19000))),
-    wxTextCtrl:setValue(WPwdObj,      default(WPasswd, "")),
+    %% Only a hash of the web password is stored, it cannot be shown.
+    wxTextCtrl:setValue(WPwdObj,      ""),
+    wxWindow:setToolTip(WPwdObj,      "Leave empty to keep the current password"),
     wxSpinCtrl:setValue(NotTimeObj,   default(NTime, ?NotificationTime)),
     wxChoice:setStringSelection(SMTPAuthObj, default(SMTPAuth, "None")),
 
@@ -2598,8 +2599,12 @@ settingsOkEvent(_Type, _Id, _Frame, State = #guiState{settingsDlg = Settings,
                                      updateTime = configured}),
 
     UserCfg  = eTodoDB:readUserCfg(User),
+    WebPwd   = case WPwd of
+                   "" -> UserCfg#userCfg.webPassword;
+                   _  -> WPwd
+               end,
     UserCfg2 = UserCfg#userCfg{peerUser         = PeerUser,
-                               webPassword      = WPwd,
+                               webPassword      = WebPwd,
                                smtpEnabled      = SMTPEnabled,
                                smtpServer       = SMTPServer,
                                smtpPort         = toInt(SMTPPort),

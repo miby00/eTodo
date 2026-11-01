@@ -49,7 +49,6 @@
 
 -record(state, {stateName, %% See below.
                 stateData,
-                hashPwd,
                 parent,
                 peerUser,
                 peerHost,
@@ -241,10 +240,7 @@ init([Parent, Event, Args]) ->
     State = doInit(Parent, Event, Args),
     eLog:log(debug, ?MODULE, init, [self(), State],
              "started", ?LINE),
-    UserCfg  = eTodoDB:readUserCfg(State#state.user),
-    Password = default(UserCfg#userCfg.webPassword, ""),
-    HashPwd  = crypto:hash(sha, Password),
-    {ok, State#state{hashPwd = HashPwd}}.
+    {ok, State}.
 
 doInit(Parent, connectToPeer, Args) ->
     {EPortPid, PeerUser, PeerHost, PeerPort,

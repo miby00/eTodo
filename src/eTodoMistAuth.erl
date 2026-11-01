@@ -16,8 +16,18 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-login(UserName, Password) ->
-    gen_server:call(?MODULE, {login, UserName, Password}).
+%% The password is checked in the caller, the hash is slow on purpose and
+%% must not block the session server.
+login(UserName0, Password0) ->
+    UserName = to_list(UserName0),
+    Password = to_binary(Password0),
+    case UserName =/= [] andalso Password =/= <<>> andalso
+         valid_credentials(UserName, Password) of
+        true ->
+            gen_server:call(?MODULE, {new_session, UserName});
+        false ->
+            {error, nil}
+    end.
 
 %% Session for a user already authenticated elsewhere (Google sign-in).
 %% The user must be the local account or one of its peers.
@@ -258,22 +268,14 @@ init([]) ->
     eTodoOidc:init(),
     {ok, #{}}.
 
-handle_call({login, UserName0, Password0}, _From, Sessions) ->
-    UserName = to_list(UserName0),
-    Password = to_binary(Password0),
-    case UserName =/= [] andalso Password =/= <<>> andalso
-         valid_credentials(UserName, Password) of
-        true ->
-            Now = erlang:system_time(second),
-            Sessions1 = remove_expired_sessions(Sessions, Now),
-            Token = binary:encode_hex(crypto:strong_rand_bytes(32)),
-            Csrf = binary:encode_hex(crypto:strong_rand_bytes(32)),
-            Session = {unicode:characters_to_binary(UserName),
-                       Now + ?SESSION_LIFETIME, Csrf},
-            {reply, {ok, Token}, maps:put(Token, Session, Sessions1)};
-        false ->
-            {reply, {error, nil}, Sessions}
-    end;
+handle_call({new_session, UserName}, _From, Sessions) ->
+    Now = erlang:system_time(second),
+    Sessions1 = remove_expired_sessions(Sessions, Now),
+    Token = binary:encode_hex(crypto:strong_rand_bytes(32)),
+    Csrf = binary:encode_hex(crypto:strong_rand_bytes(32)),
+    Session = {unicode:characters_to_binary(UserName),
+               Now + ?SESSION_LIFETIME, Csrf},
+    {reply, {ok, Token}, maps:put(Token, Session, Sessions1)};
 handle_call({external_login, UserName0}, _From, Sessions) ->
     UserName = to_list(UserName0),
     case known_user(UserName) of
@@ -378,7 +380,7 @@ valid_credentials(UserName, Password) ->
                 true ->
                     #userCfg{webPassword = WebPassword} =
                         eTodoDB:readUserCfg(Owner),
-                    secure_equal(Password, WebPassword);
+                    eTodoPassword:verify(Password, WebPassword);
                 false ->
                     case lists:member(UserName, guest_users(Owner)) of
                         true ->

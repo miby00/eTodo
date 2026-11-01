@@ -241,7 +241,7 @@ TOML settings map to these `sys.config` names, for example `port = 9003` under
 | TOML | sys.config |
 |---|---|
 | `[storage]` `database_dir`, `log_dir` | `mnesia` `dir`, `eLog` `logDir` |
-| `[node]` `mode`, `user`, `password`, `circle`, `status`, `status_message` | `mode`, `user`, `pwd`, `circle`, `status`, `statusMsg` |
+| `[node]` `mode`, `user`, `password`, `circle_password`, `circle`, `status`, `status_message` | `mode`, `user`, `pwd`, `circlePwd`, `circle`, `status`, `statusMsg` |
 | `[web]` `enabled`, `port`, `bind`, `certificate`, `key`, `link_host` | `mistWebEnabled`, `mistWebPort`, `mistWebBind`, `mistWebCert`, `mistWebKey`, `mistWebLinkHost` |
 | `[relay]` `port`, `target`; `[tunnel]` `peers` | `webRelayPort`, `webRelayTarget`; `webTunnelPeers` |
 | `[google]` `client_id`, `client_secret`, `redirect_uri`, `proxy`; `[google.users]` | `mistGoogleClientId`, `mistGoogleClientSecret`, `mistGoogleRedirectUri`, `mistGoogleProxy`; `mistGoogleUsers` |
@@ -296,6 +296,24 @@ readable by the `etodo` user only) before starting the node:
     ETODO_PASSWORD=...
     GOOGLE_CLIENT_SECRET=...
     SMTP_PASSWORD=...
+
+#### Passwords of a headless node
+
+A node with `mode = "noGui"` joins its circle with `[node] password`. Set
+`[node] circle_password` to use a different circle password; `password` is
+then the web login password of `user` and can be stronger than the circle
+password. Peers that log in to the node's web GUI use the circle password.
+
+    [node]
+    password        = "%ETODO_PASSWORD%"
+    circle_password = "%ETODO_CIRCLE_PASSWORD%"
+
+All peers in a circle must use the same circle password.
+
+The web password is stored in the database as a salted PBKDF2-SHA256 hash.
+A password stored in plain text by an older version is hashed when eTodo
+starts. The password field in the Settings dialog is therefore empty; leave it
+empty to keep the current password.
 
 ### Email notifications without a GUI
 

@@ -451,6 +451,7 @@ init([]) ->
     createTables(ExistingTables, TablesToCreate),
     mnesia:wait_for_tables(TablesToCreate, 30000),
     checkAndRepair(),
+    protectWebPasswords(),
     updateProgressDialog(PDlg, 30),
     {ok, #state{}}.
 
@@ -563,6 +564,24 @@ getLists2([], Lists) ->
     Lists;
 getLists2([#userInfo{parent = Parent}|Rest], Lists) ->
     getLists2(Rest, lists:umerge([Parent], Lists)).
+
+%% Web passwords saved in plain text by older versions are hashed.
+protectWebPasswords() ->
+    [protectWebPassword(UserCfg) || UserCfg <- match(#userCfg{_ = '_'})],
+    ok.
+
+protectWebPassword(UserCfg = #userCfg{userName = User, webPassword = Pwd}) ->
+    case protectUserCfg(UserCfg) of
+        #userCfg{webPassword = Pwd} ->
+            ok;
+        UserCfg2 ->
+            logger:notice("eTodo: hashed the plain text web password "
+                          "of ~ts", [User]),
+            mnesia:transaction(fun() -> mnesia:write(UserCfg2) end)
+    end.
+
+protectUserCfg(UserCfg = #userCfg{webPassword = Pwd}) ->
+    UserCfg#userCfg{webPassword = eTodoPassword:protect(Pwd)}.
 
 checkAndRepair() ->
     Res   = match(#conCfg{_ = '_'}),
@@ -980,7 +999,8 @@ handle_call(Event = {saveListCfg, UserName, Column, Field, Value},
     State2  = addToUndo({Event, {undoSaveCfg, Config1}}, State),
     {reply, Result, State2};
 handle_call({saveUserCfg, UserCfg}, _From, State) ->
-    Result = mnesia:transaction(fun() -> mnesia:write(UserCfg) end),
+    UserCfg2 = protectUserCfg(UserCfg),
+    Result   = mnesia:transaction(fun() -> mnesia:write(UserCfg2) end),
     {reply, Result, State};
 handle_call(Event = {updateTodo, UserInfo = #userInfo{}}, _From, State) ->
     Object = matchOne(UserInfo#userInfo{row = '_'}),

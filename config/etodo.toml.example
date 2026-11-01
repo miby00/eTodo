@@ -23,6 +23,11 @@
 # user           = "UserName"
 # password       = "%ETODO_PASSWORD%"
 # circle         = "Circle"
+# With circle_password set, password is the web login password of user
+# (stored hashed) and circle_password joins the circle. Without it,
+# password is the circle password. Peers log in to the web with the
+# circle password.
+# circle_password = "%ETODO_CIRCLE_PASSWORD%"
 # status         = "Available" # "Available", "Busy" or "Away"
 # status_message = "Only using the web client"
 

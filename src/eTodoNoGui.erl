@@ -121,9 +121,10 @@ init([]) ->
     {ok, User}   = application:get_env(eTodo, user),
     {ok, Pwd}    = application:get_env(eTodo, pwd),
     {ok, Circle} = application:get_env(eTodo, circle),
+    CirclePwd    = circlePassword(User, Pwd),
     %% Add handler to receive events
     ePeerEM:add_handler(eTodoEH, {User, noGui}),
-    ePeerEM:connectToCircle(User, Circle, Pwd),
+    ePeerEM:connectToCircle(User, Circle, CirclePwd),
     eTodoAlarm:loggedIn(User),
     eSMTP:setUser(User),
     eSMTP:updateConfig(),
@@ -317,6 +318,31 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+%%====================================================================
+%% With circle_password set, password is the web password of the user
+%% and circle_password joins the circle. Without it password is used
+%% for the circle only, as before.
+%%====================================================================
+circlePassword(User, Pwd) ->
+    case application:get_env(eTodo, circlePwd) of
+        {ok, CirclePwd} when is_list(CirclePwd), CirclePwd =/= "" ->
+            setWebPassword(User, Pwd),
+            CirclePwd;
+        _ ->
+            Pwd
+    end.
+
+setWebPassword(_User, Pwd) when not is_list(Pwd); Pwd =:= "" ->
+    ok;
+setWebPassword(User, Pwd) ->
+    UserCfg = eTodoDB:readUserCfg(User),
+    case eTodoPassword:verify(Pwd, UserCfg#userCfg.webPassword) of
+        true ->
+            ok;
+        false ->
+            eTodoDB:saveUserCfg(UserCfg#userCfg{webPassword = Pwd})
+    end.
 
 %%====================================================================
 %% Get status configuration

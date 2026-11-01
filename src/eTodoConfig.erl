@@ -25,6 +25,7 @@ settings() ->
      {"node", "mode", eTodo, mode, string},
      {"node", "user", eTodo, user, string},
      {"node", "password", eTodo, pwd, string},
+     {"node", "circle_password", eTodo, circlePwd, string},
      {"node", "circle", eTodo, circle, string},
      {"node", "status", eTodo, status, string},
      {"node", "status_message", eTodo, statusMsg, string},
