@@ -30,14 +30,27 @@ html[data-bs-theme="light"] { --etodo-pattern: var(--etodo-pattern-light); }
   --line: color-mix(in srgb, var(--foreground) 14%, var(--background));
   --surface: color-mix(in srgb, var(--foreground) 7%, var(--background));
   --surface-strong: color-mix(in srgb, var(--foreground) 12%, var(--background));
+  --bubble: var(--surface);
+  --sent-accent: var(--accent);
   --sent: linear-gradient(135deg,
-          color-mix(in srgb, var(--accent) 88%, #7b5cff),
-          color-mix(in srgb, var(--accent) 80%, #00c2a8));
+          color-mix(in srgb, var(--sent-accent) 88%, #7b5cff),
+          color-mix(in srgb, var(--sent-accent) 80%, #00c2a8));
   --sent-text: #ffffff;
   --reminder: #f59f00;
   --timer: #f0503c;
   --system: #7b5cff;
   --task: #12b886;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-bs-theme="light"]) {
+    --bubble: color-mix(in srgb, var(--foreground) 16%, var(--background));
+    --sent-accent: #07558f;
+  }
+}
+html[data-bs-theme="dark"] {
+  --bubble: color-mix(in srgb, var(--foreground) 16%, var(--background));
+  --sent-accent: #07558f;
 }
 
 * { box-sizing: border-box; }
@@ -158,7 +171,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   position: relative;
   padding: 7px 12px 6px;
   border-radius: 18px;
-  background: var(--surface);
+  background: var(--bubble);
   overflow-wrap: anywhere;
   box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
 }
